@@ -34,12 +34,21 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
 }
 
+header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.4rem 0 0;
+  z-index: 2;
+}
+
 main {
   width: min(92vw, 520px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1.6rem 0 0.8rem;
+  padding: 0 0 0.8rem;
   flex: 1;
 }
 
@@ -50,7 +59,51 @@ main {
   text-transform: uppercase;
   text-align: center;
   color: var(--ink);
-  margin-bottom: 1.15rem;
+  margin-bottom: 0.85rem;
+}
+
+.mark a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem 0.15rem;
+  width: min(94vw, 920px);
+  margin: 0 auto 1.1rem;
+  padding: 0 0.6rem;
+  list-style: none;
+  z-index: 2;
+}
+
+.tabs a {
+  display: block;
+  padding: 0.28rem 0.55rem 0.22rem;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-bottom: 2px solid transparent;
+}
+
+.tabs a:hover,
+.tabs a:focus-visible {
+  border-bottom-color: var(--brass);
+}
+
+.tabs a[aria-current="page"] {
+  border-bottom-color: var(--stamp);
+  color: var(--stamp);
+}
+
+.blank {
+  flex: 1;
+  min-height: 40vh;
 }
 
 figure {
@@ -115,4 +168,5 @@ footer a:focus-visible {
 @media (max-width: 640px) {
   img { max-height: min(68vh, 760px); }
   footer { flex-wrap: wrap; gap: 0.35rem 0.7rem; }
+  .tabs a { font-size: 0.62rem; padding: 0.22rem 0.42rem 0.16rem; }
 }
