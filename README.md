@@ -1,34 +1,23 @@
 # sixpack.wtf
 
-Live: **https://sixpack.wtf** (GitHub Pages)
+Blank page. Public: **https://sixpack.wtf**
 
-One picture. GitHub and X at the bottom.
+Local kaspa-x402 mock (Node):
 
-- GitHub: https://github.com/STP-KAS
-- X: https://x.com/StppStp
+```
+node serve.mjs
+```
 
-## DNS (Namecheap BasicDNS)
+Then open http://127.0.0.1:4020/
 
-Nameservers are already authoritative:
+GitHub Pages serves the blank HTML only. `/download` and `/metered` 402 need the local Node host.
 
-- `dns1.registrar-servers.com`
-- `dns2.registrar-servers.com`
+| URL | What |
+| --- | --- |
+| `/` | blank HTML |
+| `/health` | JSON |
+| `/supported` | x402 v2 kinds, `kaspa:testnet-10`, asset `KAS` |
+| `/download` | exact. Unpaid → **402** + `PAYMENT-REQUIRED`. Paid → **200** + `PAYMENT-RESPONSE` |
+| `/metered` | batch-settlement. Same headers. |
 
-Open **Advanced DNS**:
-https://ap.www.namecheap.com/domains/domaincontrolpanel/sixpack.wtf/advancedns
-
-Delete the parking records (`192.64.119.35` and `parkingpage.namecheap.com`). Then add:
-
-| Type | Host | Value |
-| --- | --- | --- |
-| A | `@` | `185.199.108.153` |
-| A | `@` | `185.199.109.153` |
-| A | `@` | `185.199.110.153` |
-| A | `@` | `185.199.111.153` |
-| AAAA | `@` | `2606:50c0:8000::153` |
-| AAAA | `@` | `2606:50c0:8001::153` |
-| AAAA | `@` | `2606:50c0:8002::153` |
-| AAAA | `@` | `2606:50c0:8003::153` |
-| CNAME | `www` | `stp-kas.github.io.` |
-
-TTL: Automatic. Turn off URL redirect / parking on the Domain tab. Save. GitHub then issues HTTPS for `sixpack.wtf` and `www.sixpack.wtf`.
+Mock direct mode. No TN10 wallet. No broadcast.
