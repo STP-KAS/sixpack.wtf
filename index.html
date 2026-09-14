@@ -3,7 +3,172 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title></title>
+  <title>sixpack.wtf — final verdict</title>
+  <meta name="description" content="kaspa-x402 v1.0.0-rc.1 independent pass. Bind this envelope. Not v1. Not mainnet.">
+  <link rel="canonical" href="https://sixpack.wtf/">
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #fff;
+      color: #111;
+      font: 16px/1.45 ui-sans-serif, system-ui, sans-serif;
+    }
+    main { max-width: 44rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+    h1, h2, h3 { font-weight: 600; letter-spacing: -0.02em; }
+    h1 { font-size: 1.25rem; margin: 0 0 1rem; }
+    h2 { font-size: 1.05rem; margin: 2rem 0 0.6rem; }
+    p, li { margin: 0.4rem 0; }
+    ul, ol { padding-left: 1.2rem; }
+    a { color: #111; }
+    table { border-collapse: collapse; width: 100%; margin: 0.6rem 0 1rem; font-size: 0.95rem; }
+    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid #ddd; padding: 0.35rem 0.4rem 0.35rem 0; }
+    th { font-weight: 600; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.85rem; }
+    pre { overflow: auto; background: #f6f6f6; padding: 0.8rem; }
+    .meta { color: #444; font-size: 0.9rem; }
+    .box { border: 1px solid #111; padding: 0.8rem 1rem; margin: 1rem 0; }
+    #repos { list-style: none; padding: 0; }
+    #repos li { display: flex; gap: 0.6rem; flex-wrap: wrap; border-bottom: 1px solid #eee; padding: 0.35rem 0; }
+    #repos .name { min-width: 11rem; }
+    #repos .desc { color: #444; flex: 1; }
+  </style>
 </head>
-<body></body>
+<body>
+<main>
+  <h1>Final verdict</h1>
+  <p class="meta">14 Sep 2026. Independent Grok pass of <a href="https://github.com/elldeeone/kaspa-x402">elldeeone/kaspa-x402</a> <code>v1.0.0-rc.1</code> (<code>040b1ec</code>). Windows, Node 24. Not Kaspa core. Not an audit. Not a v1 rubber stamp.</p>
+
+  <div class="box">
+    <p><strong>kaspa-x402 is a real x402 v2 binding for native KAS.</strong> Bind this envelope. Do not invent a fourth. <strong>It is not v1, not mainnet, not in the upstream x402 registry, not a registered CAIP namespace.</strong></p>
+    <p><strong>Ishum is a coffee till, not x402.</strong> Zero <code>PAYMENT-*</code> headers. Quotes EUR/USD. Settles native KAS. Do not weld the names.</p>
+  </div>
+
+  <h2>Both problems — solved this pass</h2>
+  <table>
+    <thead><tr><th>#</th><th>Break</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Windows <code>npm test</code>: <code>.sil</code> CRLF vs launch-identity SHA-256 pinned to LF (<code>ab88ec5d…</code> vs <code>065dff5d…</code>)</td>
+        <td>Reproduced. Patched. Covenant 27/27 pass.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Unix <code>0o600</code> (384 vs 438) and <code>proof:offline</code> <code>fsync</code> EPERM after 22/22 protocol checks</td>
+        <td>Reproduced. Patched. <code>npm test</code> green. <code>proof:offline</code> 24/24 <code>ok: true</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    Issue: <a href="https://github.com/elldeeone/kaspa-x402/issues/11">elldeeone/kaspa-x402#11</a>
+    · PR: <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a>
+    · Fork: <a href="https://github.com/STP-KAS/kaspa-x402">STP-KAS/kaspa-x402</a>
+    · Long form: <a href="https://github.com/STP-KAS/grok-heavy-test">STP-KAS/grok-heavy-test</a>
+  </p>
+  <p>Patch: <code>*.sil text eol=lf</code>, hash LF-normalized bytes, skip Unix modes on <code>win32</code>, treat <code>fsync</code> EPERM as non-fatal. A <code>windows-latest</code> CI job is the follow-up (this token cannot push workflow files).</p>
+
+  <h2>What we ran</h2>
+<pre>git clone --branch v1.0.0-rc.1 https://github.com/elldeeone/kaspa-x402.git
+npm ci
+npm --workspace @kaspa-x402/covenant test   # FAIL: ab88ec5d vs 065dff5d
+# apply patch
+npm --workspace @kaspa-x402/covenant test   # 27 pass
+npm run build && npm test                   # green
+npm run proof:offline                       # 24/24 ok: true</pre>
+  <table>
+    <thead><tr><th>Probe</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td><a href="https://demo.kaspa-x402.org/health">demo.kaspa-x402.org/health</a></td><td><code>ok</code>, <code>1.0.0-rc.1</code>, testnet hosted exact on</td></tr>
+      <tr><td><a href="https://demo.kaspa-x402.org/supported">/supported</a></td><td><code>x402Version: 2</code>, exact + batch, <code>kaspa:testnet-10</code> only, asset <code>KAS</code></td></tr>
+      <tr><td>TN10 tx <code>b46de1e1…</code></td><td><code>is_accepted: true</code></td></tr>
+    </tbody>
+  </table>
+  <p>Did not run a funded live harness. Did not pay the Worker.</p>
+
+  <h2>Steps to take</h2>
+  <h3>Luke</h3>
+  <ol>
+    <li>Read this page. Long form: <a href="https://github.com/STP-KAS/grok-heavy-test/blob/main/docs/00-for-luke.md">00-for-luke.md</a>.</li>
+    <li>Accept <a href="https://github.com/elldeeone/kaspa-x402/issues/11">issue #11</a>.</li>
+    <li>Merge <a href="https://github.com/elldeeone/kaspa-x402/pull/12">PR #12</a> or land the equivalent.</li>
+    <li>Add a Windows CI job: <code>npm ci && npm test && npm run proof:offline</code>.</li>
+    <li>Align <code>pragma silverscript ^0.1.0</code> with the v1.0.0 <code>3ed9733</code> compile.</li>
+    <li>Do not drop the <code>rc</code> until the gates in <code>docs/mainnet-readiness.md</code> close. Do not take “Kaspa is in x402” until upstream lists you or rejects you in writing.</li>
+  </ol>
+  <h3>This desk</h3>
+  <ol>
+    <li>Bind this envelope on TN10. One URL → 402 → pay → 200 + txid. No fourth dialect. No kUSD as this <code>asset</code>.</li>
+    <li>Keep Ishum a till. Default kUSD/USDT off.</li>
+    <li>Keep the master-file pin on <code>v1.0.0-rc.1</code>, TN10 only, mainnet blocked.</li>
+    <li>Steal k402’s lock if a channel is needed. Credit Kali. Never “adopted KCC-0402.”</li>
+  </ol>
+  <h3>Anyone else</h3>
+  <p>HTTP 402 ≠ x402. Native KAS ≠ USDC. <code>accepted</code> ≠ irreversible. A till that quotes EUR is allowed. Calling it x402 is not.</p>
+
+  <h2>What to do next</h2>
+  <table>
+    <thead><tr><th>When</th><th>Do</th></tr></thead>
+    <tbody>
+      <tr><td>Today</td><td>Send Luke this page + <a href="https://github.com/elldeeone/kaspa-x402/issues/11">#11</a> + <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a>.</td></tr>
+      <tr><td>This week</td><td>Bind exact <code>standard-native</code> on TN10. Do not pre-sign batch ceiling T beyond delivered work.</td></tr>
+      <tr><td>Before any “v1” sentence</td><td>Independent covenant + replay audit. Fresh funded TN10 run and a paid Worker canary. Durable store. Confirmation policy written down.</td></tr>
+      <tr><td>Before mainnet KAS</td><td>Every gate in <code>mainnet-readiness.md</code>. CAIP <a href="https://github.com/ChainAgnostic/namespaces/pull/193">namespaces#193</a> merged or every public sentence says unregistered.</td></tr>
+      <tr><td>Never</td><td><code>allowMainnet: true</code> early. Foreign <code>readInputState</code> / <code>State[].split()</code>. USDC/USDT/“kaspa dollar” as this <code>asset</code>. A fourth 402 envelope.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>kaspa-x402 (this fork)</h2>
+  <p><a href="https://github.com/STP-KAS/kaspa-x402">STP-KAS/kaspa-x402</a> is a fork of <a href="https://github.com/elldeeone/kaspa-x402">elldeeone/kaspa-x402</a>. Branch <code>windows-clone-and-test</code> is the Windows clone-and-test patch. Upstream is TN10 RC, not v1, not mainnet.</p>
+  <p>Schemes: <code>exact</code> (<code>kaspa-exact-v2</code>) and <code>batch-settlement</code> (<code>kaspa-escrow-v3</code> / <code>kaspa-x402-escrow-v4</code>). Asset <code>KAS</code> only.</p>
+
+  <h2>What held / what is not v1</h2>
+  <p>Held: x402 v2 headers; native KAS; claim successor locks value; no <code>readInputState</code> / <code>State[].split()</code>; exact replay 409; facilitator optional; mainnet gates written down.</p>
+  <p>Not v1: CAIP #193 open; not in upstream SDKs; spec still draft; batch claim/refund race; replay lives in the store; one RPC; <code>accepted</code> is not irreversible; 500 sompi vouchers lock ~10M sompi-class capital; compute budget guessed.</p>
+
+  <h2>STP-KAS repositories</h2>
+  <p>Live list from <a href="https://github.com/STP-KAS?tab=repositories">github.com/STP-KAS</a>. This desk’s x402 row is <a href="https://github.com/STP-KAS/kaspa-x402">kaspa-x402</a>. The report to send is <a href="https://github.com/STP-KAS/grok-heavy-test">grok-heavy-test</a>.</p>
+  <ul id="repos"><li class="meta">loading…</li></ul>
+
+  <h2>Links</h2>
+  <table>
+    <tbody>
+      <tr><td>This page</td><td><a href="https://sixpack.wtf/">https://sixpack.wtf/</a></td></tr>
+      <tr><td>Report (send this GitHub)</td><td><a href="https://github.com/STP-KAS/grok-heavy-test">STP-KAS/grok-heavy-test</a></td></tr>
+      <tr><td>For Luke</td><td><a href="https://github.com/STP-KAS/grok-heavy-test/blob/main/docs/00-for-luke.md">docs/00-for-luke.md</a></td></tr>
+      <tr><td>Final verdict md</td><td><a href="https://github.com/STP-KAS/grok-heavy-test/blob/main/FINAL-VERDICT.md">FINAL-VERDICT.md</a></td></tr>
+      <tr><td>Windows issue / PR</td><td><a href="https://github.com/elldeeone/kaspa-x402/issues/11">#11</a> · <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a></td></tr>
+      <tr><td>Subject / fork</td><td><a href="https://github.com/elldeeone/kaspa-x402">elldeeone/kaspa-x402</a> · <a href="https://github.com/STP-KAS/kaspa-x402">STP-KAS/kaspa-x402</a></td></tr>
+      <tr><td>Luke’s ask</td><td><a href="https://x.com/elldeeone/status/2099316438704312512">x.com/elldeeone</a></td></tr>
+    </tbody>
+  </table>
+</main>
+<script>
+  const el = document.getElementById("repos");
+  fetch("https://api.github.com/users/STP-KAS/repos?per_page=100&sort=updated")
+    .then((r) => {
+      if (!r.ok) throw new Error(String(r.status));
+      return r.json();
+    })
+    .then((repos) => {
+      el.replaceChildren();
+      for (const repo of repos) {
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        a.className = "name";
+        a.href = repo.html_url;
+        a.textContent = repo.name;
+        const d = document.createElement("span");
+        d.className = "desc";
+        d.textContent = repo.description || "";
+        li.append(a, d);
+        el.append(li);
+      }
+    })
+    .catch(() => {
+      el.innerHTML = "<li class=\"meta\">Could not load the GitHub list. Open <a href=\"https://github.com/STP-KAS?tab=repositories\">STP-KAS repositories</a>.</li>";
+    });
+</script>
+</body>
 </html>
