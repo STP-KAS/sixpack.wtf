@@ -41,6 +41,11 @@
   <p class="meta">14 Sep 2026. Independent Grok pass of <a href="https://github.com/elldeeone/kaspa-x402">elldeeone/kaspa-x402</a> <code>v1.0.0-rc.1</code> (<code>040b1ec</code>). Windows, Node 24. Not Kaspa core. Not an audit. Not a v1 rubber stamp.</p>
 
   <div class="box">
+    <p><strong>This desk’s tree:</strong> <a href="https://github.com/STP-KAS/kaspa-x402">https://github.com/STP-KAS/kaspa-x402</a></p>
+    <p>Fork of Luke’s binding. Branch <a href="https://github.com/STP-KAS/kaspa-x402/tree/windows-clone-and-test"><code>windows-clone-and-test</code></a> is the Windows clone-and-test patch (issue <a href="https://github.com/elldeeone/kaspa-x402/issues/11">#11</a>, PR <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a>).</p>
+  </div>
+
+  <div class="box">
     <p><strong>kaspa-x402 is a real x402 v2 binding for native KAS.</strong> Bind this envelope. Do not invent a fourth. <strong>It is not v1, not mainnet, not in the upstream x402 registry, not a registered CAIP namespace.</strong></p>
     <p><strong>Ishum is a coffee till, not x402.</strong> Zero <code>PAYMENT-*</code> headers. Quotes EUR/USD. Settles native KAS. Do not weld the names.</p>
   </div>
@@ -119,9 +124,19 @@ npm run proof:offline                       # 24/24 ok: true</pre>
     </tbody>
   </table>
 
-  <h2>kaspa-x402 (this fork)</h2>
-  <p><a href="https://github.com/STP-KAS/kaspa-x402">STP-KAS/kaspa-x402</a> is a fork of <a href="https://github.com/elldeeone/kaspa-x402">elldeeone/kaspa-x402</a>. Branch <code>windows-clone-and-test</code> is the Windows clone-and-test patch. Upstream is TN10 RC, not v1, not mainnet.</p>
-  <p>Schemes: <code>exact</code> (<code>kaspa-exact-v2</code>) and <code>batch-settlement</code> (<code>kaspa-escrow-v3</code> / <code>kaspa-x402-escrow-v4</code>). Asset <code>KAS</code> only.</p>
+  <h2>STP-KAS/kaspa-x402</h2>
+  <p>Include this repo: <a href="https://github.com/STP-KAS/kaspa-x402">https://github.com/STP-KAS/kaspa-x402</a></p>
+  <table>
+    <tbody>
+      <tr><td>URL</td><td><a href="https://github.com/STP-KAS/kaspa-x402">github.com/STP-KAS/kaspa-x402</a></td></tr>
+      <tr><td>Upstream</td><td><a href="https://github.com/elldeeone/kaspa-x402">elldeeone/kaspa-x402</a> tag <code>v1.0.0-rc.1</code></td></tr>
+      <tr><td>Patch branch</td><td><a href="https://github.com/STP-KAS/kaspa-x402/tree/windows-clone-and-test">windows-clone-and-test</a></td></tr>
+      <tr><td>PR into Luke</td><td><a href="https://github.com/elldeeone/kaspa-x402/pull/12">elldeeone/kaspa-x402#12</a></td></tr>
+      <tr><td>Clone</td><td><code>git clone -b windows-clone-and-test https://github.com/STP-KAS/kaspa-x402.git</code></td></tr>
+      <tr><td>Schemes</td><td><code>exact</code> / <code>kaspa-exact-v2</code>; <code>batch-settlement</code> / <code>kaspa-escrow-v3</code> + <code>kaspa-x402-escrow-v4</code></td></tr>
+      <tr><td>Asset / network</td><td><code>KAS</code> only. <code>kaspa:testnet-10</code> only. Not mainnet.</td></tr>
+    </tbody>
+  </table>
 
   <h2>What held / what is not v1</h2>
   <p>Held: x402 v2 headers; native KAS; claim successor locks value; no <code>readInputState</code> / <code>State[].split()</code>; exact replay 409; facilitator optional; mainnet gates written down.</p>
@@ -135,6 +150,7 @@ npm run proof:offline                       # 24/24 ok: true</pre>
   <table>
     <tbody>
       <tr><td>This page</td><td><a href="https://sixpack.wtf/">https://sixpack.wtf/</a></td></tr>
+      <tr><td>This desk’s kaspa-x402</td><td><a href="https://github.com/STP-KAS/kaspa-x402">STP-KAS/kaspa-x402</a></td></tr>
       <tr><td>Report (send this GitHub)</td><td><a href="https://github.com/STP-KAS/grok-heavy-test">STP-KAS/grok-heavy-test</a></td></tr>
       <tr><td>For Luke</td><td><a href="https://github.com/STP-KAS/grok-heavy-test/blob/main/docs/00-for-luke.md">docs/00-for-luke.md</a></td></tr>
       <tr><td>Final verdict md</td><td><a href="https://github.com/STP-KAS/grok-heavy-test/blob/main/FINAL-VERDICT.md">FINAL-VERDICT.md</a></td></tr>
@@ -153,6 +169,11 @@ npm run proof:offline                       # 24/24 ok: true</pre>
     })
     .then((repos) => {
       el.replaceChildren();
+      repos.sort((a, b) => {
+        if (a.name === "kaspa-x402") return -1;
+        if (b.name === "kaspa-x402") return 1;
+        return 0;
+      });
       for (const repo of repos) {
         const li = document.createElement("li");
         const a = document.createElement("a");
