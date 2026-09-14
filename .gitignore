@@ -3,4 +3,5 @@ Thumbs.db
 *.log
 .idea/
 .vscode/
-preview-*.png
+node_modules/
+
