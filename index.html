@@ -6,7 +6,7 @@
   <title>sixpack.wtf — final verdict</title>
   <meta name="description" content="kaspa-x402 v1.0.0-rc.1 independent pass. Bind this envelope. Not v1. Not mainnet.">
   <link rel="canonical" href="https://sixpack.wtf/">
-  <link rel="stylesheet" href="site.css?v=2">
+  <link rel="stylesheet" href="site.css?v=3">
 </head>
 <body>
 <header class="homebar">
@@ -14,8 +14,7 @@
 </header>
 <main>
   <nav class="tabs" aria-label="Site">
-    <a href="./" class="on">Home</a>
-    <a href="./">Verdict</a>
+    <a href="./" class="on">Verdict</a>
     <a href="till.html">Till</a>
   </nav>
   <h1>Final verdict</h1>
@@ -129,7 +128,17 @@ npm run proof:offline                       # 24/24 ok: true</pre>
 
   <h2>STP-KAS repositories</h2>
   <p>Live list from <a href="https://github.com/STP-KAS?tab=repositories">github.com/STP-KAS</a>. This desk’s x402 row is <a href="https://github.com/STP-KAS/kaspa-x402">kaspa-x402</a>. The report to send is <a href="https://github.com/STP-KAS/grok-heavy-test">grok-heavy-test</a>.</p>
-  <ul id="repos"><li class="meta">loading…</li></ul>
+  <ul id="repos">
+    <li><a class="name" href="https://github.com/STP-KAS/kaspa-x402">kaspa-x402</a><span class="desc">This desk’s fork of Luke’s binding. Merged Windows patch is upstream <code>216ad77</code>.</span></li>
+    <li><a class="name" href="https://github.com/STP-KAS/grok-heavy-test">grok-heavy-test</a><span class="desc">Send this GitHub. Long form of this page.</span></li>
+    <li><a class="name" href="https://github.com/STP-KAS/sixpack.wtf">sixpack.wtf</a><span class="desc">This page’s source.</span></li>
+    <li><a class="name" href="https://github.com/STP-KAS/402-is-not-x402">402-is-not-x402</a><span class="desc">HTTP 402 is not x402.</span></li>
+    <li><a class="name" href="https://github.com/STP-KAS/x402-vs-grok">x402-vs-grok</a><span class="desc">Adversarial pass of v1.0.0-rc.1.</span></li>
+    <li><a class="name" href="https://github.com/STP-KAS/x402-ishum">x402-ishum</a><span class="desc">Ishum is a till, not x402.</span></li>
+    <li><a class="name" href="https://github.com/STP-KAS/ishum">ishum</a><span class="desc">Self-hosted Kaspa till. Quotes EUR. Settles KAS.</span></li>
+    <li><a class="name" href="https://github.com/STP-KAS/kaspa-master-file">kaspa-master-file</a><span class="desc">Pins. RC.1, TN10 only, mainnet blocked.</span></li>
+    <li class="meta">Full list: <a href="https://github.com/STP-KAS?tab=repositories">github.com/STP-KAS</a></li>
+  </ul>
 
   <h2>Links</h2>
   <table>
@@ -140,7 +149,7 @@ npm run proof:offline                       # 24/24 ok: true</pre>
       <tr><td>Report (send this GitHub)</td><td><a href="https://github.com/STP-KAS/grok-heavy-test">STP-KAS/grok-heavy-test</a></td></tr>
       <tr><td>For Luke</td><td><a href="https://github.com/STP-KAS/grok-heavy-test/blob/main/docs/00-for-luke.md">docs/00-for-luke.md</a></td></tr>
       <tr><td>Final verdict md</td><td><a href="https://github.com/STP-KAS/grok-heavy-test/blob/main/FINAL-VERDICT.md">FINAL-VERDICT.md</a></td></tr>
-      <tr><td>Windows issue / PR</td><td><a href="https://github.com/elldeeone/kaspa-x402/issues/11">#11</a> · <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a></td></tr>
+      <tr><td>Windows issue / PR</td><td><a href="https://github.com/elldeeone/kaspa-x402/issues/11">#11</a> closed · <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a> merged <code>216ad77</code></td></tr>
       <tr><td>Subject / fork</td><td><a href="https://github.com/elldeeone/kaspa-x402">elldeeone/kaspa-x402</a> · <a href="https://github.com/STP-KAS/kaspa-x402">STP-KAS/kaspa-x402</a></td></tr>
       <tr><td>Luke’s ask</td><td><a href="https://x.com/elldeeone/status/2099316438704312512">x.com/elldeeone</a></td></tr>
     </tbody>
@@ -174,7 +183,7 @@ npm run proof:offline                       # 24/24 ok: true</pre>
       }
     })
     .catch(() => {
-      el.innerHTML = "<li class=\"meta\">Could not load the GitHub list. Open <a href=\"https://github.com/STP-KAS?tab=repositories\">STP-KAS repositories</a>.</li>";
+      /* keep the static x402 row baked into the HTML */
     });
 </script>
 </body>

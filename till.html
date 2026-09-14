@@ -6,7 +6,7 @@
   <title>sixpack.wtf — till</title>
   <meta name="description" content="Ishum is a coffee till, not x402. Original POS vs battle-tested combo.">
   <link rel="canonical" href="https://sixpack.wtf/till.html">
-  <link rel="stylesheet" href="site.css?v=2">
+  <link rel="stylesheet" href="site.css?v=3">
 </head>
 <body>
 <header class="homebar">
@@ -14,7 +14,6 @@
 </header>
 <main>
   <nav class="tabs" aria-label="Site">
-    <a href="./">Home</a>
     <a href="./">Verdict</a>
     <a href="till.html" class="on">Till</a>
   </nav>
@@ -35,8 +34,8 @@
 
   <section id="pane-original">
     <h2>Original POS</h2>
-    <p class="meta">Live process on this machine. Three rails can appear on checkout. kUSD/USDT default on if none selected. Blue-score delta. Paste-txid can claim any inbound payment.</p>
-    <p><a href="http://127.0.0.1:8090/pos" target="ishum-pos">Open original in its own window</a></p>
+    <p class="meta">Desk-local only. The iframe talks to <code>127.0.0.1:8090</code> on the machine that runs Ishum. On the public site it will be blank. Three rails can appear on checkout. kUSD/USDT default on if none selected. Blue-score delta. Paste-txid can claim any inbound payment.</p>
+    <p><a href="http://127.0.0.1:8090/pos" target="ishum-pos">Open original in its own window</a> (this desk)</p>
     <iframe class="pos" name="ishum-pos" title="Original Ishum POS" src="http://127.0.0.1:8090/pos"></iframe>
   </section>
 
