@@ -38,7 +38,7 @@
   </nav>
 
   <h1>Parker Astra</h1>
-  <p class="meta">Parker Schmidt. Kaspa Explained. Intern at Astra. Contributor to this desk’s kaspa-x402 pass. Not Kaspa core. Not Astra’s product. Not v1.</p>
+  <p class="meta">Parker Schmidt. Kaspa Explained. Intern at Astra. Contributor to this desk’s kaspa-x402 pass. Luke merged his four follow-ups as <a href="https://github.com/elldeeone/kaspa-x402/pull/14">#14</a> (<code>25893d6</code>). Not Kaspa core. Not Astra’s product. Not v1. Not a new release.</p>
 
   <div class="box">
     <p><strong>Who:</strong> <a href="https://x.com/parker2017">@parker2017</a> · <a href="https://github.com/parker2017code">parker2017code</a> · <a href="https://kaspaexplained.com/">kaspaexplained.com</a></p>
@@ -63,7 +63,7 @@
       <tr>
         <td>1</td>
         <td>Sanitizer turns <code>kaspa:testnet-10 | kaspa-sdk-safe-json-v2.0.0</code> into <code>&lt;redacted&gt;:&lt;redacted&gt; | &lt;redacted&gt;-sdk-safe-json-v2.0.0</code> when the secret is a PNN wss URL containing <code>testnet-10</code></td>
-        <td><strong>Reproduced.</strong> Exact output. Reporting defect, not a spend-path hole.</td>
+        <td><strong>Was true on <code>216ad77</code>.</strong> Fixed on <code>25893d6</code>: same secret now yields <code>kaspa:testnet-10 | kaspa-sdk-safe-json-v2.0.0 | &lt;redacted&gt;</code>. Public labels kept. Endpoint secret gone.</td>
       </tr>
       <tr>
         <td>2</td>
@@ -73,7 +73,7 @@
       <tr>
         <td>3</td>
         <td>omit-dev audit: one high</td>
-        <td><strong>Reproduced.</strong> <code>npm audit --omit=dev</code> → 1 high, 0 moderate. Matches <code>fast-uri</code> via <code>ajv</code>.</td>
+        <td><strong>Was true on <code>216ad77</code>.</strong> Fixed on <code>25893d6</code>: <code>npm audit --omit=dev</code> → 0 vulnerabilities.</td>
       </tr>
       <tr>
         <td>4</td>
@@ -90,11 +90,10 @@
   <p>Did not rerun his 18 funded flows. Did not pay the Worker. Did not compile silverc. His funded evidence is his; the sanitizer and audit are now also this machine’s.</p>
 
   <h2>For Luke</h2>
+  <p>Done: <a href="https://github.com/elldeeone/kaspa-x402/pull/14">#14</a> merged. This machine retested <code>25893d6</code>: sanitizer keeps public labels, audit 0, <code>npm test</code> green, <code>proof:offline</code> 24/24. Local Wrangler origin is documented. No new tag, no new deploy, not v1.</p>
   <ol>
-    <li>Triage <a href="https://github.com/elldeeone/kaspa-x402/issues/13">#13</a> as Parker’s funded pass of <code>216ad77</code>.</li>
-    <li>Smallest useful patch: stop treating public path tokens (<code>testnet-10</code>, <code>kaspa</code>) as secrets in <code>secretRepresentations()</code>. Keep credential tests.</li>
-    <li>Do not drop the hosted origin pin to make local Wrangler easier.</li>
-    <li>Windows clone-and-test is already closed in <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a>. Parker’s review starts after that merge.</li>
+    <li>Keep the hosted origin pin. The local command must set both <code>--local-upstream</code> and <code>KASPA_X402_GATEWAY_BASE_URL</code>.</li>
+    <li>Do not drop the <code>rc</code>. Parker’s funded pass and this maintenance patch do not close CAIP, registry, or mainnet-readiness gates.</li>
   </ol>
 
   <p>
