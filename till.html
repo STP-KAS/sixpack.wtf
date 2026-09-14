@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sixpack.wtf — till</title>
+  <meta name="description" content="Ishum is a coffee till, not x402. Original POS vs battle-tested combo.">
+  <link rel="canonical" href="https://sixpack.wtf/till.html">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+<main>
+  <nav class="tabs" aria-label="Site">
+    <a href="./">Verdict</a>
+    <a href="till.html" class="on">Till</a>
+  </nav>
+
+  <h1>Till — Ishum + Parker + master file + Luke</h1>
+  <p class="meta">Best-practice combo. Human coffee quotes EUR. Settlement that exists is native KAS. The meter for machine calls is <a href="https://github.com/STP-KAS/kaspa-x402">STP-KAS/kaspa-x402</a>. Do not weld the names.</p>
+
+  <div class="box">
+    <p><strong>Public one-liner:</strong> self-hosted Kaspa till; quotes EUR/USD; settles native KAS; not x402.</p>
+    <p>Original running till: <a href="http://127.0.0.1:8090/pos">http://127.0.0.1:8090/pos</a> · source <a href="https://github.com/STP-KAS/ishum">STP-KAS/ishum</a></p>
+    <p>Parker: skip centralised stablecoins for dapps. Master file: dollars 0–0. Luke: bind kaspa-x402 for a <em>call</em>. Sutton: related sub-series of this invoice, not a global mutex.</p>
+  </div>
+
+  <nav class="tabs" aria-label="Till">
+    <button type="button" class="on" data-pane="original">Original</button>
+    <button type="button" data-pane="new">New (battle-tested)</button>
+  </nav>
+
+  <section id="pane-original">
+    <h2>Original POS</h2>
+    <p class="meta">Live process on this machine. Three rails can appear on checkout. kUSD/USDT default on if none selected. Blue-score delta. Paste-txid can claim any inbound payment.</p>
+    <p><a href="http://127.0.0.1:8090/pos" target="ishum-pos">Open original in its own window</a></p>
+    <iframe class="pos" name="ishum-pos" title="Original Ishum POS" src="http://127.0.0.1:8090/pos"></iframe>
+  </section>
+
+  <section id="pane-new" class="hide">
+    <h2>New POS — KAS only</h2>
+    <p class="meta">Battle-tested against the original. Quotes EUR. Settles KAS. No kUSD chair. No USDT on the keypad. Not x402. Payload <code>message=&lt;invoice-id&gt;</code> is mandatory. Confirmations are selected-chain, 10 BPS, not a 1 BPS leftover.</p>
+
+    <div class="box">
+      <div class="kicker meta">Ishum counter — quoted in EUR — this till, this invoice — not x402</div>
+      <div id="display" class="display">0.00 <small>EUR</small></div>
+      <p class="meta" id="rate">KAS rate… · 10 selected-chain conf · 10 BPS</p>
+      <div id="keypad" class="pad">
+        <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button>
+        <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button>
+        <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button>
+        <button type="button" data-k="c">C</button><button type="button" data-k="0">0</button><button type="button" data-k=".">.</button>
+      </div>
+      <div class="tips">
+        <span>Tip</span>
+        <button type="button" data-tip="0" class="on">0%</button>
+        <button type="button" data-tip="10">10%</button>
+        <button type="button" data-tip="15">15%</button>
+        <button type="button" data-tip="20">20%</button>
+      </div>
+      <button type="button" class="charge" id="charge-btn" disabled>Charge 0.00 EUR in KAS</button>
+      <div id="ticket" class="box hide"></div>
+    </div>
+  </section>
+
+  <h2>Battle-test vs original :8090/pos</h2>
+  <p class="meta">Original scored from the live till + <a href="https://github.com/STP-KAS/ishum">ishum</a> source. New scored from this tab. Combo sources: Parker, <a href="https://github.com/STP-KAS/kaspa-master-file">kaspa-master-file</a>, Luke <a href="https://github.com/STP-KAS/kaspa-x402">kaspa-x402</a>, <a href="https://github.com/STP-KAS/grok-heavy-test">grok-heavy-test</a>, <a href="https://github.com/STP-KAS/x402-ishum">x402-ishum</a>, <a href="https://github.com/STP-KAS/402-is-not-x402">402-is-not-x402</a>, <a href="https://github.com/STP-KAS/peglab-poc">peglab-poc</a>.</p>
+  <table>
+    <thead><tr><th>Best practice</th><th>Original :8090</th><th>New tab</th></tr></thead>
+    <tbody>
+      <tr><td>Not x402 / no <code>PAYMENT-*</code></td><td id="o-x402">…</td><td>pass</td></tr>
+      <tr><td>Quote fiat, settle native KAS</td><td id="o-kas">…</td><td>pass</td></tr>
+      <tr><td>kUSD / USDT default off (Parker + master file dollars 0–0)</td><td id="o-stables">fail — Init turns all three rails on</td><td>pass — rails not on the keypad</td></tr>
+      <tr><td>No claim-any-payment (payload mandatory)</td><td id="o-claim">fail — paste-txid can claim any inbound</td><td>pass — URI <code>message=invoice-id</code> required</td></tr>
+      <tr><td>Selected-chain conf, 10 BPS, not ~10s leftover</td><td id="o-conf">fail — blue-score delta; README ~10s</td><td>pass — 10 selected-chain; 10 BPS ≈ 1s of blocks, not finality</td></tr>
+      <tr><td>Never holds keys</td><td>pass</td><td>pass</td></tr>
+      <tr><td>Luke envelope for machine calls, not this till</td><td>mixed — till sits next to 402 naming</td><td>pass — explicit split</td></tr>
+    </tbody>
+  </table>
+  <p class="meta" id="probe"></p>
+</main>
+<script src="till.js"></script>
+</body>
+</html>

@@ -6,37 +6,14 @@
   <title>sixpack.wtf — final verdict</title>
   <meta name="description" content="kaspa-x402 v1.0.0-rc.1 independent pass. Bind this envelope. Not v1. Not mainnet.">
   <link rel="canonical" href="https://sixpack.wtf/">
-  <style>
-    :root { color-scheme: light; }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #fff;
-      color: #111;
-      font: 16px/1.45 ui-sans-serif, system-ui, sans-serif;
-    }
-    main { max-width: 44rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
-    h1, h2, h3 { font-weight: 600; letter-spacing: -0.02em; }
-    h1 { font-size: 1.25rem; margin: 0 0 1rem; }
-    h2 { font-size: 1.05rem; margin: 2rem 0 0.6rem; }
-    p, li { margin: 0.4rem 0; }
-    ul, ol { padding-left: 1.2rem; }
-    a { color: #111; }
-    table { border-collapse: collapse; width: 100%; margin: 0.6rem 0 1rem; font-size: 0.95rem; }
-    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid #ddd; padding: 0.35rem 0.4rem 0.35rem 0; }
-    th { font-weight: 600; }
-    code, pre { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.85rem; }
-    pre { overflow: auto; background: #f6f6f6; padding: 0.8rem; }
-    .meta { color: #444; font-size: 0.9rem; }
-    .box { border: 1px solid #111; padding: 0.8rem 1rem; margin: 1rem 0; }
-    #repos { list-style: none; padding: 0; }
-    #repos li { display: flex; gap: 0.6rem; flex-wrap: wrap; border-bottom: 1px solid #eee; padding: 0.35rem 0; }
-    #repos .name { min-width: 11rem; }
-    #repos .desc { color: #444; flex: 1; }
-  </style>
+  <link rel="stylesheet" href="site.css">
 </head>
 <body>
 <main>
+  <nav class="tabs" aria-label="Site">
+    <a href="./" class="on">Verdict</a>
+    <a href="till.html">Till</a>
+  </nav>
   <h1>Final verdict</h1>
   <p class="meta">14 Sep 2026. Independent Grok pass of <a href="https://github.com/elldeeone/kaspa-x402">elldeeone/kaspa-x402</a> <code>v1.0.0-rc.1</code> (<code>040b1ec</code>). Windows, Node 24. Not Kaspa core. Not an audit. Not a v1 rubber stamp.</p>
 
@@ -47,7 +24,7 @@
 
   <div class="box">
     <p><strong>kaspa-x402 is a real x402 v2 binding for native KAS.</strong> Bind this envelope. Do not invent a fourth. <strong>It is not v1, not mainnet, not in the upstream x402 registry, not a registered CAIP namespace.</strong></p>
-    <p><strong>Ishum is a coffee till, not x402.</strong> Zero <code>PAYMENT-*</code> headers. Quotes EUR/USD. Settles native KAS. Do not weld the names.</p>
+    <p><strong>Ishum is a coffee till, not x402.</strong> Zero <code>PAYMENT-*</code> headers. Quotes EUR/USD. Settles native KAS. Do not weld the names. Combo till: <a href="till.html">Till tab</a> — original <a href="http://127.0.0.1:8090/pos">:8090/pos</a> vs battle-tested KAS-only keypad.</p>
   </div>
 
   <h2>Both problems — solved this pass</h2>
@@ -151,6 +128,7 @@ npm run proof:offline                       # 24/24 ok: true</pre>
     <tbody>
       <tr><td>This page</td><td><a href="https://sixpack.wtf/">https://sixpack.wtf/</a></td></tr>
       <tr><td>This desk’s kaspa-x402</td><td><a href="https://github.com/STP-KAS/kaspa-x402">STP-KAS/kaspa-x402</a></td></tr>
+      <tr><td>Till (Ishum)</td><td><a href="https://github.com/STP-KAS/ishum">STP-KAS/ishum</a> · <a href="till.html">till tab</a> · <a href="http://127.0.0.1:8090/pos">:8090/pos</a></td></tr>
       <tr><td>Report (send this GitHub)</td><td><a href="https://github.com/STP-KAS/grok-heavy-test">STP-KAS/grok-heavy-test</a></td></tr>
       <tr><td>For Luke</td><td><a href="https://github.com/STP-KAS/grok-heavy-test/blob/main/docs/00-for-luke.md">docs/00-for-luke.md</a></td></tr>
       <tr><td>Final verdict md</td><td><a href="https://github.com/STP-KAS/grok-heavy-test/blob/main/FINAL-VERDICT.md">FINAL-VERDICT.md</a></td></tr>
