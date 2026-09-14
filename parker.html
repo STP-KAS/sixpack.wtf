@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sixpack.wtf — Parker Astra</title>
+  <meta name="description" content="Parker Schmidt / Astra intern. Kaspa Explained. Funded TN10 review of kaspa-x402 216ad77. Not v1. Not mainnet.">
+  <link rel="canonical" href="https://sixpack.wtf/parker.html">
+  <link rel="stylesheet" href="site.css?v=5">
+  <script>
+    try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
+  </script>
+</head>
+<body>
+<div id="intro" class="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+  <div class="intro-card">
+    <p id="intro-title" class="intro-title">Kaspa Explained STP</p>
+    <video class="intro-video" controls playsinline preload="metadata" poster="kaspa-explained.jpg">
+      <source src="kaspa-explained.mp4" type="video/mp4">
+    </video>
+    <div class="intro-copy">
+      <p>-Bitcoin started as proof of work: scarce money and ownership that does not depend on who already holds the coins.</p>
+      <p>-Proof of stake replaced work with capital. That is a different system.</p>
+      <p>-Kaspa kept Bitcoin’s proof of work and upgraded it: 10 blocks per second on average, now programmable.</p>
+    </div>
+    <button type="button" class="intro-proceed">Proceed</button>
+  </div>
+</div>
+<header class="homebar">
+  <a class="home" href="./">Home</a>
+</header>
+<main>
+  <nav class="tabs" aria-label="Site">
+    <a href="./">Verdict</a>
+    <a href="till.html">Till</a>
+    <a href="parker.html" class="on">Parker Astra</a>
+    <a href="mix.html">Mix</a>
+  </nav>
+
+  <h1>Parker Astra</h1>
+  <p class="meta">Parker Schmidt. Kaspa Explained. Intern at Astra. Contributor to this desk’s kaspa-x402 pass. Not Kaspa core. Not Astra’s product. Not v1.</p>
+
+  <div class="box">
+    <p><strong>Who:</strong> <a href="https://x.com/parker2017">@parker2017</a> · <a href="https://github.com/parker2017code">parker2017code</a> · <a href="https://kaspaexplained.com/">kaspaexplained.com</a></p>
+    <p><strong>What he filed:</strong> <a href="https://github.com/elldeeone/kaspa-x402/issues/13">elldeeone/kaspa-x402#13</a> — funded TN10 review of merged <code>216ad77</code> (14 Sep 2026). X: <a href="https://x.com/parker2017/status/2099403938885701854">Done</a>.</p>
+    <p><strong>Ethos this desk already uses:</strong> skip centralised stablecoins for dapps. Proof of work, not proof of stake. Native KAS. Do not weld a till onto x402.</p>
+  </div>
+
+  <h2>What #13 claims</h2>
+  <ol>
+    <li>Proof sanitizer redacts public protocol names (<code>kaspa:testnet-10</code>, encoding id) because URL path pieces become secrets.</li>
+    <li>Local Wrangler still serves production <code>demo.kaspa-x402.org</code> origin unless routes/<code>account_id</code> are omitted. Keep the pin; document a local config.</li>
+    <li><code>npm audit</code>: 6 entries; omit-dev leaves one high (<code>fast-uri</code> via <code>ajv</code>). Not six payment bugs.</li>
+    <li>Documented economics: fixed price, voucher ≠ claim, refund race, <code>allowMainnet</code> is not a gate.</li>
+  </ol>
+  <p>He did <strong>not</strong> claim a core payment-logic hole. He ran funded TN10. This desk did not (no wallet).</p>
+
+  <h2>Battle-test on this Windows box</h2>
+  <p class="meta">Same machine as #11 / #12. Node 24.19.0. Tree: <code>216ad77</code>. Date 14 Sep 2026.</p>
+  <table>
+    <thead><tr><th>#</th><th>Claim</th><th>This desk</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Sanitizer turns <code>kaspa:testnet-10 | kaspa-sdk-safe-json-v2.0.0</code> into <code>&lt;redacted&gt;:&lt;redacted&gt; | &lt;redacted&gt;-sdk-safe-json-v2.0.0</code> when the secret is a PNN wss URL containing <code>testnet-10</code></td>
+        <td><strong>Reproduced.</strong> Exact output. Reporting defect, not a spend-path hole.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Local Worker origin pin vs production route hostname</td>
+        <td>Not rerun here (no Wrangler session). Agree: keep the pin; document a loopback config. Do not loosen it.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>omit-dev audit: one high</td>
+        <td><strong>Reproduced.</strong> <code>npm audit --omit=dev</code> → 1 high, 0 moderate. Matches <code>fast-uri</code> via <code>ajv</code>.</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Claim vs refund race, voucher ≠ redemption, <code>accepted</code> ≠ irreversible</td>
+        <td>Agree. Already on the <a href="./">verdict</a>. Not a new bypass.</td>
+      </tr>
+      <tr>
+        <td>chain</td>
+        <td>Public TN10 txids in #13 are accepted</td>
+        <td><strong>Checked.</strong> <code>d769791c…</code> accepted v0. <code>f64debd2…</code> accepted v0. Local-worker genesis <code>8ac4447b…</code> accepted v1.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>Did not rerun his 18 funded flows. Did not pay the Worker. Did not compile silverc. His funded evidence is his; the sanitizer and audit are now also this machine’s.</p>
+
+  <h2>For Luke</h2>
+  <ol>
+    <li>Triage <a href="https://github.com/elldeeone/kaspa-x402/issues/13">#13</a> as Parker’s funded pass of <code>216ad77</code>.</li>
+    <li>Smallest useful patch: stop treating public path tokens (<code>testnet-10</code>, <code>kaspa</code>) as secrets in <code>secretRepresentations()</code>. Keep credential tests.</li>
+    <li>Do not drop the hosted origin pin to make local Wrangler easier.</li>
+    <li>Windows clone-and-test is already closed in <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a>. Parker’s review starts after that merge.</li>
+  </ol>
+
+  <p>
+    Mix with this desk and Luke: <a href="mix.html">Mix tab</a>.
+    Verdict: <a href="./">Home</a>.
+    Long form: <a href="https://github.com/STP-KAS/grok-heavy-test">grok-heavy-test</a>.
+  </p>
+</main>
+<script src="intro.js?v=1"></script>
+</body>
+</html>
