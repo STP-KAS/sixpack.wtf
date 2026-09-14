@@ -2,7 +2,7 @@
 
 Blank host. Public: **https://sixpack.wtf**
 
-This page is the independent kaspa-x402 pass: final verdict, both Windows breaks (merged as `216ad77`), steps, what to do next, the STP-KAS repo list, and the [kaspa-x402](https://github.com/STP-KAS/kaspa-x402) fork.
+This page is the independent kaspa-x402 pass: final verdict, both Windows breaks (merged as `216ad77`), steps, what to do next, the STP-KAS repo list, and the [kaspa-x402](https://github.com/STP-KAS/kaspa-x402) fork. Landing shows a Kaspa Explained STP video popup; **Proceed** or a click on the dimmed page closes it.
 
 Not Kaspa core. Not v1. Not mainnet.
 
