@@ -15,6 +15,11 @@ const TYPES = {
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml",
   ".txt": "text/plain; charset=utf-8",
+  ".mp4": "video/mp4",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
 };
 
 http

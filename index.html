@@ -6,9 +6,26 @@
   <title>sixpack.wtf — final verdict</title>
   <meta name="description" content="kaspa-x402 v1.0.0-rc.1 independent pass. Bind this envelope. Not v1. Not mainnet.">
   <link rel="canonical" href="https://sixpack.wtf/">
-  <link rel="stylesheet" href="site.css?v=3">
+  <link rel="stylesheet" href="site.css?v=4">
+  <script>
+    try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
+  </script>
 </head>
 <body>
+<div id="intro" class="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+  <div class="intro-card">
+    <p id="intro-title" class="intro-title">Kaspa Explained STP</p>
+    <video class="intro-video" controls playsinline preload="metadata" poster="kaspa-explained.jpg">
+      <source src="kaspa-explained.mp4" type="video/mp4">
+    </video>
+    <div class="intro-copy">
+      <p>-Bitcoin started as proof of work: scarce money and ownership that does not depend on who already holds the coins.</p>
+      <p>-Proof of stake replaced work with capital. That is a different system.</p>
+      <p>-Kaspa kept Bitcoin’s proof of work and upgraded it: 10 blocks per second on average, now programmable.</p>
+    </div>
+    <button type="button" class="intro-proceed">Proceed</button>
+  </div>
+</div>
 <header class="homebar">
   <a class="home" href="./">Home</a>
 </header>
@@ -186,5 +203,6 @@ npm run proof:offline                       # 24/24 ok: true</pre>
       /* keep the static x402 row baked into the HTML */
     });
 </script>
+<script src="intro.js?v=1"></script>
 </body>
 </html>

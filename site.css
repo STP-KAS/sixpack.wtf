@@ -73,3 +73,55 @@ iframe.pos {
 #repos li { display: flex; gap: 0.6rem; flex-wrap: wrap; border-bottom: 1px solid #eee; padding: 0.35rem 0; }
 #repos .name { min-width: 11rem; }
 #repos .desc { color: #444; flex: 1; }
+
+html.intro-done #intro { display: none; }
+body.intro-open { overflow: hidden; }
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  overflow: auto;
+  background: rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+}
+.intro-card {
+  background: #fff;
+  color: #111;
+  width: min(36rem, 100%);
+  margin: auto;
+  padding: 1.1rem 1.15rem 1.25rem;
+  border-radius: 1.15rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+  cursor: default;
+}
+.intro-title {
+  margin: 0 0 0.75rem;
+  color: #0f766e;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+.intro-video {
+  display: block;
+  width: 100%;
+  border-radius: 0.55rem;
+  background: #000;
+}
+.intro-copy { margin: 0.95rem 0 1.05rem; }
+.intro-copy p { margin: 0 0 0.85rem; }
+.intro-copy p:last-child { margin-bottom: 0; }
+.intro-proceed {
+  appearance: none;
+  border: 0;
+  background: #111;
+  color: #fff;
+  font: inherit;
+  font-weight: 650;
+  padding: 0.55rem 1.35rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.intro-proceed:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; }
