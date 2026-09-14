@@ -1,23 +1,13 @@
 # sixpack.wtf
 
-Blank page. Public: **https://sixpack.wtf**
+Blank host. Public: **https://sixpack.wtf**
 
-Local kaspa-x402 mock (Node):
+This page is the independent kaspa-x402 pass: final verdict, both Windows breaks, steps, what to do next, the STP-KAS repo list, and the [kaspa-x402](https://github.com/STP-KAS/kaspa-x402) fork.
+
+Not Kaspa core. Not v1. Not mainnet.
 
 ```
 node serve.mjs
 ```
 
 Then open http://127.0.0.1:4020/
-
-GitHub Pages serves the blank HTML only. `/download` and `/metered` 402 need the local Node host.
-
-| URL | What |
-| --- | --- |
-| `/` | blank HTML |
-| `/health` | JSON |
-| `/supported` | x402 v2 kinds, `kaspa:testnet-10`, asset `KAS` |
-| `/download` | exact. Unpaid → **402** + `PAYMENT-REQUIRED`. Paid → **200** + `PAYMENT-RESPONSE` |
-| `/metered` | batch-settlement. Same headers. |
-
-Mock direct mode. No TN10 wallet. No broadcast.
