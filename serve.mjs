@@ -47,6 +47,16 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(blankPage);
       return;
     }
+    if (req.method === "GET" && url.pathname === "/convo") {
+      const convoFile = path.join(root, "convo.html");
+      if (!fs.existsSync(convoFile)) {
+        json(res, 404, { error: "not_found" });
+        return;
+      }
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      res.end(fs.readFileSync(convoFile));
+      return;
+    }
     if (req.method === "GET" && url.pathname === "/health") {
       json(res, 200, {
         ok: true,
