@@ -19,11 +19,11 @@
     <a href="till.html">Till</a>
   </nav>
   <h1>Final verdict</h1>
-  <p class="meta">14 Sep 2026. Independent Grok pass of <a href="https://github.com/elldeeone/kaspa-x402">elldeeone/kaspa-x402</a> <code>v1.0.0-rc.1</code> (<code>040b1ec</code>). Windows, Node 24. Not Kaspa core. Not an audit. Not a v1 rubber stamp.</p>
+  <p class="meta">14 Sep 2026. Independent Grok pass of <a href="https://github.com/elldeeone/kaspa-x402">elldeeone/kaspa-x402</a> <code>v1.0.0-rc.1</code> (<code>040b1ec</code>), then retest of merged <code>216ad77</code>. Windows, Node 24. Not Kaspa core. Not an audit. Not a v1 rubber stamp.</p>
 
   <div class="box">
     <p><strong>This desk’s tree:</strong> <a href="https://github.com/STP-KAS/kaspa-x402">https://github.com/STP-KAS/kaspa-x402</a></p>
-    <p>Fork of Luke’s binding. Branch <a href="https://github.com/STP-KAS/kaspa-x402/tree/windows-clone-and-test"><code>windows-clone-and-test</code></a> is the Windows clone-and-test patch (issue <a href="https://github.com/elldeeone/kaspa-x402/issues/11">#11</a>, PR <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a>).</p>
+    <p>Fork of Luke’s binding. Issue <a href="https://github.com/elldeeone/kaspa-x402/issues/11">#11</a> / PR <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a> merged as <code>216ad77</code>. Luke tightened disk-sync (file <code>fsync</code> stays fail-closed; directory sync skipped on Windows) and added a <code>windows-latest</code> CI job. This machine retested merged <code>main</code>: <code>npm test</code> green, <code>proof:offline</code> 24/24.</p>
   </div>
 
   <div class="box">
@@ -38,22 +38,22 @@
       <tr>
         <td>1</td>
         <td>Windows <code>npm test</code>: <code>.sil</code> CRLF vs launch-identity SHA-256 pinned to LF (<code>ab88ec5d…</code> vs <code>065dff5d…</code>)</td>
-        <td>Reproduced. Patched. Covenant 27/27 pass.</td>
+        <td>Reproduced. Merged. Retested on <code>216ad77</code>: <code>.sil</code> is LF under <code>core.autocrlf=true</code>. Covenant 27/27.</td>
       </tr>
       <tr>
         <td>2</td>
         <td>Unix <code>0o600</code> (384 vs 438) and <code>proof:offline</code> <code>fsync</code> EPERM after 22/22 protocol checks</td>
-        <td>Reproduced. Patched. <code>npm test</code> green. <code>proof:offline</code> 24/24 <code>ok: true</code>.</td>
+        <td>Reproduced. Merged. Luke’s narrower patch is the one that landed: skip directory <code>fsync</code> on <code>win32</code>, keep file <code>fsync</code> fail-closed. <code>npm test</code> green. <code>proof:offline</code> 24/24 <code>ok: true</code>.</td>
       </tr>
     </tbody>
   </table>
   <p>
     Issue: <a href="https://github.com/elldeeone/kaspa-x402/issues/11">elldeeone/kaspa-x402#11</a>
-    · PR: <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a>
+    · PR: <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a> (merged)
     · Fork: <a href="https://github.com/STP-KAS/kaspa-x402">STP-KAS/kaspa-x402</a>
     · Long form: <a href="https://github.com/STP-KAS/grok-heavy-test">STP-KAS/grok-heavy-test</a>
   </p>
-  <p>Patch: <code>*.sil text eol=lf</code>, hash LF-normalized bytes, skip Unix modes on <code>win32</code>, treat <code>fsync</code> EPERM as non-fatal. A <code>windows-latest</code> CI job is the follow-up (this token cannot push workflow files).</p>
+  <p>What landed: <code>*.sil text eol=lf</code> (enough — no CRLF hash canonicalization), skip Unix modes on <code>win32</code>, skip directory <code>fsync</code> on Windows, file <code>fsync</code> still fail-closed, <code>windows-latest</code> CI job. Swallowing file <code>fsync</code> <code>EPERM</code> was too broad; Luke was right to reject that.</p>
 
   <h2>What we ran</h2>
 <pre>git clone --branch v1.0.0-rc.1 https://github.com/elldeeone/kaspa-x402.git
@@ -62,6 +62,12 @@ npm --workspace @kaspa-x402/covenant test   # FAIL: ab88ec5d vs 065dff5d
 # apply patch
 npm --workspace @kaspa-x402/covenant test   # 27 pass
 npm run build && npm test                   # green
+npm run proof:offline                       # 24/24 ok: true
+
+# after merge 216ad77 — fresh clone of main, core.autocrlf=true
+git clone https://github.com/elldeeone/kaspa-x402.git
+# .sil: 0 CRLF / 151 LF
+npm ci && npm test                          # green
 npm run proof:offline                       # 24/24 ok: true</pre>
   <table>
     <thead><tr><th>Probe</th><th>Result</th></tr></thead>
@@ -77,9 +83,7 @@ npm run proof:offline                       # 24/24 ok: true</pre>
   <h3>Luke</h3>
   <ol>
     <li>Read this page. Long form: <a href="https://github.com/STP-KAS/grok-heavy-test/blob/main/docs/00-for-luke.md">00-for-luke.md</a>.</li>
-    <li>Accept <a href="https://github.com/elldeeone/kaspa-x402/issues/11">issue #11</a>.</li>
-    <li>Merge <a href="https://github.com/elldeeone/kaspa-x402/pull/12">PR #12</a> or land the equivalent.</li>
-    <li>Add a Windows CI job: <code>npm ci && npm test && npm run proof:offline</code>.</li>
+    <li>Done: <a href="https://github.com/elldeeone/kaspa-x402/issues/11">issue #11</a> / <a href="https://github.com/elldeeone/kaspa-x402/pull/12">PR #12</a> merged as <code>216ad77</code>. Windows CI is in-tree. Real Windows retest passed.</li>
     <li>Align <code>pragma silverscript ^0.1.0</code> with the v1.0.0 <code>3ed9733</code> compile.</li>
     <li>Do not drop the <code>rc</code> until the gates in <code>docs/mainnet-readiness.md</code> close. Do not take “Kaspa is in x402” until upstream lists you or rejects you in writing.</li>
   </ol>
@@ -97,7 +101,7 @@ npm run proof:offline                       # 24/24 ok: true</pre>
   <table>
     <thead><tr><th>When</th><th>Do</th></tr></thead>
     <tbody>
-      <tr><td>Today</td><td>Send Luke this page + <a href="https://github.com/elldeeone/kaspa-x402/issues/11">#11</a> + <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a>.</td></tr>
+      <tr><td>Today</td><td>Windows clone-and-test is closed. Point Luke at this page + merged <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a>.</td></tr>
       <tr><td>This week</td><td>Bind exact <code>standard-native</code> on TN10. Do not pre-sign batch ceiling T beyond delivered work.</td></tr>
       <tr><td>Before any “v1” sentence</td><td>Independent covenant + replay audit. Fresh funded TN10 run and a paid Worker canary. Durable store. Confirmation policy written down.</td></tr>
       <tr><td>Before mainnet KAS</td><td>Every gate in <code>mainnet-readiness.md</code>. CAIP <a href="https://github.com/ChainAgnostic/namespaces/pull/193">namespaces#193</a> merged or every public sentence says unregistered.</td></tr>
@@ -111,9 +115,9 @@ npm run proof:offline                       # 24/24 ok: true</pre>
     <tbody>
       <tr><td>URL</td><td><a href="https://github.com/STP-KAS/kaspa-x402">github.com/STP-KAS/kaspa-x402</a></td></tr>
       <tr><td>Upstream</td><td><a href="https://github.com/elldeeone/kaspa-x402">elldeeone/kaspa-x402</a> tag <code>v1.0.0-rc.1</code></td></tr>
-      <tr><td>Patch branch</td><td><a href="https://github.com/STP-KAS/kaspa-x402/tree/windows-clone-and-test">windows-clone-and-test</a></td></tr>
-      <tr><td>PR into Luke</td><td><a href="https://github.com/elldeeone/kaspa-x402/pull/12">elldeeone/kaspa-x402#12</a></td></tr>
-      <tr><td>Clone</td><td><code>git clone -b windows-clone-and-test https://github.com/STP-KAS/kaspa-x402.git</code></td></tr>
+      <tr><td>Patch branch</td><td><a href="https://github.com/STP-KAS/kaspa-x402/tree/windows-clone-and-test">windows-clone-and-test</a> (merged upstream)</td></tr>
+      <tr><td>PR into Luke</td><td><a href="https://github.com/elldeeone/kaspa-x402/pull/12">elldeeone/kaspa-x402#12</a> → <code>216ad77</code></td></tr>
+      <tr><td>Clone</td><td><code>git clone https://github.com/elldeeone/kaspa-x402.git</code> (merged <code>main</code>)</td></tr>
       <tr><td>Schemes</td><td><code>exact</code> / <code>kaspa-exact-v2</code>; <code>batch-settlement</code> / <code>kaspa-escrow-v3</code> + <code>kaspa-x402-escrow-v4</code></td></tr>
       <tr><td>Asset / network</td><td><code>KAS</code> only. <code>kaspa:testnet-10</code> only. Not mainnet.</td></tr>
     </tbody>
