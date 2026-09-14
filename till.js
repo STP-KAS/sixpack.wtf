@@ -82,6 +82,14 @@
 
   paint();
 
+  window.addEventListener("message", function (e) {
+    if (!e.data || e.data.type !== "ishum-pos-height") return;
+    var f = document.querySelector("iframe.pos");
+    if (!f) return;
+    var h = Number(e.data.height);
+    if (h > 400) f.style.height = h + "px";
+  });
+
   var original = "http://127.0.0.1:8090/pos";
   fetch(original, { mode: "no-cors" }).catch(function () {});
   fetch(original)

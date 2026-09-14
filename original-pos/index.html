@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Point of sale · Ishum</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <a class="home" href="../till.html" target="_parent">Home</a>
+  <a class="brand" href="./">Ishum</a>
+  <span class="slogan">sequenced on Kaspa</span>
+  <nav>
+    <a href="./" class="on">POS</a>
+  </nav>
+</header>
+<main>
+
+<section class="till" id="view-till">
+  <div class="till-head">
+    <div>
+      <div class="kicker">Ishum counter · quoted in EUR · this till, this invoice</div>
+      <div id="display" class="display">0.00 <small>EUR</small></div>
+    </div>
+    <div class="rate" id="rate">KAS rate… · 10 conf</div>
+  </div>
+  <p class="warn" id="payto-warn">Set a kaspa: receive address before taking KAS. Stables can still be demonstrated. This copy runs on sixpack.wtf so phones can use the original POS.</p>
+
+  <div class="modes">
+    <button type="button" class="on" data-mode="keypad" id="mode-keypad">Keypad</button>
+    <button type="button" data-mode="cart" id="mode-cart">Cart</button>
+  </div>
+
+  <div id="keypad" class="pad">
+    <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button>
+    <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button>
+    <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button>
+    <button type="button" data-k="c" class="mute">C</button><button type="button" data-k="0">0</button><button type="button" data-k=".">.</button>
+  </div>
+
+  <div id="cart" class="cart hide">
+    <button type="button" class="item" data-price="2.50" data-title="Coffee"><span>☕ Coffee</span><strong>2.50</strong></button>
+    <button type="button" class="item" data-price="2.00" data-title="Tea"><span>🍵 Tea</span><strong>2.00</strong></button>
+    <button type="button" class="item" data-price="3.20" data-title="Pastry"><span>🥐 Pastry</span><strong>3.20</strong></button>
+    <button type="button" class="item" data-price="9.50" data-title="Lunch"><span>🍲 Lunch</span><strong>9.50</strong></button>
+    <ul id="lines"></ul>
+  </div>
+
+  <div class="tips">
+    <span>Tip</span>
+    <button type="button" data-tip="0" class="on">0%</button>
+    <button type="button" data-tip="10">10%</button>
+    <button type="button" data-tip="15">15%</button>
+    <button type="button" data-tip="20">20%</button>
+  </div>
+
+  <form id="charge">
+    <input type="hidden" name="amount" id="amount" value="0">
+    <input type="hidden" name="tip" id="tip" value="0">
+    <input type="hidden" name="item" id="item" value="sale">
+    <button type="submit" class="charge" id="charge-btn" disabled>Charge 0.00 EUR</button>
+  </form>
+</section>
+
+<section class="checkout hide" id="view-pay">
+  <div class="bill">
+    <div class="kicker" id="inv-kicker">Invoice</div>
+    <div class="display" id="inv-display">0.00 <small>EUR</small></div>
+    <p id="inv-item"></p>
+    <p class="status st-New" id="inv-status">New</p>
+    <dl class="layers">
+      <dt>Quote</dt><dd id="lay-quote"></dd>
+      <dt>Sequence</dt><dd>Kaspa L1, this invoice — not a global DeFi mutex. Tether does not vote.</dd>
+      <dt>Miner fee</dt><dd>always KAS, sender pays, even on a dollar rail</dd>
+      <dt>Settle</dt><dd id="lay-settle">pick a rail</dd>
+    </dl>
+  </div>
+
+  <div class="rails" id="rails"></div>
+  <div class="paybox hide" id="paybox"></div>
+  <p><button type="button" class="ghost" id="back-till" style="color:#141c18;border-color:#d7cfc0;background:#fffdf8">Back to POS</button></p>
+</section>
+
+</main>
+<footer>
+  <span>Ishum is a self-hosted invoice engine. It does not hold keys.</span>
+  <span>Ishum counter</span>
+</footer>
+<script src="pos.js"></script>
+</body>
+</html>
