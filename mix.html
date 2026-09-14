@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sixpack.wtf — mix (Parker · STP · Luke)</title>
+  <meta name="description" content="Mix: Parker Astra + Grok heavy STP + Luke kaspa-x402. Contributors. Not v1. Not mainnet.">
+  <link rel="canonical" href="https://sixpack.wtf/mix.html">
+  <link rel="stylesheet" href="site.css?v=5">
+  <script>
+    try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
+  </script>
+</head>
+<body>
+<div id="intro" class="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+  <div class="intro-card">
+    <p id="intro-title" class="intro-title">Kaspa Explained STP</p>
+    <video class="intro-video" controls playsinline preload="metadata" poster="kaspa-explained.jpg">
+      <source src="kaspa-explained.mp4" type="video/mp4">
+    </video>
+    <div class="intro-copy">
+      <p>-Bitcoin started as proof of work: scarce money and ownership that does not depend on who already holds the coins.</p>
+      <p>-Proof of stake replaced work with capital. That is a different system.</p>
+      <p>-Kaspa kept Bitcoin’s proof of work and upgraded it: 10 blocks per second on average, now programmable.</p>
+    </div>
+    <button type="button" class="intro-proceed">Proceed</button>
+  </div>
+</div>
+<header class="homebar">
+  <a class="home" href="./">Home</a>
+</header>
+<main>
+  <nav class="tabs" aria-label="Site">
+    <a href="./">Verdict</a>
+    <a href="till.html">Till</a>
+    <a href="parker.html">Parker Astra</a>
+    <a href="mix.html" class="on">Mix</a>
+  </nav>
+
+  <h1>Mix — Parker · Grok heavy STP · Luke</h1>
+  <p class="meta">One envelope. Three desks. Do not weld the names. Not Kaspa core. Not v1. Not mainnet.</p>
+
+  <h2>Contributors</h2>
+  <table>
+    <thead><tr><th>Who</th><th>Role in this mix</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><a href="https://github.com/elldeeone">Luke Dunshea</a> · <a href="https://x.com/elldeeone">@elldeeone</a></td>
+        <td>Owns the envelope. <a href="https://github.com/elldeeone/kaspa-x402">kaspa-x402</a>. Tightened Windows disk-sync. Merged <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a>.</td>
+      </tr>
+      <tr>
+        <td><a href="https://github.com/parker2017code">Parker Schmidt</a> · <a href="https://x.com/parker2017">@parker2017</a> · intern Astra · <a href="https://kaspaexplained.com/">Kaspa Explained</a></td>
+        <td>Ethos + funded TN10 review. Filed <a href="https://github.com/elldeeone/kaspa-x402/issues/13">#13</a> on <code>216ad77</code>. Skip centralised stables. PoW, not PoS.</td>
+      </tr>
+      <tr>
+        <td><a href="https://github.com/STP-KAS">STP-KAS</a> · <a href="https://x.com/StppStp">@StppStp</a> · Grok heavy</td>
+        <td>Windows clone-and-test (#11/#12). Public verdict. Till is not x402. Mix host: this site.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>Parker is a <strong>contributor to this pass</strong>. He is not a GitHub collaborator on Luke’s repo unless Luke adds him. This page is the credit.</p>
+
+  <h2>What each one is</h2>
+  <table>
+    <thead><tr><th>Lane</th><th>Honest name</th></tr></thead>
+    <tbody>
+      <tr><td>Luke</td><td>x402 v2 binding for native KAS. Bind this. TN10 RC. Not v1.</td></tr>
+      <tr><td>Parker</td><td>Kaspa Explained + funded review of the binding. Astra intern affiliation. Not the protocol.</td></tr>
+      <tr><td>STP / Grok heavy</td><td>Independent Windows pass, till, master-file pins. Not a fourth envelope.</td></tr>
+      <tr><td>Ishum till</td><td>Coffee POS. Quotes EUR. Settles KAS. Zero <code>PAYMENT-*</code>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The mix rule</h2>
+  <ol>
+    <li>Bind Luke’s envelope. No fourth 402 dialect.</li>
+    <li>Keep Parker’s pin: skip centralised stables for dapps. No kUSD as this <code>asset</code>.</li>
+    <li>Keep STP’s split: till ≠ protocol. Windows clone-and-test must stay green.</li>
+    <li>Parker’s #13 sanitizer bug is real (reproduced here). Luke should patch reports, not the spend path.</li>
+    <li>Do not take “Kaspa is in x402” until upstream lists Luke or rejects him in writing.</li>
+  </ol>
+
+  <h2>Evidence this mix holds</h2>
+  <ul>
+    <li>Windows: <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a> merged <code>216ad77</code>. This machine: <code>npm test</code> green, <code>proof:offline</code> 24/24.</li>
+    <li>Parker funded: <a href="https://github.com/elldeeone/kaspa-x402/issues/13">#13</a>. Public TN10 txids accepted (checked). Sanitizer redaction reproduced on Windows.</li>
+    <li>Hosted demo still <code>1.0.0-rc.1</code>, <code>kaspa:testnet-10</code> only, asset <code>KAS</code>.</li>
+    <li>Master-file pin: <a href="https://github.com/STP-KAS/kaspa-master-file">kaspa-master-file</a> R-X402 = RC.1, TN10, mainnet blocked.</li>
+  </ul>
+
+  <h2>Links</h2>
+  <table>
+    <tbody>
+      <tr><td>Verdict</td><td><a href="./">sixpack.wtf</a></td></tr>
+      <tr><td>Parker Astra</td><td><a href="parker.html">parker.html</a></td></tr>
+      <tr><td>Till</td><td><a href="till.html">till.html</a></td></tr>
+      <tr><td>Luke</td><td><a href="https://github.com/elldeeone/kaspa-x402">elldeeone/kaspa-x402</a></td></tr>
+      <tr><td>Parker review</td><td><a href="https://github.com/elldeeone/kaspa-x402/issues/13">#13</a> · <a href="https://x.com/parker2017/status/2099403938885701854">X</a></td></tr>
+      <tr><td>STP report</td><td><a href="https://github.com/STP-KAS/grok-heavy-test">grok-heavy-test</a></td></tr>
+      <tr><td>Desk mix repo</td><td><a href="https://github.com/STP-KAS/delusional-stp-grok-mix">delusional-stp-grok-mix</a></td></tr>
+    </tbody>
+  </table>
+</main>
+<script src="intro.js?v=1"></script>
+</body>
+</html>

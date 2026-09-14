@@ -10,6 +10,8 @@ Not Kaspa core. Not v1. Not mainnet.
 node serve.mjs
 ```
 
-Then open http://127.0.0.1:4020/ and http://127.0.0.1:4020/till.html
+Then open http://127.0.0.1:4020/ , /till.html , /parker.html , /mix.html
 
-Till tab: original Ishum POS at http://127.0.0.1:8090/pos vs a KAS-only battle-tested keypad.
+- Till: original Ishum POS at http://127.0.0.1:8090/pos vs a KAS-only battle-tested keypad
+- Parker Astra: Parker Schmidt / Kaspa Explained / intern Astra; issue #13 battle-test
+- Mix: Parker · Grok heavy STP · Luke, with the contributor list
