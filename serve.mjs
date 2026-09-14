@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 4020);
 const HOST = process.env.HOST ?? "127.0.0.1";
+const ISHUM = process.env.ISHUM ?? "http://127.0.0.1:8090";
 const TYPES = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -19,6 +20,19 @@ const TYPES = {
 http
   .createServer((req, res) => {
     const url = new URL(req.url ?? "/", `http://${HOST}:${PORT}`);
+    if (url.pathname === "/ishum" || url.pathname.startsWith("/ishum/")) {
+      const target = ISHUM + url.pathname.replace(/^\/ishum/, "") + url.search;
+      http
+        .get(target, (up) => {
+          res.writeHead(up.statusCode ?? 502, up.headers);
+          up.pipe(res);
+        })
+        .on("error", () => {
+          res.writeHead(502, { "content-type": "text/plain; charset=utf-8" });
+          res.end("original till not running at " + ISHUM);
+        });
+      return;
+    }
     let filePath = decodeURIComponent(url.pathname);
     if (filePath.endsWith("/")) filePath += "index.html";
     if (filePath === "/") filePath = "/index.html";
@@ -44,4 +58,5 @@ http
   })
   .listen(PORT, HOST, () => {
     console.log(`http://${HOST}:${PORT}/`);
+    console.log(`http://${HOST}:${PORT}/till.html`);
   });
