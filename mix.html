@@ -76,14 +76,14 @@
     <li>Bind Luke’s envelope. No fourth 402 dialect.</li>
     <li>Keep Parker’s pin: skip centralised stables for dapps. No kUSD as this <code>asset</code>.</li>
     <li>Keep STP’s split: till ≠ protocol. Windows clone-and-test must stay green.</li>
-    <li>Parker’s #13 sanitizer bug is real (reproduced here). Luke should patch reports, not the spend path.</li>
+    <li>Parker’s #13 sanitizer bug was real. Luke patched reports in #14, not the spend path. Retested here.</li>
     <li>Do not take “Kaspa is in x402” until upstream lists Luke or rejects him in writing.</li>
   </ol>
 
   <h2>Evidence this mix holds</h2>
   <ul>
     <li>Windows: <a href="https://github.com/elldeeone/kaspa-x402/pull/12">#12</a> merged <code>216ad77</code>. This machine: <code>npm test</code> green, <code>proof:offline</code> 24/24.</li>
-    <li>Parker funded: <a href="https://github.com/elldeeone/kaspa-x402/issues/13">#13</a>. Public TN10 txids accepted (checked). Sanitizer redaction reproduced on Windows.</li>
+    <li>Parker funded: <a href="https://github.com/elldeeone/kaspa-x402/issues/13">#13</a>. Luke merged <a href="https://github.com/elldeeone/kaspa-x402/pull/14">#14</a> (<code>25893d6</code>). Sanitizer + omit-dev audit retested fixed on Windows. No new release.</li>
     <li>Hosted demo still <code>1.0.0-rc.1</code>, <code>kaspa:testnet-10</code> only, asset <code>KAS</code>.</li>
     <li>Master-file pin: <a href="https://github.com/STP-KAS/kaspa-master-file">kaspa-master-file</a> R-X402 = RC.1, TN10, mainnet blocked.</li>
   </ul>
