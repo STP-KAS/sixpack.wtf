@@ -65,8 +65,17 @@ describe("sixpack wallet safety", () => {
     assert.match(t, /data-door="2"/);
     assert.match(t, /data-door="3"/);
     assert.match(t, /data-door="4"/);
+    assert.match(t, /data-door="5"/);
     assert.match(t, /Never paste a seed/);
     assert.doesNotMatch(t, /type=["']password["']/);
+  });
+
+  it("pins page separates KIP, KCC, kascov, and KaspaZ", () => {
+    const t = readFileSync(join(root, "pins.html"), "utf8");
+    assert.match(t, /kaspanet\/kccs/);
+    assert.match(t, /kascov\.io/);
+    assert.match(t, /KaspaZ is not Kaspa/);
+    assert.match(t, /Toccata/);
   });
 
   it("safety page forbids seeds and names inject wallets", () => {

@@ -82,7 +82,7 @@
   }
 
   const hash = (location.hash || "#1").replace("#", "");
-  showDoor(/^[1-4]$/.test(hash) ? hash : "1");
+  showDoor(/^[1-5]$/.test(hash) ? hash : "1");
   paintPay(2);
   paintSpend("alice");
 })();

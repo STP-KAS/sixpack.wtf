@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sixpack.wtf — pins (KIP, KCC, covenants)</title>
+  <meta name="description" content="Useful master-file pins: Toccata covenants, Kaspa Calls for Conventions, kascov. Not Kaspa core.">
+  <link rel="canonical" href="https://sixpack.wtf/pins.html">
+  <link rel="stylesheet" href="site.css?v=12">
+</head>
+<body>
+<header class="top">
+  <a class="wordmark" href="./">sixpack.wtf</a>
+  <nav data-site-nav></nav>
+</header>
+<main>
+  <h1>Pins</h1>
+  <p class="lede meta">What a builder needs from the master file. Merged <strong>Active KIP</strong> is law. A Kaspa Call for Conventions is not. Encyclopedia: <a href="https://github.com/STP-KAS/kaspa-master-file">kaspa-master-file</a>.</p>
+
+  <div class="box">
+    <p><strong>KaspaZ is not Kaspa.</strong> <a href="https://github.com/KaspaZ-dev/KaspaZ">KaspaZ</a> is a Komodo hobby chain. Covenants here are Kaspa L1 (Toccata), not that project.</p>
+    <p>Watch live covenant coins on <a href="https://kascov.io">kascov.io</a> (KIP-20 lineage from chain bytes). Not a registry. Not an audit.</p>
+  </div>
+
+  <h2>KIP vs Kaspa Call</h2>
+  <table>
+    <thead><tr><th></th><th>KIP</th><th>Kaspa Call for Conventions (KCC)</th></tr></thead>
+    <tbody>
+      <tr><td>What</td><td>Changes consensus / node</td><td>Builders agree on bytes, ABI, tokens</td></tr>
+      <tr><td>Repo</td><td><a href="https://github.com/kaspanet/kips">kaspanet/kips</a></td><td><a href="https://github.com/kaspanet/kccs">kaspanet/kccs</a></td></tr>
+      <tr><td>When it’s law</td><td>Status <strong>Active</strong> + shipped in rusty-kaspa</td><td>Never protocol law. Draft until Final <em>and</em> wallets actually speak it</td></tr>
+      <tr><td>Human map</td><td><a href="https://kaspaexplained.com/kips">kaspaexplained.com/kips</a></td><td>Same page, KCC section</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Covenants (use if the product needs a spend rule)</h2>
+  <p>A covenant is a rule the coin carries. Spend consumes it and must create a valid successor. Not Solidity. Not a shared global contract.</p>
+  <table>
+    <thead><tr><th>Piece</th><th>Honest</th></tr></thead>
+    <tbody>
+      <tr><td>Toccata</td><td>Live 30 Jun 2026, DAA 474,165,565. KIPs <strong>16, 17, 20, 21 Active</strong>.</td></tr>
+      <tr><td>SilverScript</td><td>Compiler tag <a href="https://github.com/kaspanet/silverscript/releases/tag/v1.0.0">v1.0.0</a> (<code>3ed9733</code>). Tag ≠ audited app.</td></tr>
+      <tr><td>Guide</td><td><a href="https://docs.kaspa.org/toccata">docs.kaspa.org/toccata</a> · <a href="https://kaspaexplained.com/build-on-kaspa">build-on-kaspa</a></td></tr>
+      <tr><td>kascov</td><td><a href="https://kascov.io">kascov.io</a> — lineage explorer. Verify from chain.</td></tr>
+      <tr><td>KCC-0001 / 0002 / 0020</td><td><strong>Draft.</strong> KCC-20 has open supply-split <a href="https://github.com/kaspanet/kccs/issues/14">#14</a>. Not a gram token. Not adopted.</td></tr>
+      <tr><td>Argent</td><td>Above SilverScript. No tag. README: not release-ready.</td></tr>
+      <tr><td>vProgs / DAGKnight</td><td>Research / Proposed. GHOSTDAG runs today.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Do not ship around these (compiler pin)</h2>
+  <ol>
+    <li>Foreign <code>readInputState</code> — silverscript#234 closed unmerged. Own UTXO only.</li>
+    <li><code>State[].split()</code> tuples — broken on v1.0.0. Use <code>.0</code> / <code>.1</code>.</li>
+    <li>Amount is <em>not</em> locked by <code>validateOutputState</code>. <code>require</code> output value.</li>
+    <li>1 sompi outputs fail KIP-9 storage mass. Live floors are larger.</li>
+  </ol>
+
+  <h2>Also useful (master file, cut)</h2>
+  <ul>
+    <li>Referee: <a href="https://kaspaexplained.com/status">status</a> — live vs roadmap vs wrong</li>
+    <li>Node: rusty-kaspa <strong>v2.0.1</strong> · builder door: <a href="https://kaspa.org/build">kaspa.org/build</a></li>
+    <li>x402: bind <a href="https://github.com/elldeeone/kaspa-x402">elldeeone/kaspa-x402</a> v1.0.0-rc.1. k402 lock is a different object.</li>
+    <li>Wallet inject: Kasware / Kastle until something ships KCC-0012 (still Draft)</li>
+    <li>Pattern libs (unaudited, TN10): <a href="https://github.com/trillskillz/OpenSilver">OpenSilver</a>, <a href="https://github.com/KaspaKii/Portrait">Portrait</a></li>
+    <li>Skip: price talk, 100 BPS live, tPEG as money, KaspaZ as Kaspa</li>
+  </ul>
+  <p class="meta">Doors: <a href="explained.html">explained.html</a> · Faucet: <a href="faucet.html">faucet.html</a> · Map: <a href="./">home</a></p>
+</main>
+<script src="nav.js?v=12"></script>
+</body>
+</html>

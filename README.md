@@ -15,7 +15,8 @@ http://127.0.0.1:4020/
 | Path | What |
 | --- | --- |
 | `/` | Map (kaspa-dapps). Landing video. Log in top-right. |
-| `/explained.html` | Kaspa Explained STP. Four doors + models. |
+| `/explained.html` | Kaspa Explained STP. Doors + models. |
+| `/pins.html` | KIP vs KCC, Toccata covenants, kascov. Useful master-file cut. |
 | `/node.html` | Grok bot node operator + TN10 wallet how-to. |
 | `/faucet.html` | STP TN10 faucet. 30,000 tKAS / 48h from groks-wallet. |
 | `/till.html` | Ishum POS. Pay with Kasware after permission, or QR. |
