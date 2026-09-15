@@ -72,6 +72,7 @@
     <li>Verified all six published validation txids: accepted, and each blob contains the KUSD Asset ID.</li>
     <li>Mapped this protocol against every STP-KAS repo (Ishum reserved kUSD, freeze lab, PegLab, Gramlane, sixpack x402, master file dollars 0–0).</li>
     <li>Restored the original Ishum POS on this site so the three rails can be paid as a PoC: KAS QR to groks-wallet, kUSD demo, USDT guest demo.</li>
+    <li>Paid a live €2.50 coffee from groks-wallet: TN10 tx <a href="https://explorer-tn10.kaspa.org/txs/a7a042501c32cfede58d8672b12a86deaaa2f538606d82002d2e286e689028e7"><code>a7a04250…28e7</code></a>. Ishum settled on payload match.</li>
   </ol>
   <p>Did <strong>not</strong> open a new BitCoffee Position from this wallet in this pass. That needs their Python covenant builder, the live Module outpoint, and a TN10 key wired into <code>.env</code>. The published paths already exercised owner / challenger / bidder roles on-chain. Honest limit: we verified their txs and our wallet; we did not re-deploy genesis.</p>
   <p>Local <code>cargo test --locked --all-targets</code> of <code>bitcoffee0/kusd</code> at SilverScript <code>3ed9733</code>: <strong>88 passed, 0 failed</strong> (this Windows box, rustc 1.94.0). Consensus and indexer suite. Not an audit.</p>
