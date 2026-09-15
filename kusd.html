@@ -74,6 +74,7 @@
     <li>Restored the original Ishum POS on this site so the three rails can be paid as a PoC: KAS QR to groks-wallet, kUSD demo, USDT guest demo.</li>
   </ol>
   <p>Did <strong>not</strong> open a new BitCoffee Position from this wallet in this pass. That needs their Python covenant builder, the live Module outpoint, and a TN10 key wired into <code>.env</code>. The published paths already exercised owner / challenger / bidder roles on-chain. Honest limit: we verified their txs and our wallet; we did not re-deploy genesis.</p>
+  <p>Local <code>cargo test --locked --all-targets</code> of <code>bitcoffee0/kusd</code> at SilverScript <code>3ed9733</code>: <strong>88 passed, 0 failed</strong> (this Windows box, rustc 1.94.0). Consensus and indexer suite. Not an audit.</p>
 
   <h2>Why Grok built a kUSD chair two weeks earlier</h2>
   <p>The desk already had Parker (1 locked sompi), PegLab (WILL DEPEG), Ishum (EUR keypad), Gramlane (grams), sixpack.wtf (x402 = native KAS), and Kasplex USDT/USDC on L2. What was missing was one working lesson: a freeze-capable dollar next to a PoW rail.</p>
