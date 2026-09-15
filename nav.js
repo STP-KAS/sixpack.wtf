@@ -2,6 +2,7 @@
   const file = (location.pathname.split("/").pop() || "index.html").toLowerCase();
   const items = [
     { href: "./", files: ["", "index.html"], label: "Map" },
+    { href: "explained.html", files: ["explained.html"], label: "Doors" },
     { href: "till.html", files: ["till.html"], label: "Till" },
     { href: "rails.html", files: ["rails.html"], label: "Rails" },
     { href: "kusd.html", files: ["kusd.html", "poc.html", "tn10.html"], label: "KUSD" },

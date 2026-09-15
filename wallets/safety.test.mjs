@@ -48,6 +48,16 @@ describe("sixpack wallet safety", () => {
     assert.match(pos, /SixpackWallet/);
   });
 
+  it("explained page has four doors and no seed field", () => {
+    const t = readFileSync(join(root, "explained.html"), "utf8");
+    assert.match(t, /data-door="1"/);
+    assert.match(t, /data-door="2"/);
+    assert.match(t, /data-door="3"/);
+    assert.match(t, /data-door="4"/);
+    assert.match(t, /Never paste a seed/);
+    assert.doesNotMatch(t, /type=["']password["']/);
+  });
+
   it("safety page forbids seeds and names inject wallets", () => {
     const t = readFileSync(join(root, "safety.html"), "utf8");
     assert.match(t, /Never paste a seed/);

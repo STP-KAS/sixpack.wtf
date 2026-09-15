@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sixpack.wtf — Kaspa Explained STP</title>
+  <meta name="description" content="Four doors. Who is reading comes first. Parker models, STP overlay. Not kaspaexplained.com. Not Kaspa core.">
+  <link rel="canonical" href="https://sixpack.wtf/explained.html">
+  <link rel="stylesheet" href="site.css?v=10">
+</head>
+<body>
+<header class="top">
+  <a class="wordmark" href="./">sixpack.wtf</a>
+  <nav data-site-nav></nav>
+</header>
+<main>
+  <h1>Kaspa Explained · STP</h1>
+  <p class="lede meta">Who is reading comes first. Models you can press, not a lecture. Overlay of Parker’s education. Cite <a href="https://github.com/parker2017code/kaspa-explained">parker2017code/kaspa-explained</a>. Public site: <a href="https://kaspaexplained.com/">kaspaexplained.com</a>. This page is not that site.</p>
+
+  <p class="who" role="group" aria-label="Who is reading">
+    <button type="button" data-who="1" class="on">New</button>
+    <button type="button" data-who="2">Knows crypto</button>
+    <button type="button" data-who="3">Knows Kaspa</button>
+    <button type="button" data-who="4">Checks claims</button>
+  </p>
+
+  <section class="door" data-door="1">
+    <p class="eyebrow">Door 1 · Beginner</p>
+    <h2>Public cash. You hold keys.</h2>
+    <p>A bank can freeze an account. Here the list is public. You sign a payment. Miners spend energy so rewriting history is expensive. That is proof of work. Proof of stake replaced work with a vote of who already holds the coin. Kaspa did not take that turn.</p>
+    <ul>
+      <li><strong>Keys</strong> prove a payment is yours. Lose them, the coins are gone. Share a recovery phrase, you gave them away.</li>
+      <li><strong>Wallet</strong> holds keys. It is not a bank. An exchange balance is a company IOU.</li>
+      <li><strong>Send → include → accept.</strong> The recipient chooses how long to wait. Sending is not settling.</li>
+      <li>Kaspa keeps parallel honest blocks and orders them (blockDAG). About ten blocks per second. That is not instant finality.</li>
+      <li>Never paste a seed. Testnet-10 tKAS is not mainnet KAS. Price is not a source.</li>
+    </ul>
+
+    <div class="model" data-lab="pay">
+      <p class="eyebrow">Model · a payment</p>
+      <p class="model-row"><span>You</span> → <span>Network</span> → <span>Them</span></p>
+      <p class="steps" role="group" aria-label="Payment stages">
+        <button type="button" data-pay="0">1 Sent</button>
+        <button type="button" data-pay="1">2 Included</button>
+        <button type="button" data-pay="2" class="on">3 Accepted</button>
+        <button type="button" data-pay="3">4 Wait</button>
+      </p>
+      <p class="model-say" data-pay-say>Accepted in the current history. The recipient may still wait before treating it as settled.</p>
+      <p class="meta">Inclusion, acceptance, and a shop’s wait are three different things. There is no undo.</p>
+    </div>
+  </section>
+
+  <section class="door hide" data-door="2">
+    <p class="eyebrow">Door 2 · Intermediate</p>
+    <h2>Bitcoin throws extra honest blocks away. Kaspa keeps them and orders them.</h2>
+    <p>Still proof of work. Still UTXO. Not Ethereum. Not an L2. A DAG is not a free pass to spend twice.</p>
+    <ul>
+      <li><strong>Bitcoin:</strong> one chain, extras orphaned. <strong>Kaspa:</strong> concurrent PoW, ordered by GHOSTDAG. Double-spend is checked after order.</li>
+      <li>Inclusion, acceptance, and the recipient’s wait are three facts. Same as Bitcoin, faster blocks.</li>
+      <li>Covenants are spending rules on outputs. Solidity does not run on Kaspa L1.</li>
+      <li><strong>Live:</strong> GHOSTDAG, 10 BPS, Toccata. <strong>Compiler tag:</strong> SilverScript v1.0.0 (apps are separate). <strong>Prototype:</strong> Argent. <strong>Research:</strong> vProgs. <strong>Proposed:</strong> DAGKnight.</li>
+      <li>A tweet is not a KIP. 100 BPS is research.</li>
+    </ul>
+
+    <div class="model" data-lab="spend">
+      <p class="eyebrow">Model · one output, two attempts</p>
+      <p>10 KAS, one output. Both payments name it. After order, only one can spend it.</p>
+      <p class="steps" role="group" aria-label="Who is first">
+        <button type="button" data-spend="alice" class="on">Alice first</button>
+        <button type="button" data-spend="bob">Bob first</button>
+      </p>
+      <p class="model-say" data-spend-say>Alice’s payment consumes the output. Bob’s attempt is already spent. Keeping both blocks does not make both payments valid.</p>
+    </div>
+  </section>
+
+  <section class="door hide" data-door="3">
+    <p class="eyebrow">Door 3 · Advanced</p>
+    <h2>A live rule is not an app.</h2>
+    <p>Toccata is live. SilverScript v1.0.0 is a compiler tag, not production dApps. vProgs are research. DAGKnight is Proposed. Do not mix those sentences.</p>
+    <ul>
+      <li>Do not claim: 100 BPS live, instant irreversible coffee, Ethereum-class native contracts, KCC-20 adopted, vProgs live, Toccata “coming soon.”</li>
+      <li>Build on Testnet-10 (<code>kaspatest:</code>). Quote DAA and subsidy from <a href="https://kaspaexplained.com/status">status</a>; they age.</li>
+      <li>A covenant can lock, wait, cap, name a destination. It is not a bank, a court, or an AMM.</li>
+    </ul>
+
+    <div class="model" data-lab="vault">
+      <p class="eyebrow">Model · a delayed vault</p>
+      <p>Locked 10,000 KAS. Wait 60 steps. Cap 2,000. Named destination. Signature alone is not enough.</p>
+      <p class="checks" data-vault-checks>
+        <span data-c="0">Wait</span>
+        <span data-c="1">Cap</span>
+        <span data-c="2">Destination</span>
+      </p>
+      <label class="meta">Attempt
+        <select data-vault>
+          <option value="early">Too early</option>
+          <option value="large">Too much</option>
+          <option value="wrong">Wrong destination</option>
+          <option value="valid">All three hold</option>
+        </select>
+      </label>
+      <p class="model-say" data-vault-say>Rejected. The waiting rule still fails.</p>
+      <p class="meta">Illustration. Not a deployable contract. Town on kaspaexplained.com is the Testnet-10 lab; one browser holds every key there.</p>
+    </div>
+  </section>
+
+  <section class="door hide" data-door="4">
+    <p class="eyebrow">Door 4 · Expert</p>
+    <h2>Price is not protocol. Live is not an app.</h2>
+    <p>Before you repeat a sentence: primary source? Active / Draft / Proposed? Dated? Mixing Toccata with SilverScript with vProgs? True if KAS were worth zero?</p>
+    <table>
+      <thead><tr><th>Label</th><th>Means</th><th>Now</th></tr></thead>
+      <tbody>
+        <tr><td>Live</td><td>Activated and observable</td><td>GHOSTDAG, 10 BPS, Toccata</td></tr>
+        <tr><td>Tagged</td><td>Compiler/node release</td><td>silverc v1.0.0, rusty v2.0.1 — not an app audit</td></tr>
+        <tr><td>Roadmap</td><td>Written intent</td><td>Native DeFi as a product layer</td></tr>
+        <tr><td>Research</td><td>Paper or prototype</td><td>vProgs, 100 BPS, DAGKnight</td></tr>
+        <tr><td>Wrong</td><td>Contradicted by node / KIP / snapshot</td><td>Instant finality, “Kaspa has mature smart contracts”</td></tr>
+      </tbody>
+    </table>
+    <p>Referee: <a href="https://kaspaexplained.com/status">kaspaexplained.com/status</a>. If the last check fails, it was a market claim. Stop.</p>
+  </section>
+
+  <p class="meta">
+    Live picture: <a href="https://kgi.kaspad.net/">Graph Inspector</a>
+    · Ledger: <a href="https://kaspa.stream/">kaspa.stream</a>
+    · TN10: <a href="https://tn10.kaspa.stream/">tn10.kaspa.stream</a>
+    · Help: <a href="https://discord.gg/kaspa">Kaspa Discord</a>
+  </p>
+  <p class="meta">Till and dual-rail stay on this site: <a href="till.html">Till</a> · <a href="./">Map</a> · <a href="safety.html">Safety</a> (never a seed).</p>
+</main>
+<script src="nav.js?v=10"></script>
+<script src="explained.js?v=10"></script>
+</body>
+</html>
