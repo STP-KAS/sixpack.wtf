@@ -18,14 +18,15 @@
   <p class="lede meta">Two bots. Two networks. One TN10 wallet for testing and building. This site never asks for a seed.</p>
 
   <div class="box">
-    <p><strong>Use this wallet to test and build.</strong> Testnet-10 only. tKAS has no value.</p>
-    <p><code>kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</code></p>
-    <p class="meta">
-      Live on kaspa.stream:
-      <a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx">tn10.kaspa.stream · groks wallet</a>
-      · balance <span id="bal">…</span> tKAS
+    <p><strong>Grok bot is mining here</strong> — Testnet-10 wallet. Use it to test and build. tKAS has no value.</p>
+    <p>
+      <a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx"><code>kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</code></a>
     </p>
-    <p class="meta">Repo: <a href="https://github.com/STP-KAS/groks-wallet">STP-KAS/groks-wallet</a>. Till receive address is this same wallet.</p>
+    <p class="meta">
+      Open that link on kaspa.stream. Balance <span id="bal">…</span> tKAS.
+      How: <strong>tn10 bot</strong> (not kaspa bot) runs a TN10 node + CPU miner and pays only to this address.
+      <a href="https://github.com/STP-KAS/groks-wallet/blob/main/START-TN10.md">START-TN10.md</a>
+    </p>
   </div>
 
   <h2>Who does what</h2>
@@ -60,14 +61,17 @@
   <p class="meta">Node runs on the Grok Bot Linux sandbox, not on your phone. RPC stays private. Only P2P 16111 is public. Pin: rusty-kaspa v2.0.1.</p>
   <p class="meta">Home-PC public node (inbound TCP 16111, RPC on localhost): <a href="https://github.com/STP-KAS/windows-p2p-node-guide">windows-p2p-node-guide</a>.</p>
 
-  <h2>How to — tn10 bot (wallet + miner)</h2>
+  <h2>How Grok mines that wallet</h2>
   <ol>
-    <li>Grok Bot → <strong>Create new Bot</strong>. Not kaspa bot. Name it <strong>tn10 bot</strong>.</li>
-    <li>Paste the block from <a href="https://github.com/STP-KAS/groks-wallet/blob/main/START-TN10.md">groks-wallet START-TN10.md</a> and send.</li>
-    <li>Mine <em>only</em> to <code>kaspatest:qzffl5…v0ldx</code>. Do not generate a new seed. Do not mine mainnet.</li>
+    <li>Grok Bot → <strong>Create new Bot</strong>. Name it <strong>tn10 bot</strong>. Not kaspa bot (kaspa bot is mainnet, no miner).</li>
+    <li>Paste <a href="https://github.com/STP-KAS/groks-wallet/blob/main/START-TN10.md">START-TN10.md</a> and send. It fetches <a href="https://github.com/STP-KAS/groks-wallet/blob/main/GROK_BOT_PROMPT_TN10.md">GROK_BOT_PROMPT_TN10.md</a>.</li>
+    <li>Bot starts Testnet-10 <code>kaspad</code> (P2P <strong>16211</strong>, gRPC localhost <strong>16210</strong>) and <code>kaspa-miner</code> CPU threads.</li>
+    <li>Pay-to is locked:
+      <a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx"><code>kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</code></a>.
+      Do not generate a new seed. Do not mine mainnet.</li>
     <li>Leave kaspa bot alone. Different ports, different datadir.</li>
   </ol>
-  <p class="meta">TN10 P2P is <strong>16211</strong>. Mainnet is <strong>16111</strong>. Mixing those is how you break both nodes.</p>
+  <p class="meta">Windows desk does the same miner locally (<code>kaspa-miner -t 8 --user-agent-suffix grokwallet</code> → that address). Same wallet. Same stream link.</p>
 
   <h2>Windows desk TN10</h2>
   <p>Same wallet. Same worthless coins. Datadir <code>%LOCALAPPDATA%\rusty-kaspa\kaspa-testnet-10</code>.</p>
