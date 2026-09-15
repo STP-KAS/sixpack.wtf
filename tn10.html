@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sixpack.wtf — TN10 probe</title>
+  <meta name="description" content="Live Kaspa Testnet-10 probe: groks-wallet, BitCoffee KUSD txs, local nodes. Not mainnet.">
+  <link rel="canonical" href="https://sixpack.wtf/tn10.html">
+  <link rel="stylesheet" href="site.css?v=7">
+  <script>
+    try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
+  </script>
+</head>
+<body>
+<div id="intro" class="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+  <div class="intro-card">
+    <p id="intro-title" class="intro-title">Kaspa Explained STP</p>
+    <video class="intro-video" controls playsinline preload="metadata" poster="kaspa-explained.jpg">
+      <source src="kaspa-explained.mp4" type="video/mp4">
+    </video>
+    <div class="intro-copy">
+      <p>-Bitcoin started as proof of work: scarce money and ownership that does not depend on who already holds the coins.</p>
+      <p>-Proof of stake replaced work with capital. That is a different system.</p>
+      <p>-Kaspa kept Bitcoin’s proof of work and upgraded it: 10 blocks per second on average, now programmable.</p>
+    </div>
+    <button type="button" class="intro-proceed">Proceed</button>
+  </div>
+</div>
+<header class="homebar">
+  <a class="home" href="./">Home</a>
+</header>
+<main>
+  <nav class="tabs" aria-label="Site">
+    <a href="./">Verdict</a>
+    <a href="till.html">Till</a>
+    <a href="kusd.html">KUSD</a>
+    <a href="poc.html">PoC revisited</a>
+    <a href="tn10.html" class="on">TN10</a>
+    <a href="rails.html">Rails</a>
+    <a href="parker.html">Parker Astra</a>
+    <a href="mix.html">Mix</a>
+  </nav>
+
+  <h1>TN10 — groks-wallet + BitCoffee txs</h1>
+  <p class="meta">Live public REST plus the snapshot taken on this desk. tKAS has no monetary value. This process does not hold keys.</p>
+
+  <div class="box">
+    <p><strong>Receive address (this PoC till):</strong></p>
+    <p><code id="addr">kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</code></p>
+    <p class="meta"><a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx">tn10.kaspa.stream</a> · <a href="https://github.com/STP-KAS/groks-wallet">groks-wallet</a></p>
+  </div>
+
+  <table>
+    <thead><tr><th>Pulse</th><th>Live</th></tr></thead>
+    <tbody>
+      <tr><td>TN10 DAA</td><td id="daa">…</td></tr>
+      <tr><td>TN10 blocks</td><td id="blocks">…</td></tr>
+      <tr><td>groks-wallet tKAS</td><td id="bal">…</td></tr>
+      <tr><td>KAS / USD (mainnet ticker)</td><td id="px">…</td></tr>
+      <tr><td>Ishum :8090</td><td id="ishum">…</td></tr>
+    </tbody>
+  </table>
+  <p class="meta" id="pulse-at">Fetching api-tn10.kaspa.org…</p>
+
+  <h2>BitCoffee published txs (checked 15 Sep 2026)</h2>
+  <p class="meta">All six <code>is_accepted: true</code> on api-tn10. Each transaction blob contains Asset ID <code>a2d81080bd74ab419f0bfea73b20c5154100520be15d68a190a5d1adf52f32b5</code>.</p>
+  <table>
+    <thead><tr><th>Path</th><th>Txid</th><th>In/out</th><th>Mass</th></tr></thead>
+    <tbody>
+      <tr><td>Governed Module</td><td><a href="https://explorer-tn10.kaspa.org/txs/2d571d6b9b12d7f24e745cbb72ea4a825cd04566760773b77ac350624a324453">2d571d6b…4453</a></td><td>6 / 8</td><td>397932</td></tr>
+      <tr><td>Savings on</td><td><a href="https://explorer-tn10.kaspa.org/txs/472af9468824ae3a2a3cda0f82d28bc7633d5bd872111f21c8d4342e0b331a92">472af946…1a92</a></td><td>4 / 4</td><td>304692</td></tr>
+      <tr><td>Repay + close</td><td><a href="https://explorer-tn10.kaspa.org/txs/680c64086774ae30d027dd745ad9d75d6496cb3d2ac270efefec1a652157c327">680c6408…c327</a></td><td>3 / 2</td><td>371824</td></tr>
+      <tr><td>Savings withdraw</td><td><a href="https://explorer-tn10.kaspa.org/txs/d34343598556d997cd190012f637b76e7c413180ea9ab4293145010ace1120c5">d3434359…20c5</a></td><td>4 / 4</td><td>244064</td></tr>
+      <tr><td>Auction backstop</td><td><a href="https://explorer-tn10.kaspa.org/txs/67179c8b50079d4454027c5b4a8acc536faad2a224c3b4b018eff11fb441c678">67179c8b…c678</a></td><td>7 / 5</td><td>266346</td></tr>
+      <tr><td>Multi-wallet auction</td><td><a href="https://explorer-tn10.kaspa.org/txs/b4d7e2e4efdf24efe1bfe2200f96245a516b503baa397579726966bf555738e5">b4d7e2e4…38e5</a></td><td>6 / 5</td><td>326525</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Desk snapshot</h2>
+  <p>At 2026-09-15T06:03:38Z this Windows desk saw:</p>
+  <ul>
+    <li>TN10 DAA 570938367, network <code>kaspa-testnet-10</code></li>
+    <li>groks-wallet 1,033,127.88 tKAS, 329,884 UTXOs (miner dust)</li>
+    <li>PegLab sponsor 273,972.69 tKAS</li>
+    <li>Listening: 16110/16111 mainnet kaspad, 16210/16211/17210/18210 TN10, 8090 Ishum, 4020 sixpack, 4050 showcase, 8765 PegLab</li>
+    <li>Local JSON-RPC on 18210 did not speak the HTTP JSON method this probe sent (wrpc/gRPC is the live path). Public REST was used for balances and txs.</li>
+  </ul>
+  <p class="meta">Did not sign a new BitCoffee Position. Did not print the seed. Did restore Ishum POS to this address so a TN10 KAS QR is real.</p>
+</main>
+<script>
+(function () {
+  var ADDR = "kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx";
+  function tkas(sompi) { return (Number(sompi) / 1e8).toLocaleString(undefined, { maximumFractionDigits: 2 }); }
+  Promise.all([
+    fetch("https://api-tn10.kaspa.org/info/blockdag").then(function (r) { return r.json(); }),
+    fetch("https://api-tn10.kaspa.org/addresses/" + encodeURIComponent(ADDR) + "/balance").then(function (r) { return r.json(); }),
+    fetch("https://api.kaspa.org/info/price").then(function (r) { return r.json(); }),
+    fetch("http://127.0.0.1:8090/pos").then(function (r) { return r.ok; }).catch(function () { return false; })
+  ]).then(function (pair) {
+    var dag = pair[0] || {};
+    var bal = pair[1] || {};
+    var px = pair[2] || {};
+    document.getElementById("daa").textContent = dag.virtualDaaScore || "—";
+    document.getElementById("blocks").textContent = dag.blockCount || "—";
+    document.getElementById("bal").textContent = bal.balance != null ? tkas(bal.balance) : "—";
+    document.getElementById("px").textContent = px.price != null ? Number(px.price).toFixed(4) : "—";
+    document.getElementById("ishum").textContent = pair[3] ? "up" : "not reachable from this origin";
+    document.getElementById("pulse-at").textContent = "Live fetch " + new Date().toISOString() + " · " + (dag.networkName || "");
+  }).catch(function (e) {
+    document.getElementById("pulse-at").textContent = "Live fetch failed: " + e;
+  });
+})();
+</script>
+<script src="intro.js?v=1"></script>
+</body>
+</html>

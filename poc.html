@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sixpack.wtf — PoC revisited</title>
+  <meta name="description" content="PoC revisited: STP-KAS desk (Ishum kUSD chair, freeze lab) against BitCoffee KUSD on TN10. Not Kaspa core.">
+  <link rel="canonical" href="https://sixpack.wtf/poc.html">
+  <link rel="stylesheet" href="site.css?v=7">
+  <script>
+    try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
+  </script>
+</head>
+<body>
+<div id="intro" class="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+  <div class="intro-card">
+    <p id="intro-title" class="intro-title">Kaspa Explained STP</p>
+    <video class="intro-video" controls playsinline preload="metadata" poster="kaspa-explained.jpg">
+      <source src="kaspa-explained.mp4" type="video/mp4">
+    </video>
+    <div class="intro-copy">
+      <p>-Bitcoin started as proof of work: scarce money and ownership that does not depend on who already holds the coins.</p>
+      <p>-Proof of stake replaced work with capital. That is a different system.</p>
+      <p>-Kaspa kept Bitcoin’s proof of work and upgraded it: 10 blocks per second on average, now programmable.</p>
+    </div>
+    <button type="button" class="intro-proceed">Proceed</button>
+  </div>
+</div>
+<header class="homebar">
+  <a class="home" href="./">Home</a>
+</header>
+<main>
+  <nav class="tabs" aria-label="Site">
+    <a href="./">Verdict</a>
+    <a href="till.html">Till</a>
+    <a href="kusd.html">KUSD</a>
+    <a href="poc.html" class="on">PoC revisited</a>
+    <a href="tn10.html">TN10</a>
+    <a href="rails.html">Rails</a>
+    <a href="parker.html">Parker Astra</a>
+    <a href="mix.html">Mix</a>
+  </nav>
+
+  <h1>PoC revisited</h1>
+  <p class="meta">15 Sep 2026. The desk PoC named kUSD as an empty chair. BitCoffee deployed a protocol under the same letters. This tab is the revisit. GitHub: <a href="https://github.com/STP-KAS/poc-revisited">STP-KAS/poc-revisited</a>.</p>
+
+  <div class="box">
+    <p><strong>Why the desk PoC exists.</strong> Centralised stables can be frozen and destroyed by the issuer. Bitcoin has no such key. Kaspa inherits that on native KAS. Bridging Tether onto Kaspa is useful liquidity. It is not a replacement for a rail that cannot be switched off.</p>
+    <p><strong>What changed.</strong> BitCoffee0 published a TN10 KUSD that is overcollateralized with KAS, oracle-free by construction (fixed Module price), and actually accepted by Testnet 10. The chair is no longer the only object named kUSD.</p>
+  </div>
+
+  <h2>Two objects, one name</h2>
+  <table>
+    <thead><tr><th></th><th>Desk PoC (Ishum / showcase)</th><th>BitCoffee KUSD</th></tr></thead>
+    <tbody>
+      <tr><td>What it is</td><td>A till seat. Reserved-native. Demo settle.</td><td>A covenant protocol. Positions, auctions, KPS.</td></tr>
+      <tr><td>Asset</td><td>None</td><td>TN10 Asset ID <code>a2d81080…</code></td></tr>
+      <tr><td>Collateral</td><td>“If someone posts reserves”</td><td>Native KAS locked in Position UTXOs</td></tr>
+      <tr><td>Oracle</td><td>N/A (no money)</td><td>None. Fixed liquidation price per Module</td></tr>
+      <tr><td>Freeze</td><td>USDT guest can freeze. Native cannot.</td><td>No issuer blacklist in the design</td></tr>
+      <tr><td>Live on TN10</td><td>KAS invoices, if a receive address is set</td><td>Published txs accepted 10 Sep 2026</td></tr>
+      <tr><td>Ready for a shop</td><td>KAS rail, yes. kUSD rail, no</td><td>No. Unaudited. No wallet pay path</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What Grok did, why, sources</h2>
+  <p><strong>Did:</strong> built the dual-rail lesson (native vs Tether), reserved a kUSD name so the till would not only speak USDT, refused kUSD as x402 <code>asset</code>, kept PegLab as the thing that depegs, bound kaspa-x402 to native KAS.</p>
+  <p><strong>Why:</strong> dapps sequenced on Kaspa L1 need stable operating costs without importing a king into the unit. Waiting for Tether on Kasplex is waiting for a freeze switch.</p>
+  <p><strong>Sources:</strong> Parker kaspa-explained; Ishum; PegLab; Gramlane; sixpack.wtf kaspa-x402 pass; Tether blacklist public record in <a href="https://github.com/STP-KAS/grok-heavy-showcase/blob/main/WHY-NOT-ONLY-TETHER.md">WHY-NOT-ONLY-TETHER.md</a>; Kasplex USDT/USDC landing; Sutton on partitioned app state; Luke kaspa-x402.</p>
+
+  <h2>STP-KAS repos vs this protocol</h2>
+  <table>
+    <thead><tr><th>Repo</th><th>Job</th><th>After BitCoffee</th></tr></thead>
+    <tbody>
+      <tr><td><a href="https://github.com/STP-KAS/ishum">ishum</a></td><td>Till. Quote EUR. Settle KAS. kUSD/USDT seats.</td><td>Keep KAS live. kUSD seat now points at BitCoffee as the candidate, still demo until wallets pay the Asset ID.</td></tr>
+      <tr><td><a href="https://github.com/STP-KAS/grok-heavy-showcase">grok-heavy-showcase</a></td><td>Freeze lab. Dual rail.</td><td>Still the lesson. Add a third column: KUSD candidate (no freeze key, but oracle-free is unproven).</td></tr>
+      <tr><td><a href="https://github.com/STP-KAS/sixpack.wtf">sixpack.wtf</a></td><td>x402 verdict. This site.</td><td>New tabs. x402 remains native KAS. KUSD is not this envelope’s asset.</td></tr>
+      <tr><td><a href="https://github.com/STP-KAS/peglab-stp">peglab-stp</a> / <a href="https://github.com/STP-KAS/peglab-poc">peglab-poc</a></td><td>WILL DEPEG classroom.</td><td>Keep. BitCoffee’s fixed price can also be a bad price. PegLab is the warning, not the money.</td></tr>
+      <tr><td><a href="https://github.com/STP-KAS/gramlane">gramlane</a> / <a href="https://github.com/STP-KAS/gramlanepeglab">gramlanepeglab</a></td><td>Sequencer bill in grams.</td><td>Grams stay prepaid mass, not $1. Do not rename grams to KUSD.</td></tr>
+      <tr><td><a href="https://github.com/STP-KAS/kaspa-x402">kaspa-x402</a></td><td>Luke envelope, native KAS, TN10.</td><td>No change. Kill-if KUSD is stuffed into <code>asset</code>.</td></tr>
+      <tr><td><a href="https://github.com/STP-KAS/x402-ishum">x402-ishum</a> / <a href="https://github.com/STP-KAS/402-is-not-x402">402-is-not-x402</a></td><td>Till ≠ 402.</td><td>Holds. BitCoffee does not make Ishum into x402.</td></tr>
+      <tr><td><a href="https://github.com/STP-KAS/kaspa-master-file">kaspa-master-file</a> / <a href="https://github.com/STP-KAS/project-delusional">project-delusional</a></td><td>Dollars 0–0. Skip centralised stables for dapps.</td><td>0–0 still means “this desk does not issue a dollar.” Reviewing BitCoffee is allowed. Shipping it as our mint is not.</td></tr>
+      <tr><td><a href="https://github.com/STP-KAS/kaspa-till">kaspa-till</a></td><td>Reserved L1 stable till.</td><td>Superseded as a product by Ishum + this review. Do not grow a fourth till.</td></tr>
+      <tr><td><a href="https://github.com/STP-KAS/stillpay-tn10">stillpay-tn10</a> / <a href="https://github.com/STP-KAS/stillpay-mainnet">stillpay-mainnet</a></td><td>1 sompi receipt + timeout escrow.</td><td>Parker unit. Not a dollar. Keep beside KUSD, do not merge.</td></tr>
+      <tr><td><a href="https://github.com/STP-KAS/groks-wallet">groks-wallet</a></td><td>TN10 miner wallet.</td><td>The receive address for this PoC till. ~1.03M tKAS at probe. Worthless coins. Real building.</td></tr>
+      <tr><td><a href="https://github.com/STP-KAS/tn10-hard-test">tn10-hard-test</a></td><td>Hard-test every repo against groks-wallet.</td><td>This pass is the KUSD chapter of that series.</td></tr>
+      <tr><td><a href="https://github.com/STP-KAS/wallet-integration">wallet-integration</a></td><td>Kasware / Kastle inject.</td><td>Needed before KUSD is a till rail. Pay/sign KCC assets, not only KAS.</td></tr>
+      <tr><td><a href="https://github.com/STP-KAS/kns">kns</a> / <a href="https://github.com/STP-KAS/kns-spec">kns-spec</a></td><td>Names.</td><td>Unrelated to the peg. Do not name the dollar into KNS as if that issued it.</td></tr>
+      <tr><td><a href="https://github.com/STP-KAS/kaachat-desktop">kaachat-desktop</a> / <a href="https://github.com/STP-KAS/stp-kachat">stp-kachat</a></td><td>Wallet-login chat.</td><td>Can quote EUR. Must not settle chat in USDT-as-gas.</td></tr>
+      <tr><td><a href="https://github.com/STP-KAS/mixer-concept">mixer-concept</a> / <a href="https://github.com/STP-KAS/delusional-stp-grok-mix">delusional-stp-grok-mix</a></td><td>Desk mix.</td><td>Add BitCoffee as an external protocol, credited, not absorbed.</td></tr>
+      <tr><td>Other (nodes, cascade, argent, Xai.*)</td><td>Infrastructure / reviews.</td><td>No KUSD change. Nodes stay KAS-fee.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What to do next on this desk</h2>
+  <ol>
+    <li>Original POS on this site takes KAS to groks-wallet. Use it. That is the native rail.</li>
+    <li>kUSD button remains demo until a builder can spend BitCoffee’s Asset ID from this wallet.</li>
+    <li>Do not mint a competing KUSD. Review, test, and if it holds, integrate as a labelled rail.</li>
+    <li>x402 stays Luke’s envelope, native KAS, TN10.</li>
+    <li>If capital is discussed in public: grants for audit/indexer, not core-treasury backing.</li>
+  </ol>
+</main>
+<script src="intro.js?v=1"></script>
+</body>
+</html>

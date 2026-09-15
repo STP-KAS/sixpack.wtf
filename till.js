@@ -68,7 +68,8 @@
     var id = "inv_" + Math.random().toString(16).slice(2) + Date.now().toString(16);
     var kas = kasUsd ? (t.all / kasUsd) : null;
     var sompi = kas ? Math.round(kas * 1e8) : null;
-    var uri = "kaspa:?message=" + encodeURIComponent(id) + (sompi ? "&amount=" + (sompi / 1e8) : "");
+    var payTo = "kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx";
+    var uri = payTo + "?message=" + encodeURIComponent(id) + (sompi ? "&amount=" + (sompi / 1e8) : "");
     var ticket = document.getElementById("ticket");
     ticket.classList.remove("hide");
     ticket.innerHTML =

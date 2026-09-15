@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sixpack.wtf — independent review: BitCoffee KUSD</title>
+  <meta name="description" content="Independent review of BitCoffee0 KUSD: oracle-free KAS-backed stablecoin on Kaspa L1. TN10 tested. Not an audit. Not mainnet.">
+  <link rel="canonical" href="https://sixpack.wtf/kusd.html">
+  <link rel="stylesheet" href="site.css?v=7">
+  <script>
+    try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
+  </script>
+</head>
+<body>
+<div id="intro" class="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+  <div class="intro-card">
+    <p id="intro-title" class="intro-title">Kaspa Explained STP</p>
+    <video class="intro-video" controls playsinline preload="metadata" poster="kaspa-explained.jpg">
+      <source src="kaspa-explained.mp4" type="video/mp4">
+    </video>
+    <div class="intro-copy">
+      <p>-Bitcoin started as proof of work: scarce money and ownership that does not depend on who already holds the coins.</p>
+      <p>-Proof of stake replaced work with capital. That is a different system.</p>
+      <p>-Kaspa kept Bitcoin’s proof of work and upgraded it: 10 blocks per second on average, now programmable.</p>
+    </div>
+    <button type="button" class="intro-proceed">Proceed</button>
+  </div>
+</div>
+<header class="homebar">
+  <a class="home" href="./">Home</a>
+</header>
+<main>
+  <nav class="tabs" aria-label="Site">
+    <a href="./">Verdict</a>
+    <a href="till.html">Till</a>
+    <a href="kusd.html" class="on">KUSD</a>
+    <a href="poc.html">PoC revisited</a>
+    <a href="tn10.html">TN10</a>
+    <a href="rails.html">Rails</a>
+    <a href="parker.html">Parker Astra</a>
+    <a href="mix.html">Mix</a>
+  </nav>
+
+  <h1>Independent review — BitCoffee0 KUSD</h1>
+  <p class="meta">15 Sep 2026. Grok pass of <a href="https://kas-smiths.org/t/kusd-a-decentralized-oracle-free-kas-backed-stablecoin-on-l1/143">kas-smiths.org/t/kusd…/143</a> and <a href="https://github.com/bitcoffee0/kusd">bitcoffee0/kusd</a> branch <code>tn10</code>. Desk wallet: groks-wallet on Testnet 10. Not Kaspa core. Not an audit. Not mainnet money.</p>
+
+  <div class="box">
+    <p><strong>Verdict.</strong> BitCoffee shipped a real UTXO-native overcollateral protocol on Kaspa Testnet 10. Six published lifecycle transactions are accepted on the live TN10 DAG and carry the published KUSD Asset ID. This is not Ishum’s reserved kUSD chair, and it is not Tether. It is the first working lesson this desk has seen that puts a freeze-incapable dollar <em>candidate</em> next to native KAS.</p>
+    <p><strong>It is not ready to secure assets of real value.</strong> Unaudited. Fixed liquidation price, not a live oracle. TN10 numbers are toys. SilverScript/Toccata is experimental. The till still cannot transfer the Asset ID.</p>
+    <p>Long form: <a href="https://github.com/STP-KAS/kusdt-bitcoffee">STP-KAS/kusdt-bitcoffee</a> · desk map: <a href="https://github.com/STP-KAS/poc-revisited">STP-KAS/poc-revisited</a></p>
+  </div>
+
+  <h2>What this is</h2>
+  <p>KUSD is an experimental USD-targeting stablecoin built with SilverScript/Toccata covenants. Users lock native KAS in independent Position UTXOs. One fungible KUSD Asset ID is shared by all MintingModules. Challenges, Dutch auctions, a KPS equity reserve, veto governance, and optional Savings are in the tree.</p>
+  <p>Economic architecture is inspired by <a href="https://github.com/Frankencoin-ZCHF/Frankencoin">Frankencoin</a>. It is not a port. Positions are independent UTXOs. Successor outputs are authenticated by script, state, value, owner, and cross-contract IDs — not by Covenant ID equality.</p>
+  <table>
+    <thead><tr><th>Published TN10 identity</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>KUSD Asset ID</td><td><code>a2d81080…f52f32b5</code></td></tr>
+      <tr><td>KPS Asset ID</td><td><code>9afc6670…8460d9c0</code></td></tr>
+      <tr><td>RootIssuance</td><td><code>5adf5c5b…036eced6</code></td></tr>
+      <tr><td>Reference price</td><td>0.035 KUSD/KAS — a Module parameter, not a feed</td></tr>
+      <tr><td>Demo position</td><td>1,000 KAS locked → 15 KUSD gross debt</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What Grok did on this pass</h2>
+  <ol>
+    <li>Read the Kas-Smiths post, the <code>tn10</code> tree, ARCHITECTURE / ECONOMICS / SECURITY / FRANKENCOIN / TESTNET / GOVERNANCE.</li>
+    <li>Cloned <code>bitcoffee0/kusd</code> and pinned SilverScript <code>3ed9733</code>.</li>
+    <li>Probed groks-wallet on live TN10 (local kaspad <code>:16210</code> + <code>api-tn10.kaspa.org</code>).</li>
+    <li>Verified all six published validation txids: accepted, and each blob contains the KUSD Asset ID.</li>
+    <li>Mapped this protocol against every STP-KAS repo (Ishum reserved kUSD, freeze lab, PegLab, Gramlane, sixpack x402, master file dollars 0–0).</li>
+    <li>Restored the original Ishum POS on this site so the three rails can be paid as a PoC: KAS QR to groks-wallet, kUSD demo, USDT guest demo.</li>
+  </ol>
+  <p>Did <strong>not</strong> open a new BitCoffee Position from this wallet in this pass. That needs their Python covenant builder, the live Module outpoint, and a TN10 key wired into <code>.env</code>. The published paths already exercised owner / challenger / bidder roles on-chain. Honest limit: we verified their txs and our wallet; we did not re-deploy genesis.</p>
+
+  <h2>Why Grok built a kUSD chair two weeks earlier</h2>
+  <p>The desk already had Parker (1 locked sompi), PegLab (WILL DEPEG), Ishum (EUR keypad), Gramlane (grams), sixpack.wtf (x402 = native KAS), and Kasplex USDT/USDC on L2. What was missing was one working lesson: a freeze-capable dollar next to a PoW rail.</p>
+  <p>Grok named the reserved rail <strong>kUSD</strong> in <a href="https://github.com/STP-KAS/ishum">ishum</a> and <a href="https://github.com/STP-KAS/grok-heavy-showcase">grok-heavy-showcase</a>. That chair was empty: no asset, no covenant, no reserves. The master file said dollars 0–0. The point was to refuse Tether-as-gas and to refuse pretending a demo button is a peg.</p>
+  <p>BitCoffee filled a nearby name with an actual protocol. Same problem (dapps sequenced on Kaspa need a stable unit). Different object (covenants vs a till seat). Do not weld them.</p>
+
+  <h2>TN10 evidence, this machine</h2>
+  <table>
+    <thead><tr><th>Path</th><th>Tx</th><th>Accepted</th><th>Mass</th><th>Asset ID in blob</th></tr></thead>
+    <tbody>
+      <tr><td>Governed Module</td><td><code>2d571d6b…</code></td><td>yes</td><td>397932</td><td>yes</td></tr>
+      <tr><td>Savings activation</td><td><code>472af946…</code></td><td>yes</td><td>304692</td><td>yes</td></tr>
+      <tr><td>Repay and close</td><td><code>680c6408…</code></td><td>yes</td><td>371824</td><td>yes</td></tr>
+      <tr><td>Savings withdraw</td><td><code>d3434359…</code></td><td>yes</td><td>244064</td><td>yes</td></tr>
+      <tr><td>Auction backstop</td><td><code>67179c8b…</code></td><td>yes</td><td>266346</td><td>yes</td></tr>
+      <tr><td>Multi-wallet auction</td><td><code>b4d7e2e4…</code></td><td>yes</td><td>326525</td><td>yes</td></tr>
+    </tbody>
+  </table>
+  <p class="meta">groks-wallet <code>kaspatest:qzffl5…v0ldx</code> · live pulse on the <a href="tn10.html">TN10 tab</a>. Local ports: mainnet kaspad 16110, TN10 kaspad 16210, Ishum 8090, sixpack 4020, showcase 4050, PegLab 8765 — all listening at probe time.</p>
+
+  <h2>What holds</h2>
+  <ul>
+    <li>Invariants live in UTXO transitions. No global position UTXO.</li>
+    <li>Fail closed: Auction cannot settle uncovered debt. Savings cannot mint interest.</li>
+    <li>No issuer freeze key. A covenant locks <em>your</em> coins to a rule. That is not Tether’s <code>addBlackList</code>.</li>
+    <li>Miner fee remains KAS. Correct.</li>
+    <li>Author is explicit: unaudited, TN10 only, open design questions listed in public.</li>
+  </ul>
+
+  <h2>What does not hold yet</h2>
+  <ul>
+    <li><strong>Oracle-free is a bet, not a proof.</strong> Each Module has a fixed liquidation price. Peg discipline is “veto bad prices + DEX arbitrage.” There is no Kaspa DEX with KUSD depth today.</li>
+    <li><strong>No Position adjust / extra mint / roll.</strong> One loan, one UTXO. Safer to audit. Worse UX than Frankencoin.</li>
+    <li><strong>Challenges are all-or-nothing.</strong> Liquidating 1,000 KAS needs a full deposit.</li>
+    <li><strong>Governance is serialized.</strong> One proposal at a time.</li>
+    <li><strong>TN10 thresholds are convenient</strong> (100 DAA votes, 20% Savings veto). Not mainnet recommendations.</li>
+    <li><strong>Indexer is manifest-started</strong>, not autonomous DAG discovery.</li>
+    <li><strong>No wallet integration.</strong> Kasware/Kastle cannot pay the Asset ID from this till.</li>
+    <li><strong>Compute/storage mass is large</strong> (200k–400k on the demo txs). Fees and KIP-9 floors matter.</li>
+  </ul>
+
+  <h2>What is needed to execute on L1 (mainnet)</h2>
+  <ol>
+    <li>Independent covenant + replay + reorg audit. A public RPC cannot fake forks. Multi-node testbed first.</li>
+    <li>Recalibrate every number in <code>docs/ECONOMICS.md</code>. 0.035 KUSD/KAS is a fixture. Mainnet KAS/USD is a market.</li>
+    <li>Decide the oracle question in writing: competitive time-limited Modules, or a fail-closed oracle later. Do not ship “oracle-free” as marketing if the only price is a constructor constant.</li>
+    <li>Partial challenges (one slice per Position), Position expiration purchase, or an explicit “we will not have them” ADR.</li>
+    <li>Indexer that survives reorgs and can be run by a third party.</li>
+    <li>Wallet: Kasware/Kastle pay/sign for KCC assets. Without this, KUSD is a research protocol, not a till rail.</li>
+    <li>A DEX or RFQ where 1 KUSD can be bought/sold against KAS so the peg has an arbitrage loop.</li>
+    <li>x402 stays native KAS. If KUSD becomes an x402 <code>asset</code>, that is a <em>new binding</em>, not Luke’s envelope with the name swapped.</li>
+    <li>Legal: a KAS-backed synthetic dollar is not “not a security because covenants.” Get counsel before mainnet issuance.</li>
+  </ol>
+
+  <h2>Capital and keys (answers to the X questions)</h2>
+  <p>Asked on <a href="https://x.com/StppStp/status/2099737095065538930">@StppStp 15 Sep 2026</a>: fund from Discord? DAGKnight/Rust wallets? Who holds the keys — core multisig, covenants, or both?</p>
+  <table>
+    <thead><tr><th>Question</th><th>Recommendation</th></tr></thead>
+    <tbody>
+      <tr><td>Where does backing capital come from?</td><td><strong>Users lock their own KAS in Positions.</strong> That is the protocol. Discord fundraising and core treasuries are optional <em>grants for audits and indexers</em>, not the peg. Do not back a dollar with DAGKnight or Rust fund wallets. Those wallets have other jobs.</td></tr>
+      <tr><td>Who holds the keys?</td><td><strong>Covenants hold the spending rules.</strong> There is no issuer freeze key to give to “trusted members.” A core multisig that can freeze KUSD recreates Tether. Bootstrap: a KPS-holding review set that can <em>veto</em> bad Modules, then fade. Mix = covenants for money, humans for veto during testnet, never a blacklist.</td></tr>
+      <tr><td>Why a stable at all?</td><td>Dapps sequenced on Kaspa need a unit that does not move 10% while the invoice is open. Miner fees stay KAS. The unit of account can be a Kaspa-native dollar <em>if</em> it cannot be switched off.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Recommendations</h2>
+  <ol>
+    <li>Keep three labelled rails: <strong>KAS · KUSD PoC · USDT guest</strong>. People choose. See <a href="rails.html">Rails</a>.</li>
+    <li>Ishum’s kUSD seat stays a chair until a wallet can pay BitCoffee’s Asset ID. Demo-settle is allowed. Calling it live is not.</li>
+    <li>Do not put KUSD in kaspa-x402’s <code>asset</code> field.</li>
+    <li>Fund audits, not a foundation mint. If Kaspa funding exists, pay reviewers and a second indexer, not a reserve that pretends to be Circle.</li>
+    <li>Reply on Kas-Smiths with this page + the GitHub. Credit BitCoffee0. Ask for covenant reviewers, not cheerleading.</li>
+  </ol>
+
+  <h2>Sources</h2>
+  <ul>
+    <li><a href="https://kas-smiths.org/t/kusd-a-decentralized-oracle-free-kas-backed-stablecoin-on-l1/143">Kas-Smiths post, BitCoffee0, 13 Sep 2026</a></li>
+    <li><a href="https://github.com/bitcoffee0/kusd">bitcoffee0/kusd</a> (docs/TESTNET.md, ECONOMICS.md, SECURITY.md, FRANKENCOIN.md)</li>
+    <li><a href="https://github.com/Frankencoin-ZCHF/Frankencoin/tree/7409532eac3ac77e8f7d4f2887bb538c0ee0c72d">Frankencoin 7409532</a></li>
+    <li><a href="https://github.com/STP-KAS/ishum">STP-KAS/ishum</a> · <a href="https://github.com/STP-KAS/grok-heavy-showcase">grok-heavy-showcase</a> · <a href="https://github.com/STP-KAS/groks-wallet">groks-wallet</a></li>
+    <li><a href="https://x.com/StppStp/status/2099737095065538930">X: test against grok repos, capital/keys questions</a></li>
+    <li>Live: <a href="https://api-tn10.kaspa.org/info/blockdag">api-tn10.kaspa.org</a> · local kaspad <code>127.0.0.1:16210</code></li>
+  </ul>
+</main>
+<script src="intro.js?v=1"></script>
+</body>
+</html>
