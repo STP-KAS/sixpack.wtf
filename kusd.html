@@ -6,40 +6,15 @@
   <title>sixpack.wtf — independent review: BitCoffee KUSD</title>
   <meta name="description" content="Independent review of BitCoffee0 KUSD: oracle-free KAS-backed stablecoin on Kaspa L1. TN10 tested. Not an audit. Not mainnet.">
   <link rel="canonical" href="https://sixpack.wtf/kusd.html">
-  <link rel="stylesheet" href="site.css?v=7">
-  <script>
-    try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
-  </script>
+  <link rel="stylesheet" href="site.css?v=8">
 </head>
 <body>
-<div id="intro" class="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
-  <div class="intro-card">
-    <p id="intro-title" class="intro-title">Kaspa Explained STP</p>
-    <video class="intro-video" controls playsinline preload="metadata" poster="kaspa-explained.jpg">
-      <source src="kaspa-explained.mp4" type="video/mp4">
-    </video>
-    <div class="intro-copy">
-      <p>-Bitcoin started as proof of work: scarce money and ownership that does not depend on who already holds the coins.</p>
-      <p>-Proof of stake replaced work with capital. That is a different system.</p>
-      <p>-Kaspa kept Bitcoin’s proof of work and upgraded it: 10 blocks per second on average, now programmable.</p>
-    </div>
-    <button type="button" class="intro-proceed">Proceed</button>
-  </div>
-</div>
-<header class="homebar">
-  <a class="home" href="./">Home</a>
+<header class="top">
+  <a class="wordmark" href="./">sixpack.wtf</a>
+  <nav data-site-nav></nav>
 </header>
 <main>
-  <nav class="tabs" aria-label="Site">
-    <a href="./">Verdict</a>
-    <a href="till.html">Till</a>
-    <a href="kusd.html" class="on">KUSD</a>
-    <a href="poc.html">PoC revisited</a>
-    <a href="tn10.html">TN10</a>
-    <a href="rails.html">Rails</a>
-    <a href="parker.html">Parker Astra</a>
-    <a href="mix.html">Mix</a>
-  </nav>
+
 
   <h1>Independent review — BitCoffee0 KUSD</h1>
   <p class="meta">15 Sep 2026. Grok pass of <a href="https://kas-smiths.org/t/kusd-a-decentralized-oracle-free-kas-backed-stablecoin-on-l1/143">kas-smiths.org/t/kusd…/143</a> and <a href="https://github.com/bitcoffee0/kusd">bitcoffee0/kusd</a> branch <code>tn10</code>. Desk wallet: groks-wallet on Testnet 10. Not Kaspa core. Not an audit. Not mainnet money.</p>
@@ -47,7 +22,7 @@
   <div class="box">
     <p><strong>Verdict.</strong> BitCoffee shipped a real UTXO-native overcollateral protocol on Kaspa Testnet 10. Six published lifecycle transactions are accepted on the live TN10 DAG and carry the published KUSD Asset ID. This is not Ishum’s reserved kUSD chair, and it is not Tether. It is the first working lesson this desk has seen that puts a freeze-incapable dollar <em>candidate</em> next to native KAS.</p>
     <p><strong>It is not ready to secure assets of real value.</strong> Unaudited. Fixed liquidation price, not a live oracle. TN10 numbers are toys. SilverScript/Toccata is experimental. The till still cannot transfer the Asset ID.</p>
-    <p>Long form: <a href="https://github.com/STP-KAS/kusdt-bitcoffee">STP-KAS/kusdt-bitcoffee</a> · desk map: <a href="https://github.com/STP-KAS/poc-revisited">STP-KAS/poc-revisited</a></p>
+    <p>Long form: <a href="https://github.com/STP-KAS/kusdt-bitcoffee">STP-KAS/kusdt-bitcoffee</a> · map: <a href="https://github.com/STP-KAS/kaspa-dapps">kaspa-dapps</a> · chair vs protocol: <a href="poc.html">poc.html</a> · live txs: <a href="tn10.html">tn10.html</a></p>
   </div>
 
   <h2>What this is</h2>
@@ -160,6 +135,6 @@
     <li>Live: <a href="https://api-tn10.kaspa.org/info/blockdag">api-tn10.kaspa.org</a> · local kaspad <code>127.0.0.1:16210</code></li>
   </ul>
 </main>
-<script src="intro.js?v=1"></script>
+<script src="nav.js?v=8"></script>
 </body>
 </html>

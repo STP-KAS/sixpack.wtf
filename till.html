@@ -6,40 +6,14 @@
   <title>sixpack.wtf — till</title>
   <meta name="description" content="Ishum is a coffee till, not x402. Original POS vs battle-tested combo.">
   <link rel="canonical" href="https://sixpack.wtf/till.html">
-  <link rel="stylesheet" href="site.css?v=6">
-  <script>
-    try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
-  </script>
+  <link rel="stylesheet" href="site.css?v=8">
 </head>
 <body>
-<div id="intro" class="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
-  <div class="intro-card">
-    <p id="intro-title" class="intro-title">Kaspa Explained STP</p>
-    <video class="intro-video" controls playsinline preload="metadata" poster="kaspa-explained.jpg">
-      <source src="kaspa-explained.mp4" type="video/mp4">
-    </video>
-    <div class="intro-copy">
-      <p>-Bitcoin started as proof of work: scarce money and ownership that does not depend on who already holds the coins.</p>
-      <p>-Proof of stake replaced work with capital. That is a different system.</p>
-      <p>-Kaspa kept Bitcoin’s proof of work and upgraded it: 10 blocks per second on average, now programmable.</p>
-    </div>
-    <button type="button" class="intro-proceed">Proceed</button>
-  </div>
-</div>
-<header class="homebar">
-  <a class="home" href="./">Home</a>
+<header class="top">
+  <a class="wordmark" href="./">sixpack.wtf</a>
+  <nav data-site-nav></nav>
 </header>
 <main>
-  <nav class="tabs" aria-label="Site">
-    <a href="./">Verdict</a>
-    <a href="till.html" class="on">Till</a>
-    <a href="kusd.html">KUSD</a>
-    <a href="poc.html">PoC revisited</a>
-    <a href="tn10.html">TN10</a>
-    <a href="rails.html">Rails</a>
-    <a href="parker.html">Parker Astra</a>
-    <a href="mix.html">Mix</a>
-  </nav>
 
   <h1>Till — Ishum + Parker + master file + Luke</h1>
   <p class="meta">Best-practice combo. Human coffee quotes EUR. Settlement that exists is native KAS. The meter for machine calls is <a href="https://github.com/STP-KAS/kaspa-x402">STP-KAS/kaspa-x402</a>. Do not weld the names.</p>
@@ -107,6 +81,6 @@
   <p class="meta" id="probe"></p>
 </main>
 <script src="till.js?v=2"></script>
-<script src="intro.js?v=1"></script>
+<script src="nav.js?v=8"></script>
 </body>
 </html>
