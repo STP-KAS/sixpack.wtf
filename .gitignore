@@ -3,3 +3,5 @@ Thumbs.db
 *.log
 node_modules/
 convo.html
+faucet/ledger.json
+faucet/.local/
