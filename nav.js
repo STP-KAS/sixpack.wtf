@@ -19,4 +19,19 @@
       nav.append(a);
     }
   }
+
+  const src = document.currentScript && document.currentScript.src;
+  const root = src ? src.replace(/nav\.js(\?.*)?$/, "") : "";
+  function load(path) {
+    if (document.querySelector('script[src^="' + path + '"]')) return;
+    const s = document.createElement("script");
+    s.src = path;
+    s.async = false;
+    document.head.appendChild(s);
+  }
+  if (root) {
+    load(root + "wallets/kaspa-wallets.js?v=9");
+    load(root + "wallets/pay.js?v=9");
+    load(root + "wallets/ui.js?v=9");
+  }
 })();

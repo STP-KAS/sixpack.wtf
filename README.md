@@ -14,8 +14,9 @@ http://127.0.0.1:4020/
 
 | Path | What |
 | --- | --- |
-| `/` | Map (kaspa-dapps). Landing video. |
-| `/till.html` | Ishum POS |
+| `/` | Map (kaspa-dapps). Landing video. Log in top-right. |
+| `/till.html` | Ishum POS. Pay with Kasware after permission, or QR. |
+| `/safety.html` | No seed. Permission. Other wallets. |
 | `/rails.html` | Native · KUSD candidate · USDT guest |
 | `/kusd.html` | BitCoffee review |
 | `/x402.html` | kaspa-x402 verdict |

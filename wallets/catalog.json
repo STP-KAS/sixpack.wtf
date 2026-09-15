@@ -1,0 +1,50 @@
+{
+  "inject": ["kasware", "kastle"],
+  "never": "This site never asks for a seed, private key, or password.",
+  "wallets": [
+    {
+      "id": "kasware",
+      "name": "Kasware",
+      "connect": "inject",
+      "url": "https://www.kasware.xyz",
+      "store": "https://chromewebstore.google.com/detail/hklhheigdmpoolooomdihmhlpjjdbklf",
+      "note": "Chrome/Edge/Brave extension, Android APK. Not on iOS. Click Log in — Kasware pops its own permission."
+    },
+    {
+      "id": "kastle",
+      "name": "Kastle",
+      "connect": "inject",
+      "url": "https://kastle.cc",
+      "store": "https://chromewebstore.google.com/detail/kastle/oambclflhjfppdmkghokjmpppmaebego",
+      "note": "Extension + iOS/Android. On a phone, open this site in the Kastle in-app browser."
+    },
+    {
+      "id": "kaspium",
+      "name": "Kaspium",
+      "connect": "uri",
+      "url": "https://kaspium.io",
+      "note": "Phone wallet. Scan the kaspa: QR or open the payment URI. No in-page inject."
+    },
+    {
+      "id": "tangem",
+      "name": "Tangem",
+      "connect": "uri",
+      "url": "https://tangem.com",
+      "note": "Hardware card. Keys stay on the card. Pay from the Tangem app via kaspa: URI."
+    },
+    {
+      "id": "kasvault",
+      "name": "KasVault / Ledger",
+      "connect": "open",
+      "url": "https://kasvault.io",
+      "note": "Ledger signs in KasVault. A website cannot inject Ledger."
+    },
+    {
+      "id": "kaspa-ng",
+      "name": "Kaspa NG",
+      "connect": "uri",
+      "url": "https://kaspa.org",
+      "note": "Desktop node wallet. Open the kaspa: URI or paste the address. No inject."
+    }
+  ]
+}
