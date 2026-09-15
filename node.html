@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sixpack.wtf — Grok bot node + wallet</title>
+  <meta name="description" content="Grok Bot node operator. TN10 wallet for testing and building. Not mainnet. Not a seed.">
+  <link rel="canonical" href="https://sixpack.wtf/node.html">
+  <link rel="stylesheet" href="site.css?v=11">
+</head>
+<body>
+<header class="top">
+  <a class="wordmark" href="./">sixpack.wtf</a>
+  <nav data-site-nav></nav>
+</header>
+<main>
+  <h1>Grok bot · node operator</h1>
+  <p class="lede meta">Two bots. Two networks. One TN10 wallet for testing and building. This site never asks for a seed.</p>
+
+  <div class="box">
+    <p><strong>Use this wallet to test and build.</strong> Testnet-10 only. tKAS has no value.</p>
+    <p><code>kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</code></p>
+    <p class="meta">
+      Live on kaspa.stream:
+      <a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx">tn10.kaspa.stream · groks wallet</a>
+      · balance <span id="bal">…</span> tKAS
+    </p>
+    <p class="meta">Repo: <a href="https://github.com/STP-KAS/groks-wallet">STP-KAS/groks-wallet</a>. Till receive address is this same wallet.</p>
+  </div>
+
+  <h2>Who does what</h2>
+  <table>
+    <thead><tr><th>Who</th><th>Network</th><th>Job</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>kaspa bot</strong></td>
+        <td>mainnet</td>
+        <td>Archival node operator. Public P2P 16111. Does not mine. Does not hold this TN10 wallet.</td>
+      </tr>
+      <tr>
+        <td><strong>tn10 bot</strong></td>
+        <td>testnet-10</td>
+        <td>Separate node + CPU miner → the address above. Do not paste this into kaspa bot.</td>
+      </tr>
+      <tr>
+        <td>Windows desk</td>
+        <td>both</td>
+        <td>Mainnet public <code>kaspad</code> on 16111. TN10 <code>kaspad</code> + miner on 16211 / 16210. Leave mainnet running.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>How to — kaspa bot (mainnet operator)</h2>
+  <ol>
+    <li>Grok Bot → new agent. Name it <strong>kaspa bot</strong>.</li>
+    <li>Paste the block from <a href="https://github.com/STP-KAS/Xai.Kaspa.node/blob/main/START.md">Xai.Kaspa.node START.md</a> and send.</li>
+    <li>Let it work. Do not interfere. It reports when the node is up.</li>
+    <li>Check public: <a href="https://kaspa.stream/nodes">kaspa.stream/nodes</a> (map can lag) and <a href="https://arewepublicyet.com">arewepublicyet.com</a>.</li>
+  </ol>
+  <p class="meta">Node runs on the Grok Bot Linux sandbox, not on your phone. RPC stays private. Only P2P 16111 is public. Pin: rusty-kaspa v2.0.1.</p>
+  <p class="meta">Home-PC public node (inbound TCP 16111, RPC on localhost): <a href="https://github.com/STP-KAS/windows-p2p-node-guide">windows-p2p-node-guide</a>.</p>
+
+  <h2>How to — tn10 bot (wallet + miner)</h2>
+  <ol>
+    <li>Grok Bot → <strong>Create new Bot</strong>. Not kaspa bot. Name it <strong>tn10 bot</strong>.</li>
+    <li>Paste the block from <a href="https://github.com/STP-KAS/groks-wallet/blob/main/START-TN10.md">groks-wallet START-TN10.md</a> and send.</li>
+    <li>Mine <em>only</em> to <code>kaspatest:qzffl5…v0ldx</code>. Do not generate a new seed. Do not mine mainnet.</li>
+    <li>Leave kaspa bot alone. Different ports, different datadir.</li>
+  </ol>
+  <p class="meta">TN10 P2P is <strong>16211</strong>. Mainnet is <strong>16111</strong>. Mixing those is how you break both nodes.</p>
+
+  <h2>Windows desk TN10</h2>
+  <p>Same wallet. Same worthless coins. Datadir <code>%LOCALAPPDATA%\rusty-kaspa\kaspa-testnet-10</code>.</p>
+<pre>kaspad.exe --testnet --netsuffix=10 --utxoindex
+  --listen=0.0.0.0:16211
+  --rpclisten=127.0.0.1:16210
+
+kaspa-miner -t 8 --user-agent-suffix grokwallet
+  (local gRPC 16210, pay-to the kaspatest: address)</pre>
+  <p class="meta">Scripts live in the groks-wallet repo. Do not put the seed in git or on this site.</p>
+
+  <h2>Do not</h2>
+  <ul>
+    <li>Paste a seed here, in Discord, or into kaspa bot.</li>
+    <li>Paste TN10 instructions into kaspa bot.</li>
+    <li>Stop the mainnet node to mine testnet.</li>
+    <li>Expose gRPC / wRPC (16110 / 16210) to the internet.</li>
+    <li>Treat tKAS as money. Use it to test the till, covenants, and 402.</li>
+  </ul>
+
+  <p class="meta">Pulse and BitCoffee txids: <a href="tn10.html">tn10.html</a> · Pay it: <a href="till.html">Till</a> · Safety: <a href="safety.html">safety.html</a></p>
+</main>
+<script>
+(function () {
+  var ADDR = "kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx";
+  fetch("https://api-tn10.kaspa.org/addresses/" + encodeURIComponent(ADDR) + "/balance")
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var n = Number(d.balance || 0) / 1e8;
+      document.getElementById("bal").textContent = n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    })
+    .catch(function () {
+      document.getElementById("bal").textContent = "—";
+    });
+})();
+</script>
+<script src="nav.js?v=11"></script>
+</body>
+</html>

@@ -48,6 +48,15 @@ describe("sixpack wallet safety", () => {
     assert.match(pos, /SixpackWallet/);
   });
 
+  it("node page points at groks TN10 wallet and bot start files", () => {
+    const t = readFileSync(join(root, "node.html"), "utf8");
+    assert.match(t, /kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx/);
+    assert.match(t, /tn10\.kaspa\.stream\/addresses\/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx/);
+    assert.match(t, /Xai\.Kaspa\.node/);
+    assert.match(t, /START-TN10/);
+    assert.match(t, /Use this wallet to test and build/);
+  });
+
   it("explained page has four doors and no seed field", () => {
     const t = readFileSync(join(root, "explained.html"), "utf8");
     assert.match(t, /data-door="1"/);
