@@ -33,6 +33,10 @@
   <nav class="tabs" aria-label="Site">
     <a href="./">Verdict</a>
     <a href="till.html" class="on">Till</a>
+    <a href="kusd.html">KUSD</a>
+    <a href="poc.html">PoC revisited</a>
+    <a href="tn10.html">TN10</a>
+    <a href="rails.html">Rails</a>
     <a href="parker.html">Parker Astra</a>
     <a href="mix.html">Mix</a>
   </nav>
@@ -53,7 +57,7 @@
 
   <section id="pane-original">
     <h2>Original POS</h2>
-    <p class="meta">Original Ishum keypad + cart + three rails (KAS live, kUSD reserved, USDT guest). Served on this site so phones can use it. Desk-local engine still at <code>127.0.0.1:8090</code> for live invoices. kUSD/USDT default on. Paste-txid can claim any inbound on the engine.</p>
+    <p class="meta">Original Ishum keypad + cart + three rails (KAS live QR to groks-wallet, kUSD PoC, USDT guest). Receive address is set. Store tab inside the POS. Desk-local engine at <code>127.0.0.1:8090</code> now accepts <code>kaspatest:</code> and watches api-tn10.</p>
     <p><a href="original-pos/" target="ishum-pos">Open original in its own window</a> · <a href="http://127.0.0.1:8090/pos">desk engine :8090</a></p>
     <div class="pos-wrap">
       <iframe class="pos" name="ishum-pos" title="Original Ishum POS" src="original-pos/" scrolling="no"></iframe>

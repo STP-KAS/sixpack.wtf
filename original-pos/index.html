@@ -12,10 +12,27 @@
   <a class="brand" href="./">Ishum</a>
   <span class="slogan">sequenced on Kaspa</span>
   <nav>
-    <a href="./" class="on">POS</a>
+    <a href="./" class="on" id="nav-pos">POS</a>
+    <a href="#store" id="nav-store">Store</a>
   </nav>
 </header>
 <main>
+
+<section class="form hide" id="view-store">
+  <h1>Store</h1>
+  <p class="note">Watch-only. This POS never asks for a seed. Default receive address is groks-wallet on Kaspa Testnet-10.</p>
+  <label>Receive address
+    <input id="store-payto" spellcheck="false" autocomplete="off" placeholder="kaspa:q… or kaspatest:q…">
+  </label>
+  <p class="note" id="store-net">Network…</p>
+  <fieldset>
+    <legend>Settlement rails</legend>
+    <label class="check"><input type="checkbox" id="en-kas" checked> KAS — native. No issuer. Live QR to the address above.</label>
+    <label class="check"><input type="checkbox" id="en-kusd" checked> kUSD — BitCoffee protocol on TN10. Till settlement is still a demonstration.</label>
+    <label class="check"><input type="checkbox" id="en-usdt" checked> USDT — guest IOU. Tether can freeze. Not gas.</label>
+  </fieldset>
+  <button type="button" class="charge" id="store-save">Save and return to POS</button>
+</section>
 
 <section class="till" id="view-till">
   <div class="till-head">
@@ -25,7 +42,8 @@
     </div>
     <div class="rate" id="rate">KAS rate… · 10 conf</div>
   </div>
-  <p class="warn" id="payto-warn">Set a kaspa: receive address before taking KAS. Stables can still be demonstrated. This copy runs on sixpack.wtf so phones can use the original POS.</p>
+  <p class="note" id="payto-ok"></p>
+  <p class="warn hide" id="payto-warn">Set a kaspa: or kaspatest: receive address under Store before taking KAS. Stables can still be demonstrated.</p>
 
   <div class="modes">
     <button type="button" class="on" data-mode="keypad" id="mode-keypad">Keypad</button>

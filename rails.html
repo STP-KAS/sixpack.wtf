@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sixpack.wtf — three rails</title>
+  <meta name="description" content="Choose: native KAS, BitCoffee KUSD PoC, or USDT guest. Miner fee is always KAS. Not Kaspa core.">
+  <link rel="canonical" href="https://sixpack.wtf/rails.html">
+  <link rel="stylesheet" href="site.css?v=7">
+  <script>
+    try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
+  </script>
+</head>
+<body>
+<div id="intro" class="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+  <div class="intro-card">
+    <p id="intro-title" class="intro-title">Kaspa Explained STP</p>
+    <video class="intro-video" controls playsinline preload="metadata" poster="kaspa-explained.jpg">
+      <source src="kaspa-explained.mp4" type="video/mp4">
+    </video>
+    <div class="intro-copy">
+      <p>-Bitcoin started as proof of work: scarce money and ownership that does not depend on who already holds the coins.</p>
+      <p>-Proof of stake replaced work with capital. That is a different system.</p>
+      <p>-Kaspa kept Bitcoin’s proof of work and upgraded it: 10 blocks per second on average, now programmable.</p>
+    </div>
+    <button type="button" class="intro-proceed">Proceed</button>
+  </div>
+</div>
+<header class="homebar">
+  <a class="home" href="./">Home</a>
+</header>
+<main>
+  <nav class="tabs" aria-label="Site">
+    <a href="./">Verdict</a>
+    <a href="till.html">Till</a>
+    <a href="kusd.html">KUSD</a>
+    <a href="poc.html">PoC revisited</a>
+    <a href="tn10.html">TN10</a>
+    <a href="rails.html" class="on">Rails</a>
+    <a href="parker.html">Parker Astra</a>
+    <a href="mix.html">Mix</a>
+  </nav>
+
+  <h1>Three rails — people choose</h1>
+  <p class="meta">Best shape, from the X thread: Kaspa · PoC KUSD · Tether-like stables. Label them. Do not weld them. Miner fee is always KAS.</p>
+
+  <div class="box">
+    <p>Open the original POS: <a href="till.html">Till tab</a> · <a href="original-pos/">original-pos/</a> · desk <a href="http://127.0.0.1:8090/pos">:8090/pos</a></p>
+    <p>Charge a coffee. Three buttons: <strong>Kaspa native</strong>, <strong>Kaspa stable</strong>, <strong>USDT (guest)</strong>.</p>
+  </div>
+
+  <table>
+    <thead><tr><th>Rail</th><th>Kind</th><th>On this till</th><th>Freeze</th><th>Use for</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>KAS</td>
+        <td>native PoW</td>
+        <td>Live QR to groks-wallet (<code>kaspatest:</code>). Claim looks up api-tn10.</td>
+        <td>No</td>
+        <td>Dapp unit if you can bear volatility. Always miner fee. Always x402 asset.</td>
+      </tr>
+      <tr>
+        <td>kUSD</td>
+        <td>reserved-native / BitCoffee protocol</td>
+        <td>Checkout + Mark settled (demo). Protocol exists on TN10. This keypad cannot transfer the Asset ID yet.</td>
+        <td>No issuer key in the design</td>
+        <td>Candidate stable unit. Not live money on this till. Not x402.</td>
+      </tr>
+      <tr>
+        <td>USDT</td>
+        <td>guest IOU</td>
+        <td>Checkout + Mark settled (demo). Freeze warning on the ticket.</td>
+        <td>Yes. Tether <code>addBlackList</code> / <code>destroyBlackFunds</code></td>
+        <td>Merchant dollar inventory, labelled. Never gas. Never miner fee.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Constitution</h2>
+  <ol>
+    <li>Consensus / order = Kaspa L1. USDT does not vote in GHOSTDAG.</li>
+    <li>Miner fee = KAS. Sender pays.</li>
+    <li>Unit of account on the keypad = EUR or USD.</li>
+    <li>Settlement is a separate object. Pick a rail.</li>
+  </ol>
+
+  <h2>Why not wait for Tether</h2>
+  <p>Kasplex landing USDT/USDC is useful. It imports issuer policy into the money the dapp speaks. If the dapp unit can be frozen, the dapp can be frozen. Proof-of-work cash has held the no-blacklist test since 2009. Kaspa keeps that on native KAS. A KAS-backed covenant dollar is the attempt to keep it while quoting a dollar. BitCoffee is that attempt. It is not done.</p>
+</main>
+<script src="intro.js?v=1"></script>
+</body>
+</html>
