@@ -54,7 +54,9 @@ describe("sixpack wallet safety", () => {
     assert.match(t, /tn10\.kaspa\.stream\/addresses\/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx/);
     assert.match(t, /Xai\.Kaspa\.node/);
     assert.match(t, /START-TN10/);
-    assert.match(t, /Use this wallet to test and build/);
+    assert.match(t, /Grok bot is mining here/);
+    assert.match(t, /tn10\.kaspa\.stream\/addresses\/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx/);
+    assert.match(t, /How Grok mines that wallet/);
   });
 
   it("explained page has four doors and no seed field", () => {
