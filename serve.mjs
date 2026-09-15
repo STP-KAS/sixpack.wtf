@@ -3,6 +3,9 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { planClaim, sompiToTkas, FROM } from "./faucet/policy.mjs";
+import { listClaims, recordClaim } from "./faucet/ledger.mjs";
+import { payTn10 } from "./faucet/pay.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 4020);
@@ -22,9 +25,84 @@ const TYPES = {
   ".webp": "image/webp",
 };
 
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on("data", (c) => chunks.push(c));
+    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    req.on("error", reject);
+  });
+}
+
+function sendJson(res, status, body) {
+  const data = JSON.stringify(body);
+  res.writeHead(status, {
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "no-store",
+  });
+  res.end(data);
+}
+
+function clientIp(req) {
+  const x = req.headers["x-forwarded-for"];
+  if (typeof x === "string" && x.trim()) return x.split(",")[0].trim();
+  return req.socket?.remoteAddress || "unknown";
+}
+
+let faucetLock = Promise.resolve();
+
 http
   .createServer((req, res) => {
     const url = new URL(req.url ?? "/", `http://${HOST}:${PORT}`);
+    if (url.pathname === "/api/faucet" && req.method === "GET") {
+      try {
+        const address = url.searchParams.get("address") || "";
+        const claims = listClaims();
+        const ip = clientIp(req);
+        if (!address) {
+          sendJson(res, 200, {
+            network: "testnet-10",
+            from: FROM,
+            capTkas: "30000",
+            dripTkas: "10000",
+            windowHours: 48,
+          });
+          return;
+        }
+        const plan = planClaim({ address, ip, claims });
+        sendJson(res, 200, {
+          address: plan.address,
+          nextTkas: plan.tkas,
+          remainingTkas: sompiToTkas(plan.sompi + plan.remainingAfter),
+        });
+      } catch (err) {
+        sendJson(res, err.code === "RATE" ? 429 : 400, { error: err.message || String(err) });
+      }
+      return;
+    }
+    if (url.pathname === "/api/faucet" && req.method === "POST") {
+      faucetLock = faucetLock.then(async () => {
+        try {
+          const body = JSON.parse((await readBody(req)) || "{}");
+          const plan = planClaim({ address: body.address, ip: clientIp(req), claims: listClaims() });
+          const paid = await payTn10(plan.address, plan.sompi);
+          const at = Date.now();
+          recordClaim({ key: plan.addrKey, address: plan.address, sompi: paid.sompi, txids: paid.txids, at, ip: clientIp(req) });
+          recordClaim({ key: plan.ipKey, address: plan.address, sompi: paid.sompi, txids: paid.txids, at, ip: clientIp(req) });
+          sendJson(res, 200, {
+            ok: true,
+            tkas: sompiToTkas(paid.sompi),
+            remainingTkas: sompiToTkas(plan.remainingAfter),
+            txids: paid.txids,
+            explorer: paid.txids.map((id) => "https://tn10.kaspa.stream/txs/" + id),
+          });
+        } catch (err) {
+          const status = err.code === "RATE" ? 429 : /synced|UTXO|secret|node/i.test(err.message || "") ? 503 : 400;
+          sendJson(res, status, { error: err.message || String(err) });
+        }
+      });
+      return;
+    }
     if (url.pathname === "/ishum" || url.pathname.startsWith("/ishum/")) {
       const target = ISHUM + url.pathname.replace(/^\/ishum/, "") + url.search;
       http
@@ -63,6 +141,7 @@ http
   })
   .listen(PORT, HOST, () => {
     console.log(`http://${HOST}:${PORT}/`);
+    console.log(`http://${HOST}:${PORT}/faucet.html`);
     console.log(`http://${HOST}:${PORT}/till.html`);
     console.log(`http://${HOST}:${PORT}/x402.html`);
   });

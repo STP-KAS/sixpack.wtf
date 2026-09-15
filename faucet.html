@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>STP Kaspa faucet — Testnet-10</title>
+  <meta name="description" content="STP Kaspa TN10 faucet. 30,000 tKAS per 48 hours. Toy coins. Never a seed.">
+  <link rel="canonical" href="https://sixpack.wtf/faucet.html">
+  <link rel="stylesheet" href="site.css?v=12">
+</head>
+<body>
+<header class="top">
+  <a class="wordmark" href="./">sixpack.wtf</a>
+  <nav data-site-nav></nav>
+</header>
+<main>
+  <h1>STP Kaspa faucet</h1>
+  <p class="lede meta">Testnet-10 only. <strong>30,000 tKAS per 48 hours</strong> per address (and per IP). 10,000 tKAS per request. Toy coins. This page never asks for a seed.</p>
+
+  <div class="box">
+    <p>Like <a href="https://faucet-tn10.kaspanet.io/">faucet-tn10.kaspanet.io</a>, with a higher cap. Official faucet is often 403. This one pays from <a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx">Grok’s TN10 wallet</a>.</p>
+    <form id="form">
+      <label class="meta" for="addr">kaspatest: address</label>
+      <p><input id="addr" name="address" spellcheck="false" autocomplete="off" placeholder="kaspatest:q…" style="width:100%;padding:0.55rem 0.6rem;font:inherit;border:1px solid #111"></p>
+      <p><button type="submit" class="wallet-go" id="go">Request 10,000 tKAS</button></p>
+    </form>
+    <p class="meta" id="out">Pays only while the desk TN10 node is running (local :4020). GitHub Pages cannot sign.</p>
+  </div>
+
+  <h2>Rules</h2>
+  <ul>
+    <li><code>kaspatest:</code> only. Mainnet <code>kaspa:</code> is refused.</li>
+    <li>30,000 tKAS / 48 h. Then wait.</li>
+    <li>Cannot pay the faucet address itself.</li>
+    <li>tKAS has no value. Use it to test and build.</li>
+    <li>Log in (top-right) is Kasware permission, not this faucet. The faucet does not need your seed.</li>
+  </ul>
+  <p class="meta">How the wallet is mined: <a href="node.html">Node</a>. Safety: <a href="safety.html">safety.html</a>.</p>
+</main>
+<script>
+(function () {
+  var form = document.getElementById("form");
+  var out = document.getElementById("out");
+  var go = document.getElementById("go");
+  function say(t, bad) {
+    out.textContent = t;
+    out.style.fontWeight = bad ? "600" : "";
+  }
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var address = document.getElementById("addr").value.trim();
+    go.disabled = true;
+    say("Sending…");
+    fetch("/api/faucet", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ address: address }),
+    })
+      .then(function (r) {
+        return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; });
+      })
+      .then(function (x) {
+        if (x.status === 404) {
+          say("This copy is static. Open http://127.0.0.1:4020/faucet.html on the desk while kaspad TN10 is up.", true);
+          return;
+        }
+        if (!x.ok) {
+          say((x.j && (x.j.error || x.j.message)) || "Request failed.", true);
+          return;
+        }
+        var tx = (x.j.txids || []).join(" ");
+        say("Sent " + (x.j.tkas || "") + " tKAS. " + (tx ? "txid " + tx : "") + " Remaining in 48h: " + (x.j.remainingTkas || "") + " tKAS.");
+      })
+      .catch(function (err) {
+        say("Faucet API not reachable. Run node serve.mjs on the desk. " + err, true);
+      })
+      .finally(function () { go.disabled = false; });
+  });
+})();
+</script>
+<script src="nav.js?v=12"></script>
+</body>
+</html>
