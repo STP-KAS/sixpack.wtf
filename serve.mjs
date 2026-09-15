@@ -64,4 +64,5 @@ http
   .listen(PORT, HOST, () => {
     console.log(`http://${HOST}:${PORT}/`);
     console.log(`http://${HOST}:${PORT}/till.html`);
+    console.log(`http://${HOST}:${PORT}/x402.html`);
   });
