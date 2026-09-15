@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sixpack.wtf — safety</title>
+  <meta name="description" content="No seed. Kasware permission is a click. Other wallets use kaspa: URIs. Not Kaspa core.">
+  <link rel="canonical" href="https://sixpack.wtf/safety.html">
+  <link rel="stylesheet" href="site.css?v=9">
+</head>
+<body>
+<header class="top">
+  <a class="wordmark" href="./">sixpack.wtf</a>
+  <nav data-site-nav></nav>
+</header>
+<main>
+  <h1>Safety</h1>
+  <p class="lede meta">This site is a till and a map. It is not a wallet. It does not hold keys.</p>
+
+  <div class="box">
+    <p><strong>Never paste a seed, private key, or wallet password into this site — or any website.</strong> sixpack.wtf has no seed field. If you see one, you are not on this page. Close the tab.</p>
+  </div>
+
+  <h2>Permission</h2>
+  <ul>
+    <li>Log in is top-right. Nothing connects until you click.</li>
+    <li>Kasware / Kastle then show <em>their</em> popup (usually the extension, top-right). Read the origin. Decline is fine.</li>
+    <li>This page never calls <code>requestAccounts</code> on load.</li>
+    <li>Session storage keeps a public address only. That is not a key. Log out clears it.</li>
+  </ul>
+
+  <h2>What can inject here</h2>
+  <table>
+    <thead><tr><th>Wallet</th><th>How</th></tr></thead>
+    <tbody>
+      <tr><td>Kasware</td><td>Click Log in → Kasware. Chrome / Edge / Brave / Android. Not iOS.</td></tr>
+      <tr><td>Kastle</td><td>Click Log in → Kastle. On a phone, open this site inside the Kastle app browser.</td></tr>
+      <tr><td>Kaspium, Tangem, Kaspa NG, Ledger/KasVault, others</td><td>Scan the QR or open the <code>kaspa:</code> / <code>kaspatest:</code> URI. No fake <code>window.*</code>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>This till</h2>
+  <ul>
+    <li>Default receive address is the desk groks-wallet on <strong>Testnet-10</strong>. tKAS has no value.</li>
+    <li>If you connect a <em>mainnet</em> Kasware to pay a <code>kaspatest:</code> invoice, stop. Switch the wallet network, or do not send.</li>
+    <li>USDT on the keypad is a labelled guest. Tether can freeze. Never gas.</li>
+    <li>kUSD on the keypad is a demonstration. BitCoffee’s Asset ID is not transferable from this till yet.</li>
+    <li>Inject send may not attach the invoice <code>message=</code> payload. QR / URI is the honest path. Paste a txid to claim if you sent another way.</li>
+  </ul>
+
+  <h2>If something feels wrong</h2>
+  <ul>
+    <li>Seed box, “import wallet”, or a PDF of 12/24 words → close the tab. That is not us.</li>
+    <li>A Kasware popup for an origin that is not <code>sixpack.wtf</code> or <code>127.0.0.1</code> → reject.</li>
+    <li>Anyone asking you to “verify” by sending coins first → no.</li>
+    <li>This desk holds 0 keys. We cannot recover a seed we never had.</li>
+  </ul>
+
+  <p class="meta">Kit: <a href="https://github.com/STP-KAS/wallet-integration">STP-KAS/wallet-integration</a>. Map: <a href="https://github.com/STP-KAS/kaspa-dapps">kaspa-dapps</a>.</p>
+</main>
+<script src="nav.js?v=9"></script>
+</body>
+</html>

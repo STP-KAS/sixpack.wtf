@@ -245,20 +245,31 @@
     var kw = document.getElementById("kasware");
     if (kw) {
       kw.onclick = function () {
-        var w = wallet();
-        if (!w) {
-          if (r.uri) location.href = r.uri;
-          else alert("No in-page wallet. Open the kaspa: link or scan the QR.");
+        var KW = window.KaspaWallets;
+        var session = KW && KW.current ? KW.current() : { address: "" };
+        if (!session.address) {
+          if (window.SixpackWallet) window.SixpackWallet.open();
+          else alert("Click Log in (top right). Kasware will ask permission. This page never asks for a seed.");
+          return;
+        }
+        if (isTestnet(payTo) && session.address.indexOf("kaspatest:") !== 0) {
+          alert("Invoice is Testnet-10. Connected wallet looks mainnet. Switch Kasware to testnet-10, or scan the QR.");
+          return;
+        }
+        if (!isTestnet(payTo) && session.address.indexOf("kaspatest:") === 0) {
+          alert("Invoice is mainnet. Connected wallet is testnet. Do not send.");
           return;
         }
         var dest = r.uri.split("?")[0];
-        w.requestAccounts().then(function () {
-          return w.sendKaspa(dest, String(invoice.sompi));
-        }).then(function (txid) {
+        var send = KW.sendKaspa
+          ? KW.sendKaspa(dest, invoice.sompi, { priorityFee: 10000 })
+          : Promise.reject(new Error("no send"));
+        send.then(function (txid) {
           var id = typeof txid === "string" ? txid : (txid && (txid.txid || txid.transactionId) || "");
           if (id) claimTx(id);
         }).catch(function (e) {
-          alert(e && e.message ? e.message : e);
+          if (r.uri) location.href = r.uri;
+          else alert(e && e.message ? e.message : e);
         });
       };
     }
