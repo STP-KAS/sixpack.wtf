@@ -34,12 +34,25 @@ function readBody(req) {
   });
 }
 
-function sendJson(res, status, body) {
-  const data = JSON.stringify(body);
-  res.writeHead(status, {
+function sendJson(res, status, body, req) {
+  const origin = req && req.headers && req.headers.origin;
+  const allow =
+    origin === "http://127.0.0.1:4020" ||
+    origin === "http://127.0.0.1:4021" ||
+    origin === "http://localhost:4020" ||
+    origin === "http://localhost:4021"
+      ? origin
+      : "";
+  const headers = {
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",
-  });
+  };
+  if (allow) {
+    headers["access-control-allow-origin"] = allow;
+    headers.vary = "Origin";
+  }
+  const data = JSON.stringify(body);
+  res.writeHead(status, headers);
   res.end(data);
 }
 
@@ -66,7 +79,7 @@ http
             capTkas: "30000",
             dripTkas: "10000",
             windowHours: 48,
-          });
+          }, req);
           return;
         }
         const plan = planClaim({ address, ip, claims });
@@ -74,10 +87,14 @@ http
           address: plan.address,
           nextTkas: plan.tkas,
           remainingTkas: sompiToTkas(plan.sompi + plan.remainingAfter),
-        });
+        }, req);
       } catch (err) {
-        sendJson(res, err.code === "RATE" ? 429 : 400, { error: err.message || String(err) });
+        sendJson(res, err.code === "RATE" ? 429 : 400, { error: err.message || String(err) }, req);
       }
+      return;
+    }
+    if (url.pathname === "/api/faucet" && req.method === "OPTIONS") {
+      sendJson(res, 204, {}, req);
       return;
     }
     if (url.pathname === "/api/faucet" && req.method === "POST") {
@@ -95,10 +112,10 @@ http
             remainingTkas: sompiToTkas(plan.remainingAfter),
             txids: paid.txids,
             explorer: paid.txids.map((id) => "https://tn10.kaspa.stream/txs/" + id),
-          });
+          }, req);
         } catch (err) {
           const status = err.code === "RATE" ? 429 : /synced|UTXO|secret|node/i.test(err.message || "") ? 503 : 400;
-          sendJson(res, status, { error: err.message || String(err) });
+          sendJson(res, status, { error: err.message || String(err) }, req);
         }
       });
       return;

@@ -22,9 +22,10 @@
     <form id="form">
       <label class="meta" for="addr">kaspatest: address</label>
       <p><input id="addr" name="address" spellcheck="false" autocomplete="off" placeholder="kaspatest:q…" style="width:100%;padding:0.55rem 0.6rem;font:inherit;border:1px solid #111"></p>
-      <p><button type="submit" class="wallet-go" id="go">Request 10,000 tKAS</button></p>
+      <p><button type="submit" class="wallet-go" id="go" disabled>Request 10,000 tKAS</button></p>
     </form>
-    <p class="meta" id="out">Pays only while the desk TN10 node is running (local :4020). GitHub Pages cannot sign.</p>
+    <p class="meta" id="api-status">Checking API…</p>
+    <p class="meta" id="out">Pays from groks-wallet on Testnet-10. Never a seed.</p>
   </div>
 
   <h2>Rules</h2>
@@ -37,47 +38,7 @@
   </ul>
   <p class="meta">How the wallet is mined: <a href="node.html">Node</a>. Safety: <a href="safety.html">safety.html</a>.</p>
 </main>
-<script>
-(function () {
-  var form = document.getElementById("form");
-  var out = document.getElementById("out");
-  var go = document.getElementById("go");
-  function say(t, bad) {
-    out.textContent = t;
-    out.style.fontWeight = bad ? "600" : "";
-  }
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    var address = document.getElementById("addr").value.trim();
-    go.disabled = true;
-    say("Sending…");
-    fetch("/api/faucet", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ address: address }),
-    })
-      .then(function (r) {
-        return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; });
-      })
-      .then(function (x) {
-        if (x.status === 404) {
-          say("This copy is static. Open http://127.0.0.1:4020/faucet.html on the desk while kaspad TN10 is up.", true);
-          return;
-        }
-        if (!x.ok) {
-          say((x.j && (x.j.error || x.j.message)) || "Request failed.", true);
-          return;
-        }
-        var tx = (x.j.txids || []).join(" ");
-        say("Sent " + (x.j.tkas || "") + " tKAS. " + (tx ? "txid " + tx : "") + " Remaining in 48h: " + (x.j.remainingTkas || "") + " tKAS.");
-      })
-      .catch(function (err) {
-        say("Faucet API not reachable. Run node serve.mjs on the desk. " + err, true);
-      })
-      .finally(function () { go.disabled = false; });
-  });
-})();
-</script>
+<script src="faucet.js?v=13"></script>
 <script src="nav.js?v=12"></script>
 </body>
 </html>

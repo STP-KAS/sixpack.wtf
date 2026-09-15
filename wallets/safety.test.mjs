@@ -70,6 +70,12 @@ describe("sixpack wallet safety", () => {
     assert.doesNotMatch(t, /type=["']password["']/);
   });
 
+  it("faucet client does not parse HTML as JSON", () => {
+    const t = readFileSync(join(root, "faucet.js"), "utf8");
+    assert.match(t, /charAt\(0\) === "</);
+    assert.doesNotMatch(t, /r\.json\(\)/);
+  });
+
   it("pins page separates KIP, KCC, kascov, and KaspaZ", () => {
     const t = readFileSync(join(root, "pins.html"), "utf8");
     assert.match(t, /kaspanet\/kccs/);
