@@ -108,6 +108,25 @@ pre { overflow: auto; background: #f6f6f6; padding: 0.8rem; }
 .keep .desc { color: #444; flex: 1; }
 .more { margin: 2rem 0 0; }
 .more summary { cursor: pointer; font-weight: 600; }
+.eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; color: #555; margin: 0 0 0.35rem; }
+.who, .steps { display: flex; gap: 0.35rem; flex-wrap: wrap; margin: 0.8rem 0 1.1rem; }
+.who button, .steps button {
+  font: inherit;
+  font-size: 0.92rem;
+  border: 1px solid #111;
+  background: #fff;
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+}
+.who button.on, .steps button.on { background: #111; color: #fff; }
+.model { border: 1px solid #111; padding: 0.85rem 1rem; margin: 1.1rem 0; }
+.model-row { letter-spacing: 0.04em; }
+.model-say { margin: 0.5rem 0 0.2rem; }
+.checks { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 0; }
+.checks span { border: 1px solid #ddd; padding: 0.15rem 0.5rem; font-size: 0.9rem; }
+.checks span.ok { border-color: #111; }
+.checks span.no { text-decoration: line-through; color: #666; }
+.door h2 { margin-top: 0.2rem; }
 .pass { color: #111; }
 .fail { color: #111; font-weight: 600; }
 .pos-wrap {
