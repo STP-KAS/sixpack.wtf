@@ -47,16 +47,29 @@
     </tbody>
   </table>
 
-  <h2>Why three, not one</h2>
-  <p><strong>Kaspa (native KAS)</strong> is proof-of-work cash on L1. Same test Bitcoin has held since 2009: there is no issuer function that zeros a UTXO you do not have the keys to. Crescendo made it fast (10 blocks per second). Toccata made it programmable (covenants). Neither added a blacklist key. Volatility is the cost of that property.</p>
-  <p><strong>PoC KUSD</strong> is the attempt to quote a dollar <em>without</em> importing Tether’s freeze switch — typically a KAS-backed covenant (BitCoffee is one TN10 protocol). No issuer key in the design is the point. Peg unproven. Not shops. Not the x402 <code>asset</code>. Calling a reserved chair “a dollar” is welding.</p>
-  <p><strong>Tether-like stables</strong> (USDT, USDC, and bridges that honour them) are IOUs. Self-custody removes the exchange. It does not remove the issuer. Bridging them onto Kaspa does not make GHOSTDAG the issuer. Useful as labelled guest inventory. Forbidden as gas, miner fee, or the unit the dApp dies without.</p>
+  <h2>Native KAS — where it wins, where it fails</h2>
+  <p>Proof-of-work cash on L1. Same test Bitcoin has held since 2009: there is no issuer function that zeros a UTXO you do not have the keys to. Crescendo made it fast (10 blocks per second). Toccata made it programmable (covenants). Neither added a blacklist key.</p>
+  <p><strong>Wins.</strong> No freeze key. Holder override is keys, not a company. It is the only unit that pays miners. After emission tails off, fees are the security budget — they have to be KAS. It is the only honest <code>asset</code> for a Kaspa x402 binding. Sequencing and mass sit here. Volatility is a display problem (quote EUR/USD on the keypad), not a reason to make Tether the state machine.</p>
+  <p><strong>Fails.</strong> Merchants and humans think in dollars. Price moves. Payroll, invoices, and “$4 coffee” are painful if the drawer is only KAS. That is the gap the other two rails exist to fill — as <em>labelled guests or PoCs</em>, not as a replacement for the fee coin.</p>
+  <p><strong>Why.</strong> Strength is the no-blacklist test. Weakness is the unit of account. Do not throw away the first to paper over the second.</p>
+
+  <h2>PoC stable (kUSD-class) — where it wins, where it fails</h2>
+  <p>The attempt to quote a dollar <em>without</em> importing Tether’s freeze switch. Typical shape: overcollateralized native KAS, covenant rules, no issuer <code>addBlackList</code>. BitCoffee is one TN10 protocol with accepted lifecycle txs. A reserved “kUSD chair” on a till is a different object. Do not weld the name to either until the peg is real.</p>
+  <p><strong>Wins.</strong> Design can keep the no-issuer-key property while a human still sees a dollar. Capital is users locking their own KAS, not a company printing IOUs. If it ever works, dApps can quote a stable unit without giving Tether a kill switch on the app. That is the only reason this rail is on the table.</p>
+  <p><strong>Fails.</strong> Not live money. Peg without a deep DEX/RFQ is a bet on veto and arbitrage — unproven. Constructor prices and toy collateral ratios are fanfic on mainnet. Thin pools (PegLab’s 2 tKAS class) <em>are</em> the depeg; that is a warning product, not a dollar. No till-ready pay path for the Asset ID. Unaudited. Algorithmic sister-tokens (UST–LUNA class) are forbidden copies. A core freeze multisig on kUSD recreates Tether and voids the point.</p>
+  <p><strong>Why.</strong> Strength is the <em>attempt</em> at a dollar that still answers to keys and covenants. Weakness is that the attempt is not money yet. Call it PoC. Not shops. Not x402.</p>
+
+  <h2>Tether-like stables — where they win, where they fail</h2>
+  <p>USDT, USDC, and bridges that honour them are IOUs from an issuer. Self-custody removes the exchange. It does not remove the issuer. GHOSTDAG can order the guest transaction. It does not become Tether. Freeze and destroy are contract functions (<code>addBlackList</code>, <code>destroyBlackFunds</code>), used at scale, including OFAC lists. Circle is the same class with a milder record and a 2023 depeg when a bank failed — it repegged because reserves were cash, not because a chain forbade a pause.</p>
+  <p><strong>Wins.</strong> People already have it. Shops already quote it. Depth exists. A labelled guest inventory lets a merchant take a dollar today without pretending Kaspa issued it. Bridging onto Kaspa is useful liquidity. That is the honest win: inventory, labelled.</p>
+  <p><strong>Fails.</strong> Freeze is a kill switch on whatever the dApp used as its unit — merchant, AMM pool, agent gas, 402 endpoint. If the bridge honours a freeze, Kaspa-side inventory freezes. If it does not, the wrapped token is no longer 1:1 and depegs the moment issuer and bridge disagree. Extra risk: bridge operator, sequencer, wrap. L2-of-Tether is a different system. Never gas. Never miner fee. Never “native Kaspa dollar.”</p>
+  <p><strong>Why.</strong> Strength is liquidity and habit. Weakness is issuer policy travelling with the token. Host it as a guest. Do not let it vote, fee, or name the app.</p>
 
   <h2>Do not weld them</h2>
   <p>Welding is when one name covers two objects: “Kaspa dollar” for Tether-on-Kaspa, or “native stable” for an empty till seat, or “x402” for a coffee POS. People then cannot tell which freeze rule they accepted. Label the rail on the ticket. If the guest can be frozen, say so on the ticket.</p>
 
   <h2>Miner fee is always KAS</h2>
-  <p>Block space is paid to miners in the coin they mine. If the fee asset is Tether, miners sit under a freeze-capable issuer. That is a different system. Quote EUR or USD on a keypad if a human wants a price. Settlement and the fee are separate objects. Pick a rail for settlement. The fee stays KAS even on a dollar rail.</p>
+  <p>Block space is paid to miners in the coin they mine. If the fee asset is Tether, miners sit under a freeze-capable issuer. Quote EUR or USD on a keypad if a human wants a price. Settlement and the fee are separate objects. Pick a rail for settlement. The fee stays KAS even on a dollar rail.</p>
 
   <h2>Constitution</h2>
   <ol>
@@ -65,6 +78,12 @@
     <li>Unit of account on a keypad = EUR or USD.</li>
     <li>Settlement is a separate object. Pick a rail.</li>
   </ol>
+
+  <h2>Conclusion</h2>
+  <p>Use native KAS for sequencing, fees, and any dApp or 402 path that must survive a freeze day. That is the strong rail. Its failure is human unit-of-account, not sovereignty.</p>
+  <p>Keep a PoC stable in the lab until peg, oracle, and pay path are real. Watch BitCoffee-class work. Do not sell it as cash. Do not put a freeze committee on it.</p>
+  <p>Allow Tether-like inventory when a shop needs a dollar today — labelled guest, freeze-checked. Do not make it gas. Do not call it Kaspa.</p>
+  <p>Refusing all dollar inventory is how shops stay on Telegram invoices. Hosting only USDT is how a dApp dies on freeze day. Three labelled rails is the honest split. People choose. Do not weld.</p>
   <section data-sources></section>
 </main>
 <script src="nav.js?v=17"></script>
