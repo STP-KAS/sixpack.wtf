@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>sixpack.wtf — Kaspa dApp map</title>
-  <meta name="description" content="One map for Kaspa dApp developers. Dual-rail: native PoW vs Tether. Not Kaspa core. Not a dollar.">
+  <title>sixpack.wtf</title>
+  <meta name="description" content="Kaspa Explained popup, TN10 faucet, help and sources. Not Kaspa core. Not a wallet.">
   <link rel="canonical" href="https://sixpack.wtf/">
-  <link rel="stylesheet" href="site.css?v=11">
+  <link rel="stylesheet" href="site.css?v=16">
   <script>
     try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
   </script>
@@ -31,100 +31,72 @@
   <nav data-site-nav></nav>
 </header>
 <main>
-  <h1>Kaspa dApps</h1>
-  <p class="lede meta">One map. What to use, skip, and not lie about. 15 Sep 2026. Not Kaspa core. Not a dollar. New to Kaspa? <a href="explained.html">Four doors</a>. Long form: <a href="https://github.com/STP-KAS/kaspa-dapps">STP-KAS/kaspa-dapps</a>.</p>
-  <p class="meta">This url is a mess sorry. <a href="https://github.com/STP-KAS">github.com/STP-KAS</a> — here some more messy data.</p>
-  <p class="meta">Grok bot mines Testnet-10 to
-    <a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx">this wallet on kaspa.stream</a>.
-    How: <a href="node.html">tn10 bot CPU miner, pay-to locked</a>.
-    <a href="faucet.html">Grok bot sandbox faucet</a> (30k tKAS / 48h — mined in the Grok Bot sandbox, not kaspanet).</p>
+  <h1>sixpack.wtf</h1>
+  <p class="lede meta">Popup, faucet, help, links. Not Kaspa core. Not a wallet. This site never asks for a seed.</p>
 
-  <div class="box">
-    <p>USDT has <code>addBlackList</code> and <code>destroyBlackFunds</code>. Native KAS does not. If the dApp unit can be frozen, the dApp can be frozen. Bridging Tether onto Kaspa does not remove the key.</p>
-    <p>Quote EUR/USD on the keypad. Settle native KAS. Offer USDT as a labelled guest. Never as gas.</p>
-    <p><strong>Log in is top-right.</strong> Kasware/Kastle ask permission in their own popup. This site never asks for a seed. <a href="safety.html">Safety</a>.</p>
+  <div class="box source-high">
+    <p class="eyebrow">High-value credible source</p>
+    <p><strong><a href="https://kaspaexplained.com/">kaspaexplained.com</a></strong> — Kaspa Explained. Use this first. Source: <a href="https://github.com/parker2017code/kaspa-explained">github.com/parker2017code/kaspa-explained</a>.</p>
+    <p>It is independent education, not an exchange or a fundraise. The public face at kaspa.org has been stale (Toccata still framed as upcoming after it activated on mainnet). Explained does the opposite: the <a href="https://kaspaexplained.com/status">status</a> page labels claims <em>Live</em>, <em>Testnet only</em>, <em>Roadmap</em>, <em>Research</em>, or <em>Wrong</em>, each row tracing to rusty-kaspa, a KIP, or a dated API snapshot. It keeps KIP (consensus) apart from KCC (optional convention). That is why it sits above the rest of this list.</p>
+    <p class="meta">Doors: <a href="https://kaspaexplained.com/crypto-from-scratch">new to crypto</a> · <a href="https://kaspaexplained.com/what-is-kaspa">already know crypto</a></p>
   </div>
 
-  <h2>Rails</h2>
+  <h2>Three rails — people choose</h2>
+  <p class="meta">Best shape, from the X thread: Kaspa · PoC KUSD · Tether-like stables. Label them. Do not weld them. Miner fee is always KAS.</p>
   <table>
-    <thead><tr><th>Use</th><th>Rail</th></tr></thead>
+    <thead><tr><th>Rail</th><th>Kind</th><th>Freeze</th><th>Use for</th></tr></thead>
     <tbody>
-      <tr><td>Dapp unit, miner fee, x402</td><td>Native KAS</td></tr>
-      <tr><td>Merchant quote</td><td>EUR / USD display</td></tr>
-      <tr><td>Dollar inventory</td><td>USDT guest, labelled. Freeze switch intact</td></tr>
-      <tr><td>KAS-backed dollar candidate</td><td>BitCoffee KUSD on TN10. Peg unproven. Not shops</td></tr>
-      <tr><td>Classroom</td><td>PegLab tPEG. WILL DEPEG</td></tr>
+      <tr>
+        <td>KAS</td>
+        <td>native PoW</td>
+        <td>No</td>
+        <td>Dapp unit if you can bear volatility. Always miner fee. Always the x402 asset if you bind one.</td>
+      </tr>
+      <tr>
+        <td>kUSD</td>
+        <td>PoC / reserved-native</td>
+        <td>No issuer key in the design</td>
+        <td>Candidate stable unit. Not live money. Not x402.</td>
+      </tr>
+      <tr>
+        <td>USDT-like</td>
+        <td>guest IOU</td>
+        <td>Yes. Issuer <code>addBlackList</code> / <code>destroyBlackFunds</code></td>
+        <td>Merchant dollar inventory, labelled. Never gas. Never miner fee.</td>
+      </tr>
     </tbody>
   </table>
-  <p class="meta"><a href="rails.html">Till view of the three buttons</a> · <a href="till.html">Open the till</a></p>
-
-  <h2>PoC alternatives</h2>
-  <p>A Kaspa dApp that only speaks Tether has outsourced its survival. None of these is a dollar you can list tomorrow.</p>
-  <table>
-    <thead><tr><th>Object</th><th>Honest status</th></tr></thead>
-    <tbody>
-      <tr><td>Native KAS</td><td>Live. No freeze function. Use it.</td></tr>
-      <tr><td>Parker receipt</td><td>1 locked sompi. Not USD. 1 sompi outputs fail KIP-9 storage mass.</td></tr>
-      <tr><td>PegLab tPEG</td><td>Tiny pool. Admin oracle. Designed to depeg.</td></tr>
-      <tr><td>BitCoffee KUSD</td><td>Real TN10 covenant protocol. No issuer key. Peg unproven. No wallet Asset ID path.</td></tr>
-      <tr><td>1kUSD</td><td>Research. Mock oracle. No audit. No mainnet.</td></tr>
-      <tr><td>USDT / USDC</td><td>Issuer money. Guest only.</td></tr>
-    </tbody>
-  </table>
-
-  <h2>Keep</h2>
-  <p class="meta">Picked because a stranger can run it or fail a test. The other thirty GitHubs are pass logs. Cut: <a href="https://github.com/STP-KAS/kaspa-dapps/blob/main/REPOS.md">REPOS.md</a>.</p>
-  <ul class="keep">
-    <li><a class="name" href="https://github.com/STP-KAS/kaspa-dapps">kaspa-dapps</a><span class="desc">This map, on GitHub.</span></li>
-    <li><a class="name" href="till.html">ishum / till</a><span class="desc">Quote EUR. Settle KAS. Desk holds 0 keys.</span></li>
-    <li><a class="name" href="https://github.com/STP-KAS/grok-heavy-showcase">grok-heavy-showcase</a><span class="desc">Freeze lab. Native still redeems after issuer freeze. NEVER_GAS.</span></li>
-    <li><a class="name" href="https://github.com/STP-KAS/peglab-stp">peglab-stp</a><span class="desc">WILL DEPEG classroom.</span></li>
-    <li><a class="name" href="kusd.html">kusdt-bitcoffee</a><span class="desc">Independent BitCoffee review. Not an audit.</span></li>
-    <li><a class="name" href="x402.html">kaspa-x402</a><span class="desc">Bind elldeeone v1.0.0-rc.1. Native KAS. TN10 only.</span></li>
-    <li><a class="name" href="https://github.com/STP-KAS/kns-spec">kns-spec</a><span class="desc">Names kit. Overlay is not official KNS.</span></li>
-    <li><a class="name" href="node.html">Grok bot node</a><span class="desc">kaspa bot = mainnet operator. tn10 bot = this wallet. Test and build.</span></li>
-    <li><a class="name" href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx">groks wallet · TN10</a><span class="desc">kaspatest:qzffl5…v0ldx on kaspa.stream. Worthless coins. Real building.</span></li>
-    <li><a class="name" href="explained.html">Kaspa Explained STP</a><span class="desc">Doors + models. Cite Parker GitHub.</span></li>
-    <li><a class="name" href="pins.html">KIP / KCC / kascov</a><span class="desc">Covenants if needed. Kaspa Call ≠ KIP. KaspaZ is not Kaspa.</span></li>
-    <li><a class="name" href="https://github.com/parker2017code/kaspa-explained">kaspa-explained</a><span class="desc">Parker upstream. Receipts live there.</span></li>
-  </ul>
-
-  <h2>Do, in order</h2>
   <ol>
-    <li>SilverScript v1.0.0, rusty-kaspa v2.0.1, TN10. Referee: <a href="https://kaspaexplained.com/status">kaspaexplained.com/status</a>.</li>
-    <li>Dual rail. No USDT as gas. No tPEG as money.</li>
-    <li>One own-UTXO covenant that <code>require</code>s output value. No foreign <code>readInputState</code>.</li>
-    <li>Receipt txids on TN10. Empty journal is a story.</li>
-    <li>One 402: local URL → pay KAS → 200 + txid. No fourth envelope.</li>
-    <li>Ishum on a second machine. This desk out of the loop.</li>
+    <li>Consensus / order = Kaspa L1. USDT does not vote in GHOSTDAG.</li>
+    <li>Miner fee = KAS. Sender pays.</li>
+    <li>Unit of account on a keypad = EUR or USD.</li>
+    <li>Settlement is a separate object. Pick a rail.</li>
   </ol>
-  <p class="meta"><a href="https://github.com/STP-KAS/kaspa-dapps/blob/main/PLAN.md">PLAN.md</a> · <a href="https://github.com/STP-KAS/kaspa-dapps/blob/main/BREAK.md">BREAK.md</a> · <a href="https://github.com/STP-KAS/kaspa-dapps/blob/main/SOURCES.md">SOURCES.md</a></p>
 
-  <h2>Stop the line</h2>
-  <ul>
-    <li>A seed box on this site (there is none — if you see one, leave)</li>
-    <li>USDT as gas, dapp unit, or x402 asset</li>
-    <li>tPEG listed as money, or a raise against a 2 tKAS pool</li>
-    <li>“Kaspa has no freeze because we bridged USDT”</li>
-    <li>A core freeze multisig on a Kaspa dollar (that recreates Tether)</li>
-    <li>Shipping DAGKnight, vProgs, or Argent as live</li>
+  <h2>Interesting links</h2>
+  <h3>Official / protocol</h3>
+  <ul class="keep">
+    <li><a class="name" href="https://docs.kaspa.org">docs.kaspa.org</a><span class="desc">Operator and protocol docs. Start here before a chat question.</span></li>
+    <li><a class="name" href="https://github.com/kaspanet/rusty-kaspa">rusty-kaspa</a><span class="desc">The node. Releases and KIPs beat slogans.</span></li>
+    <li><a class="name" href="https://github.com/kaspanet/kips">kaspanet/kips</a><span class="desc">Consensus proposals. Active is law. Proposed is not.</span></li>
+    <li><a class="name" href="https://explorer.kaspa.org/">explorer.kaspa.org</a><span class="desc">Mainnet explorer.</span></li>
+  </ul>
+  <h3>Help rooms</h3>
+  <ul class="keep">
+    <li><a class="name" href="help.html">Help on this site</a><span class="desc">How to ask. Discord rooms. Never a seed.</span></li>
+    <li><a class="name" href="https://discord.gg/kaspa">discord.gg/kaspa</a><span class="desc">Dedicated topic rooms. Browse, then ask.</span></li>
+    <li><a class="name" href="https://qa.kas.pa/">qa.kas.pa</a><span class="desc">Written questions. Not law.</span></li>
+  </ul>
+  <h3>Testnet toys</h3>
+  <ul class="keep">
+    <li><a class="name" href="faucet.html">Grok bot sandbox faucet</a><span class="desc">TN10 tKAS, 30k / 48h. Paste a kaspatest: address. No wallet login.</span></li>
+    <li><a class="name" href="https://faucet-tn10.kaspanet.io/">faucet-tn10.kaspanet.io</a><span class="desc">Official TN10 faucet. Often 403.</span></li>
+    <li><a class="name" href="https://explorer-tn10.kaspa.org/">explorer-tn10.kaspa.org</a><span class="desc">Testnet-10 explorer. Toy coins.</span></li>
   </ul>
 
-  <details class="more">
-    <summary>Old tabs (kept as URLs)</summary>
-    <p class="meta">Not in the bar. Still work.</p>
-    <ul>
-      <li><a href="poc.html">PoC revisited</a> — desk kUSD chair vs BitCoffee</li>
-      <li><a href="node.html">Node</a> — Grok bot operator + TN10 wallet</li>
-      <li><a href="tn10.html">TN10 pulse</a> — groks-wallet + published txs</li>
-      <li><a href="parker.html">Parker Astra</a></li>
-      <li><a href="mix.html">Mix — Parker · STP · Luke</a></li>
-      <li><a href="explained.html">Doors</a> — Kaspa Explained STP</li>
-      <li><a href="safety.html">Safety</a> — no seed, permission, other wallets</li>
-    </ul>
-  </details>
+  <p class="clown meta">stp is a professional clown · <a href="https://x.com/StppStp">x.com/StppStp</a> · <a href="https://github.com/STP-KAS">github.com/STP-KAS</a></p>
 </main>
-<script src="nav.js?v=11"></script>
+<script src="nav.js?v=16"></script>
 <script src="intro.js?v=1"></script>
 </body>
 </html>

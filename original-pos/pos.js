@@ -166,17 +166,6 @@
     return '<a class="rail ' + (on ? "on " : "") + (r.guest ? "guest" : "") + '" href="#" data-rail="' + r.id + '">' +
       "<strong>" + r.name + "</strong><span>" + r.due + "</span><em>" + r.badge + "</em></a>";
   }
-  function wallet() {
-    if (window.kasware && typeof window.kasware.sendKaspa === "function") return window.kasware;
-    if (window.kastle && typeof window.kastle.sendKaspa === "function") return window.kastle;
-    if (parent !== window) {
-      try {
-        if (parent.kasware && typeof parent.kasware.sendKaspa === "function") return parent.kasware;
-        if (parent.kastle && typeof parent.kastle.sendKaspa === "function") return parent.kastle;
-      } catch (_) {}
-    }
-    return null;
-  }
   function setStatus(st, extra) {
     invoice.status = st;
     var el = document.getElementById("inv-status");
@@ -232,9 +221,6 @@
       html += '<p class="note">No issued asset on this till. Checkout is real. Settlement here is a demonstration. BitCoffee KUSD exists on TN10 as covenants — this keypad cannot yet transfer that Asset ID.</p>';
     }
     html += '<div class="actions">';
-    if (r && r.uri) {
-      html += '<button type="button" class="ghost" id="kasware">Pay in Kasware / Kastle</button>';
-    }
     html += '<form class="claim" id="claim-form"><input name="txid" placeholder="paste txid" spellcheck="false" autocomplete="off"><button type="submit">Claim</button></form>';
     if (r && !r.live) {
       html += '<button type="button" class="ghost" id="demo-settle">Mark settled (demo)</button>';
@@ -242,37 +228,6 @@
     html += "</div>";
     box.innerHTML = html;
 
-    var kw = document.getElementById("kasware");
-    if (kw) {
-      kw.onclick = function () {
-        var KW = window.KaspaWallets;
-        var session = KW && KW.current ? KW.current() : { address: "" };
-        if (!session.address) {
-          if (window.SixpackWallet) window.SixpackWallet.open();
-          else alert("Click Log in (top right). Kasware will ask permission. This page never asks for a seed.");
-          return;
-        }
-        if (isTestnet(payTo) && session.address.indexOf("kaspatest:") !== 0) {
-          alert("Invoice is Testnet-10. Connected wallet looks mainnet. Switch Kasware to testnet-10, or scan the QR.");
-          return;
-        }
-        if (!isTestnet(payTo) && session.address.indexOf("kaspatest:") === 0) {
-          alert("Invoice is mainnet. Connected wallet is testnet. Do not send.");
-          return;
-        }
-        var dest = r.uri.split("?")[0];
-        var send = KW.sendKaspa
-          ? KW.sendKaspa(dest, invoice.sompi, { priorityFee: 10000 })
-          : Promise.reject(new Error("no send"));
-        send.then(function (txid) {
-          var id = typeof txid === "string" ? txid : (txid && (txid.txid || txid.transactionId) || "");
-          if (id) claimTx(id);
-        }).catch(function (e) {
-          if (r.uri) location.href = r.uri;
-          else alert(e && e.message ? e.message : e);
-        });
-      };
-    }
     var form = document.getElementById("claim-form");
     if (form) {
       form.onsubmit = function (e) {
