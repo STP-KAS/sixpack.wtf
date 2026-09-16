@@ -6,7 +6,10 @@
   <title>sixpack.wtf — Help</title>
   <meta name="description" content="Questions go to Kaspa Discord. Dedicated rooms exist. Browse, then ask. Nobody here can recover a seed.">
   <link rel="canonical" href="https://sixpack.wtf/help.html">
-  <link rel="stylesheet" href="site.css?v=16">
+  <link rel="stylesheet" href="site.css?v=17">
+  <script>
+    try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
+  </script>
 </head>
 <body>
 <header class="top">
@@ -39,8 +42,8 @@
     <a href="https://docs.kaspa.org" target="_blank" rel="noopener noreferrer"><div><strong>Docs</strong><p>Start here before a chat question.</p></div><span aria-hidden="true">↗</span></a>
   </nav>
   <p class="meta">Rules for entering the Kaspa community: when engaging online, be mature. No price predictions. Build. Share ideas. Keep a positive critical mindset.</p>
-  <p class="clown meta">stp is a professional clown · <a href="https://x.com/StppStp">x.com/StppStp</a> · <a href="https://github.com/STP-KAS">github.com/STP-KAS</a></p>
+  <section data-sources></section>
 </main>
-<script src="nav.js?v=16"></script>
+<script src="nav.js?v=17"></script>
 </body>
 </html>
