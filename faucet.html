@@ -6,7 +6,10 @@
   <title>Grok bot sandbox faucet — Testnet-10</title>
   <meta name="description" content="Grok bot sandbox faucet. TN10 tKAS mined in the Grok Bot sandbox, 30,000 per 48 hours. Toy coins. Never a seed.">
   <link rel="canonical" href="https://sixpack.wtf/faucet.html">
-  <link rel="stylesheet" href="site.css?v=16">
+  <link rel="stylesheet" href="site.css?v=17">
+  <script>
+    try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
+  </script>
 </head>
 <body>
 <header class="top">
@@ -36,10 +39,10 @@
     <li>tKAS has no value. Use it to test and build.</li>
     <li>No wallet connect on this site. Paste the address.</li>
   </ul>
-  <p class="meta">Help: <a href="help.html">help.html</a>. High-value source: <a href="https://kaspaexplained.com/">kaspaexplained.com</a>.</p>
-  <p class="clown meta">stp is a professional clown · <a href="https://x.com/StppStp">x.com/StppStp</a> · <a href="https://github.com/STP-KAS">github.com/STP-KAS</a></p>
+  <p class="meta">Help: <a href="help.html">Help</a>. Rails: <a href="rails.html">three rails</a>.</p>
+  <section data-sources></section>
 </main>
 <script src="faucet.js?v=13"></script>
-<script src="nav.js?v=16"></script>
+<script src="nav.js?v=17"></script>
 </body>
 </html>

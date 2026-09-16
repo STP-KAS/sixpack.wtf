@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>sixpack.wtf</title>
-  <meta name="description" content="Kaspa Explained popup, TN10 faucet, help and sources. Not Kaspa core. Not a wallet.">
+  <meta name="description" content="Kaspa Explained popup, three rails, TN10 faucet, help. Not Kaspa core. Not a wallet.">
   <link rel="canonical" href="https://sixpack.wtf/">
-  <link rel="stylesheet" href="site.css?v=16">
+  <link rel="stylesheet" href="site.css?v=17">
   <script>
     try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
   </script>
@@ -32,71 +32,11 @@
 </header>
 <main>
   <h1>sixpack.wtf</h1>
-  <p class="lede meta">Popup, faucet, help, links. Not Kaspa core. Not a wallet. This site never asks for a seed.</p>
-
-  <div class="box source-high">
-    <p class="eyebrow">High-value credible source</p>
-    <p><strong><a href="https://kaspaexplained.com/">kaspaexplained.com</a></strong> — Kaspa Explained. Use this first. Source: <a href="https://github.com/parker2017code/kaspa-explained">github.com/parker2017code/kaspa-explained</a>.</p>
-    <p>It is independent education, not an exchange or a fundraise. The public face at kaspa.org has been stale (Toccata still framed as upcoming after it activated on mainnet). Explained does the opposite: the <a href="https://kaspaexplained.com/status">status</a> page labels claims <em>Live</em>, <em>Testnet only</em>, <em>Roadmap</em>, <em>Research</em>, or <em>Wrong</em>, each row tracing to rusty-kaspa, a KIP, or a dated API snapshot. It keeps KIP (consensus) apart from KCC (optional convention). That is why it sits above the rest of this list.</p>
-    <p class="meta">Doors: <a href="https://kaspaexplained.com/crypto-from-scratch">new to crypto</a> · <a href="https://kaspaexplained.com/what-is-kaspa">already know crypto</a></p>
-  </div>
-
-  <h2>Three rails — people choose</h2>
-  <p class="meta">Best shape, from the X thread: Kaspa · PoC KUSD · Tether-like stables. Label them. Do not weld them. Miner fee is always KAS.</p>
-  <table>
-    <thead><tr><th>Rail</th><th>Kind</th><th>Freeze</th><th>Use for</th></tr></thead>
-    <tbody>
-      <tr>
-        <td>KAS</td>
-        <td>native PoW</td>
-        <td>No</td>
-        <td>Dapp unit if you can bear volatility. Always miner fee. Always the x402 asset if you bind one.</td>
-      </tr>
-      <tr>
-        <td>kUSD</td>
-        <td>PoC / reserved-native</td>
-        <td>No issuer key in the design</td>
-        <td>Candidate stable unit. Not live money. Not x402.</td>
-      </tr>
-      <tr>
-        <td>USDT-like</td>
-        <td>guest IOU</td>
-        <td>Yes. Issuer <code>addBlackList</code> / <code>destroyBlackFunds</code></td>
-        <td>Merchant dollar inventory, labelled. Never gas. Never miner fee.</td>
-      </tr>
-    </tbody>
-  </table>
-  <ol>
-    <li>Consensus / order = Kaspa L1. USDT does not vote in GHOSTDAG.</li>
-    <li>Miner fee = KAS. Sender pays.</li>
-    <li>Unit of account on a keypad = EUR or USD.</li>
-    <li>Settlement is a separate object. Pick a rail.</li>
-  </ol>
-
-  <h2>Interesting links</h2>
-  <h3>Official / protocol</h3>
-  <ul class="keep">
-    <li><a class="name" href="https://docs.kaspa.org">docs.kaspa.org</a><span class="desc">Operator and protocol docs. Start here before a chat question.</span></li>
-    <li><a class="name" href="https://github.com/kaspanet/rusty-kaspa">rusty-kaspa</a><span class="desc">The node. Releases and KIPs beat slogans.</span></li>
-    <li><a class="name" href="https://github.com/kaspanet/kips">kaspanet/kips</a><span class="desc">Consensus proposals. Active is law. Proposed is not.</span></li>
-    <li><a class="name" href="https://explorer.kaspa.org/">explorer.kaspa.org</a><span class="desc">Mainnet explorer.</span></li>
-  </ul>
-  <h3>Help rooms</h3>
-  <ul class="keep">
-    <li><a class="name" href="help.html">Help on this site</a><span class="desc">How to ask. Discord rooms. Never a seed.</span></li>
-    <li><a class="name" href="https://discord.gg/kaspa">discord.gg/kaspa</a><span class="desc">Dedicated topic rooms. Browse, then ask.</span></li>
-    <li><a class="name" href="https://qa.kas.pa/">qa.kas.pa</a><span class="desc">Written questions. Not law.</span></li>
-  </ul>
-  <h3>Testnet toys</h3>
-  <ul class="keep">
-    <li><a class="name" href="faucet.html">Grok bot sandbox faucet</a><span class="desc">TN10 tKAS, 30k / 48h. Paste a kaspatest: address. No wallet login.</span></li>
-    <li><a class="name" href="https://faucet-tn10.kaspanet.io/">faucet-tn10.kaspanet.io</a><span class="desc">Official TN10 faucet. Often 403.</span></li>
-    <li><a class="name" href="https://explorer-tn10.kaspa.org/">explorer-tn10.kaspa.org</a><span class="desc">Testnet-10 explorer. Toy coins.</span></li>
-  </ul>
-
-  <p class="clown meta">stp is a professional clown · <a href="https://x.com/StppStp">x.com/StppStp</a> · <a href="https://github.com/STP-KAS">github.com/STP-KAS</a></p>
+  <p class="lede meta">Not Kaspa core. Not a wallet. This site never asks for a seed.</p>
+  <p>People choose three rails: native Kaspa, a PoC KUSD, or a Tether-like guest. Label them. Do not weld them. Miner fee is always KAS. Full explanation: <a href="rails.html">Rails</a>.</p>
+  <p class="meta">Questions: <a href="help.html">Help</a> (Discord path). Toy coins: <a href="faucet.html">Faucet</a>.</p>
+  <section data-sources></section>
 </main>
-<script src="nav.js?v=16"></script>
-<script src="intro.js?v=1"></script>
+<script src="nav.js?v=17"></script>
 </body>
 </html>
