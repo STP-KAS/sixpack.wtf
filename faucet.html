@@ -6,7 +6,7 @@
   <title>Grok bot sandbox faucet — Testnet-10</title>
   <meta name="description" content="Grok bot sandbox faucet. TN10 tKAS mined in the Grok Bot sandbox, 30,000 per 48 hours. Toy coins. Never a seed.">
   <link rel="canonical" href="https://sixpack.wtf/faucet.html">
-  <link rel="stylesheet" href="site.css?v=12">
+  <link rel="stylesheet" href="site.css?v=16">
 </head>
 <body>
 <header class="top">
@@ -15,17 +15,17 @@
 </header>
 <main>
   <h1>Grok bot sandbox faucet</h1>
-  <p class="lede meta">Named that because the coins come from <strong>tn10 bot</strong> mining inside the <strong>Grok Bot Linux sandbox</strong>, into Grok’s TN10 wallet — not from kaspanet. Testnet-10 only. <strong>30,000 tKAS per 48 hours</strong> per address (and per IP). 10,000 tKAS per request. Toy coins. This page never asks for a seed.</p>
+  <p class="lede meta">Named that because the coins come from <strong>tn10 bot</strong> mining inside the <strong>Grok Bot Linux sandbox</strong>, into Grok’s TN10 address — not from kaspanet. Testnet-10 only. <strong>30,000 tKAS per 48 hours</strong> per address (and per IP). 10,000 tKAS per request. Toy coins. Paste a <code>kaspatest:</code> address. This page never asks for a seed.</p>
 
   <div class="box">
-    <p>Same job as <a href="https://faucet-tn10.kaspanet.io/">faucet-tn10.kaspanet.io</a>, higher cap. Official faucet is often 403. This pays from <a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx">the sandbox miner wallet</a>.</p>
+    <p>Same job as <a href="https://faucet-tn10.kaspanet.io/">faucet-tn10.kaspanet.io</a>, higher cap. Official faucet is often 403. This pays from <a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx">the sandbox miner address</a>.</p>
     <form id="form">
       <label class="meta" for="addr">kaspatest: address</label>
       <p><input id="addr" name="address" spellcheck="false" autocomplete="off" placeholder="kaspatest:q…" style="width:100%;padding:0.55rem 0.6rem;font:inherit;border:1px solid #111"></p>
-      <p><button type="submit" class="wallet-go" id="go" disabled>Request 10,000 tKAS</button></p>
+      <p><button type="submit" class="go" id="go" disabled>Request 10,000 tKAS</button></p>
     </form>
     <p class="meta" id="api-status">Checking API…</p>
-    <p class="meta" id="out">Pays from groks-wallet on Testnet-10. Never a seed.</p>
+    <p class="meta" id="out">Pays from the sandbox miner on Testnet-10. Never a seed. No wallet login.</p>
   </div>
 
   <h2>Rules</h2>
@@ -34,11 +34,12 @@
     <li>30,000 tKAS / 48 h. Then wait.</li>
     <li>Cannot pay the faucet address itself.</li>
     <li>tKAS has no value. Use it to test and build.</li>
-    <li>Log in (top-right) is Kasware permission, not this faucet. The faucet does not need your seed.</li>
+    <li>No wallet connect on this site. Paste the address.</li>
   </ul>
-  <p class="meta">How the wallet is mined: <a href="node.html">Node</a>. Safety: <a href="safety.html">safety.html</a>.</p>
+  <p class="meta">Help: <a href="help.html">help.html</a>. High-value source: <a href="https://kaspaexplained.com/">kaspaexplained.com</a>.</p>
+  <p class="clown meta">stp is a professional clown · <a href="https://x.com/StppStp">x.com/StppStp</a> · <a href="https://github.com/STP-KAS">github.com/STP-KAS</a></p>
 </main>
 <script src="faucet.js?v=13"></script>
-<script src="nav.js?v=12"></script>
+<script src="nav.js?v=16"></script>
 </body>
 </html>
