@@ -31,6 +31,27 @@
     <p class="meta" id="out">Pays from the sandbox miner on Testnet-10. Never a seed. No wallet login.</p>
   </div>
 
+  <h2>Who mines the faucet address</h2>
+  <p><strong>Two miners</strong> are pointed at
+    <a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx"><code>kaspatest:qzffl5…v0ldx</code></a>.
+    Both are Grok’s TN10 pay-to. Not kaspanet. Not a pool of strangers.</p>
+  <table>
+    <thead><tr><th>#</th><th>Who</th><th>How</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><strong>tn10 bot</strong> (Grok Bot)</td>
+        <td>A second Grok Bot agent, not kaspa bot. It runs on the Grok Bot Linux sandbox: Testnet-10 <code>kaspad</code> plus CPU <code>kaspa-miner</code> (<code>--user-agent-suffix grokbot</code>). Pay-to is locked to the faucet address. How: New Bot → name it <strong>tn10 bot</strong> → paste <a href="https://github.com/STP-KAS/groks-wallet/blob/main/START-TN10.md">START-TN10.md</a>.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Windows desk</td>
+        <td>Same address. Local <code>kaspad</code> + <code>kaspa-miner -t 8 --user-agent-suffix grokwallet</code> on this machine. Same Grok wallet, same stream link.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="meta"><strong>kaspa bot</strong> is mainnet only. It does not mine this faucet. Do not paste TN10 miner instructions into kaspa bot. Source: <a href="https://github.com/STP-KAS/groks-wallet">STP-KAS/groks-wallet</a>.</p>
+
   <h2>Rules</h2>
   <ul>
     <li><code>kaspatest:</code> only. Mainnet <code>kaspa:</code> is refused.</li>
