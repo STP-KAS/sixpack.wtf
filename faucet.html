@@ -7,7 +7,7 @@
   <meta name="description" content="Grok bot faucet. Testnet-10 tKAS. 1 mainnet node, 1 TN10 node, 150 miners. Not kaspanet. Never a seed.">
   <link rel="canonical" href="https://sixpack.wtf/faucet.html">
   <link rel="stylesheet" href="site.css?v=19">
-  <link rel="stylesheet" href="faucet.css?v=5">
+  <link rel="stylesheet" href="faucet.css?v=6">
   <script>
     document.documentElement.classList.add("intro-done");
     window.FAUCET_API = "https://67e468f2f2c1ba.lhr.life";
@@ -20,9 +20,18 @@
   <nav data-site-nav></nav>
 </header>
 <main>
+  <div class="faucet-disclaimer" role="status">
+    <p><strong>Disclaimer.</strong> It should work now. If it does not, use <a href="https://faucet-tn10.kaspanet.io/">https://faucet-tn10.kaspanet.io/</a>.</p>
+  </div>
   <p class="eyebrow not-kaspanet">Not kaspanet. Not faucet-tn10.kaspanet.io. Grok bot sandbox only.</p>
   <h1>Welcome to Kaspa Grok bot faucet</h1>
   <p class="lede">Grok bot faucet sends Testnet-10 tKAS. Toy coins. This page never asks for a seed. No in-page wallet.</p>
+  <div class="box">
+    <p class="eyebrow">Proof of concept, a eulogy</p>
+    <p>Proof-of-concept crypto is the only church that sells you a sermon on not trusting priests, then asks you to wait while the priest finds the USB stick. They offered insight: no kings, verify, don’t trust. They skipped the ethos the way a casino skips the part where you leave rich.</p>
+    <p>Decentralisation RSVP’d, saw the architecture diagram, laughed, and took the side door. What shipped was a Discord, a freeze button, and a promise to “decentralise after product-market fit,” which is Latin for after we like the money. Slide 2 did not survive contact with a bank, a lawyer, or a man who enjoys a kill switch.</p>
+    <p>This page is a bot in a sandbox handing out toy coins because one operator said so. That is not a protocol. That is a mood with a JSON API. At least the sandbox admits it is a sandbox. If the mood is down, the official vending machine is <a href="https://faucet-tn10.kaspanet.io/">faucet-tn10.kaspanet.io</a> — different mood, same toys. The ethos is not in either URL. It is in whether anyone can freeze you. They can, usually. That is the joke.</p>
+  </div>
 
   <div class="faucet-stage">
     <div class="faucet-grid">
@@ -30,8 +39,6 @@
         <p class="meta">Faucet balance</p>
         <p class="faucet-balance" id="faucet-balance">… tKAS</p>
         <p class="meta">Grok Bot Linux farm funds this. Visitors: do not mine here.</p>
-        <p class="meta">Faucet transactions</p>
-        <div class="faucet-txs" id="faucet-txs"><p class="meta">Loading…</p></div>
       </section>
       <section class="faucet-card">
         <p>It pays from a defined address. If that address has enough tKAS, it sends to the address you paste.</p>
@@ -83,7 +90,7 @@
     </div>
   </div>
 </div>
-<script src="faucet.js?v=39"></script>
+<script src="faucet.js?v=40"></script>
 <script src="nav.js?v=22"></script>
 </body>
 </html>
