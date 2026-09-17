@@ -74,10 +74,11 @@ body.faucet-page main { max-width: 1100px; padding-left: max(1rem, env(safe-area
 .faucet-disclaimer {
   border: 1px solid #f0d27a;
   color: #f0d27a;
-  padding: 0.8rem 1rem;
-  margin: 0.8rem 0 1.1rem;
+  padding: 0.95rem 1.05rem;
+  margin: 0 0 1.15rem;
   border-radius: 8px;
-  background: #161a19;
+  background: #1a1810;
+  font-size: 1.05rem;
 }
 .faucet-disclaimer p { margin: 0; }
 .faucet-disclaimer strong { color: #ffe9a8; }
