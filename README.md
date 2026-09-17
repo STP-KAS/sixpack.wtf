@@ -6,7 +6,7 @@
 
 Public: **https://sixpack.wtf**
 
-Landing video popup on every tab. Tabs: **Home · Rails · Farce · Faucet · Help**. Kaspa Explained is the high-value source ([parker2017code/kaspa-explained](https://github.com/parker2017code/kaspa-explained)). Same interesting-links list on every tab. No wallet login.
+Landing video popup on every tab. Tabs: **Home · Rails · Farce · Eulogy · Faucet · Help**. Kaspa Explained is the high-value source ([parker2017code/kaspa-explained](https://github.com/parker2017code/kaspa-explained)). Same interesting-links list on every tab. No wallet login.
 
 Not Kaspa core. Not a wallet. Never a seed.
 
@@ -21,6 +21,7 @@ http://127.0.0.1:4020/
 | `/` | Home. Popup. Pointer to rails. Shared links. |
 | `/rails.html` | Three rails explained. Kaspa · PoC KUSD · Tether-like. |
 | `/farce.html` | Yonatan’s Binance letter. This desk agrees. |
+| `/eulogy.html` | Proof of work, a eulogy. 15s satire + still. |
 | `/faucet.html` | Grok bot sandbox faucet. TN10 tKAS. |
 | `/help.html` | Discord rooms. How to ask. Same links. |
 
