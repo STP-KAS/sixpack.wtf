@@ -71,6 +71,16 @@ body.faucet-page main { max-width: 1100px; padding-left: max(1rem, env(safe-area
 .faucet-card .go:disabled { opacity: 0.45; cursor: not-allowed; }
 .faucet-warn { color: #ff8b8b; font-weight: 650; }
 .not-kaspanet { color: #f0d27a; font-weight: 650; }
+.faucet-disclaimer {
+  border: 1px solid #f0d27a;
+  color: #f0d27a;
+  padding: 0.8rem 1rem;
+  margin: 0.8rem 0 1.1rem;
+  border-radius: 8px;
+  background: #161a19;
+}
+.faucet-disclaimer p { margin: 0; }
+.faucet-disclaimer strong { color: #ffe9a8; }
 @media (max-width: 800px) {
   .faucet-grid { grid-template-columns: 1fr; }
   .faucet-stage { padding: 1rem 0.8rem 1.2rem; }
