@@ -19,6 +19,52 @@ const SECRET =
 const RPC_URL = process.env.FAUCET_RPC || "127.0.0.1:17210";
 const MAX_INPUTS = 80;
 
+async function connectRpc(kaspa, net) {
+  const tryLocal = async () => {
+    const rpc = new kaspa.RpcClient({
+      url: RPC_URL,
+      encoding: kaspa.Encoding.Borsh,
+      networkId: net,
+    });
+    await rpc.connect();
+    const info = await rpc.getServerInfo();
+    const id = String(info.networkId || "");
+    if (!id.includes("testnet-10") && id !== "testnet-10") {
+      await rpc.disconnect().catch(() => undefined);
+      throw new Error("local node is not Testnet-10");
+    }
+    if (!info.isSynced) {
+      await rpc.disconnect().catch(() => undefined);
+      throw new Error("local TN10 node is not synced");
+    }
+    return rpc;
+  };
+  const tryPublic = async () => {
+    const rpc = new kaspa.RpcClient({
+      resolver: new kaspa.Resolver(),
+      encoding: kaspa.Encoding.Borsh,
+      networkId: net,
+    });
+    await rpc.connect();
+    const info = await rpc.getServerInfo();
+    const id = String(info.networkId || "");
+    if (!id.includes("testnet-10") && id !== "testnet-10") {
+      await rpc.disconnect().catch(() => undefined);
+      throw new Error("public resolver did not return Testnet-10");
+    }
+    if (!info.isSynced) {
+      await rpc.disconnect().catch(() => undefined);
+      throw new Error("public TN10 node is not synced");
+    }
+    return rpc;
+  };
+  try {
+    return await tryLocal();
+  } catch (_) {
+    return await tryPublic();
+  }
+}
+
 let kaspaPromise;
 
 async function sdk() {
@@ -48,21 +94,11 @@ export async function payTn10(toAddr, sompi) {
   const { privHex, fromAddr } = loadKey();
   const privateKey = new kaspa.PrivateKey(privHex);
   const net = new kaspa.NetworkId("testnet-10");
-  const rpc = new kaspa.RpcClient({
-    url: RPC_URL,
-    encoding: kaspa.Encoding.Borsh,
-    networkId: net,
-  });
-  await rpc.connect();
+  const rpc = await connectRpc(kaspa, net);
   const txids = [];
   let sent = 0n;
   const want = BigInt(sompi);
   try {
-    const info = await rpc.getServerInfo();
-    if (!String(info.networkId || "").includes("testnet-10") && info.networkId !== "testnet-10") {
-      throw new Error("Faucet node is not Testnet-10.");
-    }
-    if (!info.isSynced) throw new Error("TN10 node is not synced.");
     let { entries } = await rpc.getUtxosByAddresses([fromAddr]);
     entries = [...entries].sort((a, b) => {
       const aa = BigInt(a.amount);

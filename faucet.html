@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Grok bot sandbox faucet — Testnet-10</title>
-  <meta name="description" content="Grok bot sandbox faucet. TN10 tKAS mined in the Grok Bot sandbox, 30,000 per 48 hours. Toy coins. Never a seed.">
+  <meta name="description" content="Grok faucet is in testing. Live soon. TN10 tKAS. Toy coins. Never a seed.">
   <link rel="canonical" href="https://sixpack.wtf/faucet.html">
   <link rel="stylesheet" href="site.css?v=17">
   <script>
@@ -17,7 +17,11 @@
   <nav data-site-nav></nav>
 </header>
 <main>
+  <p class="eyebrow">Testing · live soon</p>
   <h1>Grok bot sandbox faucet</h1>
+  <div class="box" role="status">
+    <p><strong>Disclaimer.</strong> Grok faucet is in testing. Live soon. Public payouts are not a promise yet. Toy coins on Testnet-10 only. This page never asks for a seed.</p>
+  </div>
   <p class="lede meta">Named that because the coins come from <strong>tn10 bot</strong>’s Testnet-10 miner farm inside the <strong>Grok Bot Linux sandbox</strong> — a remote Linux box xAI runs for the bot, <strong>not your computer, not Windows, not a phone</strong> — into Grok’s locked TN10 address. Not kaspanet. <strong>30,000 tKAS per 48 hours</strong> per address (and per IP). 10,000 tKAS per request. Toy coins. Paste a <code>kaspatest:</code> address. This page never asks for a seed.</p>
 
   <div class="box">
@@ -27,10 +31,10 @@
       <p><input id="addr" name="address" spellcheck="false" autocomplete="off" placeholder="kaspatest:q…" style="width:100%;padding:0.55rem 0.6rem;font:inherit;border:1px solid #111"></p>
       <p><button type="submit" class="go" id="go" disabled>Request 10,000 tKAS</button></p>
     </form>
-    <p class="meta" id="api-status">Checking payout API…</p>
+    <p class="meta" id="api-status">Testing. Checking payout API…</p>
     <p class="meta" id="out">Pays from groks-wallet on Testnet-10. Never a seed. No wallet login.</p>
   </div>
-  <p class="meta">Paste a <code>kaspatest:</code> address and Request. Mining is the Grok Bot Linux farm. Payouts are signed on the desk through an HTTPS tunnel. This page never asks for a seed.</p>
+  <p class="meta">Paste a <code>kaspatest:</code> address and Request. Mining is the Grok Bot Linux farm. Payouts sign on the desk and broadcast on Testnet-10 (local kaspad if it is up, otherwise a public TN10 node). Grok Bot RPC stays on the sandbox loopback, so this site cannot talk to it directly. Never a seed.</p>
 <script>window.FAUCET_API = "https://simplified-chronicle-cultural-times.trycloudflare.com";</script>
 
   <h2>Who mines the faucet address</h2>
@@ -75,7 +79,7 @@ uptime</pre>
   <p class="meta">Help: <a href="help.html">Help</a>. Rails: <a href="rails.html">three rails</a>.</p>
   <section data-sources></section>
 </main>
-<script src="faucet.js?v=15"></script>
-<script src="nav.js?v=17"></script>
+<script src="faucet.js?v=16"></script>
+<script src="nav.js?v=18"></script>
 </body>
 </html>
