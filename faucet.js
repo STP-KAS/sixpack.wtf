@@ -221,7 +221,7 @@
         const links = (j.explorer || [])
           .map(function (u, i) {
             const id = (j.txids && j.txids[i]) || u.split("/").pop();
-            return '<li><a href="' + u + '">' + id + "</a></td></tr>";
+            return "<li><a href=\"" + u + "\">" + id + "</a></li>";
           })
           .join("");
         const left = j.remainingAddrTkas || j.remainingTkas || "0";
