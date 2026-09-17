@@ -112,6 +112,21 @@ h3 { font-size: 0.95rem; font-weight: 650; margin: 1.1rem 0 0.35rem; }
 .more { margin: 2rem 0 0; }
 .more summary { cursor: pointer; font-weight: 600; }
 .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; color: #555; margin: 0 0 0.35rem; }
+.farce-exhibits {
+  display: grid;
+  gap: 0.8rem;
+  margin: 1rem 0 1.4rem;
+}
+.farce-exhibits img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid #111;
+}
+.farce-exhibits figcaption { color: #555; font-size: 0.85rem; margin: 0.35rem 0 0; }
+@media (min-width: 720px) {
+  .farce-exhibits { grid-template-columns: 1fr 1fr; }
+}
 .who, .steps { display: flex; gap: 0.35rem; flex-wrap: wrap; margin: 0.8rem 0 1.1rem; }
 .who button, .steps button {
   font: inherit;
