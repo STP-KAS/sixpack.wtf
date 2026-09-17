@@ -40,7 +40,9 @@ function sendJson(res, status, body, req) {
     origin === "http://127.0.0.1:4020" ||
     origin === "http://127.0.0.1:4021" ||
     origin === "http://localhost:4020" ||
-    origin === "http://localhost:4021"
+    origin === "http://localhost:4021" ||
+    origin === "https://sixpack.wtf" ||
+    origin === "https://www.sixpack.wtf"
       ? origin
       : "";
   const headers = {
