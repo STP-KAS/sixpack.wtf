@@ -40,7 +40,7 @@
     "</ul>" +
     "<h3>Testnet toys</h3>" +
     '<ul class="keep">' +
-    '<li><a class="name" href="faucet.html">Grok bot sandbox faucet</a><span class="desc">In testing. Live soon. TN10 tKAS. Never a seed.</span></li>' +
+    '<li><a class="name" href="faucet.html">Grok bot sandbox faucet</a><span class="desc">Not working yet. GTG go. Never a seed.</span></li>' +
     '<li><a class="name" href="https://faucet-tn10.kaspanet.io/">faucet-tn10.kaspanet.io</a><span class="desc">Official TN10 faucet. Often 403.</span></li>' +
     '<li><a class="name" href="https://explorer-tn10.kaspa.org/">explorer-tn10.kaspa.org</a><span class="desc">Testnet-10 explorer. Toy coins.</span></li>' +
     "</ul>" +

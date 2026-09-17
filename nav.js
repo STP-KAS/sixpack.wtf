@@ -29,7 +29,7 @@
     document.head.appendChild(s);
   }
   if (root) {
-    load(root + "sources.js?v=20");
+    load(root + "sources.js?v=21");
     if (file !== "faucet.html") load(root + "intro.js?v=3");
   }
 })();
