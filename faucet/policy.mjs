@@ -7,8 +7,36 @@ export const WINDOW_MS = 24 * 60 * 60 * 1000;
 export const CAP_SOMPI = 30_000n * 100_000_000n; // 30,000 tKAS / 24h
 export const DRIP_SOMPI = 10_000n * 100_000_000n; // per request, up to remaining
 export const MIN_SOMPI = 10n * 100_000_000n; // 10 tKAS floor (KIP-9 / packing)
+export const EXPLORER_HOME = "https://tn10.kaspa.stream/";
+/** Desk-only unlimited withdrawals. Address + desk IP must both match. */
+export const DESK_UNLIMITED_ADDR =
+  "kaspatest:qzpvdakagvwfm95g8pv9ndpupjtndgjfhmve08cg3tv5wgfytjzf7cudwwzv0";
+export const DESK_IPS = new Set(["81.243.19.34", "127.0.0.1", "::1"]);
 
 const BECH = /^kaspatest:[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{50,80}$/i;
+
+export function normalizeIp(ip) {
+  let s = String(ip || "").trim();
+  if (s.startsWith("::ffff:")) s = s.slice(7);
+  if (s.startsWith("[") && s.includes("]")) s = s.slice(1, s.indexOf("]"));
+  else if (/^\d+\.\d+\.\d+\.\d+:\d+$/.test(s)) s = s.split(":")[0];
+  return s;
+}
+
+export function isDeskUnlimited(address, ip) {
+  const dest = String(address || "").trim().toLowerCase();
+  return dest === DESK_UNLIMITED_ADDR.toLowerCase() && DESK_IPS.has(normalizeIp(ip));
+}
+
+export function tkasToSompi(tkas) {
+  const s = String(tkas ?? "").trim();
+  if (!s) return DRIP_SOMPI;
+  if (!/^\d+(\.\d{1,8})?$/.test(s)) throw new Error("Amount must be tKAS.");
+  const [w, f = ""] = s.split(".");
+  const sompi = BigInt(w) * 100000000n + BigInt((f + "00000000").slice(0, 8));
+  if (sompi < MIN_SOMPI) throw new Error("Minimum 10 tKAS.");
+  return sompi;
+}
 
 export function sompiToTkas(sompi) {
   const n = BigInt(sompi);
@@ -54,10 +82,26 @@ export function dripAmount(remaining) {
   return rem < DRIP_SOMPI ? rem : DRIP_SOMPI;
 }
 
-export function planClaim({ address, ip, claims, now = Date.now() }) {
+export function planClaim({ address, ip, claims, now = Date.now(), amountTkas }) {
   const dest = requireTestnetAddress(address);
   const ipKey = "ip:" + String(ip || "unknown");
   const addrKey = "addr:" + dest.toLowerCase();
+  if (isDeskUnlimited(dest, ip)) {
+    const sompi = tkasToSompi(amountTkas == null || amountTkas === "" ? "10000" : amountTkas);
+    return {
+      address: dest,
+      sompi,
+      remainingAfter: 0n,
+      leftAddr: 0n,
+      leftIp: 0n,
+      tkas: sompiToTkas(sompi),
+      capTkas: "unlimited",
+      windowHours: 24,
+      addrKey,
+      ipKey,
+      unlimited: true,
+    };
+  }
   const leftAddr = remainingInWindow(claims, addrKey, now);
   const leftIp = remainingInWindow(claims, ipKey, now);
   const remaining = leftAddr < leftIp ? leftAddr : leftIp;
@@ -78,5 +122,6 @@ export function planClaim({ address, ip, claims, now = Date.now() }) {
     windowHours: 24,
     addrKey,
     ipKey,
+    unlimited: false,
   };
 }
