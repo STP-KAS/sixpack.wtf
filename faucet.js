@@ -46,7 +46,7 @@
   async function probe() {
     for (const base of bases()) {
       try {
-        const res = await fetch(base + "/api/faucet", { method: "GET" });
+        const res = await fetch(base + "/api/faucet", { method: "GET", headers: { "Bypass-Tunnel-Reminder": "true" } });
         const j = await readJson(res);
         if (!j.html && j.network === "testnet-10") {
           return { base: base, j: j };
@@ -62,8 +62,8 @@
     if (found) {
       apiBase = found.base;
       const where = found.base || location.origin;
-      if (statusEl) statusEl.textContent = "Testing · API reachable · " + where + " · " + found.j.dripTkas + " tKAS / click · cap " + found.j.capTkas + " / 48h · live soon";
-      say("Testing. Live soon. kaspatest: only. Pays from groks-wallet if the API is up.");
+      if (statusEl) statusEl.textContent = "API live · " + where + " · " + found.j.dripTkas + " tKAS / click · cap " + found.j.capTkas + " / 48h";
+      say("Ready. Paste kaspatest: and Request. Pays from groks-wallet.");
       if (go) go.disabled = false;
       return;
     }
@@ -84,7 +84,7 @@
     say("Sending…");
     fetch(apiBase + "/api/faucet", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "Bypass-Tunnel-Reminder": "true" },
       body: JSON.stringify({ address: address }),
     })
       .then(readJson)
