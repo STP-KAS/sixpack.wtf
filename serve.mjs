@@ -44,7 +44,8 @@ function sendJson(res, status, body, req) {
     origin === "https://sixpack.wtf" ||
     origin === "https://www.sixpack.wtf" ||
     (typeof origin === "string" && /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/.test(origin)) ||
-    (typeof origin === "string" && /^https:\/\/[a-z0-9-]+\.loca\.lt$/.test(origin))
+    (typeof origin === "string" && /^https:\/\/[a-z0-9-]+\.loca\.lt$/.test(origin)) ||
+    (typeof origin === "string" && /^https:\/\/[a-z0-9]+\.lhr\.life$/.test(origin))
       ? origin
       : "";
   const headers = {
