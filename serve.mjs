@@ -42,7 +42,8 @@ function sendJson(res, status, body, req) {
     origin === "http://localhost:4020" ||
     origin === "http://localhost:4021" ||
     origin === "https://sixpack.wtf" ||
-    origin === "https://www.sixpack.wtf"
+    origin === "https://www.sixpack.wtf" ||
+    (typeof origin === "string" && /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/.test(origin))
       ? origin
       : "";
   const headers = {
@@ -51,6 +52,8 @@ function sendJson(res, status, body, req) {
   };
   if (allow) {
     headers["access-control-allow-origin"] = allow;
+    headers["access-control-allow-methods"] = "GET, POST, OPTIONS";
+    headers["access-control-allow-headers"] = "content-type";
     headers.vary = "Origin";
   }
   const data = JSON.stringify(body);
