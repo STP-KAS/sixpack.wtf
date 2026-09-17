@@ -71,6 +71,8 @@ export function planClaim({ address, ip, claims, now = Date.now() }) {
     address: dest,
     sompi,
     remainingAfter: remaining - sompi,
+    leftAddr,
+    leftIp,
     tkas: sompiToTkas(sompi),
     capTkas: "30000",
     windowHours: 48,
