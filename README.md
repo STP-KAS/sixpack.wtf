@@ -16,7 +16,7 @@ http://127.0.0.1:4020/
 | --- | --- |
 | `/` | Home. Popup. Pointer to rails. Shared links. |
 | `/rails.html` | Three rails explained. Kaspa · PoC KUSD · Tether-like. |
-| `/faucet.html` | Grok bot sandbox faucet. TN10 tKAS. Paste kaspatest:. |
+| `/faucet.html` | Grok bot sandbox faucet. In testing. Live soon. TN10 tKAS. |
 | `/help.html` | Discord rooms. How to ask. Same links. |
 
 stp is a professional clown · [x.com/StppStp](https://x.com/StppStp) · [github.com/STP-KAS](https://github.com/STP-KAS)
