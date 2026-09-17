@@ -300,20 +300,24 @@ body.intro-open { overflow: hidden; }
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.25rem;
+  padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
   overflow: auto;
   background: rgba(0, 0, 0, 0.55);
   cursor: pointer;
+  -webkit-overflow-scrolling: touch;
 }
 .intro-card {
   background: #fff;
   color: #111;
   width: min(36rem, 100%);
+  max-height: calc(100dvh - 1.5rem);
+  overflow: auto;
   margin: auto;
   padding: 1.1rem 1.15rem 1.25rem;
   border-radius: 1.15rem;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
   cursor: default;
+  -webkit-overflow-scrolling: touch;
 }
 .intro-title {
   margin: 0 0 0.75rem;
@@ -324,6 +328,7 @@ body.intro-open { overflow: hidden; }
 .intro-video {
   display: block;
   width: 100%;
+  max-height: min(42vh, 16rem);
   border-radius: 0.55rem;
   background: #000;
 }
@@ -337,8 +342,13 @@ body.intro-open { overflow: hidden; }
   color: #fff;
   font: inherit;
   font-weight: 650;
+  min-height: 44px;
   padding: 0.55rem 1.35rem;
   border-radius: 999px;
   cursor: pointer;
+}
+@media (max-width: 700px) {
+  .intro { align-items: flex-start; }
+  .intro-proceed { width: 100%; }
 }
 .intro-proceed:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; }

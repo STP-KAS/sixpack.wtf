@@ -4,12 +4,6 @@
     document.documentElement.classList.add("intro-done");
     return;
   }
-  const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-  const narrow = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
-  if (coarse || narrow) {
-    document.documentElement.classList.add("intro-done");
-    return;
-  }
 
   const KEY = "sixpack-intro";
   try {
@@ -29,7 +23,7 @@
     overlay.innerHTML =
       '<div class="intro-card">' +
       '<p id="intro-title" class="intro-title">Kaspa Explained STP</p>' +
-      '<video class="intro-video" controls playsinline preload="metadata" poster="kaspa-explained.jpg">' +
+      '<video class="intro-video" controls playsinline webkit-playsinline preload="metadata" poster="kaspa-explained.jpg">' +
       '<source src="kaspa-explained.mp4" type="video/mp4">' +
       "</video>" +
       '<div class="intro-copy">' +
@@ -71,8 +65,7 @@
 
   document.body.classList.add("intro-open");
   overlay.addEventListener("click", function (e) {
-    if (e.target.closest("video")) return;
-    close();
+    if (e.target === overlay) close();
   });
   if (proceed) proceed.addEventListener("click", close);
   document.addEventListener("keydown", onKey);
