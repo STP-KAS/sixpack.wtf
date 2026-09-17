@@ -21,6 +21,9 @@
     out.style.fontWeight = "";
     out.innerHTML = html;
   }
+  function hdr() {
+    return { "Bypass-Tunnel-Reminder": "true", Accept: "application/json" };
+  }
   async function readJson(res) {
     const text = await res.text();
     const trimmed = (text || "").trim();
@@ -66,9 +69,7 @@
     }
   }
   function loadPublicBalance() {
-    fetch("https://api-tn10.kaspa.org/addresses/" + encodeURIComponent(FROM) + "/balance", {
-      headers: { Accept: "application/json" },
-    })
+    fetch("https://api-tn10.kaspa.org/addresses/" + encodeURIComponent(FROM) + "/balance")
       .then(readJson)
       .then(function (j) {
         if (j.balance != null && balEl) balEl.textContent = tkas(j.balance) + " tKAS";
@@ -106,27 +107,36 @@
       copyText(el ? el.textContent : "");
     });
   });
+  function downHtml(tunnel) {
+    const url = (tunnel || window.FAUCET_API || "") + "/api/faucet";
+    return (
+      "Payout API did not return JSON. On iPhone this is usually the localhost.run warning page. " +
+      (url
+        ? 'Tap <a href="' +
+          url +
+          '">open tunnel once</a>, wait for it, come back here, refresh.'
+        : "Refresh after the desk tunnel is up.")
+    );
+  }
 
   async function probe() {
+    let sawHtml = false;
     for (const base of bases()) {
       try {
-        const res = await fetch(base + "/api/faucet", { method: "GET" });
+        const res = await fetch(base + "/api/faucet", { method: "GET", headers: hdr() });
         const j = await readJson(res);
         if (!j.html && j.network === "testnet-10") return { base: base, j: j };
+        if (j.html) sawHtml = true;
       } catch (_) {}
     }
-    return null;
+    return { base: "", j: null, sawHtml: sawHtml };
   }
 
   let apiBase = "";
   loadPublicBalance();
 
-  if (location.protocol === "file:") {
-    say("You opened a local file. Use https://sixpack.wtf/faucet.html — file:// cannot reach the payout API.", true);
-  }
-
   probe().then(function (found) {
-    if (found) {
+    if (found && found.j) {
       apiBase = found.base;
       const hours = found.j.windowHours || 24;
       if (statusEl) {
@@ -151,10 +161,13 @@
       return;
     }
     if (go) go.disabled = true;
-    const msg =
-      location.protocol === "file:"
-        ? "file:// cannot pay. Open https://sixpack.wtf/faucet.html"
-        : "Payout API is down (desk tunnel offline). Balance above is live from api-tn10. Kaspatest address still holds tKAS. Restart the Grok bot tunnel to pay out.";
+    if (found && found.sawHtml) {
+      if (statusEl) statusEl.textContent = "Tunnel warning page (common on iPhone).";
+      if (availEl) availEl.textContent = "Open the tunnel once, then refresh this page.";
+      sayHtml(downHtml(window.FAUCET_API));
+      return;
+    }
+    const msg = "Payout API is down. Balance above is live from api-tn10. Restart the Grok bot tunnel to pay out.";
     if (statusEl) statusEl.textContent = msg;
     if (availEl) availEl.textContent = "Cannot pay out until the desk tunnel is back.";
     say(msg, true);
@@ -165,16 +178,13 @@
     addrInput.addEventListener("change", function () {
       const address = addrInput.value.trim();
       if (!apiBase || address.indexOf("kaspatest:") !== 0) return;
-      fetch(apiBase + "/api/faucet?address=" + encodeURIComponent(address))
+      fetch(apiBase + "/api/faucet?address=" + encodeURIComponent(address), { headers: hdr() })
         .then(readJson)
         .then(function (j) {
           const left = j.remainingAddrTkas || j.remainingTkas;
           if (availEl && left != null && left !== "") {
             availEl.textContent = "This address has " + left + " tKAS still eligible in 24h (cap 30,000).";
           }
-          if (j.error && availEl)
-            availEl.textContent =
-              j.error + (j.remainingAddrTkas ? " Address remaining: " + j.remainingAddrTkas + " tKAS." : "");
         })
         .catch(function () {});
     });
@@ -184,7 +194,7 @@
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     if (!apiBase) {
-      say("Payout API is down. Cannot send until the desk tunnel is back.", true);
+      say("Payout API is not reachable from this phone yet.", true);
       return;
     }
     const address = document.getElementById("addr").value.trim();
@@ -193,13 +203,13 @@
     say("Sending…");
     fetch(apiBase + "/api/faucet", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "Bypass-Tunnel-Reminder": "true" },
       body: JSON.stringify({ address: address, amount: amount }),
     })
       .then(readJson)
       .then(function (j) {
         if (j.html) {
-          say("Got HTML instead of the faucet API. Tunnel is down or blocked on this phone.", true);
+          sayHtml(downHtml(apiBase));
           return;
         }
         if (!j.ok) {
@@ -211,7 +221,7 @@
         const links = (j.explorer || [])
           .map(function (u, i) {
             const id = (j.txids && j.txids[i]) || u.split("/").pop();
-            return '<li><a href="' + u + '">' + id + "</a></li>";
+            return '<li><a href="' + u + '">' + id + "</a></td></tr>";
           })
           .join("");
         const left = j.remainingAddrTkas || j.remainingTkas || "0";
@@ -227,7 +237,7 @@
             (links ? "Transactions:<ul>" + links + "</ul>" : "") +
             "Eligible remaining for this address in 24h: <strong>" +
             left +
-            " tKAS</strong> (cap 30,000 / 24h, 10,000 per submit)."
+            " tKAS</strong>."
         );
         loadPublicBalance();
       })
