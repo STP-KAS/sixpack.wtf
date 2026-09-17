@@ -33,6 +33,11 @@
     '<li><a class="name" href="https://discord.gg/kaspa">discord.gg/kaspa</a><span class="desc">Dedicated topic rooms. Browse, then ask.</span></li>' +
     '<li><a class="name" href="https://qa.kas.pa/">qa.kas.pa</a><span class="desc">Written questions. Not law.</span></li>' +
     "</ul>" +
+    "<h3>Grok Bot — run a node</h3>" +
+    '<ul class="keep">' +
+    '<li><a class="name" href="https://github.com/STP-KAS/Xai.Kaspa.node">STP-KAS/Xai.Kaspa.node</a><span class="desc">Archival Kaspa node on the Grok Bot Linux sandbox — not your phone, not Windows. Paste START.md into a bot named kaspa bot. It keeps the node, a tip ticker, news, Discord help, an explainer, and an “am I live?” card. TN10 mining is a different bot (tn10 bot). Why: anyone with Grok Bot can run a real node without a VPS. Experimental; not Kaspa core.</span></li>' +
+    '<li><a class="name" href="https://github.com/STP-KAS/Xai.Kaspa.node/blob/main/START.md">START.md</a><span class="desc">The one paste. New Bot → name kaspa bot → send. Do not paste TN10 into kaspa bot.</span></li>' +
+    "</ul>" +
     "<h3>Testnet toys</h3>" +
     '<ul class="keep">' +
     '<li><a class="name" href="faucet.html">Grok bot sandbox faucet</a><span class="desc">TN10 tKAS, 30k / 48h. Paste kaspatest:.</span></li>' +
