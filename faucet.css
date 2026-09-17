@@ -1,0 +1,58 @@
+body.faucet-page { background: #101312; color: #e7ece8; }
+body.faucet-page .top { background: #fff; color: #111; border-bottom: 1px solid #111; }
+body.faucet-page a { color: #7ee0c5; }
+body.faucet-page .top a { color: #111; }
+body.faucet-page main { max-width: 1100px; }
+.faucet-stage {
+  position: relative;
+  border: 1px solid #2a3330;
+  border-radius: 12px;
+  padding: 1.4rem 1.2rem 1.6rem;
+  overflow: hidden;
+  background: #161a19;
+}
+.faucet-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("grok-bot-miner.jpg") center / cover no-repeat;
+  opacity: 0.22;
+  pointer-events: none;
+}
+.faucet-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 1.4rem;
+}
+@media (max-width: 800px) {
+  .faucet-grid { grid-template-columns: 1fr; }
+}
+.faucet-balance { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+.faucet-txs { font-size: 0.78rem; max-height: 22rem; overflow: auto; }
+.faucet-txs a { word-break: break-all; }
+.faucet-card label, .faucet-card .hint { display: block; margin: 0.55rem 0 0.2rem; color: #b7c4be; font-size: 0.85rem; }
+.faucet-card input, .faucet-card select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #3d8f7a;
+  border-radius: 8px;
+  background: #0c0f0e;
+  color: #e7ece8;
+  font: inherit;
+}
+.faucet-card .go {
+  margin-top: 0.85rem;
+  background: #1f8fbf;
+  border: 0;
+  color: #fff;
+  padding: 0.55rem 1.1rem;
+  border-radius: 6px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.faucet-card .go:disabled { opacity: 0.45; cursor: not-allowed; }
+.faucet-warn { color: #ff8b8b; font-weight: 650; }
+.not-kaspanet { color: #f0d27a; font-weight: 650; }
