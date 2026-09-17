@@ -62,10 +62,11 @@
         "<table><thead><tr><th>txid</th></tr></thead><tbody>" +
         j.recent
           .map(function (row) {
-            return '<tr><td><a href="' + row.explorer + '">' + row.txid + "</a></td></tr>";
+            return "<tr><td><code>" + row.txid + "</code></td></tr>";
           })
           .join("") +
-        "</tbody></table>";
+        "</tbody></table>" +
+        '<p class="meta">Explorer: <a href="https://tn10.kaspa.stream/">https://tn10.kaspa.stream/</a></p>';
     }
   }
   function loadPublicBalance() {
@@ -173,7 +174,10 @@
         .then(function (j) {
           const left = j.remainingAddrTkas || j.remainingTkas;
           if (availEl && left != null && left !== "") {
-            availEl.textContent = "This address has " + left + " tKAS still eligible in 24h (cap 30,000).";
+            availEl.textContent =
+              left === "unlimited"
+                ? "This address has unlimited tKAS from this IP."
+                : "This address has " + left + " tKAS still eligible in 24h (cap 30,000).";
           }
         })
         .catch(function () {});
@@ -208,27 +212,24 @@
           return;
         }
         const addr = j.address || address;
-        const addrUrl = j.addressExplorer || "https://tn10.kaspa.stream/addresses/" + encodeURIComponent(addr);
-        const links = (j.explorer || [])
-          .map(function (u, i) {
-            const id = (j.txids && j.txids[i]) || u.split("/").pop();
-            return "<li><a href=\"" + u + "\">" + id + "</a></li>";
-          })
-          .join("");
+        const ids = (j.txids || []).map(function (id) {
+          return "<li><code>" + id + "</code></li>";
+        }).join("");
         const left = j.remainingAddrTkas || j.remainingTkas || "0";
+        const leftLine =
+          left === "unlimited"
+            ? "Eligible remaining: <strong>unlimited</strong>."
+            : "Eligible remaining for this address in 24h: <strong>" + left + " tKAS</strong>.";
         sayHtml(
           "<strong>Sent " +
             (j.tkas || "") +
             " tKAS.</strong> Testnet-10.<br>" +
-            'Address: <a href="' +
-            addrUrl +
-            '">' +
+            "Address: <code>" +
             addr +
-            "</a><br>" +
-            (links ? "Transactions:<ul>" + links + "</ul>" : "") +
-            "Eligible remaining for this address in 24h: <strong>" +
-            left +
-            " tKAS</strong>."
+            "</code><br>" +
+            (ids ? "Transactions:<ul>" + ids + "</ul>" : "") +
+            'Explorer: <a href="https://tn10.kaspa.stream/">https://tn10.kaspa.stream/</a><br>' +
+            leftLine
         );
         loadPublicBalance();
       })

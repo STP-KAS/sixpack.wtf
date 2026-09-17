@@ -3,7 +3,7 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { planClaim, sompiToTkas, FROM, remainingInWindow, requireTestnetAddress } from "./faucet/policy.mjs";
+import { planClaim, sompiToTkas, FROM, remainingInWindow, requireTestnetAddress, EXPLORER_HOME, normalizeIp } from "./faucet/policy.mjs";
 import { listClaims, recordClaim } from "./faucet/ledger.mjs";
 import { payTn10 } from "./faucet/pay.mjs";
 
@@ -65,8 +65,8 @@ function sendJson(res, status, body, req) {
 
 function clientIp(req) {
   const x = req.headers["x-forwarded-for"];
-  if (typeof x === "string" && x.trim()) return x.split(",")[0].trim();
-  return req.socket?.remoteAddress || "unknown";
+  if (typeof x === "string" && x.trim()) return normalizeIp(x.split(",")[0]);
+  return normalizeIp(req.socket?.remoteAddress || "unknown");
 }
 
 let faucetLock = Promise.resolve();
@@ -95,7 +95,6 @@ http
                 seen.add(id);
                 recent.push({
                   txid: id,
-                  explorer: "https://tn10.kaspa.stream/txs/" + id,
                   at: c.at,
                 });
                 if (recent.length >= 18) break;
@@ -109,6 +108,7 @@ http
               dripTkas: "10000",
               windowHours: 24,
               faucetBalanceTkas,
+              explorerHome: EXPLORER_HOME,
               recent,
             }, req);
             return;
@@ -117,8 +117,9 @@ http
           sendJson(res, 200, {
             address: plan.address,
             nextTkas: plan.tkas,
-            remainingTkas: sompiToTkas(plan.sompi + plan.remainingAfter),
-            remainingAddrTkas: sompiToTkas(plan.leftAddr),
+            remainingTkas: plan.unlimited ? "unlimited" : sompiToTkas(plan.sompi + plan.remainingAfter),
+            remainingAddrTkas: plan.unlimited ? "unlimited" : sompiToTkas(plan.leftAddr),
+            unlimited: !!plan.unlimited,
             windowHours: 24,
           }, req);
         } catch (err) {
@@ -147,7 +148,12 @@ http
       faucetLock = faucetLock.then(async () => {
         try {
           const body = JSON.parse((await readBody(req)) || "{}");
-          const plan = planClaim({ address: body.address, ip: clientIp(req), claims: listClaims() });
+          const plan = planClaim({
+            address: body.address,
+            ip: clientIp(req),
+            claims: listClaims(),
+            amountTkas: body.amount,
+          });
           const paid = await payTn10(plan.address, plan.sompi);
           const at = Date.now();
           recordClaim({ key: plan.addrKey, address: plan.address, sompi: paid.sompi, txids: paid.txids, at, ip: clientIp(req) });
@@ -155,12 +161,12 @@ http
           sendJson(res, 200, {
             ok: true,
             tkas: sompiToTkas(paid.sompi),
-            remainingTkas: sompiToTkas(plan.remainingAfter),
-            remainingAddrTkas: sompiToTkas(plan.leftAddr - BigInt(paid.sompi)),
+            remainingTkas: plan.unlimited ? "unlimited" : sompiToTkas(plan.remainingAfter),
+            remainingAddrTkas: plan.unlimited ? "unlimited" : sompiToTkas(plan.leftAddr - BigInt(paid.sompi)),
+            unlimited: !!plan.unlimited,
             address: plan.address,
-            addressExplorer: "https://tn10.kaspa.stream/addresses/" + plan.address,
+            explorerHome: EXPLORER_HOME,
             txids: paid.txids,
-            explorer: paid.txids.map((id) => "https://tn10.kaspa.stream/txs/" + id),
           }, req);
         } catch (err) {
           const status = err.code === "RATE" ? 429 : /synced|UTXO|secret|node/i.test(err.message || "") ? 503 : 400;

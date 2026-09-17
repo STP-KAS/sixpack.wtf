@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   CAP_SOMPI,
+  DESK_UNLIMITED_ADDR,
   DRIP_SOMPI,
   FROM,
   dripAmount,
@@ -50,5 +51,41 @@ describe("stp tn10 faucet policy", () => {
   it("drip shrinks to remaining when under 10k", () => {
     assert.equal(dripAmount(5_000n * 100_000_000n), 5_000n * 100_000_000n);
     assert.equal(dripAmount(0n), 0n);
+  });
+
+  it("desk IP + desk address is unlimited; other IP or address stays capped", () => {
+    const now = 1_000_000_000_000;
+    const desk = planClaim({
+      address: DESK_UNLIMITED_ADDR,
+      ip: "<redacted-ip>",
+      claims: [],
+      now,
+      amountTkas: "50000",
+    });
+    assert.equal(desk.unlimited, true);
+    assert.equal(desk.tkas, "50000");
+    const used = [
+      { key: desk.addrKey, sompi: String(30_000n * 100_000_000n), at: now },
+      { key: desk.ipKey, sompi: String(30_000n * 100_000_000n), at: now },
+    ];
+    const again = planClaim({
+      address: DESK_UNLIMITED_ADDR,
+      ip: "::ffff:<redacted-ip>",
+      claims: used,
+      now: now + 3,
+      amountTkas: "10000",
+    });
+    assert.equal(again.unlimited, true);
+    assert.throws(
+      () => planClaim({ address: DESK_UNLIMITED_ADDR, ip: "8.8.8.8", claims: used, now: now + 3 }),
+      /30,000/
+    );
+    assert.throws(
+      () => planClaim({ address: ADDR, ip: "<redacted-ip>", claims: [
+        { key: "addr:" + ADDR.toLowerCase(), sompi: String(30_000n * 100_000_000n), at: now },
+        { key: "ip:<redacted-ip>", sompi: String(30_000n * 100_000_000n), at: now },
+      ], now: now + 3 }),
+      /30,000/
+    );
   });
 });
