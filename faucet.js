@@ -208,7 +208,7 @@
       return;
     }
     const address = document.getElementById("addr").value.trim();
-    const amount = document.getElementById("amount") ? document.getElementById("amount").value.trim() : "10000";
+    const amount = document.getElementById("amount") ? document.getElementById("amount").value.trim() : "30000";
     go.disabled = true;
     popup("wait", "Sending", "<p>Sending funds. This can take a minute. Leave this tab open.</p>");
     fetch(apiBase + "/api/faucet", {

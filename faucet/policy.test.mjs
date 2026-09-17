@@ -16,9 +16,9 @@ import {
 const ADDR = "kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0lda";
 
 describe("stp tn10 faucet policy", () => {
-  it("is 30,000 tKAS per 48h and 10,000 per drip", () => {
+  it("is 30,000 tKAS per 24h and 30,000 per drip", () => {
     assert.equal(sompiToTkas(CAP_SOMPI), "30000");
-    assert.equal(sompiToTkas(DRIP_SOMPI), "10000");
+    assert.equal(sompiToTkas(DRIP_SOMPI), "30000");
   });
 
   it("rejects mainnet and the faucet address", () => {
@@ -26,17 +26,13 @@ describe("stp tn10 faucet policy", () => {
     assert.throws(() => requireTestnetAddress(FROM), /itself/);
   });
 
-  it("plans a 10k drip and then rate-limits at 30k", () => {
+  it("plans a 30k drip and then rate-limits", () => {
     const now = 1_000_000_000_000;
     const first = planClaim({ address: ADDR, ip: "1.2.3.4", claims: [], now });
-    assert.equal(first.tkas, "10000");
+    assert.equal(first.tkas, "30000");
     const claims = [
       { key: first.addrKey, sompi: String(DRIP_SOMPI), at: now },
       { key: first.ipKey, sompi: String(DRIP_SOMPI), at: now },
-      { key: first.addrKey, sompi: String(DRIP_SOMPI), at: now + 1 },
-      { key: first.ipKey, sompi: String(DRIP_SOMPI), at: now + 1 },
-      { key: first.addrKey, sompi: String(DRIP_SOMPI), at: now + 2 },
-      { key: first.ipKey, sompi: String(DRIP_SOMPI), at: now + 2 },
     ];
     assert.equal(remainingInWindow(claims, first.addrKey, now + 3), 0n);
     assert.throws(() => planClaim({ address: ADDR, ip: "1.2.3.4", claims, now: now + 3 }), /Unable to send funds/);
@@ -44,9 +40,9 @@ describe("stp tn10 faucet policy", () => {
       address: ADDR,
       ip: "1.2.3.4",
       claims,
-      now: now + 48 * 60 * 60 * 1000 + 1,
+      now: now + 24 * 60 * 60 * 1000 + 1,
     });
-    assert.equal(later.tkas, "10000");
+    assert.equal(later.tkas, "30000");
   });
 
   it("drip shrinks to remaining when under 10k", () => {
