@@ -133,7 +133,14 @@ http
           sendJson(
             res,
             err.code === "RATE" ? 429 : 400,
-            { error: err.message || String(err), remainingAddrTkas, windowHours: 24 },
+            {
+              error: err.message || String(err),
+              remainingAddrTkas: err.remainingTkas || remainingAddrTkas,
+              remainingTkas: err.remainingTkas || remainingAddrTkas || "0",
+              retryAfter: err.retryAfter || "",
+              retryAfterMs: err.retryAfterMs || 0,
+              windowHours: 24,
+            },
             req
           );
         }
@@ -170,7 +177,12 @@ http
           }, req);
         } catch (err) {
           const status = err.code === "RATE" ? 429 : /synced|UTXO|secret|node/i.test(err.message || "") ? 503 : 400;
-          sendJson(res, status, { error: err.message || String(err) }, req);
+          sendJson(res, status, {
+            error: err.message || String(err),
+            remainingTkas: err.remainingTkas || "0",
+            retryAfter: err.retryAfter || "",
+            retryAfterMs: err.retryAfterMs || 0,
+          }, req);
         }
       });
       return;

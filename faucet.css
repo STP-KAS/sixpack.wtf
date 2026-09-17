@@ -82,6 +82,59 @@ body.faucet-page main { max-width: 1100px; padding-left: max(1rem, env(safe-area
 }
 .faucet-disclaimer p { margin: 0; }
 .faucet-disclaimer strong { color: #ffe9a8; }
+.fmodal {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.2rem;
+}
+.fmodal[hidden] { display: none; }
+.fmodal-card {
+  background: #1c2120;
+  color: #e7ece8;
+  width: min(26rem, 100%);
+  border: 1px solid #2f3a37;
+  border-radius: 10px;
+  padding: 1rem 1.1rem 1.05rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+.fmodal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.55rem;
+}
+.fmodal-title { margin: 0; font-weight: 700; font-size: 1.05rem; }
+.fmodal-title.err { color: #e05c5c; }
+.fmodal-title.ok { color: #7ee0c5; }
+.fmodal-title.wait { color: #f0d27a; }
+.fmodal-x {
+  border: 0;
+  background: transparent;
+  color: #b7c4be;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.fmodal-body { color: #d5ddd9; font-size: 0.95rem; }
+.fmodal-body p { margin: 0.35rem 0; }
+.fmodal-body code { word-break: break-all; }
+.fmodal-foot { display: flex; justify-content: flex-end; margin-top: 0.95rem; }
+.fmodal-close {
+  background: #1f8fbf;
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 0.4rem 0.95rem;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
 @media (max-width: 800px) {
   .faucet-grid { grid-template-columns: 1fr; }
   .faucet-stage { padding: 1rem 0.8rem 1.2rem; }

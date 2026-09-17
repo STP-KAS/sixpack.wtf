@@ -35,12 +35,12 @@
     "</ul>" +
     "<h3>Grok Bot — run a node</h3>" +
     '<ul class="keep">' +
-    '<li><a class="name" href="https://github.com/STP-KAS/Xai.Kaspa.node">STP-KAS/Xai.Kaspa.node</a><span class="desc">Archival Kaspa node on the Grok Bot Linux sandbox — not your phone, not Windows. Paste START.md into a bot named kaspa bot. It keeps the node, a tip ticker, news, Discord help, an explainer, and an “am I live?” card. TN10 mining is a different bot (tn10 bot). Why: anyone with Grok Bot can run a real node without a VPS. Experimental; not Kaspa core.</span></li>' +
+    '<li><a class="name" href="https://github.com/STP-KAS/Xai.Kaspa.node">STP-KAS/Xai.Kaspa.node</a><span class="desc">Archival Kaspa node on the Grok Bot Linux sandbox — not your phone, not Windows. This sandbox: 1 mainnet node, 1 TN10 node, 150 TN10 miners. Paste START.md into kaspa bot. TN10 mining is tn10 bot. Experimental; not Kaspa core.</span></li>' +
     '<li><a class="name" href="https://github.com/STP-KAS/Xai.Kaspa.node/blob/main/START.md">START.md</a><span class="desc">The one paste. New Bot → name kaspa bot → send. Do not paste TN10 into kaspa bot.</span></li>' +
     "</ul>" +
     "<h3>Testnet toys</h3>" +
     '<ul class="keep">' +
-    '<li><a class="name" href="faucet.html">Grok bot sandbox faucet</a><span class="desc">Not working yet. GTG go. Never a seed.</span></li>' +
+    '<li><a class="name" href="faucet.html">Grok bot sandbox faucet</a><span class="desc">TN10 tKAS. 150 miners on tn10 bot. Never a seed.</span></li>' +
     '<li><a class="name" href="https://faucet-tn10.kaspanet.io/">faucet-tn10.kaspanet.io</a><span class="desc">Official TN10 faucet. Often 403.</span></li>' +
     '<li><a class="name" href="https://explorer-tn10.kaspa.org/">explorer-tn10.kaspa.org</a><span class="desc">Testnet-10 explorer. Toy coins.</span></li>' +
     "</ul>" +

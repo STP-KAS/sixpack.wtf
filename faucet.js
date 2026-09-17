@@ -21,6 +21,33 @@
     out.style.fontWeight = "";
     out.innerHTML = html;
   }
+
+  const modal = document.getElementById("faucet-modal");
+  const modalTitle = document.getElementById("fmodal-title");
+  const modalBody = document.getElementById("fmodal-body");
+  const modalClose = document.getElementById("fmodal-close");
+  const modalX = document.getElementById("fmodal-x");
+  function hideModal() {
+    if (modal) modal.hidden = true;
+  }
+  function popup(kind, title, html) {
+    if (!modal || !modalTitle || !modalBody) {
+      if (kind === "error") say(String(html).replace(/<[^>]+>/g, " "), true);
+      else sayHtml(html);
+      return;
+    }
+    modalTitle.textContent = title;
+    modalTitle.className = "fmodal-title " + (kind === "error" ? "err" : kind === "success" ? "ok" : "wait");
+    modalBody.innerHTML = html;
+    modal.hidden = false;
+  }
+  if (modalClose) modalClose.addEventListener("click", hideModal);
+  if (modalX) modalX.addEventListener("click", hideModal);
+  if (modal) {
+    modal.addEventListener("click", function (ev) {
+      if (ev.target === modal) hideModal();
+    });
+  }
   function hdr() {
     return { "Bypass-Tunnel-Reminder": "true", Accept: "application/json" };
   }
@@ -188,14 +215,14 @@
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     if (!apiBase) {
-      say("Payout API is not reachable. Stay on this page and refresh. Do not open a tunnel link — that black page is a dead proxy, not the faucet.", true);
+      popup("error", "Error", "<p>Payout API is not reachable. Stay on this page and refresh. Do not open a tunnel link.</p>");
       go.disabled = false;
       return;
     }
     const address = document.getElementById("addr").value.trim();
     const amount = document.getElementById("amount") ? document.getElementById("amount").value.trim() : "10000";
     go.disabled = true;
-    say("Sending…");
+    popup("wait", "Sending", "<p>Sending funds. This can take a minute. Leave this tab open.</p>");
     fetch(apiBase + "/api/faucet", {
       method: "POST",
       headers: { "content-type": "application/json", "Bypass-Tunnel-Reminder": "true" },
@@ -204,11 +231,15 @@
       .then(readJson)
       .then(function (j) {
         if (j.html) {
-          sayHtml(downHtml());
+          popup("error", "Error", "<p>" + downHtml() + "</p>");
           return;
         }
         if (!j.ok) {
-          say(j.error || j.message || "Request failed.", true);
+          const msg = String(j.error || j.message || "Unable to send funds.")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+          popup("error", "Error", "<p>" + msg + "</p>");
           return;
         }
         const addr = j.address || address;
@@ -218,23 +249,24 @@
         const left = j.remainingAddrTkas || j.remainingTkas || "0";
         const leftLine =
           left === "unlimited"
-            ? "Eligible remaining: <strong>unlimited</strong>."
-            : "Eligible remaining for this address in 24h: <strong>" + left + " tKAS</strong>.";
-        sayHtml(
-          "<strong>Sent " +
+            ? "<p>Eligible remaining: <strong>unlimited</strong>.</p>"
+            : "<p>Eligible remaining for this address in 24h: <strong>" + left + " tKAS</strong>.</p>";
+        popup(
+          "success",
+          "Success",
+          "<p>Sent <strong>" +
             (j.tkas || "") +
-            " tKAS.</strong> Testnet-10.<br>" +
-            "Address: <code>" +
+            " tKAS</strong> on Testnet-10.</p><p>Address: <code>" +
             addr +
-            "</code><br>" +
-            (ids ? "Transactions:<ul>" + ids + "</ul>" : "") +
-            'Explorer: <a href="https://tn10.kaspa.stream/">https://tn10.kaspa.stream/</a><br>' +
+            "</code></p>" +
+            (ids ? "<p>Transactions:</p><ul>" + ids + "</ul>" : "") +
+            '<p>Explorer: <a href="https://tn10.kaspa.stream/">https://tn10.kaspa.stream/</a></p>' +
             leftLine
         );
         loadPublicBalance();
       })
       .catch(function (err) {
-        say("Could not reach the payout API from this phone.", true);
+        popup("error", "Error", "<p>Could not reach the payout API. The tunnel is slow or down. Wait and try again.</p>");
         console.error(err);
       })
       .finally(function () {
