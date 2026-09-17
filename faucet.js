@@ -10,6 +10,12 @@
     out.style.fontWeight = bad ? "600" : "";
   }
 
+  function sayHtml(html) {
+    if (!out) return;
+    out.style.fontWeight = "";
+    out.innerHTML = html;
+  }
+
   async function readJson(res) {
     const text = await res.text();
     const trimmed = (text || "").trim();
@@ -56,8 +62,8 @@
     if (found) {
       apiBase = found.base;
       const where = found.base || location.origin;
-      if (statusEl) statusEl.textContent = "API live · " + where + " · " + found.j.dripTkas + " tKAS / click · cap " + found.j.capTkas + " / 48h";
-      say("Ready. kaspatest: only. Pays from groks-wallet.");
+      if (statusEl) statusEl.textContent = "Testing · API reachable · " + where + " · " + found.j.dripTkas + " tKAS / click · cap " + found.j.capTkas + " / 48h · live soon";
+      say("Testing. Live soon. kaspatest: only. Pays from groks-wallet if the API is up.");
       if (go) go.disabled = false;
       return;
     }
@@ -91,16 +97,18 @@
           say(j.error || j.message || "Request failed.", true);
           return;
         }
-        const tx = (j.txids || []).join(" ");
-        const link = (j.explorer && j.explorer[0]) || "";
-        say(
-          "Sent " +
-            (j.tkas || "") +
-            " tKAS. " +
-            (tx ? "txid " + tx + (link ? " · " + link : "") : "") +
-            " Remaining in 48h: " +
-            (j.remainingTkas || "") +
-            " tKAS."
+        const addr = j.address || address;
+        const addrUrl = j.addressExplorer || "https://tn10.kaspa.stream/addresses/" + encodeURIComponent(addr);
+        const links = (j.explorer || []).map(function (u, i) {
+          const id = (j.txids && j.txids[i]) || u.split("/").pop();
+          return '<li><a href="' + u + '">' + id + "</a></li>";
+        }).join("");
+        const left = j.remainingAddrTkas || j.remainingTkas || "0";
+        sayHtml(
+          "<strong>Sent " + (j.tkas || "") + " tKAS.</strong> Confirmed on Testnet-10.<br>" +
+          'Address: <a href="' + addrUrl + '">' + addr + "</a><br>" +
+          (links ? "Transactions:<ul>" + links + "</ul>" : "") +
+          "Eligible remaining for this address in 48h: <strong>" + left + " tKAS</strong> (cap 30,000 / 48h, 10,000 per request)."
         );
       })
       .catch(function (err) {

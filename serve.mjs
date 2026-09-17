@@ -3,7 +3,7 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { planClaim, sompiToTkas, FROM } from "./faucet/policy.mjs";
+import { planClaim, sompiToTkas, FROM, remainingInWindow, requireTestnetAddress } from "./faucet/policy.mjs";
 import { listClaims, recordClaim } from "./faucet/ledger.mjs";
 import { payTn10 } from "./faucet/pay.mjs";
 
@@ -92,9 +92,22 @@ http
           address: plan.address,
           nextTkas: plan.tkas,
           remainingTkas: sompiToTkas(plan.sompi + plan.remainingAfter),
+          remainingAddrTkas: sompiToTkas(plan.leftAddr),
         }, req);
       } catch (err) {
-        sendJson(res, err.code === "RATE" ? 429 : 400, { error: err.message || String(err) }, req);
+        const claims = listClaims();
+        const address = url.searchParams.get("address") || "";
+        let remainingAddrTkas = "";
+        try {
+          const dest = requireTestnetAddress(address);
+          remainingAddrTkas = sompiToTkas(remainingInWindow(claims, "addr:" + dest.toLowerCase()));
+        } catch (_) {}
+        sendJson(
+          res,
+          err.code === "RATE" ? 429 : 400,
+          { error: err.message || String(err), remainingAddrTkas },
+          req
+        );
       }
       return;
     }
@@ -115,6 +128,9 @@ http
             ok: true,
             tkas: sompiToTkas(paid.sompi),
             remainingTkas: sompiToTkas(plan.remainingAfter),
+            remainingAddrTkas: sompiToTkas(plan.leftAddr - BigInt(paid.sompi)),
+            address: plan.address,
+            addressExplorer: "https://tn10.kaspa.stream/addresses/" + plan.address,
             txids: paid.txids,
             explorer: paid.txids.map((id) => "https://tn10.kaspa.stream/txs/" + id),
           }, req);
