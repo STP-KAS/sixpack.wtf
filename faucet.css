@@ -82,6 +82,7 @@ body.faucet-page main { max-width: 1100px; padding-left: max(1rem, env(safe-area
 }
 .faucet-disclaimer p { margin: 0; }
 .faucet-disclaimer strong { color: #ffe9a8; }
+.faucet-disclaimer a { color: #ffe9a8; }
 .fmodal {
   position: fixed;
   inset: 0;

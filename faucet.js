@@ -4,7 +4,6 @@
   const go = document.getElementById("go");
   const statusEl = document.getElementById("api-status");
   const balEl = document.getElementById("faucet-balance");
-  const txsEl = document.getElementById("faucet-txs");
   const availEl = document.getElementById("available");
   const fromEl = document.getElementById("from-addr");
   const FROM =
@@ -84,17 +83,6 @@
   function paintStats(j) {
     if (fromEl && j.from) fromEl.textContent = j.from;
     if (balEl && j.faucetBalanceTkas) balEl.textContent = j.faucetBalanceTkas + " tKAS";
-    if (txsEl && j.recent && j.recent.length) {
-      txsEl.innerHTML =
-        "<table><thead><tr><th>txid</th></tr></thead><tbody>" +
-        j.recent
-          .map(function (row) {
-            return "<tr><td><code>" + row.txid + "</code></td></tr>";
-          })
-          .join("") +
-        "</tbody></table>" +
-        '<p class="meta">Explorer: <a href="https://tn10.kaspa.stream/">https://tn10.kaspa.stream/</a></p>';
-    }
   }
   function loadPublicBalance() {
     fetch("https://api-tn10.kaspa.org/addresses/" + encodeURIComponent(FROM) + "/balance")
