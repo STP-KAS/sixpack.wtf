@@ -82,6 +82,45 @@ export function dripAmount(remaining) {
   return rem < DRIP_SOMPI ? rem : DRIP_SOMPI;
 }
 
+export function oldestInWindow(claims, key, now = Date.now()) {
+  const start = windowStart(now);
+  let oldest = null;
+  for (const c of claims || []) {
+    if (c.key !== key) continue;
+    const at = Number(c.at);
+    if (at < start) continue;
+    if (oldest == null || at < oldest) oldest = at;
+  }
+  return oldest;
+}
+
+export function formatWait(ms) {
+  let s = Math.max(0, Math.ceil(Number(ms) / 1000));
+  const h = Math.floor(s / 3600);
+  s -= h * 3600;
+  const m = Math.floor(s / 60);
+  const sec = s - m * 60;
+  return h + "h " + m + "m " + sec + "s";
+}
+
+export function rateLimitError({ claims, addrKey, ipKey, now = Date.now() }) {
+  const leftAddr = remainingInWindow(claims, addrKey, now);
+  const leftIp = remainingInWindow(claims, ipKey, now);
+  const remaining = leftAddr < leftIp ? leftAddr : leftIp;
+  const key = leftAddr <= leftIp ? addrKey : ipKey;
+  const oldest = oldestInWindow(claims, key, now);
+  const retryAfterMs = oldest == null ? WINDOW_MS : Math.max(0, oldest + WINDOW_MS - now);
+  const wait = formatWait(retryAfterMs);
+  const err = new Error(
+    "Unable to send funds: you have " + sompiToTkas(remaining) + " tKAS remaining. Your limit will update in " + wait + "."
+  );
+  err.code = "RATE";
+  err.retryAfterMs = retryAfterMs;
+  err.retryAfter = wait;
+  err.remainingTkas = sompiToTkas(remaining);
+  return err;
+}
+
 export function planClaim({ address, ip, claims, now = Date.now(), amountTkas }) {
   const dest = requireTestnetAddress(address);
   const ipKey = "ip:" + String(ip || "unknown");
@@ -107,9 +146,7 @@ export function planClaim({ address, ip, claims, now = Date.now(), amountTkas })
   const remaining = leftAddr < leftIp ? leftAddr : leftIp;
   const sompi = dripAmount(remaining);
   if (sompi <= 0n) {
-    const err = new Error("Limit 30,000 tKAS per 24 hours. Come back later.");
-    err.code = "RATE";
-    throw err;
+    throw rateLimitError({ claims, addrKey, ipKey, now });
   }
   return {
     address: dest,

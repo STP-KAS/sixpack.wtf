@@ -6,6 +6,7 @@ import {
   DRIP_SOMPI,
   FROM,
   dripAmount,
+  formatWait,
   planClaim,
   remainingInWindow,
   requireTestnetAddress,
@@ -38,7 +39,7 @@ describe("stp tn10 faucet policy", () => {
       { key: first.ipKey, sompi: String(DRIP_SOMPI), at: now + 2 },
     ];
     assert.equal(remainingInWindow(claims, first.addrKey, now + 3), 0n);
-    assert.throws(() => planClaim({ address: ADDR, ip: "1.2.3.4", claims, now: now + 3 }), /30,000/);
+    assert.throws(() => planClaim({ address: ADDR, ip: "1.2.3.4", claims, now: now + 3 }), /Unable to send funds/);
     const later = planClaim({
       address: ADDR,
       ip: "1.2.3.4",
@@ -78,14 +79,18 @@ describe("stp tn10 faucet policy", () => {
     assert.equal(again.unlimited, true);
     assert.throws(
       () => planClaim({ address: DESK_UNLIMITED_ADDR, ip: "8.8.8.8", claims: used, now: now + 3 }),
-      /30,000/
+      /Unable to send funds/
     );
     assert.throws(
       () => planClaim({ address: ADDR, ip: "<redacted-ip>", claims: [
         { key: "addr:" + ADDR.toLowerCase(), sompi: String(30_000n * 100_000_000n), at: now },
         { key: "ip:<redacted-ip>", sompi: String(30_000n * 100_000_000n), at: now },
       ], now: now + 3 }),
-      /30,000/
+      /Unable to send funds/
     );
+  });
+
+  it("formats the official-style wait string", () => {
+    assert.equal(formatWait(23 * 3600 * 1000 + 59 * 60 * 1000 + 39 * 1000), "23h 59m 39s");
   });
 });
