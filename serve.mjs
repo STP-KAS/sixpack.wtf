@@ -3,7 +3,7 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { planClaim, sompiToTkas, FROM, remainingInWindow, requireTestnetAddress, EXPLORER_HOME, normalizeIp } from "./faucet/policy.mjs";
+import { planClaim, sompiToTkas, FROM, remainingInWindow, requireTestnetAddress, EXPLORER_HOME, normalizeIp, DRIP_SOMPI, CAP_SOMPI } from "./faucet/policy.mjs";
 import { listClaims, recordClaim } from "./faucet/ledger.mjs";
 import { payTn10 } from "./faucet/pay.mjs";
 
@@ -104,8 +104,8 @@ http
             sendJson(res, 200, {
               network: "testnet-10",
               from: FROM,
-              capTkas: "30000",
-              dripTkas: "10000",
+              capTkas: sompiToTkas(CAP_SOMPI),
+              dripTkas: sompiToTkas(DRIP_SOMPI),
               windowHours: 24,
               faucetBalanceTkas,
               explorerHome: EXPLORER_HOME,

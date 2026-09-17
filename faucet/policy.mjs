@@ -5,7 +5,7 @@ export const FROM =
   "kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx";
 export const WINDOW_MS = 24 * 60 * 60 * 1000;
 export const CAP_SOMPI = 30_000n * 100_000_000n; // 30,000 tKAS / 24h
-export const DRIP_SOMPI = 10_000n * 100_000_000n; // per request, up to remaining
+export const DRIP_SOMPI = 30_000n * 100_000_000n; // per request, up to remaining
 export const MIN_SOMPI = 10n * 100_000_000n; // 10 tKAS floor (KIP-9 / packing)
 export const EXPLORER_HOME = "https://tn10.kaspa.stream/";
 /** Desk-only unlimited withdrawals. Address + desk IP must both match. */
@@ -126,7 +126,7 @@ export function planClaim({ address, ip, claims, now = Date.now(), amountTkas })
   const ipKey = "ip:" + String(ip || "unknown");
   const addrKey = "addr:" + dest.toLowerCase();
   if (isDeskUnlimited(dest, ip)) {
-    const sompi = tkasToSompi(amountTkas == null || amountTkas === "" ? "10000" : amountTkas);
+    const sompi = tkasToSompi(amountTkas == null || amountTkas === "" ? "30000" : amountTkas);
     return {
       address: dest,
       sompi,
