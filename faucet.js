@@ -107,16 +107,8 @@
       copyText(el ? el.textContent : "");
     });
   });
-  function downHtml(tunnel) {
-    const url = (tunnel || window.FAUCET_API || "") + "/api/faucet";
-    return (
-      "Payout API did not return JSON. On iPhone this is usually the localhost.run warning page. " +
-      (url
-        ? 'Tap <a href="' +
-          url +
-          '">open tunnel once</a>, wait for it, come back here, refresh.'
-        : "Refresh after the desk tunnel is up.")
-    );
+  function downHtml() {
+    return "Payout API is not answering from this page. Stay on https://sixpack.wtf/faucet.html — do not open the tunnel URL (that is a black error page). Refresh this tab after the desk tunnel is up.";
   }
 
   async function probe() {
@@ -142,8 +134,6 @@
       if (statusEl) {
         statusEl.textContent =
           "API live · " +
-          (found.base || location.origin) +
-          " · " +
           found.j.dripTkas +
           " tKAS / click · cap " +
           found.j.capTkas +
@@ -160,11 +150,11 @@
       if (go) go.disabled = false;
       return;
     }
-    if (go) go.disabled = true;
+    if (go) go.disabled = false;
     if (found && found.sawHtml) {
       if (statusEl) statusEl.textContent = "Tunnel warning page (common on iPhone).";
       if (availEl) availEl.textContent = "Open the tunnel once, then refresh this page.";
-      sayHtml(downHtml(window.FAUCET_API));
+      sayHtml(downHtml());
       return;
     }
     const msg = "Payout API is down. Balance above is live from api-tn10. Restart the Grok bot tunnel to pay out.";
@@ -194,7 +184,8 @@
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     if (!apiBase) {
-      say("Payout API is not reachable from this phone yet.", true);
+      say("Payout API is not reachable. Stay on this page and refresh. Do not open a tunnel link — that black page is a dead proxy, not the faucet.", true);
+      go.disabled = false;
       return;
     }
     const address = document.getElementById("addr").value.trim();
@@ -209,7 +200,7 @@
       .then(readJson)
       .then(function (j) {
         if (j.html) {
-          sayHtml(downHtml(apiBase));
+          sayHtml(downHtml());
           return;
         }
         if (!j.ok) {
