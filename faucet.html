@@ -27,9 +27,10 @@
       <p><input id="addr" name="address" spellcheck="false" autocomplete="off" placeholder="kaspatest:q…" style="width:100%;padding:0.55rem 0.6rem;font:inherit;border:1px solid #111"></p>
       <p><button type="submit" class="go" id="go" disabled>Request 10,000 tKAS</button></p>
     </form>
-    <p class="meta" id="api-status">Checking API…</p>
-    <p class="meta" id="out">Pays from the sandbox miner on Testnet-10. Never a seed. No wallet login.</p>
+    <p class="meta" id="api-status">Checking payout API…</p>
+    <p class="meta" id="out">Pays from groks-wallet on Testnet-10. Never a seed. No wallet login.</p>
   </div>
+  <p class="meta">sixpack.wtf on GitHub Pages is a static copy. It can show this tab. It cannot run the faucet. Sending tKAS needs a live signer: <code>node serve.mjs</code> plus a synced Testnet-10 <code>kaspad</code> on the desk. A browser on https://sixpack.wtf is not allowed to reach 127.0.0.1. That is why the Request button stays off here. Mining is separate: the Grok Bot Linux farm fills the address; this site does not mine.</p>
 
   <h2>Who mines the faucet address</h2>
   <p>A Testnet-10 miner farm on the <strong>Grok Bot Linux sandbox</strong> — not Windows, not a phone, not your computer, not this website’s host. You chat with tn10 bot; the node and miners run in that remote Linux box.</p>
@@ -73,7 +74,7 @@ uptime</pre>
   <p class="meta">Help: <a href="help.html">Help</a>. Rails: <a href="rails.html">three rails</a>.</p>
   <section data-sources></section>
 </main>
-<script src="faucet.js?v=13"></script>
+<script src="faucet.js?v=14"></script>
 <script src="nav.js?v=17"></script>
 </body>
 </html>

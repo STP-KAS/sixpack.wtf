@@ -27,7 +27,8 @@
   }
 
   function bases() {
-    const list = [""];
+    const extra = window.FAUCET_API ? [String(window.FAUCET_API).replace(/\/$/, "")] : [];
+    const list = extra.concat([""]);
     const host = location.hostname;
     if (host === "127.0.0.1" || host === "localhost") {
       if (location.port !== "4020") list.push("http://127.0.0.1:4020");
@@ -61,13 +62,12 @@
       return;
     }
     if (go) go.disabled = true;
-    const local = "http://127.0.0.1:4020/faucet.html";
     const msg =
       location.protocol === "https:"
-        ? "You are on the static GitHub copy. HTTPS cannot reach the desk API. Open " + local + " after: node serve.mjs"
-        : "No faucet API on this port. In the sixpack.wtf folder run: node serve.mjs   then open " + local;
+        ? "This GitHub Pages tab is HTML only. It cannot sign or send tKAS. The payout API lives on the desk (node serve.mjs + TN10 kaspad). Mining is the Grok Bot Linux farm, not this site."
+        : "Payout API is not on this port. On the desk: node serve.mjs, then http://127.0.0.1:4020/faucet.html";
     if (statusEl) statusEl.textContent = msg;
-    say(msg, true);
+    say("Form stays off until the payout API is reachable. Mining still fills the faucet address on the sandbox.");
   });
 
   if (!form) return;
