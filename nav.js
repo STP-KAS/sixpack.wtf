@@ -3,6 +3,7 @@
   const items = [
     { href: "./", files: ["", "index.html"], label: "Home" },
     { href: "rails.html", files: ["rails.html"], label: "Rails" },
+    { href: "farce.html", files: ["farce.html"], label: "Farce" },
     { href: "faucet.html", files: ["faucet.html"], label: "Faucet" },
     { href: "help.html", files: ["help.html"], label: "Help" },
   ];
@@ -29,7 +30,7 @@
     document.head.appendChild(s);
   }
   if (root) {
-    load(root + "sources.js?v=23");
+    load(root + "sources.js?v=24");
     if (file !== "faucet.html") load(root + "intro.js?v=3");
   }
 })();
