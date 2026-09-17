@@ -3,19 +3,21 @@
   const out = document.getElementById("out");
   const go = document.getElementById("go");
   const statusEl = document.getElementById("api-status");
+  const balEl = document.getElementById("faucet-balance");
+  const txsEl = document.getElementById("faucet-txs");
+  const availEl = document.getElementById("available");
+  const fromEl = document.getElementById("from-addr");
 
   function say(t, bad) {
     if (!out) return;
     out.textContent = t;
     out.style.fontWeight = bad ? "600" : "";
   }
-
   function sayHtml(html) {
     if (!out) return;
     out.style.fontWeight = "";
     out.innerHTML = html;
   }
-
   async function readJson(res) {
     const text = await res.text();
     const trimmed = (text || "").trim();
@@ -31,22 +33,37 @@
       return { html: true, status: res.status, ok: false, parseError: String(err) };
     }
   }
-
+  function hdr() {
+    return { "Bypass-Tunnel-Reminder": "true" };
+  }
   function bases() {
     const extra = window.FAUCET_API ? [String(window.FAUCET_API).replace(/\/$/, "")] : [];
     const list = extra.concat([""]);
+    if (location.protocol === "file:") {
+      list.push("http://127.0.0.1:4020");
+    }
     const host = location.hostname;
     if (host === "127.0.0.1" || host === "localhost") {
       if (location.port !== "4020") list.push("http://127.0.0.1:4020");
-      if (location.port !== "4021") list.push("http://127.0.0.1:4021");
     }
     return list;
+  }
+  function paintStats(j) {
+    if (fromEl && j.from) fromEl.textContent = j.from;
+    if (balEl && j.faucetBalanceTkas) balEl.textContent = j.faucetBalanceTkas + " tKAS";
+    if (txsEl && j.recent && j.recent.length) {
+      txsEl.innerHTML = "<table><thead><tr><th>txid</th></tr></thead><tbody>" +
+        j.recent.map(function (row) {
+          return '<tr><td><a href="' + row.explorer + '">' + row.txid + "</a></td></tr>";
+        }).join("") +
+        "</tbody></table>";
+    }
   }
 
   async function probe() {
     for (const base of bases()) {
       try {
-        const res = await fetch(base + "/api/faucet", { method: "GET", headers: { "Bypass-Tunnel-Reminder": "true" } });
+        const res = await fetch(base + "/api/faucet", { method: "GET", headers: hdr() });
         const j = await readJson(res);
         if (!j.html && j.network === "testnet-10") {
           return { base: base, j: j };
@@ -58,39 +75,69 @@
 
   let apiBase = "";
 
+  if (location.protocol === "file:") {
+    say("You opened a local file. Use https://sixpack.wtf/faucet.html or http://127.0.0.1:4020/faucet.html — file:// cannot reach the payout API.", true);
+  }
+
   probe().then(function (found) {
     if (found) {
       apiBase = found.base;
-      const where = found.base || location.origin;
-      if (statusEl) statusEl.textContent = "API live · " + where + " · " + found.j.dripTkas + " tKAS / click · cap " + found.j.capTkas + " / 48h";
-      say("Ready. Paste kaspatest: and Request. Pays from groks-wallet.");
+      const hours = found.j.windowHours || 24;
+      if (statusEl) {
+        statusEl.textContent =
+          "API live · " + (found.base || location.origin) +
+          " · " + found.j.dripTkas + " tKAS / click · cap " + found.j.capTkas + " / " + hours + "h · not kaspanet";
+      }
+      paintStats(found.j);
+      if (availEl) {
+        availEl.textContent = "You can request up to " + found.j.dripTkas + " tKAS now, " + found.j.capTkas + " per 24h.";
+      }
+      say("Ready. Paste kaspatest: and Submit. Not kaspanet.");
       if (go) go.disabled = false;
       return;
     }
     if (go) go.disabled = true;
-    const msg =
-      location.protocol === "https:"
-        ? "This GitHub Pages tab is HTML only. It cannot sign or send tKAS. The payout API lives on the desk (node serve.mjs + TN10 kaspad). Mining is the Grok Bot Linux farm, not this site."
-        : "Payout API is not on this port. On the desk: node serve.mjs, then http://127.0.0.1:4020/faucet.html";
+    const msg = location.protocol === "file:"
+      ? "file:// cannot pay. Open https://sixpack.wtf/faucet.html"
+      : "Payout API is unreachable right now. Mining still fills the Grok bot faucet address.";
     if (statusEl) statusEl.textContent = msg;
-    say("Form stays off until the payout API is reachable. Mining still fills the faucet address on the sandbox.");
+    say(msg, true);
   });
+
+  const addrInput = document.getElementById("addr");
+  if (addrInput) {
+    addrInput.addEventListener("change", function () {
+      const address = addrInput.value.trim();
+      if (!apiBase || address.indexOf("kaspatest:") !== 0) return;
+      fetch(apiBase + "/api/faucet?address=" + encodeURIComponent(address), { headers: hdr() })
+        .then(readJson)
+        .then(function (j) {
+          const left = j.remainingAddrTkas || j.remainingTkas;
+          if (availEl && left != null && left !== "") {
+            availEl.textContent = "This address has " + left + " tKAS still eligible in 24h (cap 30,000).";
+          }
+          if (j.error && availEl) availEl.textContent = j.error + (j.remainingAddrTkas ? " Address remaining: " + j.remainingAddrTkas + " tKAS." : "");
+        })
+        .catch(function () {});
+    });
+  }
 
   if (!form) return;
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     const address = document.getElementById("addr").value.trim();
+    const amount = document.getElementById("amount") ? document.getElementById("amount").value.trim() : "10000";
     go.disabled = true;
     say("Sending…");
     fetch(apiBase + "/api/faucet", {
       method: "POST",
       headers: { "content-type": "application/json", "Bypass-Tunnel-Reminder": "true" },
-      body: JSON.stringify({ address: address }),
+      body: JSON.stringify({ address: address, amount: amount }),
     })
       .then(readJson)
       .then(function (j) {
         if (j.html) {
-          say("Got an HTML page instead of the faucet API. Use http://127.0.0.1:4020/faucet.html with node serve.mjs running.", true);
+          say("Got HTML instead of the faucet API. Use https://sixpack.wtf/faucet.html", true);
           return;
         }
         if (!j.ok) {
@@ -105,14 +152,14 @@
         }).join("");
         const left = j.remainingAddrTkas || j.remainingTkas || "0";
         sayHtml(
-          "<strong>Sent " + (j.tkas || "") + " tKAS.</strong> Confirmed on Testnet-10.<br>" +
+          "<strong>Sent " + (j.tkas || "") + " tKAS.</strong> Testnet-10.<br>" +
           'Address: <a href="' + addrUrl + '">' + addr + "</a><br>" +
           (links ? "Transactions:<ul>" + links + "</ul>" : "") +
-          "Eligible remaining for this address in 48h: <strong>" + left + " tKAS</strong> (cap 30,000 / 48h, 10,000 per request)."
+          "Eligible remaining for this address in 24h: <strong>" + left + " tKAS</strong> (cap 30,000 / 24h, 10,000 per submit)."
         );
       })
       .catch(function (err) {
-        say("Could not reach the faucet API. Run node serve.mjs in sixpack.wtf, then open http://127.0.0.1:4020/faucet.html", true);
+        say("Could not reach the payout API.", true);
         console.error(err);
       })
       .finally(function () {

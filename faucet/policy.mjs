@@ -3,8 +3,8 @@
 export const NETWORK = "testnet-10";
 export const FROM =
   "kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx";
-export const WINDOW_MS = 48 * 60 * 60 * 1000;
-export const CAP_SOMPI = 30_000n * 100_000_000n; // 30,000 tKAS / 48h
+export const WINDOW_MS = 24 * 60 * 60 * 1000;
+export const CAP_SOMPI = 30_000n * 100_000_000n; // 30,000 tKAS / 24h
 export const DRIP_SOMPI = 10_000n * 100_000_000n; // per request, up to remaining
 export const MIN_SOMPI = 10n * 100_000_000n; // 10 tKAS floor (KIP-9 / packing)
 
@@ -63,7 +63,7 @@ export function planClaim({ address, ip, claims, now = Date.now() }) {
   const remaining = leftAddr < leftIp ? leftAddr : leftIp;
   const sompi = dripAmount(remaining);
   if (sompi <= 0n) {
-    const err = new Error("Limit 30,000 tKAS per 48 hours. Come back later.");
+    const err = new Error("Limit 30,000 tKAS per 24 hours. Come back later.");
     err.code = "RATE";
     throw err;
   }
@@ -75,7 +75,7 @@ export function planClaim({ address, ip, claims, now = Date.now() }) {
     leftIp,
     tkas: sompiToTkas(sompi),
     capTkas: "30000",
-    windowHours: 48,
+    windowHours: 24,
     addrKey,
     ipKey,
   };

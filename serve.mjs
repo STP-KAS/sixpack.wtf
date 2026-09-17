@@ -74,42 +74,68 @@ http
   .createServer((req, res) => {
     const url = new URL(req.url ?? "/", `http://${HOST}:${PORT}`);
     if (url.pathname === "/api/faucet" && req.method === "GET") {
-      try {
-        const address = url.searchParams.get("address") || "";
-        const claims = listClaims();
-        const ip = clientIp(req);
-        if (!address) {
-          sendJson(res, 200, {
-            network: "testnet-10",
-            from: FROM,
-            capTkas: "30000",
-            dripTkas: "10000",
-            windowHours: 48,
-          }, req);
-          return;
-        }
-        const plan = planClaim({ address, ip, claims });
-        sendJson(res, 200, {
-          address: plan.address,
-          nextTkas: plan.tkas,
-          remainingTkas: sompiToTkas(plan.sompi + plan.remainingAfter),
-          remainingAddrTkas: sompiToTkas(plan.leftAddr),
-        }, req);
-      } catch (err) {
-        const claims = listClaims();
-        const address = url.searchParams.get("address") || "";
-        let remainingAddrTkas = "";
+      (async () => {
         try {
-          const dest = requireTestnetAddress(address);
-          remainingAddrTkas = sompiToTkas(remainingInWindow(claims, "addr:" + dest.toLowerCase()));
-        } catch (_) {}
-        sendJson(
-          res,
-          err.code === "RATE" ? 429 : 400,
-          { error: err.message || String(err), remainingAddrTkas },
-          req
-        );
-      }
+          const address = url.searchParams.get("address") || "";
+          const claims = listClaims();
+          const ip = clientIp(req);
+          if (!address) {
+            let faucetBalanceTkas = "";
+            try {
+              const r = await fetch("https://api-tn10.kaspa.org/addresses/" + FROM + "/balance");
+              const j = await r.json();
+              faucetBalanceTkas = sompiToTkas(j.balance);
+            } catch (_) {}
+            const recent = [];
+            const seen = new Set();
+            for (const c of [...claims].reverse()) {
+              for (const id of c.txids || []) {
+                if (seen.has(id)) continue;
+                seen.add(id);
+                recent.push({
+                  txid: id,
+                  explorer: "https://tn10.kaspa.stream/txs/" + id,
+                  at: c.at,
+                });
+                if (recent.length >= 18) break;
+              }
+              if (recent.length >= 18) break;
+            }
+            sendJson(res, 200, {
+              network: "testnet-10",
+              from: FROM,
+              capTkas: "30000",
+              dripTkas: "10000",
+              windowHours: 24,
+              faucetBalanceTkas,
+              recent,
+            }, req);
+            return;
+          }
+          const plan = planClaim({ address, ip, claims });
+          sendJson(res, 200, {
+            address: plan.address,
+            nextTkas: plan.tkas,
+            remainingTkas: sompiToTkas(plan.sompi + plan.remainingAfter),
+            remainingAddrTkas: sompiToTkas(plan.leftAddr),
+            windowHours: 24,
+          }, req);
+        } catch (err) {
+          const claims = listClaims();
+          const address = url.searchParams.get("address") || "";
+          let remainingAddrTkas = "";
+          try {
+            const dest = requireTestnetAddress(address);
+            remainingAddrTkas = sompiToTkas(remainingInWindow(claims, "addr:" + dest.toLowerCase()));
+          } catch (_) {}
+          sendJson(
+            res,
+            err.code === "RATE" ? 429 : 400,
+            { error: err.message || String(err), remainingAddrTkas, windowHours: 24 },
+            req
+          );
+        }
+      })();
       return;
     }
     if (url.pathname === "/api/faucet" && req.method === "OPTIONS") {

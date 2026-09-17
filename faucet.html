@@ -3,79 +3,67 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Grok bot sandbox faucet — Testnet-10</title>
-  <meta name="description" content="TN10 tKAS from the Grok Bot miner farm. Paste kaspatest:. Never a seed.">
+  <title>Grok bot faucet — Testnet-10</title>
+  <meta name="description" content="Grok bot faucet on Kaspa Testnet-10. Not kaspanet. 30,000 tKAS / 24h. Paste kaspatest:. Never a seed.">
   <link rel="canonical" href="https://sixpack.wtf/faucet.html">
-  <link rel="stylesheet" href="site.css?v=17">
+  <link rel="stylesheet" href="site.css?v=18">
+  <link rel="stylesheet" href="faucet.css?v=1">
   <script>
     try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
-    window.FAUCET_API = "https://eight-queens-dress.loca.lt";
+    window.FAUCET_API = "https://hot-coats-sniff.loca.lt";
   </script>
 </head>
-<body>
+<body class="faucet-page">
 <header class="top">
   <a class="wordmark" href="./">sixpack.wtf</a>
   <nav data-site-nav></nav>
 </header>
 <main>
-  <h1>Grok bot sandbox faucet</h1>
-  <p class="lede meta">Named that because the coins come from <strong>tn10 bot</strong>’s Testnet-10 miner farm inside the <strong>Grok Bot Linux sandbox</strong> — a remote Linux box xAI runs for the bot, <strong>not your computer, not Windows, not a phone</strong> — into Grok’s locked TN10 address. Not kaspanet. <strong>30,000 tKAS per 48 hours</strong> per address (and per IP). 10,000 tKAS per request. Toy coins. Paste a <code>kaspatest:</code> address. This page never asks for a seed.</p>
+  <p class="eyebrow not-kaspanet">Not kaspanet. Not faucet-tn10.kaspanet.io. Grok bot sandbox only.</p>
+  <h1>Welcome to Kaspa Grok bot faucet</h1>
+  <p class="lede">Grok bot faucet sends Testnet-10 tKAS to anyone requesting. Toy coins. This page never asks for a seed.</p>
 
-  <div class="box">
-    <p>Same job as <a href="https://faucet-tn10.kaspanet.io/">faucet-tn10.kaspanet.io</a>, higher cap. Official faucet is often 403. This pays from <a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx">the sandbox miner address</a>.</p>
-    <form id="form">
-      <label class="meta" for="addr">kaspatest: address</label>
-      <p><input id="addr" name="address" spellcheck="false" autocomplete="off" placeholder="kaspatest:q…" style="width:100%;padding:0.55rem 0.6rem;font:inherit;border:1px solid #111"></p>
-      <p><button type="submit" class="go" id="go" disabled>Request 10,000 tKAS</button></p>
-    </form>
-    <p class="meta" id="api-status">Testing. Checking payout API…</p>
-    <p class="meta" id="out">Pays from groks-wallet on Testnet-10. Never a seed. No wallet login.</p>
+  <div class="faucet-stage">
+    <div class="faucet-grid">
+      <section>
+        <p class="meta">Faucet balance</p>
+        <p class="faucet-balance" id="faucet-balance">… tKAS</p>
+        <p class="meta">Grok Bot Linux farm funds this. Visitors: do not mine here.</p>
+        <p class="meta">Faucet transactions</p>
+        <div class="faucet-txs" id="faucet-txs"><p class="meta">Loading…</p></div>
+      </section>
+      <section class="faucet-card">
+        <p>It pays from a defined address. If that address has enough tKAS, it sends to the address you paste.</p>
+        <p class="faucet-warn">Do not mine to this faucet address yourself. The Grok Bot farm already does.</p>
+        <p>Faucet can receive (and pays from):</p>
+        <p><code id="from-addr">kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</code></p>
+        <p>Requests are limited to <strong>30,000 tKAS per IP and per address, per 24 hours</strong>. <strong>10,000 tKAS</strong> per submit. Not kaspanet’s 10,000 / 24h cap.</p>
+        <p id="available">Checking how much you have available…</p>
+        <form id="form">
+          <label for="addr">Address (must start with kaspatest:)</label>
+          <input id="addr" name="address" spellcheck="false" autocomplete="off" placeholder="kaspatest:q…">
+          <label for="amount">Amount (tKAS)</label>
+          <input id="amount" name="amount" value="10000" inputmode="numeric">
+          <label>Network</label>
+          <select disabled><option selected>TESTNET-10</option></select>
+          <p><button type="submit" class="go" id="go" disabled>Submit</button></p>
+        </form>
+        <p class="meta" id="api-status">Checking payout API…</p>
+        <p class="meta" id="out"></p>
+      </section>
+    </div>
   </div>
-  <p class="meta">Paste a <code>kaspatest:</code> address and Request. Mining is the Grok Bot Linux farm. After a send you get tn10.kaspa.stream links for the address and txids, plus remaining tKAS in the 48h window.</p>
 
   <h2>Who mines the faucet address</h2>
-  <p>A Testnet-10 miner farm on the <strong>Grok Bot Linux sandbox</strong> — not Windows, not a phone, not your computer, not this website’s host. You chat with tn10 bot; the node and miners run in that remote Linux box.</p>
-
+  <p>A Testnet-10 miner farm on the <strong>Grok Bot Linux sandbox</strong> — not Windows, not a phone, not your computer. You chat with tn10 bot; the node and miners run in that remote Linux box.</p>
   <div class="box">
-    <p><strong>How many.</strong> Last honest count from the sandbox: <code>alive ≈ 96</code> miner processes. That is the <code>alive</code> field in <code>/tmp/kaspa-tn10-miners/status.json</code>, not a public API. This page cannot see that file, so the number is the last Grok Bot check — do not treat 96 as live-right-now.</p>
-    <p><strong>What they mine to.</strong> Every process pays the same locked address (never change it):
-      <a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx"><code>kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</code></a>.
-      Network is Testnet-10 only. Confirmed live on api-tn10 this pass (address exists; tKAS has no value).</p>
-    <p><strong>Why load is high.</strong> The box has 8 CPU cores. The farm is many separate <code>kaspa-miner</code> processes under <code>/tmp/kaspa-tn10-miners/</code> (<code>miner-001</code> …), each <code>-t 1</code>, user-agent <code>gbNNN</code>. Load often sits above 100. Extra processes mostly fight for those 8 cores. They do not add real hash 1:1. Toy coins.</p>
+    <p><strong>How many.</strong> Last sandbox check: <code>alive ≈ 96</code> in <code>/tmp/kaspa-tn10-miners/status.json</code>. Not live-right-now from this page.</p>
+    <p><strong>Pay-to (locked):</strong> <a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx"><code>kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</code></a></p>
   </div>
-
-  <h3>Layout on the sandbox</h3>
-  <table>
-    <thead><tr><th>What</th><th>Where</th></tr></thead>
-    <tbody>
-      <tr><td>Miner binary</td><td><code>/workspace/artifacts/kaspa-tn10/bin/kaspa-miner</code></td></tr>
-      <tr><td>Node</td><td><code>kaspad --testnet --netsuffix=10</code> — RPC <code>127.0.0.1:16210</code>, P2P <code>16211</code></td></tr>
-      <tr><td>Farm</td><td><code>/tmp/kaspa-tn10-miners/</code> — one process per slot, <code>-t 1</code>, user-agent <code>gbNNN</code></td></tr>
-      <tr><td>Count file</td><td><code>/tmp/kaspa-tn10-miners/status.json</code> — field <code>alive</code> is the honest count</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Re-check the count (on the sandbox, not here)</h3>
-  <p>Ask tn10 bot, or in that Linux environment:</p>
-<pre>python3 -c "import json; print(json.load(open('/tmp/kaspa-tn10-miners/status.json'))['alive'])"
-pgrep -af '/workspace/artifacts/kaspa-tn10/bin/kaspa-miner' | wc -l
-uptime</pre>
-  <p class="meta"><code>alive</code> is the honest figure. <code>pgrep</code> counts processes. <code>uptime</code> shows load vs 8 cores. If load ≫ 8, more miners are queueing, not hashing extra work.</p>
-
-  <p class="meta"><strong>kaspa bot</strong> is mainnet: one public archival <code>kaspad</code> (advertise in <code>/tmp/kaspa-tunnel.addr</code>). The mainnet miner fleet was closed on purpose. Do not restart mainnet kaspad unless asked. Do not paste TN10 miner instructions into kaspa bot. Visitors of this site do not mine. Source: <a href="https://github.com/STP-KAS/groks-wallet">STP-KAS/groks-wallet</a>.</p>
-
-  <h2>Rules</h2>
-  <ul>
-    <li><code>kaspatest:</code> only. Mainnet <code>kaspa:</code> is refused.</li>
-    <li>30,000 tKAS / 48 h. Then wait.</li>
-    <li>Cannot pay the faucet address itself.</li>
-    <li>tKAS has no value. Use it to test and build.</li>
-    <li>No wallet connect on this site. Paste the address.</li>
-  </ul>
-  <p class="meta">Help: <a href="help.html">Help</a>. Rails: <a href="rails.html">three rails</a>.</p>
+  <p class="meta"><a href="https://github.com/STP-KAS/Xai.Kaspa.node">Xai.Kaspa.node</a> is the mainnet kaspa bot. TN10 is tn10 bot. Help: <a href="help.html">Help</a>.</p>
   <section data-sources></section>
 </main>
-<script src="faucet.js?v=24"></script>
+<script src="faucet.js?v=25"></script>
 <script src="nav.js?v=18"></script>
 </body>
 </html>
