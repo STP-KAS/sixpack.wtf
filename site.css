@@ -127,6 +127,27 @@ h3 { font-size: 0.95rem; font-weight: 650; margin: 1.1rem 0 0.35rem; }
 @media (min-width: 720px) {
   .farce-exhibits { grid-template-columns: 1fr 1fr; }
 }
+.eulogy-media { margin: 0.8rem 0 1.2rem; }
+.eulogy-media video {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 70vh;
+  background: #111;
+  border: 1px solid #111;
+}
+.eulogy-meme { margin: 1.2rem 0; }
+.eulogy-meme img {
+  display: block;
+  width: 100%;
+  max-width: 28rem;
+  height: auto;
+  border: 1px solid #111;
+}
+.eulogy-meme figcaption { color: #555; font-size: 0.85rem; margin: 0.4rem 0 0; }
+@media (max-width: 520px) {
+  .tabs a, .tabs button { font-size: 0.82rem; padding: 0.18rem 0.5rem; }
+}
 .who, .steps { display: flex; gap: 0.35rem; flex-wrap: wrap; margin: 0.8rem 0 1.1rem; }
 .who button, .steps button {
   font: inherit;
