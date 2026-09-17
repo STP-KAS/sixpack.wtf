@@ -1,4 +1,16 @@
 (function () {
+  const file = (location.pathname.split("/").pop() || "index.html").toLowerCase();
+  if (file === "faucet.html") {
+    document.documentElement.classList.add("intro-done");
+    return;
+  }
+  const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  const narrow = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
+  if (coarse || narrow) {
+    document.documentElement.classList.add("intro-done");
+    return;
+  }
+
   const KEY = "sixpack-intro";
   try {
     if (sessionStorage.getItem(KEY) === "1") document.documentElement.classList.add("intro-done");
