@@ -231,9 +231,14 @@
           return;
         }
         const addr = j.address || address;
-        const ids = (j.txids || []).map(function (id) {
-          return "<li><code>" + id + "</code></li>";
-        }).join("");
+        const ids = j.txids || [];
+        const first = ids[0] ? "<p>TXID: <code>" + ids[0] + "</code></p>" : "";
+        const extra =
+          ids.length > 1
+            ? "<p>" +
+              ids.length +
+              " transactions (dust UTXOs). KasWare may show <em>incoming transaction…</em> until they confirm. Not a failed send.</p>"
+            : "";
         const left = j.remainingAddrTkas || j.remainingTkas || "0";
         const leftLine =
           left === "unlimited"
@@ -242,13 +247,13 @@
         popup(
           "success",
           "Success",
-          "<p>Sent <strong>" +
+          "<p>We have successfully sent <strong>" +
             (j.tkas || "") +
-            " tKAS</strong> on Testnet-10.</p><p>Address: <code>" +
+            " tKAS</strong> to the requested address:</p><p><code>" +
             addr +
             "</code></p>" +
-            (ids ? "<p>Transactions:</p><ul>" + ids + "</ul>" : "") +
-            '<p>Explorer: <a href="https://tn10.kaspa.stream/">https://tn10.kaspa.stream/</a></p>' +
+            first +
+            extra +
             leftLine
         );
         loadPublicBalance();
