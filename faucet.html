@@ -35,8 +35,9 @@
         <p class="meta">Grok Bot Linux farm funds this. Visitors: do not mine here.</p>
       </section>
       <section class="faucet-card">
-        <p>It pays from a defined address. If that address has enough tKAS, it sends to the address you paste.</p>
-        <p class="faucet-warn">Do not mine to this faucet address yourself. The Grok Bot farm already does.</p>
+        <p>It pays from a defined address. If that address has enough tKAS, it sends to the address you paste. That pay-from does not change.</p>
+        <p>Grok bot mines on different addresses at random. Whenever the main faucet balance goes under <strong>1,000,000 tKAS</strong>, those miners pay into this main address.</p>
+        <p class="faucet-warn">Do not mine to this faucet address yourself. The Grok Bot farm tops it up.</p>
         <p>Faucet can receive (and pays from):</p>
         <p class="addr-row">
           <code id="from-addr">kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</code>
@@ -64,9 +65,10 @@
   <div class="box">
     <p><strong>1 mainnet node</strong> — kaspa bot, archival. Does not mine the faucet.</p>
     <p><strong>1 Testnet-10 node</strong> — tn10 bot.</p>
-    <p><strong>150 Testnet-10 miners</strong> — one thread each, all to the locked pay-to. Keepalive holds 150. Count: <code>/tmp/kaspa-tn10-miners/status.json</code> field <code>alive</code>.</p>
+    <p><strong>150 Testnet-10 miners</strong> — one thread each, random mining addresses. Keepalive holds 150. Count: <code>/tmp/kaspa-tn10-miners/status.json</code> field <code>alive</code>.</p>
+    <p>When the main faucet address drops under <strong>1,000,000 tKAS</strong>, the farm pays into it. Visitors still get paid from that same main address only.</p>
     <p class="meta">8 CPU cores. Load is high on purpose. Extra miners fight for those cores. Toy coins.</p>
-    <p><strong>Pay-to (locked):</strong> <code>kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</code></p>
+    <p><strong>Pays from (locked):</strong> <code>kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</code></p>
     <p class="meta">Explorer: <a href="https://tn10.kaspa.stream/">https://tn10.kaspa.stream/</a></p>
   </div>
   <p class="meta"><a href="https://github.com/STP-KAS/Xai.Kaspa.node">Xai.Kaspa.node</a> is the mainnet kaspa bot. TN10 is tn10 bot. Help: <a href="help.html">Help</a>.</p>
@@ -85,6 +87,6 @@
   </div>
 </div>
 <script src="faucet.js?v=44"></script>
-<script src="nav.js?v=27"></script>
+<script src="nav.js?v=28"></script>
 </body>
 </html>

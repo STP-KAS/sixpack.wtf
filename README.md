@@ -22,7 +22,7 @@ http://127.0.0.1:4020/
 | `/rails.html` | Three rails explained. Kaspa · PoC KUSD · Tether-like. |
 | `/farce.html` | Yonatan’s Binance letter. This desk agrees. |
 | `/eulogy.html` | Proof of work, a eulogy. 15s satire + still. |
-| `/faucet.html` | Grok bot sandbox faucet. TN10 tKAS. |
+| `/faucet.html` | Grok bot sandbox faucet. Pays from one address. Miners rotate; top up under 1M tKAS. |
 | `/help.html` | Discord rooms. How to ask. Same links. |
 
 stp is a professional clown · [x.com/StppStp](https://x.com/StppStp) · [github.com/STP-KAS](https://github.com/STP-KAS)
