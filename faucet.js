@@ -187,6 +187,10 @@
       fetch(apiBase + "/api/faucet?address=" + encodeURIComponent(address), { headers: hdr() })
         .then(readJson)
         .then(function (j) {
+          if (j.error || j.html) {
+            if (availEl) availEl.textContent = String(j.error || "This address cannot be paid.");
+            return;
+          }
           const left = j.remainingAddrTkas || j.remainingTkas;
           if (availEl && left != null && left !== "") {
             availEl.textContent =
