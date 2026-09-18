@@ -31,7 +31,7 @@
     document.head.appendChild(s);
   }
   if (root) {
-    load(root + "sources.js?v=30");
+    if (file !== "" && file !== "index.html") load(root + "sources.js?v=31");
     if (file !== "faucet.html") load(root + "intro.js?v=4");
   }
 })();
