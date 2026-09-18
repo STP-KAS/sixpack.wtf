@@ -44,6 +44,7 @@
           <button type="button" class="copy" data-copy="#from-addr">Copy</button>
         </p>
         <p>Requests are limited to <strong>30,000 tKAS per IP and per address, per 24 hours</strong>. <strong>30,000 tKAS</strong> per submit. Not kaspanet’s 10,000 / 24h cap.</p>
+        <p class="faucet-warn">Pays only to kaspatest: addresses whose <strong>first TN10 transaction is on or before 18 Jul 2026</strong>. Brand-new wallets are refused.</p>
         <p id="available">Checking payout API…</p>
         <form id="form">
           <label for="addr">Address (must start with kaspatest:)</label>
@@ -87,7 +88,7 @@
     </div>
   </div>
 </div>
-<script src="faucet.js?v=46"></script>
+<script src="faucet.js?v=47"></script>
 <script src="nav.js?v=29"></script>
 </body>
 </html>
