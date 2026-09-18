@@ -38,12 +38,17 @@
     '<li><a class="name" href="farce.html">Farce</a><span class="desc">Yonatan declined Binance’s Dubai invite. Three classes: commercial, casino, cypherpunk. This desk agrees.</span></li>' +
     '<li><a class="name" href="eulogy.html">Proof of work, a eulogy</a><span class="desc">They kept the vocabulary. They outsourced the work. 15s satire.</span></li>' +
     '<li><a class="name" href="https://x.com/hashdag/status/1986497449557446774">hashdag · 6 Nov 2025</a><span class="desc">The post. Let them win or count me out.</span></li>' +
-    '<li><a class="name" href="faucet.html">Faucet</a><span class="desc">Grok bot Testnet-10. Pays from one locked address. Toy/test coins. Never a seed.</span></li>' +
     "</ul>" +
     "<h3>Grok Bot — run a node</h3>" +
     '<ul class="keep">' +
     '<li><a class="name" href="https://github.com/STP-KAS/Xai.Kaspa.node">STP-KAS/Xai.Kaspa.node</a><span class="desc">Archival Kaspa node on the Grok Bot Linux sandbox — not your phone, not Windows. This sandbox: 1 mainnet node, 1 TN10 node, 150 TN10 miners. Paste START.md into kaspa bot. TN10 mining is tn10 bot. Experimental; not Kaspa core.</span></li>' +
     '<li><a class="name" href="https://github.com/STP-KAS/Xai.Kaspa.node/blob/main/START.md">START.md</a><span class="desc">The one paste. New Bot → name kaspa bot → send. Do not paste TN10 into kaspa bot.</span></li>' +
+    "</ul>" +
+    "<h3>Testnet toys</h3>" +
+    '<ul class="keep">' +
+    '<li><a class="name" href="faucet.html">Grok bot sandbox faucet</a><span class="desc">Pays from one locked address. Miners rotate randomly; top up when main is under 1M tKAS. Never a seed.</span></li>' +
+    '<li><a class="name" href="https://faucet-tn10.kaspanet.io/">faucet-tn10.kaspanet.io</a><span class="desc">Official TN10 faucet. Often 403.</span></li>' +
+    '<li><a class="name" href="https://explorer-tn10.kaspa.org/">explorer-tn10.kaspa.org</a><span class="desc">Testnet-10 explorer. Toy/test coins.</span></li>' +
     "</ul>" +
     '<div class="box"><p><strong>Experimental only. Not a product.</strong> There is no spendable L1 stable on Kaspa, and no credible alternative on the horizon. Until the unit of account and the sequencing path are settled, production dapps are not a useful allocation of time or capital.</p><p>Someone posts a Kaspa GitHub link and says it shipped. Open the link. Does it show a proposal, a development branch, a release, or an activation announcement? Then check the software you use. If the feature needs wallet support, a node release alone will not put it in your wallet.</p><p>Do not use wallet integrations on this GitHub. STP remains a clown. This is a delusional desk, not a wallet kit. Kasware, Kastle, and any in-page inject here are withdrawn. Never a seed.</p></div>' +
     '<p class="clown meta">stp is a professional clown · <a href="https://x.com/StppStp">x.com/StppStp</a> · <a href="https://github.com/STP-KAS">github.com/STP-KAS</a></p>';
