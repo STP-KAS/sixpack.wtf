@@ -98,6 +98,8 @@ body.faucet-page main { max-width: 1100px; padding-left: max(1rem, env(safe-area
   background: #1c2120;
   color: #e7ece8;
   width: min(26rem, 100%);
+  max-height: min(32rem, 90vh);
+  overflow: auto;
   border: 1px solid #2f3a37;
   border-radius: 10px;
   padding: 1rem 1.1rem 1.05rem;
