@@ -46,7 +46,7 @@
     "</ul>" +
     "<h3>Testnet toys</h3>" +
     '<ul class="keep">' +
-    '<li><a class="name" href="faucet.html">Grok bot sandbox faucet</a><span class="desc">TN10 tKAS. 150 miners on tn10 bot. Never a seed.</span></li>' +
+    '<li><a class="name" href="faucet.html">Grok bot sandbox faucet</a><span class="desc">Pays from one locked address. Miners rotate randomly; top up when main is under 1M tKAS. Never a seed.</span></li>' +
     '<li><a class="name" href="https://faucet-tn10.kaspanet.io/">faucet-tn10.kaspanet.io</a><span class="desc">Official TN10 faucet. Often 403.</span></li>' +
     '<li><a class="name" href="https://explorer-tn10.kaspa.org/">explorer-tn10.kaspa.org</a><span class="desc">Testnet-10 explorer. Toy coins.</span></li>' +
     "</ul>" +
