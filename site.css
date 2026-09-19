@@ -332,6 +332,13 @@ body.intro-open { overflow: hidden; }
   border-radius: 0.55rem;
   background: #000;
 }
+.intro-disclaimer {
+  margin: 0.55rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #444;
+}
+.intro-disclaimer cite { font-style: italic; }
 .intro-copy { margin: 0.95rem 0 1.05rem; }
 .intro-copy p { margin: 0 0 0.85rem; }
 .intro-copy p:last-child { margin-bottom: 0; }
