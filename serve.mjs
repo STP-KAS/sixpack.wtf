@@ -93,7 +93,10 @@ http
           if (!address) {
             let faucetBalanceTkas = "";
             try {
-              const r = await fetch("https://api-tn10.kaspa.org/addresses/" + FROM + "/balance");
+              const r = await fetch("https://api-tn10.kaspa.org/addresses/" + FROM + "/balance", {
+                headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0 sixpack-faucet" },
+                signal: AbortSignal.timeout(3000),
+              });
               const j = await r.json();
               faucetBalanceTkas = sompiToTkas(j.balance);
             } catch (_) {}
