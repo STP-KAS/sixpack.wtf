@@ -3,10 +3,9 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { planClaim, sompiToTkas, FROM, remainingInWindow, requireTestnetAddress, EXPLORER_HOME, normalizeIp, DRIP_SOMPI, CAP_SOMPI, isDeskUnlimited } from "./faucet/policy.mjs";
+import { planClaim, sompiToTkas, FROM, remainingInWindow, requireTestnetAddress, EXPLORER_HOME, normalizeIp, DRIP_SOMPI, CAP_SOMPI } from "./faucet/policy.mjs";
 import { listClaims, recordClaim } from "./faucet/ledger.mjs";
 import { payTn10 } from "./faucet/pay.mjs";
-import { requireOldAddress } from "./faucet/age.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 4020);
@@ -70,15 +69,12 @@ function clientIp(req) {
   return normalizeIp(req.socket?.remoteAddress || "unknown");
 }
 
-async function gateAddress(address, ip) {
-  const dest = requireTestnetAddress(address);
-  if (!isDeskUnlimited(dest, ip)) await requireOldAddress(dest);
-  return dest;
+async function gateAddress(address) {
+  return requireTestnetAddress(address);
 }
 
 function faucetErrStatus(err) {
   if (err?.code === "RATE") return 429;
-  if (err?.code === "AGE") return 400;
   if (/synced|UTXO|secret|node/i.test(err?.message || "")) return 503;
   return 400;
 }
@@ -127,7 +123,7 @@ http
             }, req);
             return;
           }
-          await gateAddress(address, ip);
+          await gateAddress(address);
           const plan = planClaim({ address, ip, claims });
           sendJson(res, 200, {
             address: plan.address,
@@ -171,7 +167,7 @@ http
         try {
           const body = JSON.parse((await readBody(req)) || "{}");
           const ip = clientIp(req);
-          await gateAddress(body.address, ip);
+          await gateAddress(body.address);
           const plan = planClaim({
             address: body.address,
             ip,
