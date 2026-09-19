@@ -325,6 +325,13 @@ body.intro-open { overflow: hidden; }
   font-size: 0.95rem;
   font-weight: 500;
 }
+.intro-title .intro-disclaimer {
+  font-weight: 400;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #444;
+}
+.intro-disclaimer cite { font-style: italic; }
 .intro-video {
   display: block;
   width: 100%;
@@ -332,13 +339,6 @@ body.intro-open { overflow: hidden; }
   border-radius: 0.55rem;
   background: #000;
 }
-.intro-disclaimer {
-  margin: 0.55rem 0 0;
-  font-size: 0.8rem;
-  line-height: 1.4;
-  color: #444;
-}
-.intro-disclaimer cite { font-style: italic; }
 .intro-copy { margin: 0.95rem 0 1.05rem; }
 .intro-copy p { margin: 0 0 0.85rem; }
 .intro-copy p:last-child { margin-bottom: 0; }

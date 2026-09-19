@@ -22,11 +22,10 @@
     overlay.setAttribute("aria-labelledby", "intro-title");
     overlay.innerHTML =
       '<div class="intro-card">' +
-      '<p id="intro-title" class="intro-title">Kaspa Explained STP</p>' +
+      '<p id="intro-title" class="intro-title">Kaspa Explained <span class="intro-disclaimer"><strong>Disclaimer.</strong> Schopenhauer’s <cite>Parerga and Paralipomena</cite> (1851): “Talent hits a target no one else can hit; Genius hits a target no one else can see.”</span></p>' +
       '<video class="intro-video" controls playsinline webkit-playsinline preload="metadata" poster="kaspa-explained.jpg">' +
       '<source src="kaspa-explained.mp4" type="video/mp4">' +
       "</video>" +
-      '<p class="intro-disclaimer"><strong>Disclaimer.</strong> Schopenhauer’s <cite>Parerga and Paralipomena</cite> (1851): “Talent hits a target no one else can hit; Genius hits a target no one else can see.”</p>' +
       '<div class="intro-copy">' +
       "<p>-Bitcoin started as proof of work: scarce money and ownership that does not depend on who already holds the coins.</p>" +
       "<p>-Proof of stake replaced work with capital. That is a different system.</p>" +
