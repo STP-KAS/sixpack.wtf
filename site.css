@@ -324,14 +324,9 @@ body.intro-open { overflow: hidden; }
   color: #0f766e;
   font-size: 0.95rem;
   font-weight: 500;
-}
-.intro-title .intro-disclaimer {
-  font-weight: 400;
-  font-size: 0.8rem;
   line-height: 1.4;
-  color: #444;
 }
-.intro-disclaimer cite { font-style: italic; }
+.intro-title cite { font-style: italic; }
 .intro-video {
   display: block;
   width: 100%;
