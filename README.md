@@ -26,3 +26,12 @@ http://127.0.0.1:4020/
 | `/help.html` | Discord rooms. How to ask. Same links. |
 
 stp is a professional clown · [x.com/StppStp](https://x.com/StppStp) · [github.com/STP-KAS](https://github.com/STP-KAS)
+
+---
+
+> **Standard disclaimer.** This GitHub, not the topic above.
+>
+> Intentions are good; thought process is questionable. STP remains delusional. Si vis pacem, para bellum.
+>
+> Intern at https://sixpack.wtf/  
+> X: https://x.com/StppStp · GitHub: https://github.com/STP-KAS
