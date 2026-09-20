@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sixpack.wtf — Random</title>
+  <meta name="description" content="A pile of clips that do not belong on the other tabs. Shuffle. Not Kaspa core.">
+  <link rel="canonical" href="https://sixpack.wtf/random.html">
+  <link rel="stylesheet" href="site.css?v=26">
+  <script>
+    try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
+  </script>
+</head>
+<body class="random-body">
+<header class="top">
+  <a class="wordmark" href="./">sixpack.wtf</a>
+  <nav data-site-nav></nav>
+</header>
+<main>
+  <p class="eyebrow">Clips · shuffle</p>
+  <h1>Random</h1>
+  <p class="lede">A pile of clips that do not belong on Rails, Farce, or Eulogy. Shuffle. Not Kaspa core.</p>
+
+  <div class="random-stage">
+    <video id="random-video" controls playsinline webkit-playsinline preload="metadata" poster="random/r20.jpg"></video>
+    <p class="meta" id="random-now">Shuffle to start.</p>
+  </div>
+  <p class="who" id="random-controls">
+    <button type="button" id="random-shuffle">Shuffle</button>
+    <button type="button" id="random-prev">Prev</button>
+    <button type="button" id="random-next">Next</button>
+  </p>
+  <div class="random-grid" id="random-grid"></div>
+  <p class="meta">Nineteen clips. One at a time. Ended → next. Same desk. Same clown.</p>
+  <section data-sources></section>
+</main>
+<script src="random.js?v=1"></script>
+<script src="nav.js?v=35"></script>
+</body>
+</html>

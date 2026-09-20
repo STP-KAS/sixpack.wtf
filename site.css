@@ -354,3 +354,64 @@ body.intro-open { overflow: hidden; }
   .intro-proceed { width: 100%; }
 }
 .intro-proceed:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; }
+
+.random-body main { max-width: 54rem; }
+.random-stage { margin: 0.8rem 0 0.6rem; }
+.random-stage video {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 70vh;
+  background: #111;
+  border: 1px solid #111;
+  object-fit: contain;
+}
+.random-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 1.1rem 0 1.6rem;
+}
+@media (min-width: 720px) {
+  .random-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.random-tile {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #111;
+  background: #fff;
+  color: #111;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.random-tile img {
+  display: block;
+  width: 100%;
+  height: 8.6rem;
+  object-fit: cover;
+  background: #111;
+}
+.random-tile-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem 0.5rem;
+  font-size: 0.82rem;
+}
+.random-tile-meta strong {
+  font-weight: 650;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.random-tile.on { background: #111; color: #fff; }
+#random-controls button { min-height: 44px; }
+@media (max-width: 520px) {
+  .random-tile img { height: 7.2rem; }
+}
+

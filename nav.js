@@ -5,6 +5,7 @@
     { href: "rails.html", files: ["rails.html"], label: "Rails" },
     { href: "farce.html", files: ["farce.html"], label: "Farce" },
     { href: "eulogy.html", files: ["eulogy.html"], label: "Eulogy" },
+    { href: "random.html", files: ["random.html"], label: "Random" },
     { href: "faucet.html", files: ["faucet.html"], label: "Faucet" },
     { href: "help.html", files: ["help.html"], label: "Help" },
   ];
