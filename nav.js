@@ -33,6 +33,6 @@
   }
   if (root) {
     if (file !== "" && file !== "index.html") load(root + "sources.js?v=31");
-    if (file !== "faucet.html") load(root + "intro.js?v=7");
+    if (file !== "faucet.html" && file !== "random.html") load(root + "intro.js?v=8");
   }
 })();

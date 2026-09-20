@@ -1,6 +1,6 @@
 (function () {
   const file = (location.pathname.split("/").pop() || "index.html").toLowerCase();
-  if (file === "faucet.html") {
+  if (file === "faucet.html" || file === "random.html") {
     document.documentElement.classList.add("intro-done");
     return;
   }
