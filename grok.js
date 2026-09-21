@@ -80,6 +80,32 @@
     showLog();
     const wrap = document.createElement("div");
     wrap.className = "gk-msg assistant";
+    const think = document.createElement("div");
+    think.className = "gk-think";
+    think.setAttribute("data-open", "1");
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "gk-think-toggle";
+    toggle.setAttribute("aria-expanded", "true");
+    const spin = document.createElement("span");
+    spin.className = "gk-spin";
+    spin.setAttribute("aria-hidden", "true");
+    const label = document.createElement("span");
+    label.className = "gk-think-label";
+    label.textContent = "Opening the Kaspa feed…";
+    const timeEl = document.createElement("span");
+    timeEl.className = "gk-think-time";
+    toggle.append(spin, label, timeEl);
+    const note = document.createElement("p");
+    note.className = "gk-think-note";
+    note.textContent =
+      "This desk is slow. Fat feed. Sloths type with two fingers. Same as Grok: search and think first, then answer.";
+    const steps = document.createElement("ol");
+    steps.className = "gk-think-steps";
+    const reason = document.createElement("div");
+    reason.className = "gk-think-reason";
+    reason.hidden = true;
+    think.append(toggle, note, steps, reason);
     const md = document.createElement("div");
     md.className = "gk-md";
     const actions = document.createElement("div");
@@ -97,9 +123,29 @@
     const cites = document.createElement("p");
     cites.className = "gk-cites";
     actions.hidden = true;
-    wrap.append(md, actions, cites);
+    wrap.append(think, md, actions, cites);
     log.append(wrap);
-    return { md, copy, up, down, cites, wrap, actions };
+    const seen = {};
+    function addStep(id, text) {
+      const key = id || text;
+      if (seen[key]) seen[key].textContent = text;
+      else {
+        const li = document.createElement("li");
+        li.textContent = text;
+        steps.append(li);
+        seen[key] = li;
+      }
+      Object.keys(seen).forEach(function (k) {
+        seen[k].classList.toggle("on", k === key);
+      });
+      label.textContent = text;
+    }
+    toggle.addEventListener("click", function () {
+      const open = think.getAttribute("data-open") === "1";
+      think.setAttribute("data-open", open ? "0" : "1");
+      toggle.setAttribute("aria-expanded", open ? "false" : "true");
+    });
+    return { md, copy, up, down, cites, wrap, actions, think, label, timeEl, addStep, reason, note };
   }
   function setBusy(on) {
     send.hidden = on;
@@ -169,8 +215,16 @@
     addUser(q);
     const ui = addAssistant();
     let acc = "";
+    let thought = "";
+    const t0 = Date.now();
+    function elapsed() {
+      return Math.max(0, Math.floor((Date.now() - t0) / 1000));
+    }
+    const tick = setInterval(function () {
+      ui.timeEl.textContent = elapsed() + "s";
+    }, 250);
     setBusy(true);
-    sayStatus("Asking the feed…", true);
+    ui.addStep("feed", "Opening the Kaspa feed. Slow: the catalog is a brick.");
     abort = new AbortController();
     try {
       if (!apiBase) await probe();
@@ -187,7 +241,13 @@
         throw new Error(j.error || "Desk HTTP " + res.status);
       }
       await readSSE(res, function (ev) {
-        if (ev.type === "status") sayStatus(ev.text, true);
+        if (ev.type === "status" && ev.text) ui.addStep(ev.id || ev.text, ev.text);
+        if (ev.type === "think" && ev.text) {
+          thought += ev.text;
+          ui.reason.hidden = false;
+          ui.reason.textContent = thought.slice(-2500);
+          ui.reason.scrollTop = ui.reason.scrollHeight;
+        }
         if (ev.type === "delta" && ev.text) {
           acc += ev.text;
           ui.md.classList.add("streaming");
@@ -242,15 +302,23 @@
       ui.md.classList.remove("streaming");
       if (err.name === "AbortError") {
         if (!acc) ui.md.innerHTML = renderMd("Stopped.");
+        ui.label.textContent = "Stopped after " + elapsed() + "s.";
       } else {
         ui.md.innerHTML = renderMd(err.message || "Desk failed.");
+        ui.label.textContent = "Failed after " + elapsed() + "s.";
       }
       if (acc) ui.actions.hidden = false;
     } finally {
+      clearInterval(tick);
       ui.md.classList.remove("streaming");
+      ui.think.classList.add("is-done");
+      ui.timeEl.textContent = elapsed() + "s";
+      if (acc && ui.label.textContent.indexOf("Failed") !== 0 && ui.label.textContent.indexOf("Stopped") !== 0) {
+        ui.label.textContent = "Took " + elapsed() + "s. Slow, we know.";
+        ui.note.textContent = "Searched and thought before answering, the same way Grok does. The wait is the work.";
+      }
       abort = null;
       setBusy(false);
-      sayStatus("", false);
       box.focus();
       thread.scrollTop = thread.scrollHeight;
     }

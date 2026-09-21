@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { clipHistory, gateUserText, priceReply, statusFor } from "./policy.mjs";
 import { appendLog, lessonsBlock, loadLessons, recordFeedback } from "./learn.mjs";
 import { resolveApiKey, upstreamErrorMessage } from "./keys.mjs";
+import { describeStreamEvent, reasoningDelta } from "./trace.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
@@ -87,7 +88,7 @@ function toolsFor(jail) {
   ];
 }
 
-async function streamXai({ question, history, jail, onDelta, onStatus, signal }) {
+async function streamXai({ question, history, jail, onDelta, onStatus, onThink, signal }) {
   const key = resolveApiKey();
   if (!key) {
     const err = new Error("The desk has not loaded a SpaceXAI key. The sloths are on break.");
@@ -95,6 +96,14 @@ async function streamXai({ question, history, jail, onDelta, onStatus, signal })
     throw err;
   }
   const input = clipHistory(history).concat([{ role: "user", content: question }]);
+  let lastStatusId = "";
+  function pushStatus(id, text) {
+    if (!text) return;
+    if (id && id === lastStatusId) return;
+    lastStatusId = id || lastStatusId;
+    onStatus(text, id);
+  }
+  pushStatus("feed", "Opening the Kaspa feed. Slow: the catalog is a brick.");
   const body = {
     model: MODEL,
     stream: true,
@@ -102,7 +111,7 @@ async function streamXai({ question, history, jail, onDelta, onStatus, signal })
     input,
     tools: toolsFor(jail),
   };
-  onStatus("Reading the Kaspa feed…");
+  pushStatus("up", "SpaceXAI is chewing the feed. Admit it: this takes a while.");
   const res = await fetch(XAI + "/responses", {
     method: "POST",
     headers: {
@@ -147,18 +156,23 @@ async function streamXai({ question, history, jail, onDelta, onStatus, signal })
         continue;
       }
       const type = ev.type || "";
+      const step = describeStreamEvent(ev);
+      if (step) pushStatus(step.id, step.text);
+      const thought = reasoningDelta(ev);
+      if (thought && onThink) onThink(thought);
       if (type === "response.output_text.delta" && ev.delta) {
+        if (!out) pushStatus("write", "Writing the answer. Still not fast.");
         out += ev.delta;
         onDelta(ev.delta);
       } else if (ev.choices?.[0]?.delta?.content) {
         const t = ev.choices[0].delta.content;
+        if (!out) pushStatus("write", "Writing the answer. Still not fast.");
         out += t;
         onDelta(t);
       } else if (type === "response.output_text.done" && ev.text && !out) {
+        pushStatus("write", "Writing the answer. Still not fast.");
         out = ev.text;
         onDelta(ev.text);
-      } else if (type.includes("web_search") || type.includes("x_search") || type.includes("in_progress")) {
-        if (/search/i.test(type)) onStatus("Checking primary sources…");
       }
       const cites = ev.citations || ev.response?.citations || [];
       if (Array.isArray(cites)) {
@@ -187,6 +201,7 @@ export async function handleGrokChat(req, res, body, ip, headers) {
     const gated = gateUserText(body?.q ?? body?.question ?? "", ip);
     if (gated.price) {
       const text = priceReply();
+      sse(res, { type: "status", id: "price", text: "Price question. No search, no forecast. One dry decline." });
       sse(res, { type: "delta", text });
       sse(res, { type: "done", local: true, reason: "price" });
       appendLog({ ip, kind: "price", q: gated.question, a: text, reason: "price" });
@@ -200,7 +215,8 @@ export async function handleGrokChat(req, res, body, ip, headers) {
       jail: gated.jail,
       signal: ac.signal,
       onDelta: (text) => sse(res, { type: "delta", text }),
-      onStatus: (text) => sse(res, { type: "status", text }),
+      onStatus: (text, id) => sse(res, { type: "status", text, id: id || "" }),
+      onThink: (text) => sse(res, { type: "think", text }),
     });
     if (!result.text) {
       sse(res, {
