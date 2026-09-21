@@ -7,7 +7,6 @@
     { id: "r05", title: "Epstein files", duration: 18, w: 1280, h: 720 },
     { id: "r06", title: "Wedding", duration: 19, w: 1080, h: 1080 },
     { id: "r07", title: "Fire", duration: 15, w: 1276, h: 720 },
-    { id: "r08", title: "We stopped that plan", duration: 53, w: 720, h: 1280 },
     { id: "r09", title: "I didn't vote for this", duration: 54, w: 1440, h: 1440 },
     { id: "r10", title: "Never bet against Elon", duration: 23, w: 720, h: 638 },
     { id: "r11", title: "I used to be an old man", duration: 20, w: 1920, h: 868 },
