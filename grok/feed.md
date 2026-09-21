@@ -63,7 +63,7 @@ Honest merchant path today: **dual rail** — keypad in EUR/USD, settle in nativ
 
 Fill is not a business. This desk keeps 0. Pay with QR, `kaspa:` URI, or a pasted txid. In-page wallet inject on STP-KAS GitHub is withdrawn.
 
-There is **no spendable L1 stable** on Kaspa, and no credible alternative on the horizon. Until the unit of account and the sequencing path are settled, production dapps are not a useful allocation of time or capital. PoC dollars are teaching units.
+PoC dollars are teaching units.
 
 HTTP 402 on Kaspa binds **elldeeone/kaspa-x402** v1.0.0-rc.1 on **TN10**. Mainnet blocked. Not KCC-20.
 
