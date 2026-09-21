@@ -10,7 +10,7 @@ export const DAY_MAX = 40;
 export const MIN_INTERVAL_MS = 1200;
 
 const PRICE = /\b(price\s*prediction|price\s*target|price\s*action|\$kas\b|market\s*cap|\bmcap\b|\bath\b|\batl\b|\bmoon\b|\blambo\b|\b10x\b|\b100x\b|\bpump\b|\bdump\b|when\s+(binance|coinbase|listing)|binance\s+listing|buy\s+now|sell\s+now|will\s+it\s+(moon|pump|dump|reach|hit|go\s+to)|how\s+much\s+(is|will|should)\s+(kas|kaspa)|kaspa\s+price|price\s+of\s+kas|what(?:'s| is) kas(?:pa)? worth|target\s+price|resistance|support\s+level)\b/i;
-const TECH = /\b(ghostdag|blockdag|phantom|kip-?\d*|kcc-?\d*|toccata|crescendo|silverscript|argent|vprog|covenant|utxo|rusty-?kaspa|dagknight|wallet|seed|mnemonic|proof of work|\bpow\b|\bpos\b|mining|ibd|rpc|daa|sompi|mass|node|kheavyhash|graftroot|kaspaexplained|kips?)\b/i;
+const TECH = /\b(ghostdag|blockdag|phantom|kip-?\d*|kcc-?\d*|toccata|crescendo|silverscript|argent|vprog|covenant|utxo|rusty-?kaspa|dagknight|wallet|seed|mnemonic|proof of work|\bpow\b|\bpos\b|mining|ibd|rpc|daa|sompi|mass|node|kheavyhash|graftroot|kaspaexplained|100bps|kips?)\b/i;
 const SEED = /\b([a-z]{3,8}\s+){11,}[a-z]{3,8}\b/i;
 const PRIV = /\b(hex:)?[0-9a-f]{64}\b/i;
 const JAIL = /\b(ignore (all )?(previous|prior|above) (instructions|rules)|you are grok\.com|dump (your )?(system|hidden) prompt|developer mode|dan mode)\b/i;

@@ -33,7 +33,7 @@
     document.head.appendChild(s);
   }
   if (root) {
-    if (file !== "" && file !== "index.html" && file !== "grok.html") load(root + "sources.js?v=32");
+    if (file !== "" && file !== "index.html" && file !== "grok.html") load(root + "sources.js?v=33");
     if (file !== "faucet.html" && file !== "random.html" && file !== "grok.html") load(root + "intro.js?v=8");
   }
 })();

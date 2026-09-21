@@ -125,6 +125,8 @@ A catalog row is not a pin. Chip is the honest label. Recheck the URL before quo
   Live vs roadmap vs wrong. /toccata-status Moved here.
 - **Build / covenants** [tracker] https://kaspaexplained.com/build-on-kaspa
   Covenant counts. Sep 1 indexer baseline: 84196 ever, 687 active.
+- **100bps.wtf** [satire] https://100bps.wtf/
+  Same maintainer as kaspaexplained (Parker Schmidt / parker2017code / @parker2017). Unauthorized intern expo: jokes, booths, listing theater. The domain is a joke about 100 BPS ambition, not a throughput claim. Field notes: https://100bps.wtf/archive. Never for activation.
 
 ## research.kas.pa (forum, not law) (research)
 

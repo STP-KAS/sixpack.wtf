@@ -9,6 +9,11 @@
     "<p>Independent education, not an exchange or a fundraise. Explained labels claims <em>Live</em>, <em>Testnet only</em>, <em>Roadmap</em>, <em>Research</em>, or <em>Wrong</em>, each row tracing to rusty-kaspa, a KIP, or a dated API snapshot. It keeps KIP (consensus) apart from KCC (optional convention). It already said Toccata was live while the official domain did not. That is why it sits first.</p>" +
     '<p class="meta"><a href="https://kaspaexplained.com/status">status</a> · <a href="https://kaspaexplained.com/crypto-from-scratch">new to crypto</a> · <a href="https://kaspaexplained.com/what-is-kaspa">already know crypto</a> · <a href="https://kaspaexplained.com/sources">sources</a></p>' +
     "</div>" +
+    '<div class="box">' +
+    '<p class="eyebrow">Satire, same maintainer</p>' +
+    '<p><a class="name" href="https://100bps.wtf/">100bps.wtf</a> — Parker’s intern expo. Jokes, booths, listing theater. Same person as kaspaexplained. Satire only.</p>' +
+    "<p>The domain is a joke about 100 blocks per second. Kaspa does not run at 100 BPS. Field notes: <a href=\"https://100bps.wtf/archive\">100bps.wtf/archive</a>. Never cite the expo as an activation proof.</p>" +
+    "</div>" +
     "<h3>Protocol, research, live data</h3>" +
     '<ul class="keep">' +
     '<li><a class="name" href="https://docs.kaspa.org">docs.kaspa.org</a><span class="desc">Official operator and protocol docs. Start here before a chat question.</span></li>' +

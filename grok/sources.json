@@ -26,9 +26,14 @@
     "Kaspa_Commons",
     "DesheShai"
   ],
+  "satire": [
+    "https://100bps.wtf/",
+    "https://100bps.wtf/archive"
+  ],
   "prefer": [
     "https://kaspaexplained.com/status",
     "https://kaspaexplained.com/start-here",
+    "https://100bps.wtf/",
     "https://docs.kaspa.org",
     "https://wiki.kaspa.org/wallet",
     "https://github.com/kaspanet/rusty-kaspa",
