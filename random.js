@@ -2,6 +2,7 @@
   const CLIPS = [
     { id: "r01", title: "Clock", duration: 11, w: 848, h: 480 },
     { id: "r02", title: "No Kings", duration: 104, w: 1440, h: 1080 },
+    { id: "r03", title: "No Kings rally", duration: 23, w: 576, h: 768 },
     { id: "r04", title: "2024", duration: 77, w: 576, h: 566 },
     { id: "r05", title: "Epstein files", duration: 18, w: 1280, h: 720 },
     { id: "r06", title: "Wedding", duration: 19, w: 1080, h: 1080 },
