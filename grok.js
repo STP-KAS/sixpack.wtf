@@ -285,6 +285,7 @@
         if (ev.type === "delta" && ev.text) {
           acc += ev.text;
           ui.md.classList.add("streaming");
+          ui.think.classList.add("is-writing");
           paintMd();
         }
         if (ev.type === "error") throw new Error(ev.text || "Desk error");
