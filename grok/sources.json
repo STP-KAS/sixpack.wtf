@@ -33,6 +33,8 @@
   "prefer": [
     "https://kaspaexplained.com/status",
     "https://kaspaexplained.com/start-here",
+    "https://kaspa.org",
+    "https://x.com/kaspaunchained",
     "https://100bps.wtf/",
     "https://docs.kaspa.org",
     "https://wiki.kaspa.org/wallet",
@@ -48,7 +50,6 @@
     "https://kas-smiths.org",
     "https://research.kas.pa",
     "https://hashd.ag/",
-    "https://kaspa.org",
     "https://discord.gg/kaspa"
   ]
 }

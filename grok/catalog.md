@@ -14,7 +14,7 @@ A catalog row is not a pin. Chip is the honest label. Recheck the URL before quo
 - **FAQ** [read] https://kaspaexplained.com/faq
   Is it PoW? What is 10 blocks/s? Is Toccata live? Answers with links so you can check.
 - **kaspa.org** [official] https://kaspa.org
-  High-credibility source, same class as @kaspaunchained. Official site. Fair launch. No premine. Not the lore referee.
+  High-credibility source, same class as @kaspaunchained. Official site. Fair launch. No premine.
 - **Wallets** [wiki] https://wiki.kaspa.org/wallet
   How to hold KAS. Nobody from a website should ask for your seed.
 - **Video (community)** [watch] https://x.com/kaspaunchained/status/2096211914825285808
