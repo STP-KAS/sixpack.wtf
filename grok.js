@@ -123,6 +123,29 @@
     sayStatus("Desk API is not reachable. The static page is live; the sloths need the payout tunnel.", true);
     return null;
   }
+  function takeSSE(buf, onEvent) {
+    const parts = buf.split("\n\n");
+    const rest = parts.pop() || "";
+    for (const part of parts) {
+      const data = part
+        .split("\n")
+        .filter(function (l) {
+          return l.indexOf("data:") === 0;
+        })
+        .map(function (l) {
+          return l.slice(5).trim();
+        })
+        .join("");
+      if (!data || data === "[DONE]") continue;
+      try {
+        onEvent(JSON.parse(data));
+      } catch (err) {
+        if (err && err.name === "SyntaxError") continue;
+        throw err;
+      }
+    }
+    return rest;
+  }
   async function readSSE(res, onEvent) {
     const reader = res.body.getReader();
     const dec = new TextDecoder();
@@ -131,24 +154,10 @@
       const { value, done } = await reader.read();
       if (done) break;
       buf += dec.decode(value, { stream: true });
-      const parts = buf.split("\n\n");
-      buf = parts.pop() || "";
-      for (const part of parts) {
-        const data = part
-          .split("\n")
-          .filter(function (l) {
-            return l.indexOf("data:") === 0;
-          })
-          .map(function (l) {
-            return l.slice(5).trim();
-          })
-          .join("");
-        if (!data || data === "[DONE]") continue;
-        try {
-          onEvent(JSON.parse(data));
-        } catch (_) {}
-      }
+      buf = takeSSE(buf, onEvent);
     }
+    buf += dec.decode();
+    if (buf.trim()) takeSSE(buf + "\n\n", onEvent);
   }
   async function ask(text) {
     const q = String(text || "").trim();

@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { clipHistory, gateUserText, priceReply, statusFor } from "./policy.mjs";
 import { appendLog, lessonsBlock, loadLessons, recordFeedback } from "./learn.mjs";
+import { resolveApiKey, upstreamErrorMessage } from "./keys.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
@@ -55,7 +56,7 @@ function sources() {
 
 export function grokHealth() {
   return {
-    ok: Boolean(process.env.XAI_API_KEY),
+    ok: Boolean(resolveApiKey()),
     name: "Grok.SPCXAI.KAS",
     engine: "spacexai-feed",
     model: MODEL,
@@ -87,7 +88,7 @@ function toolsFor(jail) {
 }
 
 async function streamXai({ question, history, jail, onDelta, onStatus, signal }) {
-  const key = process.env.XAI_API_KEY;
+  const key = resolveApiKey();
   if (!key) {
     const err = new Error("The desk has not loaded a SpaceXAI key. The sloths are on break.");
     err.code = "NOKEY";
@@ -113,14 +114,7 @@ async function streamXai({ question, history, jail, onDelta, onStatus, signal })
   });
   if (!res.ok) {
     const text = await res.text();
-    let msg = "SpaceXAI HTTP " + res.status;
-    try {
-      const j = JSON.parse(text);
-      msg = j.error?.message || j.message || msg;
-    } catch {
-      if (text) msg = text.slice(0, 200);
-    }
-    const err = new Error(msg);
+    const err = new Error(upstreamErrorMessage(res.status, text));
     err.code = "UPSTREAM";
     throw err;
   }
@@ -131,8 +125,12 @@ async function streamXai({ question, history, jail, onDelta, onStatus, signal })
   const citations = [];
   while (true) {
     const { value, done } = await reader.read();
-    if (done) break;
-    buf += dec.decode(value, { stream: true });
+    if (done) {
+      buf += dec.decode();
+      if (buf.trim()) buf += "\n\n";
+    } else {
+      buf += dec.decode(value, { stream: true });
+    }
     const chunks = buf.split("\n\n");
     buf = chunks.pop() || "";
     for (const chunk of chunks) {
@@ -170,6 +168,7 @@ async function streamXai({ question, history, jail, onDelta, onStatus, signal })
         }
       }
     }
+    if (done) break;
   }
   return { text: out.trim(), citations };
 }
