@@ -10,6 +10,7 @@
   const modal = document.getElementById("gk-modal");
   const chips = document.getElementById("gk-chips");
   const history = [];
+  const TITLE = "Grok.SPCXAI.KAS — sixpack.wtf";
   let apiBase = "";
   let abort = null;
   let lastQ = "";
@@ -25,8 +26,12 @@
     }
     return list;
   }
-  function hdr() {
-    return { "Bypass-Tunnel-Reminder": "true", Accept: "application/json", "Content-Type": "application/json" };
+  function hdr(accept) {
+    return {
+      "Bypass-Tunnel-Reminder": "true",
+      Accept: accept || "application/json",
+      "Content-Type": "application/json",
+    };
   }
   function sayStatus(t, show) {
     if (!statusEl) return;
@@ -83,6 +88,7 @@
     const think = document.createElement("div");
     think.className = "gk-think";
     think.setAttribute("data-open", "1");
+    think.setAttribute("aria-live", "polite");
     const toggle = document.createElement("button");
     toggle.type = "button";
     toggle.className = "gk-think-toggle";
@@ -90,12 +96,29 @@
     const spin = document.createElement("span");
     spin.className = "gk-spin";
     spin.setAttribute("aria-hidden", "true");
+    const main = document.createElement("div");
+    main.className = "gk-think-main";
+    const titleRow = document.createElement("div");
+    titleRow.className = "gk-think-title";
     const label = document.createElement("span");
     label.className = "gk-think-label";
     label.textContent = "Opening the Kaspa feed…";
+    const dots = document.createElement("span");
+    dots.className = "gk-dots";
+    dots.setAttribute("aria-hidden", "true");
+    dots.innerHTML = "<i></i><i></i><i></i>";
+    titleRow.append(label, dots);
+    const meta = document.createElement("p");
+    meta.className = "gk-think-meta";
+    const live = document.createElement("span");
+    live.className = "gk-think-live";
+    live.textContent = "Working";
     const timeEl = document.createElement("span");
     timeEl.className = "gk-think-time";
-    toggle.append(spin, label, timeEl);
+    timeEl.textContent = "0s";
+    meta.append(live, document.createTextNode(" · "), timeEl);
+    main.append(titleRow, meta);
+    toggle.append(spin, main);
     const note = document.createElement("p");
     note.className = "gk-think-note";
     note.textContent =
@@ -152,6 +175,8 @@
     stopBtn.hidden = !on;
     box.disabled = false;
     send.disabled = !box.value.trim() && !on;
+    document.body.classList.toggle("gk-busy", on);
+    document.title = on ? "Working… · Grok.SPCXAI.KAS" : TITLE;
   }
   async function probe() {
     for (const base of bases()) {
@@ -230,7 +255,7 @@
       if (!apiBase) await probe();
       const res = await fetch((apiBase || "") + "/api/grok", {
         method: "POST",
-        headers: hdr(),
+        headers: hdr("text/event-stream"),
         body: JSON.stringify({ q: q, history: history.slice(-16) }),
         signal: abort.signal,
       });
@@ -239,6 +264,15 @@
           return {};
         });
         throw new Error(j.error || "Desk HTTP " + res.status);
+      }
+      let paint = 0;
+      function paintMd() {
+        if (paint) return;
+        paint = requestAnimationFrame(function () {
+          paint = 0;
+          ui.md.innerHTML = renderMd(acc);
+          thread.scrollTop = thread.scrollHeight;
+        });
       }
       await readSSE(res, function (ev) {
         if (ev.type === "status" && ev.text) ui.addStep(ev.id || ev.text, ev.text);
@@ -251,15 +285,14 @@
         if (ev.type === "delta" && ev.text) {
           acc += ev.text;
           ui.md.classList.add("streaming");
-          ui.md.innerHTML = renderMd(acc);
-          thread.scrollTop = thread.scrollHeight;
+          paintMd();
         }
         if (ev.type === "error") throw new Error(ev.text || "Desk error");
         if (ev.type === "done") {
           lastA = acc;
           if (ev.citations && ev.citations.length) {
             ui.cites.innerHTML = ev.citations
-              .slice(0, 6)
+              .slice(0, 8)
               .map(function (u) {
                 var host = u;
                 try {
@@ -267,7 +300,7 @@
                 } catch (_) {}
                 return '<a href="' + escapeHtml(u) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(host) + "</a>";
               })
-              .join(" · ");
+              .join("");
           }
         }
       });
@@ -316,6 +349,8 @@
       if (acc && ui.label.textContent.indexOf("Failed") !== 0 && ui.label.textContent.indexOf("Stopped") !== 0) {
         ui.label.textContent = "Took " + elapsed() + "s. Slow, we know.";
         ui.note.textContent = "Searched and thought before answering, the same way Grok does. The wait is the work.";
+        ui.think.setAttribute("data-open", "0");
+        ui.think.querySelector(".gk-think-toggle").setAttribute("aria-expanded", "false");
       }
       abort = null;
       setBusy(false);
@@ -347,6 +382,8 @@
     empty.hidden = false;
     lastQ = "";
     lastA = "";
+    document.title = TITLE;
+    document.body.classList.remove("gk-busy");
     box.focus();
   });
   function openAbout(on) {

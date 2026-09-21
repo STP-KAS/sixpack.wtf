@@ -79,6 +79,16 @@ function sse(res, obj) {
   res.write("data: " + JSON.stringify(obj) + "\n\n");
 }
 
+function openStream(res) {
+  if (typeof res.flushHeaders === "function") res.flushHeaders();
+  try {
+    res.socket?.setNoDelay(true);
+  } catch {
+    /* optional */
+  }
+  res.write(":" + " ".repeat(2048) + "\n\n");
+}
+
 function toolsFor(jail) {
   if (jail) return [];
   const handles = (sources().x_handles || []).slice(0, 20);
@@ -195,8 +205,20 @@ export async function handleGrokChat(req, res, body, ip, headers) {
     connection: "keep-alive",
     "x-accel-buffering": "no",
   });
+  openStream(res);
   const ac = new AbortController();
-  req.on("close", () => ac.abort());
+  const beat = setInterval(() => {
+    try {
+      res.write(": beat\n\n");
+    } catch {
+      clearInterval(beat);
+    }
+  }, 8000);
+  const stopBeat = () => clearInterval(beat);
+  req.on("close", () => {
+    ac.abort();
+    stopBeat();
+  });
   try {
     const gated = gateUserText(body?.q ?? body?.question ?? "", ip);
     if (gated.price) {
@@ -205,9 +227,11 @@ export async function handleGrokChat(req, res, body, ip, headers) {
       sse(res, { type: "delta", text });
       sse(res, { type: "done", local: true, reason: "price" });
       appendLog({ ip, kind: "price", q: gated.question, a: text, reason: "price" });
+      stopBeat();
       res.end();
       return;
     }
+    sse(res, { type: "status", id: "feed", text: "Opening the Kaspa feed. Slow: the catalog is a brick." });
     const history = clipHistory(body?.history);
     const result = await streamXai({
       question: gated.question,
@@ -232,8 +256,10 @@ export async function handleGrokChat(req, res, body, ip, headers) {
       a: result.text,
       model: MODEL,
     });
+    stopBeat();
     res.end();
   } catch (err) {
+    stopBeat();
     if (err?.name === "AbortError") {
       res.end();
       return;
