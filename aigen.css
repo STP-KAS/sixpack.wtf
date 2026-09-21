@@ -7,6 +7,7 @@
   .aigen-grid { grid-template-columns: 1fr 1fr; }
 }
 .aigen-grid figure { margin: 0; }
+.aigen-frame { position: relative; background: #111; }
 .aigen-grid video {
   display: block;
   width: 100%;
@@ -14,12 +15,46 @@
   background: #111;
   border: 1px solid #111;
 }
+.aigen-play {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.aigen-play[hidden] { display: none; }
+.aigen-play span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4.75rem;
+  height: 4.75rem;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(7, 20, 17, 0.78);
+  border: 2px solid #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+.aigen-play span::before {
+  content: "";
+  position: absolute;
+  left: 56%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-style: solid;
+  border-width: 0.7rem 0 0.7rem 1.15rem;
+  border-color: transparent transparent transparent #fff;
+}
 .aigen-grid figcaption {
   color: #555;
   font-size: 0.85rem;
   margin: 0.35rem 0 0;
+  cursor: pointer;
 }
 .aigen-how p { margin: 0.4rem 0; }
 .aigen-how p:first-child { margin-top: 0; }
-.aigen-grid video { cursor: pointer; }
 #aigen-status { min-height: 1.4em; }
