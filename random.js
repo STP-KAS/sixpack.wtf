@@ -35,6 +35,8 @@
     { id: "r34", title: "I didn't vote for this either", duration: 69, w: 720, h: 1280 },
     { id: "r35", title: "Still didn't vote for this", duration: 507, w: 720, h: 1280 },
     { id: "r36", title: "I voted for this four", duration: 17, w: 720, h: 720 },
+    { id: "r37", title: "Silly Walks", duration: 166, w: 1920, h: 1080 },
+    { id: "r38", title: "Don't mention the war", duration: 263, w: 1350, h: 1080 },
   ];
 
   function fmt(sec) {
