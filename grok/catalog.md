@@ -208,11 +208,11 @@ A catalog row is not a pin. Chip is the honest label. Recheck the URL before quo
 - **kips** [law] https://github.com/kaspanet/kips
   Improvement proposals.
 - **silverscript** [v1.0.0] https://github.com/kaspanet/silverscript/releases/tag/v1.0.0
-  Ori / someone235 tagged 9 Sep 2026, commit 3ed9733. SemVer v1. Tip unchanged through 18 Sep. Open holes: #243 compute-budget, #249/#250 State[].split tuple, #251 struct-array index. Not a second tag.
-- **kccs** [Draft] https://github.com/kaspanet/kccs
-  Refuse as a gram token. KCC-0012 wallet discovery is kccs#24 (open ready head 7159d48; 20 Sep amend; still Draft / not Final). kccs#27 kcc-1↔kcc0 compliance open ready head fa845057 (Manyfestation + saefstroem APPROVED; unmerged). Issue #28: four public “KCC20” objects share a name but not one ABI/byte layout — no honest single reference until layout matches. Also open: #26 KCC-23 MJ, #25 KCC0→Final, #23 p2pk-ecdsa, #20 KCC-0020 vectors. None adopted.
+  Ori / someone235 tagged 9 Sep 2026, commit 3ed9733. SemVer v1. Tip unchanged 21 Sep. Open holes: #243, #249/#250, #251, and also #252/#253/#254/#255. Not a second tag.
+- **kccs** [split] https://github.com/kaspanet/kccs
+  Refuse as a gram token. KCC-0 meta is Final in kcc-0000.md (kccs#25 merged c0bb8f3, 21 Sep). README index still says Draft. KCC-1/2/20/0012 still Draft. kccs#24 head 7159d48. kccs#27 head fa845057 approved, unmerged. Issue #28: four KCC20 layouts. kccs#29 proposes Draft KCC-3/4/5, not on main, not adopted.
 - **vprogs** [research] https://github.com/kaspanet/vprogs
-  No product testnet here. Master still f9b84a8. Open: #138/#144/#145/#146; #147 head 1d449964; #148 draft head da2a7f26 (21 Sep, settle-resume; TN10 60s VCC livelock). Guest demo biryukovmaxim/vprog-tictactoe tip 6079085 pins that #148 head on the host; guest ELF still fork bridge-live-lane#128dd05f. hmoog 45 vs Max 34. Research only.
+  No product testnet. Master still f9b84a8. #152 draft 74e24551 is the tictactoe host pin. #148 draft da2a7f26 is the parent, not the host pin. #147 head 74ee1b7d (was 1d449964). Guest ELF still bridge-live-lane#128dd05f. Research only.
 - **kaspad (Go)** [deprecated] https://github.com/kaspanet/kaspad
   Use rusty-kaspa.
 
@@ -505,9 +505,9 @@ A catalog row is not a pin. Chip is the honest label. Recheck the URL before quo
 - **vprogs#131 guest-batteries** [open] https://github.com/kaspanet/vprogs/pull/131
   Battery extraction. Own body: tictactoe is first consumer git-pinning this branch — guest lock has moved to fork bridge-live-lane#128dd05f. ABI expect at zk/abi abi.rs:22 still panics duplicate access lists. Desk comment 5759822448.
 - **biryukovmaxim/vprog-tictactoe** [demo] https://github.com/biryukovmaxim/vprog-tictactoe/issues/24
-  Max guest demo (not kaspanet). 94 commits, tip a758a9b 21 Sep tn10 CUDA runbook (private multi-machine; not a public product). Host pin settle-resume#da2a7f26. Guest ELF fork bridge-live-lane#128dd05f. Open #23. Desk report #24.
+  Max guest demo (not kaspanet). Tip 92146b4. Host Cargo.lock pins reorg-safety#74e24551 (vprogs#152 draft). Guest ELF fork bridge-live-lane#128dd05f. Not a public product. Open #23. Desk report #24.
 - **vprogs#148** [draft] https://github.com/kaspanet/vprogs/pull/148
-  Draft. Head da2a7f26 (21 Sep; was cbed6852). settle-resume: restart-resume journaling, TN10 60s VCC livelock. vprog-tictactoe host pin tracks this head. Research only.
+  Draft. Head da2a7f26. settle-resume parent of #152. Tictactoe host moved off this head. Research only.
 - **kaspa.stream app** [explorer] https://kaspa.stream/
   app-version 9f4088ca… observed 20 Sep (was 7ab5ce0…). No public changelog.
 - **rusty#1135** [open] https://github.com/kaspanet/rusty-kaspa/pull/1135
@@ -515,7 +515,7 @@ A catalog row is not a pin. Chip is the honest label. Recheck the URL before quo
 - **rusty#1136** [merged] https://github.com/kaspanet/rusty-kaspa/pull/1136
   MERGED 20 Sep (f2f87ff → master). Split pruning-point proofs/headers/trusted data to 20 MiB chunks during IBD.
 - **vprogs#147** [open] https://github.com/kaspanet/vprogs/pull/147
-  Head 1d449964 (20 Sep): shutdown drain/commit + adaptive-reorg-filter disable + tests. Research only.
+  Head 74ee1b7d (21 Sep 09:46Z shutdown-drain regression). Was catalogued as 1d449964. Still open. Research only.
 - **kccs#26** [open] https://github.com/kaspanet/kccs/pull/26
   KCC-23 MJ — Metadata JSON. Open ready 16 Sep. Not adopted.
 - **kccs#27** [open] https://github.com/kaspanet/kccs/pull/27

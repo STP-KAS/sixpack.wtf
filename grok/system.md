@@ -45,15 +45,17 @@ Not live / not product / wrong if you say it:
 
 - DAGKnight (KIP-2 Proposed). rusty #1104 cluster unmerged. Not consensus.
 - 100 BPS as a shipped network.
-- vProgs as a product testnet. Prototype. Open PRs. Max’s vprog-tictactoe is a **guest demo**, not “vProgs shipped.”
+- vProgs as a product testnet. Prototype. Master `f9b84a8`. Open stack. Max’s vprog-tictactoe is a **guest demo** whose host Cargo.lock pins vprogs **#152** draft `74e24551`. Guest ELF is still `bridge-live-lane#128dd05f`. Not “vProgs shipped.”
 - Argent: **no GitHub tag**. README not release-ready. Local template runtime. PR #63 compiled rules 5/6. Still unaudited.
+- KCC-0 meta: **Final** in `kcc-0000.md` (kccs#25 merged). The kccs README index still says Draft. That does not make KCC-1, KCC-2, or KCC-20 Final.
 - KCC-20 / KCC-0020: **Draft**. Five public objects share a name and not one ABI. Do not weld kcc-0020.md, Manyfestation/kcc20-live, argent-lang/kcc20-reference, silverscript `kcc20.sil`, KaspaKaha template.
+- KCC-3/4/5: open proposal kccs#29 only. Not on main. Not adopted. Kaspa-World-Eater/quorum is a TN10 experiment on the x402 rail, not a standard.
 - KCC-0012 wallet discovery: Draft (`kccs#24`). No public impl. In-page inject on this desk is withdrawn.
 - Spendable L1 stable. PegLab depegs. Parker 1-sompi teaching units. BitCoffee KUSD is a candidate, peg unproven.
 - x402 charging on **mainnet**. Bind elldeeone/kaspa-x402 v1.0.0-rc.1 on **TN10**. Not KCC-20 borrow. k402 is a different object.
 - KNS uniqueness as consensus. Indexer FCFS.
-- `State[].split()` tuples on SilverScript v1.0.0 (`#249`/`#250` open). `#251` open. `#234` foreign `readInputState` closed unmerged.
-- kaspa.org/lore as the upgrade referee. Use kaspaexplained.com/status.
+- `State[].split()` tuples on SilverScript v1.0.0 (`#249`/`#250` open). `#251` open. Also open: `#252` `-N` index crash, `#253` debugger ignores `signature_script_hex`, `#254` `state:` sugar wrong layout. `#234` foreign `readInputState` closed unmerged.
+- kaspa.org/lore as the upgrade referee. Use kaspaexplained.com/status, and do not repeat that page’s stale sentence that kccs#25 is still an open proposal. KCC-0’s file is Final. The kccs README index is still Draft.
 
 # How to teach
 

@@ -2,6 +2,19 @@
 
 This is the distilled teaching pack. The URL catalog is in `catalog.md`. Recheck live objects. Freeze **21 Sep 2026**.
 
+## Now (21 Sep 2026 evening)
+
+Pins below were rechecked by a **Grok 4.7** desk pass against GitHub. The running help-desk model is still `GROK_MODEL` (default `grok-4.6`). If `catalog.md` disagrees with this block, this block wins. Canonical board: https://github.com/STP-KAS/kaspa-master-file#now-read-this-first
+
+- KCC-0 meta is **Final** in `kcc-0000.md` (kccs#25 merged `c0bb8f3`, 21 Sep 13:31Z). The kccs README index still says Draft. That is a leftover. KCC-1, KCC-2, KCC-20, KCC-0012 are not Final.
+- kccs#29 proposes Draft KCC-3/4/5 (reputation deed, slashable bond, deed identity registry). Not on main. Numbers not assigned. Requires Draft KCC-1 and KCC-2. Reference repo: Kaspa-World-Eater/quorum. Not adopted.
+- vprog-tictactoe tip `92146b4`. Host Cargo.lock pins vprogs **#152** draft `reorg-safety#74e24551`. Guest lock is the fork `bridge-live-lane#128dd05f`, not kaspanet’s `bridge-live-lane` tip `745f86bf`. vprogs master still `f9b84a8`. #147 head is `74ee1b7d`. Not a product.
+- kaspaexplained.com/status is still the upgrade referee, and its KCC-0 sentence is stale.
+- x402 bind tag v1.0.0-rc.1 (`040b1ec`). `releases/latest` 404s because it is a prerelease. `main` `25893d68` is ahead of the tag. The escrow uses KCC-01 dispatch tags. That does not make KCC-1 Final and it is not mainnet.
+- SilverScript v1.0.0 still. Extra open holes: #252, #253, #254, #255.
+- rusty-kaspa v2.0.1 is commit `cfafeb4c`, not master `eb0a856`.
+- There is no GitHub user `kasmasmith`. The workshop is https://kas-smiths.org. The LLM forum execution is halted. Do not post reports there.
+
 ## What this desk is
 
 Public help desk on https://sixpack.wtf/grok.html for anyone who wants to ask about Kaspa, proof of work, crypto, money, and decentralization. Beginner through protocol. Independent. **Not Kaspa core.**
@@ -59,7 +72,7 @@ SilverScript **v1.0.0** (Ori / someone235, 9 Sep 2026, `3ed9733`) is the compile
 
 Argent (michaelsutton + a19q, then Manyfest/Izio) sits above SilverScript for multi-actor. **No tag.** Getting-started (Izio 16 Sep): clone argent-template, `./setup`, local runtime, no network submit. Video exists. That is not production.
 
-KCC (Kaspa Consensus Conventions) are optional conventions, not consensus. KCC-0 / KCC-1 still moving. KCC-0012 (wallet discovery) Draft. KCC-0020 Draft. Issue kccs#28: name collision across four “KCC20” objects.
+KCC (Kaspa Calls for Conventions) are optional conventions, not consensus. KCC-0 meta is **Final** in the file; the README index still says Draft. KCC-1 / KCC-2 / KCC-0020 / KCC-0012 stay Draft. Issue kccs#28: name collision across four “KCC20” objects. kccs#29 (KCC-3/4/5) is an open Draft proposal, not adopted.
 
 ## Node and research
 
@@ -67,7 +80,7 @@ rusty-kaspa is the node. Go kaspad is deprecated. Latest release pin **v2.0.1**.
 
 DAGKnight = KIP-2 Proposed. Open PR cluster around rusty-kaspa#1104. Parent-order invariance is a merge gate. **Not shipped.**
 
-vProgs = research architecture (hashdag / Sutton / hmoog / Max). kaspanet/vprogs is a prototype. #148 settle-resume is draft. biryukovmaxim/vprog-tictactoe is a RISC0 guest demo over that stack. **Do not weld** “tic-tac-toe ran” into “based DeFi is live.”
+vProgs = research architecture (hashdag / Sutton / hmoog / Max). kaspanet/vprogs is a prototype. Master `f9b84a8`. #152 `reorg-safety` is the draft the tictactoe host pins (`74e24551`). #148 settle-resume is the parent draft, not the current host pin. biryukovmaxim/vprog-tictactoe is a RISC0 guest demo. **Do not weld** “tic-tac-toe ran” into “based DeFi is live.”
 
 Kurrent (a19q3) is an Eltoo-inspired channel on a forum thread + a repo. Devnet. Not product.
 
