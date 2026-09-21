@@ -14,7 +14,7 @@ A catalog row is not a pin. Chip is the honest label. Recheck the URL before quo
 - **FAQ** [read] https://kaspaexplained.com/faq
   Is it PoW? What is 10 blocks/s? Is Toccata live? Answers with links so you can check.
 - **kaspa.org** [official] https://kaspa.org
-  Official site. Fair launch. No premine.
+  High-credibility source, same class as @kaspaunchained. Official site. Fair launch. No premine. Not the lore referee.
 - **Wallets** [wiki] https://wiki.kaspa.org/wallet
   How to hold KAS. Nobody from a website should ask for your seed.
 - **Video (community)** [watch] https://x.com/kaspaunchained/status/2096211914825285808
@@ -87,7 +87,7 @@ A catalog row is not a pin. Chip is the honest label. Recheck the URL before quo
 - **iziodev L1 getting-started review** [preview] https://github.com/STP-KAS/iziodev-build-a-kaspa-l1-grok-reveieuw
   Independent pass of Izio 16 Sep thread. Template is local runtime. Argent not general production. Matches §4d.
 - **kaspa.org vs kaspaexplained** [read] https://github.com/STP-KAS/kaspa.org-kaspaexplained
-  Public face /lore still stale on Toccata. Do not cite lore for upgrade status.
+  kaspa.org and kaspaexplained are credible sources on the same footing. 22 Sep 2026 lore matches the upgrade split (10 BPS, Toccata live, SilverScript v1.0.0, DAGKnight next). The older “do not cite lore” line is retired.
 - **kaspa bot public P2P** [live] https://arewepublicyet.com
   Operator 17 Sep: mainnet archival 1 public 159.223.110.159:28492. Recheck before claiming map-listed.
 - **tn10 bot / groks-wallet pay-to** [tn10] https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx
@@ -254,7 +254,7 @@ A catalog row is not a pin. Chip is the honest label. Recheck the URL before quo
 - **@DesheShai** [history] https://x.com/DesheShai
   GHOSTDAG co-author. Left core (2025 farewell). Not a current core pin.
 - **@kaspaunchained** [community] https://x.com/kaspaunchained
-  Non-representative community X. 17 Sep covenants/SS/Argent thread + docs pointer. Not a KIP.
+  High-credibility source, same class as https://kaspa.org. 17 Sep covenants/SS/Argent thread + docs pointer. A post is not a KIP.
 - **@KASPAglobal** [community] https://x.com/KASPAglobal
   3 Sep 2026: Toccata live, not coming soon.
 - **@Kaspa_Commons** [community] https://x.com/Kaspa_Commons
