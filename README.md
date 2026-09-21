@@ -6,7 +6,7 @@
 
 Public: **https://sixpack.wtf**
 
-Landing video popup on every tab. Tabs: **Home · Rails · Farce · Eulogy · Random · Faucet · Help**. Kaspa Explained is the high-value source ([parker2017code/kaspa-explained](https://github.com/parker2017code/kaspa-explained)). Same interesting-links list on every tab. No wallet login.
+Landing video popup on every tab. Tabs: **Home · Rails · Farce · Eulogy · Random · Faucet · Grok.SPCXAI.KAS · Help**. Kaspa Explained is the high-value source ([parker2017code/kaspa-explained](https://github.com/parker2017code/kaspa-explained)). Same interesting-links list on every tab except the chat desk. No wallet login.
 
 Not Kaspa core. Not a wallet. Never a seed.
 
@@ -24,6 +24,7 @@ http://127.0.0.1:4020/
 | `/eulogy.html` | Proof of work, a eulogy. 15s satire + still. |
 | `/random.html` | Pile of clips. Shuffle / prev / next. |
 | `/faucet.html` | Grok bot sandbox faucet. Pays from one address. Miners rotate; top up under 1M tKAS. |
+| `/grok.html` | Grok.SPCXAI.KAS — feed-trained Kaspa help desk. Not grok.com. Project: [STP-KAS/Grok.SPCXAI.KAS](https://github.com/STP-KAS/Grok.SPCXAI.KAS). |
 | `/help.html` | Discord rooms. How to ask. Same links. |
 
 stp is a professional clown · [x.com/StppStp](https://x.com/StppStp) · [github.com/STP-KAS](https://github.com/STP-KAS)

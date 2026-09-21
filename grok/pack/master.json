@@ -1,0 +1,407 @@
+{
+  "title": "Kaspa master file",
+  "repo": "https://github.com/STP-KAS/kaspa-master-file",
+  "updated": "2026-09-21",
+  "disclaimer": "Not Kaspa core. Not official KNS. @StppStp. Merged Active KIP is law. Open PR is not.",
+  "sections": [
+    {
+      "id": "learn",
+      "title": "If you just showed up",
+      "rows": [
+        {"name": "Kaspa Explained — start here", "url": "https://kaspaexplained.com/start-here", "chip": "read", "note": "Two doors: new to crypto, or you already know it. Independent. Not kaspanet. Not this desk."},
+        {"name": "What is Kaspa?", "url": "https://kaspaexplained.com/what-is-kaspa", "chip": "read", "note": "Proof of Work. BlockDAG: honest parallel blocks are kept. GHOSTDAG orders them. What is live vs still a plan."},
+        {"name": "Kaspa Explained", "url": "https://kaspaexplained.com/", "chip": "read", "note": "Same idea in a short page. Miners hash like Bitcoin. Kaspa does not throw away the extra honest blocks."},
+        {"name": "FAQ", "url": "https://kaspaexplained.com/faq", "chip": "read", "note": "Is it PoW? What is 10 blocks/s? Is Toccata live? Answers with links so you can check."},
+        {"name": "kaspa.org", "url": "https://kaspa.org", "chip": "official", "note": "Official site. Fair launch. No premine."},
+        {"name": "Wallets", "url": "https://wiki.kaspa.org/wallet", "chip": "wiki", "note": "How to hold KAS. Nobody from a website should ask for your seed."},
+        {"name": "Video (community)", "url": "https://x.com/kaspaunchained/status/2096211914825285808", "chip": "watch", "note": "@kaspaunchained, 5 Sep 2026. “Only gets better with age.” Older clip (Odie). Not a spec. Not core. Watch, then read the pages above."},
+        {"name": "Covenants stack (community)", "url": "https://x.com/kaspaunchained/status/2100571472561586192", "chip": "x", "note": "@kaspaunchained, 17 Sep 2026. Covenants, SilverScript, Argent. Not a KIP. Argent still no tag."},
+        {"name": "Covenants docs pointer", "url": "https://x.com/kaspaunchained/status/2100572500442980776", "chip": "x", "note": "Same thread. Points at docs.kaspa.org/programmability/covenants."},
+        {"name": "Intern roundup (community)", "url": "https://x.com/kaspaunchained/status/2101676311244915028", "chip": "x", "note": "@kaspaunchained, 20 Sep 2026. KCC20 / Argent / DAGKnight / vProgs / x402. Catalog. Not a pin. Do not weld the five objects."},
+        {"name": "Official covenants docs", "url": "https://docs.kaspa.org/programmability/covenants", "chip": "official", "note": "Linked from the 17 Sep kaspaunchained thread. Live Toccata. Argent untagged."},
+        {"name": "Grok share (X)", "url": "https://x.com/i/grok/share/c59cba827c574d028607693855b2e5fc", "chip": "share", "note": "Community share. Not a KIP. Recheck before quoting."},
+        {"name": "Faucets and mining", "url": "https://kaspa.aspectron.org/faucets-mining.html", "chip": "ops", "note": "Aspectron. TN faucets, mining entry, public node network. Not kaspanet."},
+        {"name": "Kaspa Q&A", "url": "https://qa.kas.pa/", "chip": "qa", "note": "Community questions. Answers are not KIPs."},
+        {"name": "Kaspa Silver", "url": "https://www.youtube.com/channel/UCv8-2oyrfqDigJAKjZ_RCzQ", "chip": "watch", "note": "Honest protocol explainers. Not core. Not a price channel."},
+        {"name": "Kaspa Graph Inspector", "url": "https://kgi.kaspad.net/", "chip": "live", "note": "Live blockDAG. Default visual on every intel door."},
+        {"name": "kaspa.stream", "url": "https://kaspa.stream/", "chip": "explore", "note": "Explorer for ordinary reading of blocks and transactions."},
+        {"name": "Testnet-10 faucet", "url": "https://faucet-testnet.kaspanet.io", "chip": "tn10", "note": "Toy coins. Never mainnet."},
+        {"name": "kaspa.org/build", "url": "https://kaspa.org/build", "chip": "official", "note": "Official builder door: WASM, node, docs, faucet."},
+        {"name": "Grok share (build notes)", "url": "https://grok.com/share/bGVnYWN5_13075cb2-2ed7-48ac-9e88-861102ca4b4b", "chip": "share", "note": "Community share. Not a KIP."},
+        {"name": "@manyfest_ note", "url": "https://x.com/manyfest_/status/2096312480586748371", "chip": "ss", "note": "SilverScript / builder note. Not law."},
+        {"name": "The Book of Kaspa", "url": "https://www.amazon.com/Book-Kaspa-Realizing-Nakamoto-Dream/dp/B0CCCJ3936", "chip": "book", "note": "Guest book. Not consensus evidence."},
+        {"name": "Kaspa Ghost Knight", "url": "https://www.amazon.com/Kaspa-Ghost-Knight-blockchains-plight-ebook/dp/B0D2VK4PVR", "chip": "book", "note": "Guest book. Not consensus evidence."},
+        {"name": "Kas Smiths", "url": "https://kas-smiths.org", "chip": "workshop", "note": "Builder workshop. kasmith.org is the same desk name; use this URL. Not a KIP."},
+        {"name": "Aviv Zohar", "url": "https://avivz.net", "chip": "research", "note": "@Avivz78. GHOST co-author / research."},
+        {"name": "Discord help room", "url": "https://discord.com/channels/599153230659846165/960905681832140850", "chip": "discord", "note": "Dedicated rooms exist. Browse, then ask. Invite: https://discord.gg/kaspa"},
+        {"name": "Core R&D Telegram", "url": "https://t.me/kasparnd", "chip": "rnd", "note": "Observer-first. Recaps: kaspa.news."}
+      ]
+    },
+    {
+      "id": "vision",
+      "title": "Gramlane vision",
+      "rows": [
+        {"name": "project delusional", "url": "https://github.com/STP-KAS/project-delusional", "chip": "headline", "note": "Kaspa master file, ideas and principles. Still a delusional idea."},
+        {"name": "skip centralised stablecoins for dapps", "url": "https://github.com/STP-KAS/gramlane", "chip": "principle", "note": "One principle. Cheap L1 grams vs USDC-for-dApps. Not the headline."},
+        {"name": "Fill is not a business", "url": "https://github.com/STP-KAS/gramlane", "chip": "security", "note": "This desk keeps 0. Any Kaspa wallet: QR / kaspa: URI / paste txid. Inject is only Kasware or Kastle."},
+        {"name": "Anyone hosts", "url": "https://github.com/STP-KAS/gramlane", "chip": "host", "note": "Same principle as a node: PC binary, PWA of that host, hardware signs the fill. Many desks ≠ Circle. The jar is not Nakamoto."},
+        {"name": "Darwin battletest", "url": "https://github.com/STP-KAS/gramlanepeglab", "chip": "poc", "note": "Parker mix Darwin. Grams sequence dapps. PegLab depegs. MIX teaches. Compiler tag is not a dapp."},
+        {"name": "peglab-poc", "url": "https://github.com/STP-KAS/peglab-poc", "chip": "poc", "note": "Battle-tested receipt PoC. Parker unit + PegLab warning. Track 0 public goods, Track 1 BTCPay-shaped software. Not USD. ENGINE_SPEC until TN10 txids."},
+        {"name": "Think big (do-this-next)", "url": "https://github.com/STP-KAS/kaspa-master-file/blob/main/THINK-BIG.md", "chip": "plan", "note": "11 Sep full-authority orders after freeze + grok review. Summary, steps, 13 propositions. Not a KIP. Not a Kaspa dollar."},
+        {"name": "Grok x Kaspa collab", "url": "https://github.com/STP-KAS/grok-kaspa-collab", "chip": "collab", "note": "Core idea, commercial uses, beyond-crypto scheme. Real vs delusional. Not a KIP."},
+        {"name": "xAI reasoning 3", "url": "https://github.com/STP-KAS/xai-reasoning-3", "chip": "desk", "note": "Dual-rail EUR till. SEPA EPC + optional kaspa QR. 402 refuses unverified txids. Not a dollar."},
+        {"name": "Desk Grok Bot (standing authority)", "url": "https://github.com/STP-KAS/kaspa-master-file/blob/main/DESK-BOT.md", "chip": "ops", "note": "When this master file is named, Grok Build shall use kaspa bot + tn10 bot for audits/dApps. No seeds. Do not paste TN10 into kaspa bot."},
+        {"name": "Retest 17 Sep", "url": "https://github.com/STP-KAS/kaspa-master-file/blob/main/RETEST.md", "chip": "ops", "note": "All 48 STP-KAS GitHubs vs pins. Pins hold. argent-xai DRIFT. kns comment-grep fail. No seeds."},
+        {"name": "iziodev L1 getting-started review", "url": "https://github.com/STP-KAS/iziodev-build-a-kaspa-l1-grok-reveieuw", "chip": "preview", "note": "Independent pass of Izio 16 Sep thread. Template is local runtime. Argent not general production. Matches §4d."},
+        {"name": "kaspa.org vs kaspaexplained", "url": "https://github.com/STP-KAS/kaspa.org-kaspaexplained", "chip": "read", "note": "Public face /lore still stale on Toccata. Do not cite lore for upgrade status."},
+        {"name": "kaspa bot public P2P", "url": "https://arewepublicyet.com", "chip": "live", "note": "Operator 17 Sep: mainnet archival 1 public 159.223.110.159:28492. Recheck before claiming map-listed."},
+        {"name": "tn10 bot / groks-wallet pay-to", "url": "https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx", "chip": "tn10", "note": "Miners alive, same address. RPC 127.0.0.1:16210 is the Grok Bot sandbox, not automatically this PC. 19 Sep REST ~4.10M tKAS; sweep idle above 1M."},
+        {"name": "tn10 bot #1134 (not an audit)", "url": "https://github.com/kaspanet/rusty-kaspa/issues/1134", "chip": "ops", "note": "Operator research filed by tn10 bot. Grok Build 19 Sep check: not an audit, not Core. RouteIsFull is backpressure. explorer-tn10 paused; use tn10.kaspa.stream. Farm-majority claim not REST-backed."}
+      ]
+    },
+    {
+      "id": "sites",
+      "title": "Official sites",
+      "rows": [
+        {"name": "kaspa.org", "url": "https://kaspa.org", "chip": "official", "note": "Fair launch. Real-time decentralization."},
+        {"name": "LORE", "url": "https://kaspa.org/lore", "chip": "official", "note": "Shipped: Crescendo, Toccata."},
+        {"name": "Wiki", "url": "https://wiki.kaspa.org", "chip": "wiki", "note": "Wallets: wiki.kaspa.org/wallet"},
+        {"name": "kaspanet/docs", "url": "https://github.com/kaspanet/docs", "chip": "docs", "note": "Core docs repo."},
+        {"name": "docs.kaspa.org/toccata", "url": "https://docs.kaspa.org/toccata", "chip": "official", "note": "Toccata guide. Consensus live; tooling young."},
+        {"name": "research.kas.pa", "url": "https://research.kas.pa", "chip": "forum", "note": "Official Discourse. Threads ≠ KIPs. Catalog below."},
+        {"name": "kaspa.news", "url": "https://kaspa.news", "chip": "recap", "note": "Public recaps of Core R&D Telegram."},
+        {"name": "Kaspalytics", "url": "https://www.kaspalytics.com", "chip": "learn", "note": "Toccata / SilverScript explainers. Not core."},
+        {"name": "Explorer", "url": "https://explorer.kaspa.org", "chip": "live", "note": "L1 txs."},
+        {"name": "api.kaspa.org", "url": "https://api.kaspa.org", "chip": "live", "note": "Public node REST. Not kasdomain."},
+        {"name": "kaspaexplained.com", "url": "https://kaspaexplained.com/", "chip": "explained", "note": "Independent explainer. Start-here, FAQ, status. Sitemap lastmod 2026-09-20 on several doors (was 2026-09-15). Not kaspanet."},
+        {"name": "kaspaexplained.com/kips", "url": "https://kaspaexplained.com/kips", "chip": "tracker", "note": "Human map. Not law."},
+        {"name": "Status referee", "url": "https://kaspaexplained.com/status", "chip": "tracker", "note": "Live vs roadmap vs wrong. /toccata-status Moved here."},
+        {"name": "Build / covenants", "url": "https://kaspaexplained.com/build-on-kaspa", "chip": "tracker", "note": "Covenant counts. Sep 1 indexer baseline: 84196 ever, 687 active."}
+      ]
+    },
+    {
+      "id": "research",
+      "title": "research.kas.pa (forum, not law)",
+      "rows": [
+        {"name": "Forum home", "url": "https://research.kas.pa", "chip": "forum", "note": "~50 public topics. A thread is not a KIP. Freeze 11 Sep 2026."},
+        {"name": "latest.json", "url": "https://research.kas.pa/latest.json", "chip": "api", "note": "Discourse list. Re-check before quoting."},
+        {"name": "L1/L2", "url": "https://research.kas.pa/c/l1-l2/11", "chip": "forum", "note": "17 topics. vProgs, sequencing, DA, Kurrent. Out of Gramlane path."},
+        {"name": "Consensus", "url": "https://research.kas.pa/c/consensus/9", "chip": "forum", "note": "Crescendo, KIP-10, red-block txs."},
+        {"name": "Economics", "url": "https://research.kas.pa/c/economics/6", "chip": "forum", "note": "Issuance, adaptive size, tail emission. Not a KIP."},
+        {"name": "Mining", "url": "https://research.kas.pa/c/mining/7", "chip": "forum", "note": "Not this desk."},
+        {"name": "kaspanet/research", "url": "https://github.com/kaspanet/research", "chip": "papers", "note": "vProgs yellow paper. Not the forum."},
+        {"name": "Optional privacy / MWEB-like (8 Sep 2026)", "url": "https://research.kas.pa/t/optional-privacy-layer-for-kaspa-similar-to-litecoin-mweb/522", "chip": "research", "note": "JackKas. One post. Not a KIP. Not product."},
+        {"name": "Kurrent (23 Jun 2026)", "url": "https://research.kas.pa/t/kurrent-an-eltoo-inspired-latest-state-channel-on-kaspa/494", "chip": "research", "note": "a19q3. Eltoo-inspired latest-state channel on KIP-17/20. Not watch-free. Not product."},
+        {"name": "a19q3/Kurrent", "url": "https://github.com/a19q3/Kurrent", "chip": "research", "note": "Repo + thesis PDF. Local-devnet evidence. Unaudited."},
+        {"name": "Dynamic tail emission", "url": "https://research.kas.pa/t/dynamic-tail-emission-that-preserves-the-maximum-supply-to-secure-mining/473", "chip": "wrong", "note": "Apr 2026 proposal. Kaspa still has a max supply. Not a KIP."},
+        {"name": "Adaptive block sizes", "url": "https://research.kas.pa/t/adaptive-block-sizes/464", "chip": "research", "note": "Bit_Cat, Feb 2026. hashdag replied. Not shipped."}
+      ]
+    },
+    {
+      "id": "research-vprogs",
+      "title": "research.kas.pa — vProgs / L1↔L2 (not product)",
+      "rows": [
+        {"name": "Concrete vProgs architecture", "url": "https://research.kas.pa/t/concrete-proposal-for-a-synchronously-composable-verifiable-programs-architecture/387", "chip": "research", "note": "hashdag, Aug 2025. The vProgs pin. No public testnet as product."},
+        {"name": "Zoom-in: vProg computation DAG", "url": "https://research.kas.pa/t/zoom-in-a-formal-backbone-model-for-the-vprog-computation-dag/407", "chip": "research", "note": "michaelsutton, Aug 2025."},
+        {"name": "Transaction scopes / object DAG", "url": "https://research.kas.pa/t/on-transaction-scopes-and-the-visibility-of-the-object-dag/410", "chip": "research", "note": "hashdag, Aug 2025."},
+        {"name": "Pruning safety in vProgs", "url": "https://research.kas.pa/t/pruning-safety-in-the-vprogs-architecture/411", "chip": "research", "note": "FreshAir08."},
+        {"name": "Based ZK rollups over UTXO DAG", "url": "https://research.kas.pa/t/on-the-design-of-based-zk-rollups-over-kaspas-utxo-based-dag-consensus/208", "chip": "research", "note": "michaelsutton, Dec 2024. Out of Gramlane path."},
+        {"name": "Atomic composability (L1/L2)", "url": "https://research.kas.pa/t/atomic-composability-and-other-considerations-for-l1-l2-support/193", "chip": "research", "note": "hashdag, Nov 2024. Highest views on the forum."},
+        {"name": "L1↔L2 canonical bridge", "url": "https://research.kas.pa/t/l1-l2-canonical-bridge-entry-exit-mechanism/258", "chip": "research", "note": "michaelsutton. Not a live bridge."},
+        {"name": "Covenant + async message std", "url": "https://research.kas.pa/t/thoughts-about-covenant-and-async-message-standardization/293", "chip": "research", "note": "michaelsutton, Jan 2025."},
+        {"name": "Subnets sequencing commitments", "url": "https://research.kas.pa/t/subnets-sequencing-commitments/274", "chip": "research", "note": "FreshAir08 / Sutton."},
+        {"name": "Fees and throughput regulation", "url": "https://research.kas.pa/t/fees-and-throughput-regulation-dynamics/247", "chip": "research", "note": "hashdag."},
+        {"name": "L1↔L2 open topics list", "url": "https://research.kas.pa/t/updateable-list-of-l1-l2-topics-to-flesh-out-before-finalizing-design/237", "chip": "research", "note": "hashdag checklist. Still open."},
+        {"name": "Data availability", "url": "https://research.kas.pa/t/data-availability-concerns/375", "chip": "research", "note": "Hans_Moog."},
+        {"name": "Proofs stitching", "url": "https://research.kas.pa/t/a-basic-framework-for-proofs-stitching/323", "chip": "research", "note": "FreshAir08."},
+        {"name": "Multileader vs inclusion-time proving", "url": "https://research.kas.pa/t/on-the-inherent-tension-between-multileader-consensus-and-inclusion-time-proving/347", "chip": "research", "note": "michaelsutton."},
+        {"name": "Elastic throughput", "url": "https://research.kas.pa/t/a-proposal-towards-elastic-throughput/295", "chip": "wrong", "note": "hashdag. Not 100 BPS. Not a spec."}
+      ]
+    },
+    {
+      "id": "research-kips",
+      "title": "research.kas.pa — threads that became KIPs",
+      "rows": [
+        {"name": "Quadratic storage mass", "url": "https://research.kas.pa/t/quadratic-storage-mass-and-kip9/159", "chip": "Active", "note": "Became KIP-9. Law is the KIP, not the thread."},
+        {"name": "Additive addresses", "url": "https://research.kas.pa/t/auto-compounding-additive-addresses-kip10-draft/168", "chip": "Active", "note": "Became KIP-10."},
+        {"name": "Hash / ZK opcodes", "url": "https://research.kas.pa/t/additional-practical-considerations-re-hash-function-and-zk-opcodes/219", "chip": "Active", "note": "Toccata KIP-16 discussion. Most-liked forum thread."},
+        {"name": "Crescendo hardfork", "url": "https://research.kas.pa/t/crescendo-hardfork-discussion-thread/279", "chip": "Active", "note": "KIP-14 era. 10 BPS is live."},
+        {"name": "KIP-15 discussion", "url": "https://research.kas.pa/t/kip-15-discussion-thread/303", "chip": "Active", "note": "someone235. KIP-15 Active."},
+        {"name": "KIP-6 discussion", "url": "https://research.kas.pa/t/kip-6-discussion-thread/189", "chip": "Draft", "note": "KIP-6 still Draft. Not product."}
+      ]
+    },
+    {
+      "id": "kaspanet",
+      "title": "kaspanet GitHub",
+      "rows": [
+        {"name": "rusty-kaspa", "url": "https://github.com/kaspanet/rusty-kaspa", "chip": "node", "note": "v2.0.0 Toccata · v2.0.1. Master tip eb0a856 (20 Sep): #1136/#1137 merged. dagknight unmerged (tip still ad45e24). Open: #1135 ed09a8a PSKB sighash opt-in; DK #1104 a5888da (gate: parent-order invariance → run #1132 first), #1127 #1131 #1132 #1124, #1122 332ec6c, #1121 06efd83. Not shipped DK."},
+        {"name": "kips", "url": "https://github.com/kaspanet/kips", "chip": "law", "note": "Improvement proposals."},
+        {"name": "silverscript", "url": "https://github.com/kaspanet/silverscript/releases/tag/v1.0.0", "chip": "v1.0.0", "note": "Ori / someone235 tagged 9 Sep 2026, commit 3ed9733. SemVer v1. Tip unchanged through 18 Sep. Open holes: #243 compute-budget, #249/#250 State[].split tuple, #251 struct-array index. Not a second tag."},
+        {"name": "kccs", "url": "https://github.com/kaspanet/kccs", "chip": "Draft", "note": "Refuse as a gram token. KCC-0012 wallet discovery is kccs#24 (open ready head 7159d48; 20 Sep amend; still Draft / not Final). kccs#27 kcc-1↔kcc0 compliance open ready head fa845057 (Manyfestation + saefstroem APPROVED; unmerged). Issue #28: four public “KCC20” objects share a name but not one ABI/byte layout — no honest single reference until layout matches. Also open: #26 KCC-23 MJ, #25 KCC0→Final, #23 p2pk-ecdsa, #20 KCC-0020 vectors. None adopted."},
+        {"name": "vprogs", "url": "https://github.com/kaspanet/vprogs", "chip": "research", "note": "No product testnet here. Master still f9b84a8. Open: #138/#144/#145/#146; #147 head 1d449964; #148 draft head da2a7f26 (21 Sep, settle-resume; TN10 60s VCC livelock). Guest demo biryukovmaxim/vprog-tictactoe tip 6079085 pins that #148 head on the host; guest ELF still fork bridge-live-lane#128dd05f. hmoog 45 vs Max 34. Research only."},
+        {"name": "kaspad (Go)", "url": "https://github.com/kaspanet/kaspad", "chip": "deprecated", "note": "Use rusty-kaspa."}
+      ]
+    },
+    {
+      "id": "kips",
+      "title": "Toccata KIPs",
+      "rows": [
+        {"name": "KIP-16", "url": "https://github.com/kaspanet/kips/blob/master/kip-0016.md", "chip": "Active", "note": "ZK precompile."},
+        {"name": "KIP-17", "url": "https://github.com/kaspanet/kips/blob/master/kip-0017.md", "chip": "Active", "note": "Covenants."},
+        {"name": "KIP-20", "url": "https://github.com/kaspanet/kips/blob/master/kip-0020.md", "chip": "Active", "note": "Covenant IDs."},
+        {"name": "KIP-21", "url": "https://github.com/kaspanet/kips/blob/master/kip-0021.md", "chip": "Active", "note": "Lanes + grams of mass. Not desk MSG1."},
+        {"name": "KIP-2 DAGKnight", "url": "https://github.com/kaspanet/kips/blob/master/kip-0002.md", "chip": "wrong", "note": "Proposed. Not shipped. rusty dagknight unmerged. Open ready cluster through 19 Sep: #1104 #1127 #1131 #1132 #1124 #1122 (332ec6c) #1121 (06efd83). Last dagknight tip 8 Sep."}
+      ]
+    },
+    {
+      "id": "x",
+      "title": "X handles",
+      "rows": [
+        {"name": "@hashdag", "url": "https://x.com/hashdag", "chip": "founder", "note": "Yonatan Sompolinsky."},
+        {"name": "@michaelsuttonil", "url": "https://x.com/michaelsuttonil", "chip": "core", "note": "Protocol."},
+        {"name": "@OriNewman", "url": "https://x.com/OriNewman", "chip": "core", "note": "GitHub someone235."},
+        {"name": "@coderofstuff_", "url": "https://x.com/coderofstuff_", "chip": "core", "note": "Contributor."},
+        {"name": "@FreshAir08", "url": "https://x.com/FreshAir08", "chip": "research", "note": "Fees / research."},
+        {"name": "@hus_qy", "url": "https://x.com/hus_qy", "chip": "core", "note": "Hans Moog."},
+        {"name": "@IzioDev", "url": "https://x.com/IzioDev", "chip": "core", "note": "Romain Billot."},
+        {"name": "@biryukovmaxim", "url": "https://x.com/biryukovmaxim", "chip": "core", "note": "KIP-21."},
+        {"name": "@Avivz78", "url": "https://x.com/Avivz78", "chip": "research", "note": "Aviv Zohar. GHOST co-author. avivz.net."},
+        {"name": "@DesheShai", "url": "https://x.com/DesheShai", "chip": "history", "note": "GHOSTDAG co-author. Left core (2025 farewell). Not a current core pin."},
+        {"name": "@kaspaunchained", "url": "https://x.com/kaspaunchained", "chip": "community", "note": "Non-representative community X. 17 Sep covenants/SS/Argent thread + docs pointer. Not a KIP."},
+        {"name": "@KASPAglobal", "url": "https://x.com/KASPAglobal", "chip": "community", "note": "3 Sep 2026: Toccata live, not coming soon."},
+        {"name": "@Kaspa_Commons", "url": "https://x.com/Kaspa_Commons", "chip": "community", "note": "Relays Discord. Not core."},
+        {"name": "@StppStp", "url": "https://x.com/StppStp", "chip": "this", "note": "This project. Never DMs you."},
+        {"name": "@elldeeone", "url": "https://x.com/elldeeone", "chip": "ss", "note": "Luke Dunshea. GitHub elldeeone. v1 credit. Groth16 PR 138."},
+        {"name": "@asaefstroem", "url": "https://x.com/asaefstroem", "chip": "ss", "note": "Alexander Säfström. KCC-0. KCC-0012 lead (kccs#24, 11 Sep). Sutton 11 Sep praise. Draft."},
+        {"name": "@manyfest_", "url": "https://x.com/manyfest_", "chip": "ss", "note": "Sivan Helfer. GitHub Manyfestation. Compiler + KCC-0020."},
+        {"name": "@BankQuote", "url": "https://x.com/BankQuote", "chip": "community", "note": "Educator. GitHub trillskillz (OpenSilver). Long-form Toccata/covenant essays. Not core. Tweet is not a KIP."}
+      ]
+    },
+    {
+      "id": "bankquote",
+      "title": "@BankQuote essays (community, not law)",
+      "rows": [
+        {"name": "13 Sep covenants + SS + Argent", "url": "https://x.com/BankQuote/status/2099169333008093625", "chip": "essay", "note": "Stack. Argent still needs audit. Not a KIP."},
+        {"name": "10 Sep SilverScript v1", "url": "https://x.com/BankQuote/status/2098085618991481249", "chip": "essay", "note": "Compiler pin exists. Compiler + app security still need scrutiny. Argent not hardened."},
+        {"name": "9 Sep covenants as ownership", "url": "https://x.com/BankQuote/status/2097770791664239031", "chip": "essay", "note": "Vaults/escrow/treasury as design. Tooling, audits, wallets still catching up."},
+        {"name": "8 Sep Argent ICC", "url": "https://x.com/BankQuote/status/2097352240549753241", "chip": "essay", "note": "Pre-release. Needs audit. No Argent tag."},
+        {"name": "30 Aug SilverScript v1-rc1", "url": "https://x.com/BankQuote/status/2094127101825929410", "chip": "history", "note": "v1.0.0 tagged 9 Sep. This post is history."},
+        {"name": "29 Aug Argent UTXO-native", "url": "https://x.com/BankQuote/status/2093738838883483934", "chip": "essay", "note": "Not an EVM clone. DAGKnight still a target."},
+        {"name": "26 Aug layers", "url": "https://x.com/BankQuote/status/2092626699737297362", "chip": "essay", "note": "Covenants, Argent, DAGKnight as different layers. DK is not consensus."},
+        {"name": "22 Aug post-Toccata stack", "url": "https://x.com/BankQuote/status/2091199737257140436", "chip": "essay", "note": "Higher stack experimental, not finished production."},
+        {"name": "30 Jul Argent actors + ICC", "url": "https://x.com/BankQuote/status/2082962866240450706", "chip": "essay", "note": "Experimental, not production-ready."},
+        {"name": "22 Jul programmable PoW", "url": "https://x.com/BankQuote/status/2079931220859699259", "chip": "essay", "note": "Seed post. Tx v1 / KIP-16 / 20 / 21. Primitives live; tooling is the next battle."},
+        {"name": "10 Jul tx v1 surface", "url": "https://x.com/BankQuote/status/2075573111232077948", "chip": "essay", "note": "Same architecture as 22 Jul. Not a shared-state VM."},
+        {"name": "19 Jun programmable UTXO cell", "url": "https://x.com/BankQuote/status/2068101137895412170", "chip": "essay", "note": "KIP-17 inspect / KIP-20 lineage / KIP-16 proofs. Not an EVM clone."},
+        {"name": "25 May OpenSilver", "url": "https://x.com/BankQuote/status/2058954066345001133", "chip": "community", "note": "Author of trillskillz/OpenSilver. Not audited."},
+        {"name": "18 May conditional settlement", "url": "https://x.com/BankQuote/status/2056460968104702078", "chip": "research", "note": "Design, not product. DAGKnight / based-ZK / L2 KAS still roadmap."},
+        {"name": "22 Apr Toccata + KIP-21", "url": "https://x.com/BankQuote/status/2046948600094101946", "chip": "history", "note": "Pre-activation. Architecture still matches."},
+        {"name": "19 Apr programmable settlement", "url": "https://x.com/BankQuote/status/2045943476546605124", "chip": "history", "note": "Toccata groundwork, vProgs horizon. Honest split."}
+      ]
+    },
+    {
+      "id": "chat",
+      "title": "Discord + Telegram",
+      "rows": [
+        {"name": "Discord invite", "url": "https://discord.gg/kaspa", "chip": "discord", "note": "Guild 599153230659846165."},
+        {"name": "Discord widget API", "url": "https://discord.com/api/guilds/599153230659846165/widget.json", "chip": "off", "note": "Disabled (50004) 5 Sep 2026. No public member JSON."},
+        {"name": "Discord bot docs", "url": "https://discord.com/developers/docs/intro", "chip": "api", "note": "Platform API. This desk is not a Discord bot."},
+        {"name": "t.me/kaspa", "url": "https://t.me/kaspa", "chip": "telegram", "note": "Main group. Telegram Inc."},
+        {"name": "t.me/kaspaenglish", "url": "https://t.me/kaspaenglish", "chip": "telegram", "note": "English community."},
+        {"name": "t.me/kasparnd", "url": "https://t.me/kasparnd", "chip": "rnd", "note": "Core R&D. ~2958 members. No public web archive. Recaps: kaspa.news."},
+        {"name": "Telegram Bot API", "url": "https://core.telegram.org/bots/api", "chip": "api", "note": "Telegram Inc. Not Gramlane Telegram notes."}
+      ]
+    },
+    {
+      "id": "other",
+      "title": "Other GitHubs",
+      "rows": [
+        {"name": "Portrait", "url": "https://github.com/KaspaKii/Portrait", "chip": "testnet", "note": "Public 1 Sep 2026. Unaudited."},
+        {"name": "OpenSilver", "url": "https://github.com/trillskillz/OpenSilver", "chip": "community", "note": "22 SilverScript patterns. BankQuote / trillskillz. Not kaspanet. Not audited."},
+        {"name": "kaspa-pqv", "url": "https://github.com/aglov413/kaspa-pqv", "chip": "TN10", "note": "Posted Core R&D 27 Aug. Hash-based PQ vault. Unaudited."},
+        {"name": "Argent", "url": "https://github.com/argent-lang/argent", "chip": "preview", "note": "Sutton multi-actor layer above Silverscript. PR 59 (8 Sep). PR 60 (10 Sep) pins sil v1.0.0. PR 63 (14 Sep) rules 5/6 compile. PR 62 open. Not release-ready. No tag. Getting-started: Izio 16 Sep template ./setup (local runtime)."},
+        {"name": "argent-playground", "url": "https://github.com/argent-lang/argent-playground", "chip": "preview", "note": "Local demos. PR target for community apps. Not network proof."},
+        {"name": "argent-template", "url": "https://github.com/argent-lang/argent-template", "chip": "preview", "note": "Starter. ./setup. Local runtime only: no network, no wallet, no submit."},
+        {"name": "kcc20-reference", "url": "https://github.com/argent-lang/kcc20-reference", "chip": "wip", "note": "WIP. Empty README. PR 1 open. Not adopted KCC-20."},
+        {"name": "kcc20-live", "url": "https://github.com/Manyfestation/kcc20-live", "chip": "preview", "note": "Offline Argent demo (9 Sep). Field order in .ag swaps borrow_guard/borrow_scheme vs Draft spec. Not the standard. Not KaspaKaha."},
+        {"name": "Crypto finance (desk law)", "url": "https://github.com/STP-KAS/kaspa-master-file/blob/main/CRYPTO-FINANCE.md", "chip": "desk", "note": "Grok Build/Ask/Bot consolidation. No seeds. Dual rail. Native KAS unit. Skip issuer stables as gas."},
+        {"name": "kaspa-x402", "url": "https://github.com/elldeeone/kaspa-x402", "chip": "tn10", "note": "elldeeone. x402 v2 binding. Tag v1.0.0-rc.1. TN10 only. Mainnet blocked. Not KCC-20 borrow. kaspa-x402.org. Bind this envelope."},
+        {"name": "k402", "url": "https://github.com/Kali123411/k402", "chip": "draft", "note": "HTTP 402 + kaspa-channel lock/voucher. kccs#4 open. Steal the lock. Not elldeeone x402 v2. Not adopted KCC-0402."},
+        {"name": "KCC-0012 / kccs#24", "url": "https://github.com/kaspanet/kccs/pull/24", "chip": "draft", "note": "Browser wallet provider + discovery. saefstroem 11 Sep. Izio reviewing 12 Sep. No public implementation. Not adopted. Inject stays Kasware/Kastle."},
+        {"name": "gramlane", "url": "https://github.com/STP-KAS/gramlane", "chip": "this", "note": "skip centralised stablecoins for dapps. Cheap grams. Still delusional."},
+        {"name": "kns-spec", "url": "https://github.com/STP-KAS/kns-spec", "chip": "this", "note": "Implementer kit. URL https://stp-kas.github.io/kns-spec/ KasName recompiled with silverc v1.0.0."},
+        {"name": "mixer-concept", "url": "https://github.com/STP-KAS/mixer-concept", "chip": "mix", "note": "Parker GitHub models + STP doors + PegLab classroom. Education. Not a token. Not kaspaexplained.com."},
+        {"name": "peglab-stp", "url": "https://github.com/STP-KAS/peglab-stp", "chip": "tn10", "note": "Toy that WILL depeg. Not USD. Not Gramlane grams."},
+        {"name": "gramlanepeglab", "url": "https://github.com/STP-KAS/gramlanepeglab", "chip": "darwin", "note": "Parker mix Darwin battletest. Sequencing PoC vs a depeg lab vs MIX doors."},
+        {"name": "peglab-poc", "url": "https://github.com/STP-KAS/peglab-poc", "chip": "poc", "note": "Receipt PoC after PegLab vs Parker. 1 sompi = 1 unit. Two tracks. Not USD. Not tPEG money."},
+        {"name": "KaChat", "url": "https://github.com/vsmirn0v/KaChat", "chip": "other", "note": "Not cloned."},
+        {"name": "coderofstuff dk-wiki", "url": "https://github.com/coderofstuff/dk-wiki", "chip": "wrong", "note": "Unofficial. Not a pin."},
+        {"name": "a19q3/Kurrent", "url": "https://github.com/a19q3/Kurrent", "chip": "research", "note": "Latest-state channel. Forum 494. Devnet only. Not Gramlane."}
+      ]
+    },
+    {
+      "id": "silverscript-people",
+      "title": "SilverScript v1 contributors",
+      "rows": [
+        {"name": "someone235 / Ori Newman", "url": "https://github.com/someone235", "chip": "lead", "note": "Tagged v1.0.0 on 9 Sep 2026 (3ed9733) and v1-rc1 on 30 Aug. X @OriNewman. KIP-17. rusty-kaspa."},
+        {"name": "michaelsutton", "url": "https://github.com/michaelsutton", "chip": "review", "note": "20 commits. X @michaelsuttonil. Argent + KCC-0020 + KIP-21."},
+        {"name": "IzioDev / Romain Billot", "url": "https://github.com/IzioDev", "chip": "review", "note": "10 commits. X @IzioDev. KEF-funded. KCC-0020 + KIP-25 draft. izio.fr."},
+        {"name": "Manyfestation / Sivan Helfer", "url": "https://github.com/Manyfestation", "chip": "compiler", "note": "9 commits. X @manyfest_. Debugger, KCC-0020, Kas-Smiths."},
+        {"name": "elldeeone / Luke Dunshea", "url": "https://github.com/elldeeone", "chip": "zk", "note": "2 commits. X @elldeeone. g16.verify PR 138. dunshea.au. x402."},
+        {"name": "v1.0.0 release", "url": "https://github.com/kaspanet/silverscript/releases/tag/v1.0.0", "chip": "pin", "note": "Official SemVer v1. 9 Sep 2026. Credits: elldeeone, IzioDev, Manyfestation, michaelsutton."},
+        {"name": "v1-rc1 (history)", "url": "https://github.com/kaspanet/silverscript/releases/tag/v1-rc1", "chip": "history", "note": "30 Aug 2026, c7d17a1. Replaced by v1.0.0."},
+        {"name": "CashScript (inspiration)", "url": "https://cashscript.org/", "chip": "credit", "note": "Rosco Kalis MIT. Grammar ancestor. Not Kaspa core."}
+      ]
+    },
+    {
+      "id": "rnd-log",
+      "title": "R&D / Discord log (public recaps)",
+      "rows": [
+        {"name": "20 Sep kccs#28 + #1104/#1132 gate", "url": "https://github.com/kaspanet/kccs/issues/28", "chip": "draft", "note": "#28 KCC20 name≠ABI collision. #1104 desk: parent-order invariance gate; run #1132 on a5888da before merge. #24/#27 already pinned at 7159d48 / fa845057 APPROVED. Not Final / DK not shipped."},
+        {"name": "21 Sep tictactoe a758a9b tn10 CUDA runbook", "url": "https://github.com/biryukovmaxim/vprog-tictactoe/commit/a758a9b", "chip": "research", "note": "Docs: private multi-machine tn10 walkthrough (kaspad + CUDA prover + keyless follower). Replaces 'not yet E2E'. Not a public product. Dust-storm 60s wRPC = vprogs#148. Guest ELF gitignored. Remaining: aggregate-prover panic on reorg past proven block. Desk commit comment 201298452."},
+        {"name": "21 Sep tictactoe match = Sutton based-app now", "url": "https://github.com/STP-KAS/kaspa-master-file/blob/main/VPROG-TICTACTOE.md", "chip": "research", "note": "Match pot is in-guest user-balance credit (2x stake / stake-back). L1 is only deposit/withdraw/claim. Pre-commit FIFO cap 4 + cascade = multi-ply in one sequenced carrier. Finalizing turn must Write-attach both players. Timeout permissionless on DAA. kaspanet/vprogs examples/tn10-runtime is battery-only; this guest adds the game. Single based app, not cross-vprog. Not a product."},
+        {"name": "21 Sep vprog-tictactoe 93-commit study", "url": "https://github.com/biryukovmaxim/vprog-tictactoe", "chip": "research", "note": "Grok Build (Windows desk) read all 93 master commits, tip 6079085. Guest demo not a product. Host pin kaspanet/vprogs settle-resume=da2a7f26 (#148 draft head). Guest lock still biryukovmaxim bridge-live-lane#128dd05f. #23 open (lazy signer in bd989be; issue leftover-open; vendor wasm 0.1.5 stale). README tn10 not E2E. Sourced commit comments posted. Not Kaspa core, not an audit."},
+        {"name": "20 Sep kaspaunchained intern roundup", "url": "https://x.com/kaspaunchained/status/2101676311244915028", "chip": "x", "note": "Catalog. KCC20/Argent/DK/vProgs/x402. Do not weld. kcc20-live field-order swap vs Draft spec. x402 RC1 not KCC-20. DK #1104 still a5888da. vprogs #148 draft. Pins hold. Not an oracle — facts stay in this master file."},
+        {"name": "20 Sep kccs#24 head 7159d48 + #27 approval", "url": "https://github.com/kaspanet/kccs/pull/24", "chip": "draft", "note": "#24 amend 7159d48 (~15:53Z) aligns KCC-0012 with review comments (was 06400c3). #27 still fa845057; saefstroem APPROVED ~16:08Z (still open ready / not Final). kaspaexplained sitemap lastmod 2026-09-20. No DK/Argent/SS tip change."},
+        {"name": "20 Sep rusty master eb0a856", "url": "https://github.com/kaspanet/rusty-kaspa/commit/eb0a856d4e1e", "chip": "node", "note": "Master tip eb0a856. #1136 merged IBD 20 MiB chunks; #1137 merged RejectCoinbase. DK still unmerged (ad45e24). vprogs #147→1d449964; #148 draft restart-resume. kaspa.stream app 9f4088ca…"},
+        {"name": "20 Sep #1135/#1136 + #1104 naming", "url": "https://github.com/kaspanet/rusty-kaspa/pull/1135", "chip": "research", "note": "#1135 ed09a8a PSKB non-SIG_HASH_ALL opt-in; #1136 2c0df83 IBD 20 MiB header chunks. #1104 review naming (conflict_ordered_parents / IS_FREE / CODER); head still a5888da. Not shipped."},
+        {"name": "19 Sep #1104 review wave 2", "url": "https://github.com/kaspanet/rusty-kaspa/pull/1104", "chip": "research", "note": "Continued review ~19:38–22:04Z (D-Stacks + STP-KAS): parent-index ordering vs #1132 shuffle; SmallVec; u16::MAX assert; hash API; mem::take; all_tips rename; TieBreakingContext. Head still a5888da. Issue #1134 desk note ~18:33Z. Not shipped."},
+        {"name": "19 Sep vprogs#147 ELF + #1104 review", "url": "https://github.com/kaspanet/vprogs/pull/147", "chip": "research", "note": "#147 head af5f9a0 guest ELF refresh for chain_idx settlement. rusty #1104 review through ~17:42Z (Deref store-wrapper suggestion); head still a5888da. Not shipped."},
+        {"name": "19 Sep vprogs#147 reorg-filter + DK #1122/#1121", "url": "https://github.com/kaspanet/vprogs/pull/147", "chip": "research", "note": "#147 head 51bb9d4: adaptive-reorg-filter disable + wire-through. DK #1122 head 332ec6c; #1121 head 06efd83 (merge advances ~12:00Z). Not shipped."},
+        {"name": "19 Sep vprogs#147 shutdown drain", "url": "https://github.com/kaspanet/vprogs/pull/147", "chip": "research", "note": "Open non-draft head b6e3d56 (~07:11Z). Drain write-worker queue on shutdown. No product testnet."},
+        {"name": "18 Sep kccs#27 head fa845057", "url": "https://github.com/kaspanet/kccs/pull/27", "chip": "draft", "note": "Non-draft open. KCC-01/KCC0 compliance + conformance.json. Review/approval ~15:41Z (Manyfestation). Variable-length canonical state fields; deeper transitions deferred. #24 clarifications 15:27–15:31Z. Still not Final."},
+        {"name": "18 Sep kccs#27 + #24", "url": "https://github.com/kaspanet/kccs/pull/27", "chip": "draft", "note": "kccs#27 kcc-1 kcc0 compliance updated 18 Sep 13:29 UTC. kccs#24 KCC-0012 still open ready (07:13 UTC). Still Draft / not Final. No public wallet impl."},
+        {"name": "16 Sep kccs#26 KCC-23", "url": "https://github.com/kaspanet/kccs/pull/26", "chip": "draft", "note": "Add KCC-23 MJ — Metadata JSON. Open ready. Not adopted."},
+        {"name": "17 Sep vprogs exit/lane PRs", "url": "https://github.com/kaspanet/vprogs/pull/146", "chip": "research", "note": "#146 reorg-safe claim exits; #145 busy-DAG mergeset; #144 join live lane; #138 exit-index. No product testnet."},
+        {"name": "17 Sep Argent #62", "url": "https://github.com/argent-lang/argent/pull/62", "chip": "preview", "note": "Module loading rework still open (updated 17 Sep). Tip still e76ee07 = #63 merged 14 Sep. No tag. Not release-ready."},
+        {"name": "27 Aug PQ vault TN10", "url": "https://kaspa.news/articles/post-quantum-vault-spends-on-kaspa-testnet-using-existing-script", "chip": "rnd", "note": "Aglovale in Core R&D Telegram. Ordinary script, no ZK opcode."},
+        {"name": "22 Aug Argent sync", "url": "https://kaspa.news/articles", "chip": "rnd", "note": "Sutton merged Argent onto current SilverScript."},
+        {"name": "23 Aug KCC-0020 AMM test", "url": "https://kaspa.news/articles", "chip": "draft", "note": "KaspaKaha testnet AMM. Not the standard."},
+        {"name": "3 Sep Toccata live post", "url": "https://x.com/KASPAglobal", "chip": "live", "note": "DAA 474165565. Not coming soon."},
+        {"name": "4 Sep framing article", "url": "https://kaspa.news/articles/why-reading-a-number-is-not-the-same-as-trusting-it", "chip": "234", "note": "Foreign reads still unsafe. Gramlane only validateOutputState."},
+        {"name": "4 Sep dagknight PRs", "url": "https://github.com/kaspanet/rusty-kaspa/pulls", "chip": "research", "note": "Open/draft. KIP-2 not shipped."},
+        {"name": "9 Sep SilverScript v1.0.0", "url": "https://github.com/kaspanet/silverscript/releases/tag/v1.0.0", "chip": "pin", "note": "Ori / someone235. Commit 3ed9733. SemVer v1. #234 still unmerged. #243 still open."},
+        {"name": "Ori v1 X post", "url": "https://x.com/OriNewman/status/2097731203503640976", "chip": "x", "note": "9 Sep. Silverscript will evolve; Argent adds higher layers."},
+        {"name": "Sutton layer post", "url": "https://x.com/michaelsuttonil/status/2094140618045800510", "chip": "x", "note": "30 Aug. Silverscript = one contract. Argent = multi-actor."},
+        {"name": "Argent PR 59", "url": "https://github.com/argent-lang/argent/pull/59", "chip": "preview", "note": "Merged 8 Sep. State vectors/slices in args!. Manyfestation."},
+        {"name": "Argent PR 60", "url": "https://github.com/argent-lang/argent/pull/60", "chip": "preview", "note": "Merged 10 Sep. Synced to sil v1.0.0. Leader/delegate guide. Rules 5/6 were unimplemented that day; compiled 14 Sep via PR 63."},
+        {"name": "Argent PR 63", "url": "https://github.com/argent-lang/argent/pull/63", "chip": "preview", "note": "Merged 14 Sep. Leader/delegate rules 5 and 6 now compile into generated Sil. Still no tag."},
+        {"name": "Argent PR 62", "url": "https://github.com/argent-lang/argent/pull/62", "chip": "open", "note": "Module loading rework. Open 17 Sep."},
+        {"name": "Izio Argent getting-started", "url": "https://x.com/IzioDev/status/2100178860700512752", "chip": "x", "note": "16 Sep. Git+Rust, clone argent-template, ./setup, video. Local runtime. Not a tag."},
+        {"name": "kaspaunchained covenants stack", "url": "https://x.com/kaspaunchained/status/2100571472561586192", "chip": "x", "note": "17 Sep. Community explainer: covenants, SilverScript, Argent. Not a KIP. Argent still no tag."},
+        {"name": "kaspaunchained covenants docs", "url": "https://x.com/kaspaunchained/status/2100572500442980776", "chip": "x", "note": "17 Sep. Points at docs.kaspa.org/programmability/covenants."},
+        {"name": "Silverscript #249", "url": "https://github.com/kaspanet/silverscript/issues/249", "chip": "bug", "note": "10 Sep. State[].split() tuple destructure fails on v1.0.0 (3ed9733). Fix PR #250 open."},
+        {"name": "IzioDev SS x Argent x KCC", "url": "https://x.com/IzioDev/status/2097918399737139331", "chip": "x", "note": "10 Sep. Layers: Silverscript = foundation, Argent = multi-actor, KCC still draft."},
+        {"name": "IzioDev leader/delegator", "url": "https://x.com/IzioDev/status/2098087085051986330", "chip": "x", "note": "10 Sep. One covenant-group diagram. Delegator runs less compute. Not a pin."},
+        {"name": "Sutton 11 Sep partitioned state", "url": "https://x.com/michaelsuttonil/status/2098204180406026482", "chip": "research", "note": "Working hypothesis: global DeFi not sequential. Push partitioned/parallel/replicated state. Not a KIP. Not product. Gramlane stays one own-UTXO."},
+        {"name": "Sutton vProgs bottleneck note", "url": "https://x.com/michaelsuttonil/status/2098371171498459629", "chip": "research", "note": "If DeFi must go through shared-state bottlenecks, ZK will not save scale. Essay not written. Infra first."},
+        {"name": "kips#46 KIP-20 split/sibling", "url": "https://github.com/kaspanet/kips/issues/46", "chip": "open", "note": "cyprox oracle/CDP reading question. Sutton: sibling OpInputCovenantId yes; 1-to-many keeps covenant_id yes. Not a new KIP. Not our dollar."},
+        {"name": "Argent ICC semantics", "url": "https://github.com/argent-lang/argent/blob/master/docs/icc-semantics.md", "chip": "preview", "note": "Sutton 11 Sep pointer. Closed vs open ICC. Docs incomplete. No Argent tag. Not Gramlane."},
+        {"name": "Sutton 11 Sep on Alex", "url": "https://x.com/michaelsuttonil/status/2098433221021118762", "chip": "x", "note": "saefstroem connecting dapp-dev process + ecosystem standardization. Same day as KCC-0012. Not a merge."},
+        {"name": "KCC-0012 draft", "url": "https://github.com/kaspanet/kccs/pull/24", "chip": "draft", "note": "11 Sep. Wallet discovery. kaspa.news recap 12 Sep. Draft. No public implementation."},
+        {"name": "kaspa.news 12 Sep wallets", "url": "https://kaspa.news/articles/a-new-kaspa-wallet-still-needs-every-website-to-add-it", "chip": "recap", "note": "KCC-0012 recap. A new wallet still needs every site to add it until this draft ships."},
+        {"name": "kaspa.news 11 Sep catch-up", "url": "https://kaspa.news/articles/wallets-still-have-to-catch-up-before-kaspa-feels-easy-to-use", "chip": "recap", "note": "Paged UTXO lookup under review. ECDSA owner display still a proposal. Argent rules 5/6 unimplemented that day; compile as of 14 Sep."},
+        {"name": "Silverscript #251", "url": "https://github.com/kaspanet/silverscript/pull/251", "chip": "open", "note": "11 Sep. Indexing struct-array expressions. Independent of #250. Not merged."},
+        {"name": "8 Sep MWEB-like thread", "url": "https://research.kas.pa/t/optional-privacy-layer-for-kaspa-similar-to-litecoin-mweb/522", "chip": "research", "note": "JackKas. Not a KIP. Not product."},
+        {"name": "23 Jun Kurrent RFC", "url": "https://research.kas.pa/t/kurrent-an-eltoo-inspired-latest-state-channel-on-kaspa/494", "chip": "research", "note": "a19q3 on research.kas.pa. Eltoo-inspired channel. Not product."}
+      ]
+    },
+    {
+      "id": "intel-freeze",
+      "title": "L1 snapshot (intel pack 2026-09-12)",
+      "rows": [
+        {"name": "Virtual DAA", "url": "https://api.kaspa.org/info/blockdag", "chip": "537990049", "note": "Fetched 12 Sep 2026. Recheck before quoting."},
+        {"name": "Circulating KAS", "url": "https://api.kaspa.org/info/coinsupply", "chip": "~27.696B", "note": "2769613584854247697 sompi. Of ~28.704B max. Recheck."},
+        {"name": "Block reward", "url": "https://api.kaspa.org/info/blockreward", "chip": "2.18267645", "note": "Step at DAA 531207000 fired. Next 557505000."},
+        {"name": "Covenant adoption (1 Sep baseline)", "url": "https://kaspaexplained.com/build-on-kaspa", "chip": "early", "note": "84196 ever, 687 active, ~1.56M KAS. TN10 ~88493 active."},
+        {"name": "Do not claim", "url": "https://github.com/STP-KAS/kaspa-master-file", "chip": "wrong", "note": "100 BPS, DAGKnight live, KCC-20/0012 adopted, vProgs live, Kurrent mainnet, Argent production-ready, pqv/Portrait mainnet, State[].split() tuples on v1.0.0."}
+      ]
+    },
+    {
+      "id": "intel-githubs",
+      "title": "Extra GitHubs (intel pack)",
+      "rows": [
+        {"name": "kccs#28", "url": "https://github.com/kaspanet/kccs/issues/28", "chip": "open", "note": "Opened 20 Sep: four public KCC20 objects share a name but not one ABI/byte layout (draft kcc-0020.md, Manyfestation/kcc20-live, SilverScript example, KaspaKaha/KCC20). Blocks honest single reference until layout matches."},
+        {"name": "rusty#1137", "url": "https://github.com/kaspanet/rusty-kaspa/pull/1137", "chip": "merged", "note": "MERGED 20 Sep (eb0a856). Mempool RejectCoinbase + regression tests. Approved michaelsutton."},
+        {"name": "vprogs#149 kaspa-pin", "url": "https://github.com/kaspanet/vprogs/pull/149", "chip": "open", "note": "21 Sep. Pin rusty to eb0a856d (not a node tag). #131 stack rebases here. Tictactoe host already on this rev; guest ELF still 128dd05f. Desk comment 5759822579."},
+        {"name": "vprogs#131 guest-batteries", "url": "https://github.com/kaspanet/vprogs/pull/131", "chip": "open", "note": "Battery extraction. Own body: tictactoe is first consumer git-pinning this branch — guest lock has moved to fork bridge-live-lane#128dd05f. ABI expect at zk/abi abi.rs:22 still panics duplicate access lists. Desk comment 5759822448."},
+        {"name": "biryukovmaxim/vprog-tictactoe", "url": "https://github.com/biryukovmaxim/vprog-tictactoe/issues/24", "chip": "demo", "note": "Max guest demo (not kaspanet). 94 commits, tip a758a9b 21 Sep tn10 CUDA runbook (private multi-machine; not a public product). Host pin settle-resume#da2a7f26. Guest ELF fork bridge-live-lane#128dd05f. Open #23. Desk report #24."},
+        {"name": "vprogs#148", "url": "https://github.com/kaspanet/vprogs/pull/148", "chip": "draft", "note": "Draft. Head da2a7f26 (21 Sep; was cbed6852). settle-resume: restart-resume journaling, TN10 60s VCC livelock. vprog-tictactoe host pin tracks this head. Research only."},
+        {"name": "kaspa.stream app", "url": "https://kaspa.stream/", "chip": "explorer", "note": "app-version 9f4088ca… observed 20 Sep (was 7ab5ce0…). No public changelog."},
+        {"name": "rusty#1135", "url": "https://github.com/kaspanet/rusty-kaspa/pull/1135", "chip": "open", "note": "Require explicit opt-in for non-SIG_HASH_ALL PSKB signing (someone235, 20 Sep, head ed09a8a)."},
+        {"name": "rusty#1136", "url": "https://github.com/kaspanet/rusty-kaspa/pull/1136", "chip": "merged", "note": "MERGED 20 Sep (f2f87ff → master). Split pruning-point proofs/headers/trusted data to 20 MiB chunks during IBD."},
+        {"name": "vprogs#147", "url": "https://github.com/kaspanet/vprogs/pull/147", "chip": "open", "note": "Head 1d449964 (20 Sep): shutdown drain/commit + adaptive-reorg-filter disable + tests. Research only."},
+        {"name": "kccs#26", "url": "https://github.com/kaspanet/kccs/pull/26", "chip": "open", "note": "KCC-23 MJ — Metadata JSON. Open ready 16 Sep. Not adopted."},
+        {"name": "kccs#27", "url": "https://github.com/kaspanet/kccs/pull/27", "chip": "open", "note": "kcc-1: kcc0 compliance. Open ready head fa845057 (18 Sep). Large kcc-0001/vectors/conformance.json; variable-length canonical state fields discussed; deeper transition rules deferred. Approvals: Manyfestation ~15:41Z 18 Sep; saefstroem ~16:08Z 20 Sep. Not Final."},
+        {"name": "rusty DK cluster", "url": "https://github.com/kaspanet/rusty-kaspa/pull/1104", "chip": "research", "note": "Open ready (not shipped): #1104 head a5888da (desk 20 Sep ~20:51Z: remaining gate = parent-order invariance; run #1132 on this head before merge); #1127 #1131 #1132 #1124; #1122 332ec6c; #1121 06efd83. Last dagknight commit still 8 Sep. Master tip eb0a856 (non-DK)."},
+        {"name": "argent-lang/argent", "url": "https://github.com/argent-lang/argent", "chip": "demo", "note": "#59 8 Sep, #60 10 Sep, #63 merged 14 Sep (rules 5/6). Tip e76ee07 14 Sep. #62 module loading open 17 Sep. Unaudited. No tag. Not Gramlane."},
+        {"name": "argent-playground", "url": "https://github.com/argent-lang/argent-playground", "chip": "demo", "note": "Examples."},
+        {"name": "vprogs#139", "url": "https://github.com/kaspanet/vprogs/pull/139", "chip": "open", "note": "ExitLeaf claim kit. Also #138/#140/#142. Review cluster 16–17 Sep: #144/#145/#146. No product testnet."},
+        {"name": "elldeeone/kaspa-x402", "url": "https://github.com/elldeeone/kaspa-x402", "chip": "tn10", "note": "x402 v2 binding. Bind this. Do not invent a fourth envelope."},
+        {"name": "Grok heavy review", "url": "https://github.com/STP-KAS/kaspa-master-file/blob/main/GROK-HEAVY-REVIEW.md", "chip": "review", "note": "11 Sep adversarial pass. Pin v1.0.0. Holes #234 #243 #249."},
+        {"name": "Think big", "url": "https://github.com/STP-KAS/kaspa-master-file/blob/main/THINK-BIG.md", "chip": "plan", "note": "Do-this-next. Track 0 / Track 1. Bind kaspa-x402. Fill timeout journal. Not a dollar."},
+        {"name": "Grok x Kaspa collab", "url": "https://github.com/STP-KAS/grok-kaspa-collab", "chip": "collab", "note": "Core idea, commercial uses, beyond-crypto scheme. Not a dollar."},
+        {"name": "kccs#20", "url": "https://github.com/kaspanet/kccs/pull/20", "chip": "open", "note": "KCC-20 vectors. Transfer sig unconfirmed. Still open ready (not Final)."},
+        {"name": "kccs#24", "url": "https://github.com/kaspanet/kccs/pull/24", "chip": "open", "note": "KCC-0012 wallet provider/discovery. Open ready head 7159d48 (20 Sep amend: aligned with review comments; was 06400c3). Still Draft status. No public implementation."},
+        {"name": "silverscript#223", "url": "https://github.com/kaspanet/silverscript/pull/223", "chip": "merged", "note": "IzioDev dispatch tags ↔ KCC-1."},
+        {"name": "simply-kaspa-indexer", "url": "https://github.com/supertypo/simply-kaspa-indexer", "chip": "indexer", "note": "L1 Postgres indexer. KNS resolver uses this class of indexer. Not api.knsdomains.org."},
+        {"name": "KNS docs", "url": "https://kns-2.gitbook.io/kns-docs-1/", "chip": "kns", "note": "Official GitBook."},
+        {"name": "KNS inscriptions", "url": "https://kns-2.gitbook.io/kns-docs-1/inscriptions/overview", "chip": "kns", "note": "Commit-reveal. Envelope id kns."},
+        {"name": "KNS wallets", "url": "https://kns-2.gitbook.io/kns-docs-1/supporting-wallet", "chip": "kns", "note": "KasWare, Kastle extension, Kurncy, Kasanova. Kastle mobile cannot inscribe. No ECDSA."},
+        {"name": "KNS indexer API", "url": "https://kns-2.gitbook.io/kns-docs-1/kns-indexer-api", "chip": "kns", "note": "api.knsdomains.org + apidoc.knsdomains.org."},
+        {"name": "KNS app", "url": "https://app.knsdomains.org", "chip": "kns", "note": "Official product."},
+        {"name": "KNS overlay kns://", "url": "https://stp-kas.github.io/kns-spec/overlay.html", "chip": "web4", "note": "Four planes: settle, locate, session, run. Spec OVERLAY.md. Not official KNS. Not a new chain."},
+        {"name": "KNS conformance", "url": "https://github.com/STP-KAS/kns-spec/blob/main/CONFORMANCE.md", "chip": "web4", "note": "MUST/SHOULD for wallets + indexer. Add ipfs/peer/onion profile keys."},
+        {"name": "KNS Web4 architecture", "url": "https://github.com/STP-KAS/kns-spec/blob/main/WEB4.md", "chip": "web4", "note": "Four planes. Do not copy ENS rent/registry/Infura. BINDING ≠ libp2p identity."},
+        {"name": "KNS real vs paper", "url": "https://github.com/STP-KAS/kns-spec/blob/main/REAL.md", "chip": "honest", "note": "Inscriptions+indexer. Wallet chrome and pinning, not a new chain."},
+        {"name": "kns-spec localhost", "url": "http://127.0.0.1:8083/open.html", "chip": "local", "note": "This machine only. kns-spec serve. Sisters :8080/:8081/:8082."},
+        {"name": "kaspium_wallet", "url": "https://github.com/azbuky/kaspium_wallet", "chip": "wallet", "note": "Mobile. Discord demand."},
+        {"name": "native-assets-zk-poc", "url": "https://github.com/someone235/native-assets-zk-poc", "chip": "tg", "note": "Ori Newman. Native assets + ZK."},
+        {"name": "risc0", "url": "https://github.com/risc0/risc0", "chip": "zk", "note": "Prover stack in R&D. Not a product here."},
+        {"name": "hmoog/kas-l2", "url": "https://github.com/hmoog/kas-l2", "chip": "l2", "note": "Out of Gramlane path."}
+      ]
+    },
+    {
+      "id": "intel-people",
+      "title": "Extra people (intel pack)",
+      "rows": [
+        {"name": "parker2017code/kaspa-explained", "url": "https://github.com/parker2017code/kaspa-explained", "chip": "explained", "note": "Site source. 10 Sep: V6 local 26 accepted TN10 txs. wTestUSD cannot buy crops. Receipt = 1 sompi."},
+        {"name": "progdoc.izio.fr", "url": "https://progdoc.izio.fr", "chip": "izio", "note": "IzioDev programmability tree."},
+        {"name": "kas-smiths.org", "url": "https://kas-smiths.org", "chip": "workshop", "note": "Manyfestation KCC workshop. Not a KIP."},
+        {"name": "portrait.kaspa-kii.org", "url": "https://portrait.kaspa-kii.org", "chip": "testnet", "note": "Canonical Portrait site. Opaque paste URLs 404."},
+        {"name": "supertypo", "url": "https://github.com/supertypo", "chip": "234", "note": "Sil #234 closed. Indexer. kccs #23 still open (p2pk-ecdsa)."},
+        {"name": "KaspaScopio", "url": "https://github.com/kaspanet/silverscript/issues/249", "chip": "249", "note": "v1.0.0 State[].split() tuple bug. PR #250 open. #251 struct-array index also open."},
+        {"name": "ShawnPearce", "url": "https://github.com/kaspanet/kccs/pull/20", "chip": "kccs", "note": "kccs#20 vectors."},
+        {"name": "Knitser", "url": "https://github.com/kaspanet/kccs/issues/14", "chip": "kccs", "note": "Issue #14 + KCC-0021."},
+        {"name": "biryukovmaxim", "url": "https://github.com/biryukovmaxim", "chip": "vprogs", "note": "vProgs + rusty Toccata cleanup. Guest demo vprog-tictactoe (93 commits, tip 6079085). Not a product testnet."},
+        {"name": "@BankQuote / trillskillz", "url": "https://x.com/BankQuote", "chip": "community", "note": "Toccata/covenant essays Apr–Sep 2026. OpenSilver. Not core. Tweet is not a KIP."}
+      ]
+    },
+    {
+      "id": "corpus-jul2026",
+      "title": "Discord Kaspa dump (cut 26 Jul 2026)",
+      "rows": [
+        {"name": "CAT Protocol", "url": "https://catprotocol.org/", "chip": "covenants", "note": "Ori in #covenants: token uniqueness via parent UTXO. Later: KIP-20."},
+        {"name": "silverscript#122", "url": "https://github.com/kaspanet/silverscript/issues/122", "chip": "discord", "note": "OpCheckSigFromStack + OpZkPrecompile builtins. Discord → issue."},
+        {"name": "workshop-london-2026", "url": "https://github.com/IzioDev/workshop-london-2026", "chip": "izio", "note": "IzioDev: use TN10, not TN12."},
+        {"name": "kaspa-rest-server", "url": "https://github.com/lAmeR1/kaspa-rest-server", "chip": "indexer", "note": "#explorer-and-rest-api."},
+        {"name": "KaspaNodeMonitor", "url": "https://github.com/imalfect/KaspaNodeMonitor", "chip": "ops", "note": "#ecosystem-projects."},
+        {"name": "kaspa-transaction-report", "url": "https://github.com/coderofstuff/kaspa-transaction-report", "chip": "wallet", "note": "Tax CSV. Discord demand."},
+        {"name": "kaspa.org/contributors", "url": "https://kaspa.org/contributors/", "chip": "people", "note": "#who-what-where + rusty-kaspa graphs."},
+        {"name": "kastle", "url": "https://github.com/forbole/kastle", "chip": "wallet", "note": "Inject wallet. Not a clone target."},
+        {"name": "kasplex indexer", "url": "https://github.com/kasplex/indexer-executor", "chip": "l2", "note": "#layer-2s. Out of Gramlane path."}
+      ]
+    },
+    {
+      "id": "agenc-export",
+      "title": "Telegram ChatExport 2026-07-27 is AgenC, not kasparnd",
+      "rows": [
+        {"name": "tetsuo-ai/AgenC", "url": "https://github.com/tetsuo-ai/AgenC", "chip": "solana", "note": "Export title AGENC DEV. Not Kaspa R&D. Not integrated."},
+        {"name": "agenc-core", "url": "https://github.com/tetsuo-ai/agenc-core", "chip": "solana", "note": "Protocol bugs/PRs in that export."},
+        {"name": "agenc-protocol", "url": "https://github.com/tetsuo-ai/agenc-protocol", "chip": "solana", "note": "x402 / agent marketplace."},
+        {"name": "agenc-marketplace-agent-kit", "url": "https://github.com/tetsuo-ai/agenc-marketplace-agent-kit", "chip": "solana", "note": "Kit + MCP. Solana."},
+        {"name": "docs.agenc.tech", "url": "https://docs.agenc.tech", "chip": "solana", "note": "Their docs. Not a Kaspa pin."}
+      ]
+    }
+  ]
+}

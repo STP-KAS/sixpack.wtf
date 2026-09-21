@@ -1,0 +1,20 @@
+[
+  {
+    "id": "seed-0",
+    "q": "Can you restore my wallet if I paste the words?",
+    "a": "No. A website that wants the phrase is the attack. Wipe it. Treat it as burned. Use wiki.kaspa.org/wallet and a wallet you installed on purpose.",
+    "up": 1
+  },
+  {
+    "id": "price-0",
+    "q": "What will KAS be next month?",
+    "a": "This desk does not do price predictions. They are useless. Ask about the code, the DAG, or what is actually live.",
+    "up": 1
+  },
+  {
+    "id": "weld-0",
+    "q": "So Argent, DAGKnight, vProgs and KCC-20 all shipped?",
+    "a": "No. Toccata covenants are live. SilverScript is a v1.0.0 compiler tag. Argent has no tag. DAGKnight is Proposed, not consensus. vProgs is a prototype. KCC-20 is Draft. Do not weld the intern roundup.",
+    "up": 1
+  }
+]

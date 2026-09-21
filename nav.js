@@ -7,6 +7,7 @@
     { href: "eulogy.html", files: ["eulogy.html"], label: "Eulogy" },
     { href: "random.html", files: ["random.html"], label: "Random" },
     { href: "faucet.html", files: ["faucet.html"], label: "Faucet" },
+    { href: "grok.html", files: ["grok.html"], label: "Grok.SPCXAI.KAS" },
     { href: "help.html", files: ["help.html"], label: "Help" },
   ];
   for (const nav of document.querySelectorAll("[data-site-nav]")) {
@@ -32,7 +33,7 @@
     document.head.appendChild(s);
   }
   if (root) {
-    if (file !== "" && file !== "index.html") load(root + "sources.js?v=32");
-    if (file !== "faucet.html" && file !== "random.html") load(root + "intro.js?v=8");
+    if (file !== "" && file !== "index.html" && file !== "grok.html") load(root + "sources.js?v=32");
+    if (file !== "faucet.html" && file !== "random.html" && file !== "grok.html") load(root + "intro.js?v=8");
   }
 })();

@@ -5,3 +5,6 @@ node_modules/
 convo.html
 faucet/ledger.json
 faucet/.local/
+.env
+grok/logs/
+grok/.local/

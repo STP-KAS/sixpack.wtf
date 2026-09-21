@@ -22,6 +22,7 @@
     "</ul>" +
     "<h3>Help rooms</h3>" +
     '<ul class="keep">' +
+    '<li><a class="name" href="grok.html">Grok.SPCXAI.KAS</a><span class="desc">Feed-trained Kaspa help desk. Not grok.com. No price. Never a seed.</span></li>' +
     '<li><a class="name" href="help.html">Help on this site</a><span class="desc">Discord path. How to ask. Never a seed.</span></li>' +
     '<li><a class="name" href="https://discord.gg/kaspa">discord.gg/kaspa</a><span class="desc">Dedicated topic rooms. Browse, then ask.</span></li>' +
     '<li><a class="name" href="https://qa.kas.pa/">qa.kas.pa</a><span class="desc">Written questions. Not law.</span></li>' +

@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { planClaim, sompiToTkas, FROM, remainingInWindow, requireTestnetAddress, EXPLORER_HOME, normalizeIp, DRIP_SOMPI, CAP_SOMPI } from "./faucet/policy.mjs";
 import { listClaims, recordClaim } from "./faucet/ledger.mjs";
 import { payTn10 } from "./faucet/pay.mjs";
+import { handleGrokRequest } from "./grok/http.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 4020);
@@ -203,6 +204,10 @@ http
       });
       return;
     }
+    if (url.pathname === "/api/grok" || url.pathname.startsWith("/api/grok/")) {
+      handleGrokRequest(req, res, url, { readBody, clientIp });
+      return;
+    }
     if (url.pathname === "/ishum" || url.pathname.startsWith("/ishum/")) {
       const target = ISHUM + url.pathname.replace(/^\/ishum/, "") + url.search;
       http
@@ -244,4 +249,5 @@ http
     console.log(`http://${HOST}:${PORT}/faucet.html`);
     console.log(`http://${HOST}:${PORT}/till.html`);
     console.log(`http://${HOST}:${PORT}/x402.html`);
+    console.log(`http://${HOST}:${PORT}/grok.html`);
   });
