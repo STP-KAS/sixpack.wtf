@@ -19,3 +19,7 @@
   font-size: 0.85rem;
   margin: 0.35rem 0 0;
 }
+.aigen-how p { margin: 0.4rem 0; }
+.aigen-how p:first-child { margin-top: 0; }
+.aigen-grid video { cursor: pointer; }
+#aigen-status { min-height: 1.4em; }
