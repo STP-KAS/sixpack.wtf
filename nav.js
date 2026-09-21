@@ -6,6 +6,7 @@
     { href: "farce.html", files: ["farce.html"], label: "Farce" },
     { href: "eulogy.html", files: ["eulogy.html"], label: "Eulogy" },
     { href: "random.html", files: ["random.html"], label: "Random" },
+    { href: "aigen.html", files: ["aigen.html"], label: "ai gen" },
     { href: "faucet.html", files: ["faucet.html"], label: "Faucet" },
     { href: "grok.html", files: ["grok.html"], label: "Grok.SPCXAI.KAS" },
     { href: "help.html", files: ["help.html"], label: "Help" },
@@ -33,7 +34,7 @@
     document.head.appendChild(s);
   }
   if (root) {
-    if (file !== "" && file !== "index.html" && file !== "grok.html") load(root + "sources.js?v=33");
-    if (file !== "faucet.html" && file !== "random.html" && file !== "grok.html") load(root + "intro.js?v=8");
+    if (file !== "" && file !== "index.html" && file !== "grok.html") load(root + "sources.js?v=34");
+    if (file !== "faucet.html" && file !== "random.html" && file !== "grok.html" && file !== "aigen.html") load(root + "intro.js?v=8");
   }
 })();

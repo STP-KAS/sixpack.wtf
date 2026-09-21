@@ -1,0 +1,21 @@
+.aigen-grid {
+  display: grid;
+  gap: 1rem;
+  margin: 0.6rem 0 1.6rem;
+}
+@media (min-width: 720px) {
+  .aigen-grid { grid-template-columns: 1fr 1fr; }
+}
+.aigen-grid figure { margin: 0; }
+.aigen-grid video {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #111;
+  border: 1px solid #111;
+}
+.aigen-grid figcaption {
+  color: #555;
+  font-size: 0.85rem;
+  margin: 0.35rem 0 0;
+}
