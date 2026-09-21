@@ -2,6 +2,9 @@ body.faucet-page { background: #101312; color: #e7ece8; }
 body.faucet-page .top { background: #fff; color: #111; border-bottom: 1px solid #111; }
 body.faucet-page a { color: #7ee0c5; }
 body.faucet-page .top a { color: #111; }
+/* .top a beats .tabs a.on, so the open tab would be black on black without this. */
+body.faucet-page .tabs a.on,
+body.faucet-page .tabs button.on { background: #111; color: #fff; }
 body.faucet-page main { max-width: 1100px; padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
 .faucet-stage {
   position: relative;
