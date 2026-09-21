@@ -34,7 +34,7 @@
     document.head.appendChild(s);
   }
   if (root) {
-    if (file !== "" && file !== "index.html" && file !== "grok.html" && file !== "faucet.html") load(root + "sources.js?v=34");
+    if (file === "help.html") load(root + "sources.js?v=34");
     if (file !== "faucet.html" && file !== "random.html" && file !== "grok.html" && file !== "aigen.html") load(root + "intro.js?v=8");
   }
 })();
