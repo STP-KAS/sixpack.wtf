@@ -32,7 +32,7 @@
     document.head.appendChild(s);
   }
   if (root) {
-    if (file !== "" && file !== "index.html") load(root + "sources.js?v=31");
+    if (file !== "" && file !== "index.html") load(root + "sources.js?v=32");
     if (file !== "faucet.html" && file !== "random.html") load(root + "intro.js?v=8");
   }
 })();
