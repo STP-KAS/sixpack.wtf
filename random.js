@@ -19,6 +19,11 @@
     { id: "r18", title: "Rally", duration: 85, w: 1280, h: 720 },
     { id: "r19", title: "Night", duration: 313, w: 576, h: 1024 },
     { id: "r20", title: "I don't even think I have a six pack", duration: 31, w: 720, h: 1280 },
+    { id: "r21", title: "Better place", duration: 60, w: 1280, h: 720 },
+    { id: "r22", title: "I voted for this", duration: 24, w: 848, h: 768 },
+    { id: "r23", title: "Eternity", duration: 116, w: 480, h: 360 },
+    { id: "r24", title: "Gym", duration: 126, w: 786, h: 1288 },
+    { id: "r25", title: "I voted for this too", duration: 55, w: 720, h: 720 },
   ];
 
   function fmt(sec) {
