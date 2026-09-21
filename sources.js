@@ -36,7 +36,7 @@
     '<ul class="keep">' +
     '<li><a class="name" href="farce.html">Farce</a><span class="desc">Yonatan declined Binance’s Dubai invite. Three classes: commercial, casino, cypherpunk. This desk agrees.</span></li>' +
     '<li><a class="name" href="eulogy.html">Proof of work, a eulogy</a><span class="desc">They kept the vocabulary. They outsourced the work. 15s satire.</span></li>' +
-    '<li><a class="name" href="aigen.html">ai gen</a><span class="desc">Ten Sonne clips. Ten Concorde clips. Imagine dump.</span></li>' +
+    '<li><a class="name" href="aigen.html">ai gen</a><span class="desc">grok build clips.</span></li>' +
     '<li><a class="name" href="https://x.com/hashdag/status/1986497449557446774">hashdag · 6 Nov 2025</a><span class="desc">The post. Let them win or count me out.</span></li>' +
     "</ul>" +
     "<h3>Grok Bot — run a node</h3>" +
