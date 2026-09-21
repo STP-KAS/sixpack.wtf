@@ -57,6 +57,7 @@
     t = escapeHtml(t);
     t = t.replace(/`([^`]+)`/g, "<code>$1</code>");
     t = t.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    t = t.replace(/\[\[(\d+)\]\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">[$1]</a>');
     t = t.replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
     t = t.replace(/^(?:- |\* )(.*)$/gm, "<li>$1</li>");
     t = t.replace(/(<li>.*<\/li>\n?)+/g, "<ul>$&</ul>");
@@ -95,9 +96,10 @@
     actions.append(copy, up, down);
     const cites = document.createElement("p");
     cites.className = "gk-cites";
+    actions.hidden = true;
     wrap.append(md, actions, cites);
     log.append(wrap);
-    return { md, copy, up, down, cites, wrap };
+    return { md, copy, up, down, cites, wrap, actions };
   }
   function setBusy(on) {
     send.hidden = on;
@@ -179,6 +181,7 @@
         if (ev.type === "status") sayStatus(ev.text, true);
         if (ev.type === "delta" && ev.text) {
           acc += ev.text;
+          ui.md.classList.add("streaming");
           ui.md.innerHTML = renderMd(acc);
           thread.scrollTop = thread.scrollHeight;
         }
@@ -189,7 +192,11 @@
             ui.cites.innerHTML = ev.citations
               .slice(0, 6)
               .map(function (u) {
-                return '<a href="' + escapeHtml(u) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(u) + "</a>";
+                var host = u;
+                try {
+                  host = new URL(u).hostname.replace(/^www\./, "");
+                } catch (_) {}
+                return '<a href="' + escapeHtml(u) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(host) + "</a>";
               })
               .join(" · ");
           }
@@ -197,7 +204,9 @@
       });
       if (!acc) acc = "Empty reply. Try again.";
       lastA = acc;
+      ui.md.classList.remove("streaming");
       ui.md.innerHTML = renderMd(acc);
+      ui.actions.hidden = false;
       history.push({ role: "user", content: q }, { role: "assistant", content: acc });
       ui.copy.addEventListener("click", function () {
         navigator.clipboard.writeText(acc).catch(function () {});
@@ -221,12 +230,15 @@
         ui.down.textContent = "Noted";
       });
     } catch (err) {
+      ui.md.classList.remove("streaming");
       if (err.name === "AbortError") {
         if (!acc) ui.md.innerHTML = renderMd("Stopped.");
       } else {
         ui.md.innerHTML = renderMd(err.message || "Desk failed.");
       }
+      if (acc) ui.actions.hidden = false;
     } finally {
+      ui.md.classList.remove("streaming");
       abort = null;
       setBusy(false);
       sayStatus("", false);
