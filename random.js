@@ -24,6 +24,11 @@
     { id: "r23", title: "Eternity", duration: 116, w: 480, h: 360 },
     { id: "r24", title: "Gym", duration: 126, w: 786, h: 1288 },
     { id: "r25", title: "I voted for this too", duration: 55, w: 720, h: 720 },
+    { id: "r26", title: "Alley", duration: 163, w: 1280, h: 852 },
+    { id: "r27", title: "Synagogue", duration: 60, w: 1080, h: 1920 },
+    { id: "r28", title: "We are so back", duration: 119, w: 1920, h: 1080 },
+    { id: "r29", title: "MAGA hats", duration: 32, w: 720, h: 1280 },
+    { id: "r30", title: "Crowd", duration: 17, w: 494, h: 786 },
   ];
 
   function fmt(sec) {
