@@ -29,6 +29,12 @@
     { id: "r28", title: "We are so back", duration: 119, w: 1920, h: 1080 },
     { id: "r29", title: "MAGA hats", duration: 32, w: 720, h: 1280 },
     { id: "r30", title: "Crowd", duration: 17, w: 494, h: 786 },
+    { id: "r31", title: "I voted for this again", duration: 46, w: 720, h: 962 },
+    { id: "r32", title: "Car", duration: 25, w: 1280, h: 1706 },
+    { id: "r33", title: "Trump", duration: 25, w: 1558, h: 720 },
+    { id: "r34", title: "I didn't vote for this either", duration: 69, w: 720, h: 1280 },
+    { id: "r35", title: "Still didn't vote for this", duration: 507, w: 720, h: 1280 },
+    { id: "r36", title: "I voted for this four", duration: 17, w: 720, h: 720 },
   ];
 
   function fmt(sec) {
