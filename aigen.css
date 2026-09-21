@@ -5,6 +5,7 @@
 }
 @media (min-width: 720px) {
   .aigen-grid { grid-template-columns: 1fr 1fr; }
+  .aigen-grid.aigen-one { grid-template-columns: 1fr; }
 }
 .aigen-grid figure { margin: 0; }
 .aigen-frame { position: relative; background: #111; }
