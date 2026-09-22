@@ -39,6 +39,8 @@
     { id: "r38", title: "Don't mention the war", duration: 263, w: 1350, h: 1080 },
   ];
 
+  const CAPTION = "this desk agrees";
+
   function fmt(sec) {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
@@ -59,7 +61,7 @@
     video.src = "random/" + clip.id + ".mp4";
     video.setAttribute("width", String(clip.w));
     video.setAttribute("height", String(clip.h));
-    now.textContent = clip.title + " · " + fmt(clip.duration);
+    now.textContent = CAPTION;
     for (const btn of grid.querySelectorAll(".random-tile")) {
       btn.classList.toggle("on", btn.dataset.id === clip.id);
     }
@@ -82,7 +84,7 @@
     const meta = document.createElement("span");
     meta.className = "random-tile-meta";
     const strong = document.createElement("strong");
-    strong.textContent = clip.title;
+    strong.textContent = CAPTION;
     const time = document.createElement("span");
     time.textContent = fmt(clip.duration);
     meta.append(strong, time);
