@@ -29,8 +29,12 @@ export function loadLessons() {
   }
 }
 
+function isJokeLesson(row) {
+  return /\bjoke\b|100bps|roast me|make me laugh/i.test(String(row?.q || ""));
+}
+
 export function lessonsBlock() {
-  const rows = loadLessons().filter((x) => Number(x.up || 0) >= Number(x.down || 0));
+  const rows = loadLessons().filter((x) => Number(x.up || 0) >= Number(x.down || 0) && !isJokeLesson(x));
   if (!rows.length) return "";
   const lines = ["# Learned from this desk (thumbs, no PII)", ""];
   for (const row of rows.slice(-24)) {

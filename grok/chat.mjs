@@ -10,6 +10,32 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
 const XAI = "https://api.x.ai/v1";
 const MODEL = process.env.GROK_MODEL || "grok-4.6";
+const JOKE_BOOTHS = [
+  ["Block Permit Office", "/dmv", "Two arrivals, two records."],
+  ["Queue Jump Arcade", "/arcade", "Queue order, payout variance, an issuance schedule."],
+  ["Chain Workshop", "/workshop", "Build a rule and watch its limit."],
+  ["Matchmaking Bureau", "/dating", "Ask every chain the same requirement."],
+  ["Claims Court", "/court", "A claim has to show its work."],
+  ["Gift Shop", "/souvenirs", "A harmless explanation you can take home."],
+  ["Industry back hall", "/industry", "A drawer, a coat check, a yield that brought its assumptions."],
+];
+
+export function pickJokeBooth(question) {
+  const q = String(question || "");
+  if (!/\bjoke\b|100bps|roast|make me laugh/i.test(q)) return null;
+  return JOKE_BOOTHS[Math.floor(Math.random() * JOKE_BOOTHS.length)];
+}
+
+function jokeNote(booth) {
+  if (!booth) return "";
+  const [name, boothPath, bit] = booth;
+  return (
+    "\n\n# This turn's 100bps joke\n" +
+    "Rolled now. Tell one fresh intern joke from **" + name + "** only. " + bit + "\n" +
+    "Link [100bps.wtf](https://100bps.wtf/) and [" + name + "](https://100bps.wtf" + boothPath + ").\n" +
+    "Do not copy a learned joke. Do not reuse a booth from an earlier turn. Satire only. Kaspa is not 100 blocks per second.\n"
+  );
+}
 
 loadDotenv(path.join(root, ".env"));
 
@@ -117,7 +143,7 @@ async function streamXai({ question, history, jail, onDelta, onStatus, onThink, 
   const body = {
     model: MODEL,
     stream: true,
-    instructions: systemPrompt(),
+    instructions: systemPrompt() + jokeNote(pickJokeBooth(question)),
     input,
     tools: toolsFor(jail),
   };
