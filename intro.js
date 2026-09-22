@@ -22,8 +22,7 @@
     overlay.setAttribute("aria-labelledby", "intro-title");
     overlay.innerHTML =
       '<div class="intro-card">' +
-      '<p id="intro-title" class="intro-title">Some of it is intentional. Most of it is just a natural consequence of a vast bureaucracy with no accountability for results.</p>' +
-      '<p class="intro-title">If it were mostly intentional, it would be easy to reverse.</p>' +
+      '<p id="intro-title" class="intro-title">“Talent hits a target no one else can hit. Genius hits a target no one else can see.”<br><cite>Arthur Schopenhauer</cite></p>' +
       '<video class="intro-video" controls playsinline webkit-playsinline preload="metadata" poster="kaspa-explained.jpg">' +
       '<source src="kaspa-explained.mp4" type="video/mp4">' +
       "</video>" +

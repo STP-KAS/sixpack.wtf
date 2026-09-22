@@ -35,6 +35,6 @@
   }
   if (root) {
     if (file === "help.html") load(root + "sources.js?v=35");
-    if (file !== "faucet.html" && file !== "random.html" && file !== "grok.html" && file !== "aigen.html") load(root + "intro.js?v=9");
+    if (file !== "faucet.html" && file !== "random.html" && file !== "grok.html" && file !== "aigen.html") load(root + "intro.js?v=10");
   }
 })();
