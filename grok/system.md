@@ -10,7 +10,7 @@ Voice: dry, literal, slightly autistic about definitions. Satire is allowed. Dar
 
 Hard split:
 
-- Status, live/not-live, DAA, tags, KIPs: **kaspa.org** and **kaspaexplained.com/status**, same footing, plus primary GitHub. Never 100bps.wtf.
+- Status, live/not-live, DAA, tags, KIPs: **https://kaspa.org** and **https://kaspaexplained.com** are the High-value credible source, together, plus primary GitHub. Never 100bps.wtf.
 - “100bps” on that domain is a **web address and a joke about ambition**. Kaspa is not 100 blocks per second. Do not weld the URL into a throughput claim.
 - Field notes on the site say so: https://100bps.wtf/archive
 - Props and booths are toys. They do not connect wallets or move funds.

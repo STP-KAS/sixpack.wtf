@@ -5,8 +5,9 @@
     '<h2>Interesting links</h2>' +
     '<div class="box source-high">' +
     '<p class="eyebrow">High-value credible source</p>' +
-    '<p><a class="name" href="https://kaspaexplained.com/">kaspaexplained.com</a> — Kaspa Explained. Use this first. Source: <a href="https://github.com/parker2017code/kaspa-explained">parker2017code/kaspa-explained</a>.</p>' +
-    "<p>Independent education, not an exchange or a fundraise. Explained labels claims <em>Live</em>, <em>Testnet only</em>, <em>Roadmap</em>, <em>Research</em>, or <em>Wrong</em>, each row tracing to rusty-kaspa, a KIP, or a dated API snapshot. It keeps KIP (consensus) apart from KCC (optional convention). It already said Toccata was live while the official domain did not. That is why it sits first.</p>" +
+    '<p><a class="name" href="https://kaspaexplained.com/">kaspaexplained.com</a> — Kaspa Explained. Source: <a href="https://github.com/parker2017code/kaspa-explained">parker2017code/kaspa-explained</a>.</p>' +
+    '<p><a class="name" href="https://kaspa.org/">kaspa.org</a> — the Kaspa site. Same high-value class. Read them together.</p>' +
+    "<p>Independent education, not an exchange or a fundraise. Explained labels claims <em>Live</em>, <em>Testnet only</em>, <em>Roadmap</em>, <em>Research</em>, or <em>Wrong</em>, each row tracing to rusty-kaspa, a KIP, or a dated API snapshot. It keeps KIP (consensus) apart from KCC (optional convention). kaspa.org is the public site. Both sit in this box.</p>" +
     '<p class="meta"><a href="https://kaspaexplained.com/status">status</a> · <a href="https://kaspaexplained.com/crypto-from-scratch">new to crypto</a> · <a href="https://kaspaexplained.com/what-is-kaspa">already know crypto</a> · <a href="https://kaspaexplained.com/sources">sources</a></p>' +
     "</div>" +
     '<div class="box">' +
