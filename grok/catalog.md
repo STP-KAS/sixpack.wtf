@@ -1,6 +1,8 @@
 # Pin catalog (snapshot from STP-KAS/kaspa-master-file)
 
-Freeze / updated: 2026-09-21 — Not Kaspa core. Not official KNS. @StppStp. Merged Active KIP is law. Open PR is not.
+The current board is `now.md`, generated from kaspa-master-file section `now`. If a row below disagrees with `now.md`, `now.md` wins.
+
+Freeze / updated: 2026-09-21 — Not Kaspa core. Not official KNS. @StppStp. Merged Active KIP is law. Open PR is not. Receipts in this file can lag the board.
 A catalog row is not a pin. Chip is the honest label. Recheck the URL before quoting as live.
 
 ## If you just showed up (learn)

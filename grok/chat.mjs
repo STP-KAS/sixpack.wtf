@@ -5,6 +5,7 @@ import { clipHistory, gateUserText, priceReply, statusFor } from "./policy.mjs";
 import { appendLog, lessonsBlock, loadLessons, recordFeedback } from "./learn.mjs";
 import { resolveApiKey, upstreamErrorMessage } from "./keys.mjs";
 import { describeStreamEvent, reasoningDelta } from "./trace.mjs";
+import { ensureMasterFeed } from "./sync-master.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
@@ -66,9 +67,20 @@ function read(name) {
 }
 
 export function systemPrompt() {
+  let changed = false;
+  try {
+    changed = ensureMasterFeed().changed;
+  } catch {
+    /* keep the last board if the master file is unreadable */
+  }
   const now = Date.now();
-  if (promptCache.text && now - promptCache.at < 8000) return promptCache.text;
+  if (!changed && promptCache.text && now - promptCache.at < 8000) return promptCache.text;
   const parts = [read("system.md"), "", read("feed.md"), "", lessonsBlock(), "", read("catalog.md")];
+  try {
+    parts.push("", read("now.md"));
+  } catch {
+    /* board not generated yet */
+  }
   promptCache = { at: now, text: parts.join("\n") };
   return promptCache.text;
 }
@@ -82,6 +94,21 @@ function sources() {
 }
 
 export function grokHealth() {
+  let updated = "";
+  let master = "";
+  try {
+    const fed = ensureMasterFeed();
+    master = fed.sha || "";
+  } catch {
+    /* stamp below still reports the last board */
+  }
+  try {
+    const src = JSON.parse(fs.readFileSync(path.join(here, "sources.json"), "utf8"));
+    updated = src.updated || "";
+    master = src.master_commit || master;
+  } catch {
+    /* sources optional */
+  }
   return {
     ok: Boolean(resolveApiKey()),
     name: "Grok.SPCXAI.KAS",
@@ -89,7 +116,8 @@ export function grokHealth() {
     model: MODEL,
     not: "grok.com",
     lessons: loadLessons().length,
-    updated: "2026-09-21",
+    updated,
+    master,
   };
 }
 
