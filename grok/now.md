@@ -1,6 +1,6 @@
 # Now — kaspa-master-file
 
-Generated from `master.json` section `now`. Commit `141f7171ced20df839314e455c8f93ecfb1cdc15` (2026-09-23T21:31:15+02:00).
+Generated from `master.json` section `now`. Commit `5083f0f9e800c261eb05a86db6514a60013c3dd8` (2026-09-23T21:31:55+02:00).
 Canonical board: https://github.com/STP-KAS/kaspa-master-file#now-read-this-first
 Same board on the desk: https://sixpack.wtf/grok/now.md
 
