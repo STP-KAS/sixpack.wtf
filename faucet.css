@@ -130,6 +130,41 @@ body.faucet-page main { max-width: 1100px; padding-left: max(1rem, env(safe-area
 .fmodal-body { color: #d5ddd9; font-size: 0.95rem; }
 .fmodal-body p { margin: 0.35rem 0; }
 .fmodal-body code { word-break: break-all; }
+.fload { font-weight: 700; color: #f0d27a; }
+.fspin {
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-right: 0.45rem;
+  border: 2px solid #3d4945;
+  border-top-color: #f0d27a;
+  border-radius: 50%;
+  display: inline-block;
+  vertical-align: -2px;
+  animation: fspin 0.8s linear infinite;
+}
+@keyframes fspin { to { transform: rotate(360deg); } }
+.fsteps { list-style: none; margin: 0.7rem 0 0.2rem; padding: 0; }
+.fsteps li {
+  position: relative;
+  margin: 0;
+  padding: 0.22rem 0 0.22rem 1.2rem;
+  color: #8b9893;
+}
+.fsteps li.on { color: #f0d27a; font-weight: 650; }
+.fsteps li.done { color: #7ee0c5; }
+.fsteps li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #3d4945;
+}
+.fsteps li.on::before { background: #f0d27a; }
+.fsteps li.done::before { background: #7ee0c5; }
+.fnote { color: #9aa8a2; font-size: 0.88rem; }
 .fmodal-foot { display: flex; justify-content: flex-end; margin-top: 0.95rem; }
 .fmodal-close {
   background: #1f8fbf;

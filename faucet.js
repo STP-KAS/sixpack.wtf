@@ -203,6 +203,82 @@
     });
   }
 
+  const SEND_STEPS = [
+    "Checking the address",
+    "Connecting to Testnet-10",
+    "Gathering coins",
+    "Signing the send",
+    "Broadcasting",
+  ];
+  function esc(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+  function loadingHtml(amount, address, step) {
+    const at = SEND_STEPS.indexOf(step);
+    const items = SEND_STEPS.map(function (name, i) {
+      const cls = at < 0 ? "" : i < at ? "done" : i === at ? "on" : "";
+      return "<li class=\"" + cls + "\">" + name + "</li>";
+    }).join("");
+    return (
+      "<p class=\"fload\"><span class=\"fspin\" aria-hidden=\"true\"></span>Loading the payout.</p>" +
+      "<p>Sending <strong>" +
+      esc(amount || "30000") +
+      " tKAS</strong> to</p><p><code>" +
+      esc(address) +
+      "</code></p>" +
+      "<ol class=\"fsteps\">" +
+      items +
+      "</ol>" +
+      "<p class=\"fnote\">Leave this tab open. The transaction id shows here when Testnet-10 accepts it.</p>"
+    );
+  }
+  function successHtml(j, address) {
+    const addr = j.address || address;
+    const ids = j.txids || [];
+    const first = ids[0] ? "<p>TXID: <code>" + esc(ids[0]) + "</code></p>" : "";
+    const extra =
+      ids.length > 1
+        ? "<p>" +
+          ids.length +
+          " transactions (dust UTXOs). KasWare may show <em>incoming transaction…</em> until they confirm. Not a failed send.</p>"
+        : "";
+    const left = j.remainingAddrTkas || j.remainingTkas || "0";
+    const leftLine =
+      left === "unlimited"
+        ? "<p>Eligible remaining: <strong>unlimited</strong>.</p>"
+        : "<p>Eligible remaining for this address in 24h: <strong>" + esc(left) + " tKAS</strong>.</p>";
+    return (
+      "<p>We have successfully sent <strong>" +
+      esc(j.tkas || "") +
+      " tKAS</strong> to the requested address:</p><p><code>" +
+      esc(addr) +
+      "</code></p>" +
+      first +
+      extra +
+      leftLine
+    );
+  }
+  function sleep(ms) {
+    return new Promise(function (resolve) {
+      setTimeout(resolve, ms);
+    });
+  }
+  function showResult(j, address) {
+    if (j && (j.status === "done" || (j.ok && j.txids && j.txids.length))) {
+      popup("success", "Success", successHtml(j, address));
+      loadPublicBalance();
+      return true;
+    }
+    if (j && j.status === "error") {
+      popup("error", "Error", "<p>" + esc(j.error || "Unable to send funds.") + "</p>");
+      return true;
+    }
+    return false;
+  }
+
   if (!form) return;
   form.addEventListener("submit", function (e) {
     e.preventDefault();
@@ -214,56 +290,58 @@
     const address = document.getElementById("addr").value.trim();
     const amount = document.getElementById("amount") ? document.getElementById("amount").value.trim() : "30000";
     go.disabled = true;
-    popup("wait", "Sending", "<p>Sending funds. This can take a minute. Leave this tab open.</p>");
+    popup("wait", "Loading", loadingHtml(amount, address, "Checking the address"));
     fetch(apiBase + "/api/faucet", {
       method: "POST",
       headers: { "content-type": "application/json", "Bypass-Tunnel-Reminder": "true" },
       body: JSON.stringify({ address: address, amount: amount }),
     })
       .then(readJson)
-      .then(function (j) {
+      .then(async function (j) {
         if (j.html) {
           popup("error", "Error", "<p>" + downHtml() + "</p>");
           return;
         }
-        if (!j.ok) {
-          const msg = String(j.error || j.message || "Unable to send funds.")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
-          popup("error", "Error", "<p>" + msg + "</p>");
+        if (j.pending && j.job) {
+          const started = Date.now();
+          let misses = 0;
+          while (Date.now() - started < 180000) {
+            await sleep(1200);
+            let cur = null;
+            try {
+              const res = await fetch(apiBase + "/api/faucet?job=" + encodeURIComponent(j.job), { headers: hdr() });
+              cur = await readJson(res);
+            } catch (_) {
+              misses += 1;
+              if (misses >= 4) {
+                popup("error", "Error", "<p>Loading paused. The payout API stopped answering. Stay on this page and refresh.</p>");
+                return;
+              }
+              popup("wait", "Loading", loadingHtml(amount, address, j.step || "Checking the address") + "<p class=\"fnote\">Still loading. Checking the payout again.</p>");
+              continue;
+            }
+            if (cur && cur.html) {
+              misses += 1;
+              continue;
+            }
+            misses = 0;
+            if (showResult(cur, address)) return;
+            const step = (cur && cur.step) || j.step || "Checking the address";
+            popup("wait", "Loading", loadingHtml(amount, address, step));
+          }
+          popup("error", "Error", "<p>Still loading after three minutes. The send may still finish. Refresh this page in a moment and check the address.</p>");
           return;
         }
-        const addr = j.address || address;
-        const ids = j.txids || [];
-        const first = ids[0] ? "<p>TXID: <code>" + ids[0] + "</code></p>" : "";
-        const extra =
-          ids.length > 1
-            ? "<p>" +
-              ids.length +
-              " transactions (dust UTXOs). KasWare may show <em>incoming transaction…</em> until they confirm. Not a failed send.</p>"
-            : "";
-        const left = j.remainingAddrTkas || j.remainingTkas || "0";
-        const leftLine =
-          left === "unlimited"
-            ? "<p>Eligible remaining: <strong>unlimited</strong>.</p>"
-            : "<p>Eligible remaining for this address in 24h: <strong>" + left + " tKAS</strong>.</p>";
-        popup(
-          "success",
-          "Success",
-          "<p>We have successfully sent <strong>" +
-            (j.tkas || "") +
-            " tKAS</strong> to the requested address:</p><p><code>" +
-            addr +
-            "</code></p>" +
-            first +
-            extra +
-            leftLine
-        );
+        if (showResult(j, address)) return;
+        if (!j.ok) {
+          popup("error", "Error", "<p>" + esc(j.error || j.message || "Unable to send funds.") + "</p>");
+          return;
+        }
+        popup("success", "Success", successHtml(j, address));
         loadPublicBalance();
       })
       .catch(function (err) {
-        popup("error", "Error", "<p>Could not reach the payout API. The tunnel is slow or down. Wait and try again.</p>");
+        popup("error", "Error", "<p>Loading failed. The payout API did not answer. Stay on this page and refresh.</p>");
         console.error(err);
       })
       .finally(function () {

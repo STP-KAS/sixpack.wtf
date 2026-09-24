@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -81,6 +82,18 @@ function faucetErrStatus(err) {
 }
 
 let faucetLock = Promise.resolve();
+const jobs = new Map();
+
+function rememberJob(id, patch) {
+  const cur = jobs.get(id) || { at: Date.now() };
+  const next = { ...cur, ...patch };
+  jobs.set(id, next);
+  const cutoff = Date.now() - 30 * 60 * 1000;
+  for (const [key, value] of jobs) {
+    if (value.at < cutoff) jobs.delete(key);
+  }
+  return next;
+}
 
 http
   .createServer((req, res) => {
@@ -88,6 +101,16 @@ http
     if (url.pathname === "/api/faucet" && req.method === "GET") {
       (async () => {
         try {
+          const jobId = url.searchParams.get("job") || "";
+          if (jobId) {
+            const job = jobs.get(jobId);
+            if (!job) {
+              sendJson(res, 404, { ok: false, pending: false, error: "That send expired. Submit again." }, req);
+              return;
+            }
+            sendJson(res, 200, job, req);
+            return;
+          }
           const address = url.searchParams.get("address") || "";
           const claims = listClaims();
           const ip = clientIp(req);
@@ -168,6 +191,7 @@ http
     }
     if (url.pathname === "/api/faucet" && req.method === "POST") {
       faucetLock = faucetLock.then(async () => {
+        let jobId = "";
         try {
           const body = JSON.parse((await readBody(req)) || "{}");
           const ip = clientIp(req);
@@ -178,12 +202,25 @@ http
             claims: listClaims(),
             amountTkas: body.amount,
           });
-          const paid = await payTn10(plan.address, plan.sompi);
+          jobId = crypto.randomBytes(8).toString("hex");
+          const started = rememberJob(jobId, {
+            ok: false,
+            pending: true,
+            status: "loading",
+            step: "Checking the address",
+            job: jobId,
+            address: plan.address,
+          });
+          sendJson(res, 202, started, req);
+          const paid = await payTn10(plan.address, plan.sompi, (step) => rememberJob(jobId, { step }));
           const at = Date.now();
-          recordClaim({ key: plan.addrKey, address: plan.address, sompi: paid.sompi, txids: paid.txids, at, ip: clientIp(req) });
-          recordClaim({ key: plan.ipKey, address: plan.address, sompi: paid.sompi, txids: paid.txids, at, ip: clientIp(req) });
-          sendJson(res, 200, {
+          recordClaim({ key: plan.addrKey, address: plan.address, sompi: paid.sompi, txids: paid.txids, at, ip });
+          recordClaim({ key: plan.ipKey, address: plan.address, sompi: paid.sompi, txids: paid.txids, at, ip });
+          rememberJob(jobId, {
             ok: true,
+            pending: false,
+            status: "done",
+            step: "Broadcasting",
             tkas: sompiToTkas(paid.sompi),
             remainingTkas: plan.unlimited ? "unlimited" : sompiToTkas(plan.remainingAfter),
             remainingAddrTkas: plan.unlimited ? "unlimited" : sompiToTkas(plan.leftAddr - BigInt(paid.sompi)),
@@ -191,15 +228,23 @@ http
             address: plan.address,
             explorerHome: EXPLORER_HOME,
             txids: paid.txids,
-          }, req);
+          });
         } catch (err) {
-          const status = faucetErrStatus(err);
-          sendJson(res, status, {
+          const payload = {
+            ok: false,
+            pending: false,
+            status: "error",
+            step: "Stopped",
             error: err.message || String(err),
             remainingTkas: err.remainingTkas || "0",
             retryAfter: err.retryAfter || "",
             retryAfterMs: err.retryAfterMs || 0,
-          }, req);
+          };
+          if (jobId) {
+            rememberJob(jobId, payload);
+            return;
+          }
+          sendJson(res, faucetErrStatus(err), payload, req);
         }
       });
       return;
