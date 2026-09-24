@@ -5,11 +5,14 @@ import {
   DESK_UNLIMITED_ADDR,
   DRIP_SOMPI,
   FROM,
+  HALL_PASS,
   POOL_SOMPI,
   dripAmount,
   formatWait,
+  isHallPass,
   planClaim,
   remainingInWindow,
+  remainingPool,
   requireTestnetAddress,
   restHours,
   sompiToTkas,
@@ -205,5 +208,48 @@ describe("stp tn10 faucet policy", () => {
       () => planClaim({ address: addrN(1), ip: "1.1.1.2", claims: almost, now: now + 90 * 60 * 1000 }),
       /Rest for 23 hours/
     );
+  });
+
+  it("lets grok-bot addresses skip the ip cap and stay out of the faucet ceiling", () => {
+    assert.ok(HALL_PASS.size >= 190);
+    const bot = [...HALL_PASS][0];
+    assert.equal(isHallPass(bot), true);
+    assert.equal(isHallPass(ADDR), false);
+    const now = 1_000_000_000_000;
+    const filled = [];
+    for (let i = 0; i < 15; i++) {
+      const ip = "9.9.8." + i;
+      const plan = planClaim({ address: addrN(i), ip, claims: filled, now: now + i });
+      filled.push({ key: plan.addrKey, address: plan.address, sompi: String(plan.sompi), at: now + i, ip });
+    }
+    assert.throws(() => planClaim({ address: ADDR, ip: "8.8.4.4", claims: filled, now: now + 50 }), /Faucet reached pay out limit/);
+    const pass = planClaim({ address: bot, ip: "9.9.8.0", claims: filled, now: now + 50 });
+    assert.equal(pass.tkas, "10000");
+    assert.equal(pass.unlimited, false);
+    const withBot = filled.concat([{
+      key: pass.addrKey,
+      address: pass.address,
+      sompi: String(pass.sompi),
+      at: now + 50,
+      ip: "9.9.8.0",
+    }, {
+      key: pass.ipKey,
+      address: pass.address,
+      sompi: String(pass.sompi),
+      at: now + 50,
+      ip: "9.9.8.0",
+    }]);
+    assert.equal(sompiToTkas(remainingPool(withBot, now + 60)), "0");
+    const crowdedIp = withBot.concat([{
+      key: "ip:203.0.113.8",
+      address: ADDR,
+      sompi: String(CAP_SOMPI),
+      at: now,
+      ip: "203.0.113.8",
+    }]);
+    const again = planClaim({ address: [...HALL_PASS][1], ip: "203.0.113.8", claims: crowdedIp, now: now + 70 });
+    assert.equal(again.tkas, "10000");
+    const stranger = planClaim({ address: addrN(20), ip: "9.9.8.0", claims: withBot, now: now + 24 * 60 * 60 * 1000 + 2 });
+    assert.equal(stranger.tkas, "10000");
   });
 });

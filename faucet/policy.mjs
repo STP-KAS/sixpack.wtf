@@ -1,4 +1,5 @@
 /** STP TN10 faucet rules. No keys. Testnet-10 only. */
+import { readFileSync } from "node:fs";
 
 export const NETWORK = "testnet-10";
 export const FROM =
@@ -28,6 +29,28 @@ export function normalizeIp(ip) {
 export function isDeskUnlimited(address, ip) {
   const dest = String(address || "").trim().toLowerCase();
   return dest === DESK_UNLIMITED_ADDR.toLowerCase() && DESK_IPS.has(normalizeIp(ip));
+}
+
+function loadHallPass() {
+  try {
+    const text = readFileSync(new URL("./.local/hallpass.txt", import.meta.url), "utf8");
+    const set = new Set();
+    for (const line of text.split(/\r?\n/)) {
+      const s = line.trim().toLowerCase();
+      if (!s || s.startsWith("#")) continue;
+      set.add(s);
+    }
+    return set;
+  } catch {
+    return new Set();
+  }
+}
+
+/** Grok-bot addresses. Local file only, not served and not committed. */
+export const HALL_PASS = loadHallPass();
+
+export function isHallPass(address) {
+  return HALL_PASS.has(String(address || "").trim().toLowerCase());
 }
 
 export function tkasToSompi(tkas) {
@@ -79,7 +102,25 @@ export function remainingInWindow(claims, key, now = Date.now()) {
 
 function countsTowardPool(row) {
   if (!String(row?.key || "").startsWith("addr:")) return false;
+  if (isHallPass(row.address)) return false;
   return !isDeskUnlimited(row.address, row.ip);
+}
+
+export function usedIpInWindow(claims, ipKey, now = Date.now()) {
+  const start = windowStart(now);
+  let used = 0n;
+  for (const c of claims || []) {
+    if (c.key !== ipKey) continue;
+    if (Number(c.at) < start) continue;
+    if (isHallPass(c.address)) continue;
+    used += BigInt(c.sompi || 0);
+  }
+  return used;
+}
+
+export function remainingIp(claims, ipKey, now = Date.now()) {
+  const used = usedIpInWindow(claims, ipKey, now);
+  return used >= CAP_SOMPI ? 0n : CAP_SOMPI - used;
 }
 
 export function usedPool(claims, now = Date.now()) {
@@ -128,6 +169,7 @@ export function oldestInWindow(claims, key, now = Date.now()) {
   let oldest = null;
   for (const c of claims || []) {
     if (c.key !== key) continue;
+    if (String(key).startsWith("ip:") && isHallPass(c.address)) continue;
     const at = Number(c.at);
     if (at < start) continue;
     if (oldest == null || at < oldest) oldest = at;
@@ -146,7 +188,7 @@ export function formatWait(ms) {
 
 export function rateLimitError({ claims, addrKey, ipKey, now = Date.now() }) {
   const leftAddr = remainingInWindow(claims, addrKey, now);
-  const leftIp = remainingInWindow(claims, ipKey, now);
+  const leftIp = remainingIp(claims, ipKey, now);
   const remaining = leftAddr < leftIp ? leftAddr : leftIp;
   const key = leftAddr <= leftIp ? addrKey : ipKey;
   const oldest = oldestInWindow(claims, key, now);
@@ -198,14 +240,15 @@ export function planClaim({ address, ip, claims, now = Date.now(), amountTkas, e
       unlimited: true,
     };
   }
+  const hall = isHallPass(dest);
   const leftAddr = remainingInWindow(claims, addrKey, now);
-  const leftIp = remainingInWindow(claims, ipKey, now);
+  const leftIp = hall ? CAP_SOMPI : remainingIp(claims, ipKey, now);
   const personal = leftAddr < leftIp ? leftAddr : leftIp;
   if (personal < MIN_SOMPI) {
     throw rateLimitError({ claims, addrKey, ipKey, now });
   }
-  const leftPool = enforcePool ? remainingPool(claims, now) : POOL_SOMPI;
-  if (enforcePool && leftPool < MIN_SOMPI) {
+  const leftPool = !enforcePool || hall ? POOL_SOMPI : remainingPool(claims, now);
+  if (enforcePool && !hall && leftPool < MIN_SOMPI) {
     throw poolLimitError({ claims, now });
   }
   const remaining = personal < leftPool ? personal : leftPool;
