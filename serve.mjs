@@ -76,9 +76,25 @@ async function gateAddress(address) {
 }
 
 function faucetErrStatus(err) {
-  if (err?.code === "RATE") return 429;
+  if (err?.code === "RATE" || err?.code === "POOL") return 429;
   if (/synced|UTXO|secret|node/i.test(err?.message || "")) return 503;
   return 400;
+}
+
+function faucetErrBody(err, extra) {
+  return {
+    ok: false,
+    pending: false,
+    status: "error",
+    error: err?.message || String(err),
+    code: err?.code || "",
+    remainingTkas: err?.remainingTkas || "0",
+    retryAfter: err?.retryAfter || "",
+    retryAfterMs: err?.retryAfterMs || 0,
+    restHours: err?.restHours || 0,
+    windowHours: 24,
+    ...extra,
+  };
 }
 
 let faucetLock = Promise.resolve();
@@ -151,7 +167,7 @@ http
             return;
           }
           await gateAddress(address);
-          const plan = planClaim({ address, ip, claims });
+          const plan = planClaim({ address, ip, claims, enforcePool: false });
           sendJson(res, 200, {
             address: plan.address,
             nextTkas: plan.tkas,
@@ -171,14 +187,10 @@ http
           sendJson(
             res,
             faucetErrStatus(err),
-            {
-              error: err.message || String(err),
+            faucetErrBody(err, {
               remainingAddrTkas: err.remainingTkas || remainingAddrTkas,
               remainingTkas: err.remainingTkas || remainingAddrTkas || "0",
-              retryAfter: err.retryAfter || "",
-              retryAfterMs: err.retryAfterMs || 0,
-              windowHours: 24,
-            },
+            }),
             req
           );
         }
@@ -230,16 +242,7 @@ http
             txids: paid.txids,
           });
         } catch (err) {
-          const payload = {
-            ok: false,
-            pending: false,
-            status: "error",
-            step: "Stopped",
-            error: err.message || String(err),
-            remainingTkas: err.remainingTkas || "0",
-            retryAfter: err.retryAfter || "",
-            retryAfterMs: err.retryAfterMs || 0,
-          };
+          const payload = faucetErrBody(err, { step: "Stopped" });
           if (jobId) {
             rememberJob(jobId, payload);
             return;

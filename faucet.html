@@ -43,13 +43,13 @@
           <code id="from-addr">kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</code>
           <button type="button" class="copy" data-copy="#from-addr">Copy</button>
         </p>
-        <p>Requests are limited to <strong>30,000 tKAS per IP and per address, per 24 hours</strong>. <strong>30,000 tKAS</strong> per submit. Not kaspanet’s 10,000 / 24h cap.</p>
+        <p>Requests are limited to <strong>10,000 tKAS per IP and per address, per 24 hours</strong>. <strong>10,000 tKAS</strong> per submit.</p>
         <p id="available">Checking payout API…</p>
         <form id="form">
           <label for="addr">Address (must start with kaspatest:)</label>
           <input id="addr" name="address" spellcheck="false" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" enterkeyhint="go" placeholder="kaspatest:q…">
           <label for="amount">Amount (tKAS)</label>
-          <input id="amount" name="amount" value="30000" inputmode="numeric" enterkeyhint="done">
+          <input id="amount" name="amount" value="10000" inputmode="numeric" enterkeyhint="done">
           <label>Network</label>
           <select disabled><option selected>TESTNET-10</option></select>
           <p><button type="submit" class="go" id="go" disabled>Submit</button></p>
@@ -86,7 +86,7 @@
     </div>
   </div>
 </div>
-<script src="faucet.js?v=57"></script>
+<script src="faucet.js?v=58"></script>
 <script src="nav.js?v=46"></script>
 </body>
 </html>

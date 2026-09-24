@@ -141,12 +141,16 @@
   }
 
   let apiBase = "";
+  let capTkas = "10000";
   loadPublicBalance();
 
   probe().then(function (found) {
     if (found && found.j) {
       apiBase = found.base;
       const hours = found.j.windowHours || 24;
+      if (found.j.capTkas) capTkas = String(found.j.capTkas);
+      const amountInput = document.getElementById("amount");
+      if (amountInput && found.j.dripTkas) amountInput.value = String(found.j.dripTkas);
       if (statusEl) {
         statusEl.textContent =
           "API live · " +
@@ -187,6 +191,7 @@
       fetch(apiBase + "/api/faucet?address=" + encodeURIComponent(address), { headers: hdr() })
         .then(readJson)
         .then(function (j) {
+          if (j.code === "POOL") return;
           if (j.error || j.html) {
             if (availEl) availEl.textContent = String(j.error || "This address cannot be paid.");
             return;
@@ -196,7 +201,7 @@
             availEl.textContent =
               left === "unlimited"
                 ? "This address has unlimited tKAS from this IP."
-                : "This address has " + left + " tKAS still eligible in 24h (cap 30,000).";
+                : "This address has " + left + " tKAS still eligible in 24h (cap " + capTkas + ").";
           }
         })
         .catch(function () {});
@@ -225,7 +230,7 @@
     return (
       "<p class=\"fload\"><span class=\"fspin\" aria-hidden=\"true\"></span>Loading the payout.</p>" +
       "<p>Sending <strong>" +
-      esc(amount || "30000") +
+      esc(amount || "10000") +
       " tKAS</strong> to</p><p><code>" +
       esc(address) +
       "</code></p>" +
@@ -266,10 +271,30 @@
       setTimeout(resolve, ms);
     });
   }
+  function poolPopup(j) {
+    var hours = Number(j && j.restHours);
+    if (!isFinite(hours) || hours < 1) {
+      var ms = Number(j && j.retryAfterMs);
+      hours = isFinite(ms) && ms > 0 ? Math.ceil(ms / 3600000) : 1;
+    }
+    hours = Math.max(1, Math.round(hours));
+    var unit = hours === 1 ? "hour" : "hours";
+    popup(
+      "error",
+      "Pay out limit",
+      "<p>Bot detected (not you).</p>" +
+        "<p>Faucet reached pay out limit.</p>" +
+        "<p>Rest for <strong>" + hours + "</strong> " + unit + ".</p>"
+    );
+  }
   function showResult(j, address) {
     if (j && (j.status === "done" || (j.ok && j.txids && j.txids.length))) {
       popup("success", "Success", successHtml(j, address));
       loadPublicBalance();
+      return true;
+    }
+    if (j && j.code === "POOL") {
+      poolPopup(j);
       return true;
     }
     if (j && j.status === "error") {
@@ -288,7 +313,7 @@
       return;
     }
     const address = document.getElementById("addr").value.trim();
-    const amount = document.getElementById("amount") ? document.getElementById("amount").value.trim() : "30000";
+    const amount = document.getElementById("amount") ? document.getElementById("amount").value.trim() : "10000";
     go.disabled = true;
     popup("wait", "Loading", loadingHtml(amount, address, "Checking the address"));
     fetch(apiBase + "/api/faucet", {
@@ -334,6 +359,10 @@
         }
         if (showResult(j, address)) return;
         if (!j.ok) {
+          if (j.code === "POOL") {
+            poolPopup(j);
+            return;
+          }
           popup("error", "Error", "<p>" + esc(j.error || j.message || "Unable to send funds.") + "</p>");
           return;
         }

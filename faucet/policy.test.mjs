@@ -5,20 +5,38 @@ import {
   DESK_UNLIMITED_ADDR,
   DRIP_SOMPI,
   FROM,
+  POOL_SOMPI,
   dripAmount,
   formatWait,
   planClaim,
   remainingInWindow,
   requireTestnetAddress,
+  restHours,
   sompiToTkas,
 } from "./policy.mjs";
 
 const ADDR = "kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0lda";
 
+const ABC = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+
+function addrN(i) {
+  const addr = ADDR.slice(0, -2) + "q" + ABC[i % ABC.length];
+  if (addr.toLowerCase() === FROM.toLowerCase()) return ADDR.slice(0, -2) + "qp";
+  return addr;
+}
+
+function paid(plan, at, ip) {
+  return [
+    { key: plan.addrKey, address: plan.address, sompi: String(plan.sompi), at, ip },
+    { key: plan.ipKey, address: plan.address, sompi: String(plan.sompi), at, ip },
+  ];
+}
+
 describe("stp tn10 faucet policy", () => {
-  it("is 30,000 tKAS per 24h and 30,000 per drip", () => {
-    assert.equal(sompiToTkas(CAP_SOMPI), "30000");
-    assert.equal(sompiToTkas(DRIP_SOMPI), "30000");
+  it("is 10,000 tKAS per 24h and 10,000 per drip", () => {
+    assert.equal(sompiToTkas(CAP_SOMPI), "10000");
+    assert.equal(sompiToTkas(DRIP_SOMPI), "10000");
+    assert.equal(sompiToTkas(POOL_SOMPI), "150000");
   });
 
   it("rejects mainnet and the faucet address", () => {
@@ -26,13 +44,15 @@ describe("stp tn10 faucet policy", () => {
     assert.throws(() => requireTestnetAddress(FROM), /itself/);
   });
 
-  it("plans a 30k drip and then rate-limits", () => {
+  it("plans a 10k drip and then rate-limits", () => {
     const now = 1_000_000_000_000;
     const first = planClaim({ address: ADDR, ip: "1.2.3.4", claims: [], now });
-    assert.equal(first.tkas, "30000");
+    assert.equal(first.tkas, "10000");
+    assert.equal(first.capTkas, "10000");
+    assert.equal(first.poolTkas, undefined);
     const claims = [
-      { key: first.addrKey, sompi: String(DRIP_SOMPI), at: now },
-      { key: first.ipKey, sompi: String(DRIP_SOMPI), at: now },
+      { key: first.addrKey, address: first.address, sompi: String(DRIP_SOMPI), at: now, ip: "1.2.3.4" },
+      { key: first.ipKey, address: first.address, sompi: String(DRIP_SOMPI), at: now, ip: "1.2.3.4" },
     ];
     assert.equal(remainingInWindow(claims, first.addrKey, now + 3), 0n);
     assert.throws(() => planClaim({ address: ADDR, ip: "1.2.3.4", claims, now: now + 3 }), /Unable to send funds/);
@@ -42,7 +62,7 @@ describe("stp tn10 faucet policy", () => {
       claims,
       now: now + 24 * 60 * 60 * 1000 + 1,
     });
-    assert.equal(later.tkas, "30000");
+    assert.equal(later.tkas, "10000");
   });
 
   it("drip shrinks to remaining when under 10k", () => {
@@ -62,8 +82,8 @@ describe("stp tn10 faucet policy", () => {
     assert.equal(desk.unlimited, true);
     assert.equal(desk.tkas, "50000");
     const used = [
-      { key: desk.addrKey, sompi: String(30_000n * 100_000_000n), at: now },
-      { key: desk.ipKey, sompi: String(30_000n * 100_000_000n), at: now },
+      { key: desk.addrKey, address: DESK_UNLIMITED_ADDR, sompi: String(10_000n * 100_000_000n), at: now, ip: "<redacted-ip>" },
+      { key: desk.ipKey, address: DESK_UNLIMITED_ADDR, sompi: String(10_000n * 100_000_000n), at: now, ip: "<redacted-ip>" },
     ];
     const again = planClaim({
       address: DESK_UNLIMITED_ADDR,
@@ -79,8 +99,8 @@ describe("stp tn10 faucet policy", () => {
     );
     assert.throws(
       () => planClaim({ address: ADDR, ip: "<redacted-ip>", claims: [
-        { key: "addr:" + ADDR.toLowerCase(), sompi: String(30_000n * 100_000_000n), at: now },
-        { key: "ip:<redacted-ip>", sompi: String(30_000n * 100_000_000n), at: now },
+        { key: "addr:" + ADDR.toLowerCase(), address: ADDR, sompi: String(10_000n * 100_000_000n), at: now, ip: "<redacted-ip>" },
+        { key: "ip:<redacted-ip>", address: ADDR, sompi: String(10_000n * 100_000_000n), at: now, ip: "<redacted-ip>" },
       ], now: now + 3 }),
       /Unable to send funds/
     );
@@ -88,5 +108,102 @@ describe("stp tn10 faucet policy", () => {
 
   it("formats the official-style wait string", () => {
     assert.equal(formatWait(23 * 3600 * 1000 + 59 * 60 * 1000 + 39 * 1000), "23h 59m 39s");
+    assert.equal(restHours(23 * 3600 * 1000 + 59 * 60 * 1000), 24);
+    assert.equal(restHours(60 * 1000), 1);
+  });
+
+  it("stops a new address after 150,000 tKAS has been paid in 24h", () => {
+    const now = 1_000_000_000_000;
+    let claims = [];
+    for (let i = 0; i < 15; i++) {
+      const ip = "9.9.9." + i;
+      const plan = planClaim({ address: addrN(i), ip, claims, now: now + i });
+      assert.equal(plan.tkas, "10000");
+      claims = claims.concat(paid(plan, now + i, ip));
+    }
+    const blocked = () => planClaim({ address: addrN(16), ip: "8.8.8.8", claims, now: now + 100 });
+    assert.throws(blocked, /Bot detected \(not you\)/);
+    assert.throws(blocked, /Faucet reached pay out limit/);
+    assert.throws(blocked, /Rest for 24 hours/);
+    try {
+      blocked();
+    } catch (err) {
+      assert.equal(err.code, "POOL");
+      assert.equal(err.restHours, 24);
+      assert.equal(/150/.test(err.message), false);
+      assert.equal(/15 people/.test(err.message), false);
+    }
+    const desk = planClaim({
+      address: DESK_UNLIMITED_ADDR,
+      ip: "127.0.0.1",
+      claims,
+      now: now + 100,
+      amountTkas: "50000",
+    });
+    assert.equal(desk.unlimited, true);
+    assert.equal(desk.tkas, "50000");
+    assert.throws(
+      () => planClaim({ address: addrN(0), ip: "9.9.9.0", claims, now: now + 100 }),
+      /Unable to send funds/
+    );
+    const preview = planClaim({
+      address: addrN(16),
+      ip: "8.8.8.8",
+      claims,
+      now: now + 100,
+      enforcePool: false,
+    });
+    assert.equal(preview.tkas, "10000");
+    const opened = planClaim({
+      address: addrN(16),
+      ip: "8.8.8.8",
+      claims,
+      now: now + 24 * 60 * 60 * 1000 + 1,
+    });
+    assert.equal(opened.tkas, "10000");
+  });
+
+  it("counts each payout once and ignores desk withdrawals", () => {
+    const now = 1_000_000_000_000;
+    const doubled = {
+      key: "addr:" + addrN(0).toLowerCase(),
+      address: addrN(0),
+      sompi: String(140_000n * 100_000_000n),
+      at: now,
+      ip: "1.1.1.1",
+    };
+    const ipTwin = { ...doubled, key: "ip:1.1.1.1" };
+    const next = planClaim({ address: addrN(1), ip: "1.1.1.2", claims: [doubled, ipTwin], now: now + 5 });
+    assert.equal(next.tkas, "10000");
+    const deskOnly = [{
+      key: "addr:" + DESK_UNLIMITED_ADDR.toLowerCase(),
+      address: DESK_UNLIMITED_ADDR,
+      sompi: String(POOL_SOMPI),
+      at: now,
+      ip: "127.0.0.1",
+    }];
+    const afterDesk = planClaim({ address: ADDR, ip: "3.3.3.3", claims: deskOnly, now: now + 5 });
+    assert.equal(afterDesk.tkas, "10000");
+  });
+
+  it("pays the last slice under 10,000 and then stops", () => {
+    const now = 1_000_000_000_000;
+    const claims = [{
+      key: "addr:" + addrN(0).toLowerCase(),
+      address: addrN(0),
+      sompi: String(145_000n * 100_000_000n),
+      at: now,
+      ip: "1.1.1.1",
+    }];
+    const slice = planClaim({ address: addrN(1), ip: "1.1.1.2", claims, now: now + 5 });
+    assert.equal(slice.tkas, "5000");
+    const almost = [{
+      ...claims[0],
+      sompi: String(149_991n * 100_000_000n),
+    }];
+    assert.throws(
+      () => planClaim({ address: addrN(1), ip: "1.1.1.2", claims: almost, now: now + 90 * 60 * 1000 }),
+      /Rest for 23 hours/
+    );
   });
 });

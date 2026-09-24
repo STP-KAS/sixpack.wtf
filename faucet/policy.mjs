@@ -4,8 +4,10 @@ export const NETWORK = "testnet-10";
 export const FROM =
   "kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx";
 export const WINDOW_MS = 24 * 60 * 60 * 1000;
-export const CAP_SOMPI = 30_000n * 100_000_000n; // 30,000 tKAS / 24h
-export const DRIP_SOMPI = 30_000n * 100_000_000n; // per request, up to remaining
+export const CAP_SOMPI = 10_000n * 100_000_000n; // 10,000 tKAS / address and IP / 24h
+export const DRIP_SOMPI = 10_000n * 100_000_000n; // per request, up to remaining
+/** Whole faucet over the same 24h window. Counted from payouts. Not returned by the API. */
+export const POOL_SOMPI = 150_000n * 100_000_000n;
 export const MIN_SOMPI = 10n * 100_000_000n; // 10 tKAS floor (KIP-9 / packing)
 export const EXPLORER_HOME = "https://tn10.kaspa.stream/";
 /** Desk-only unlimited withdrawals. Address + desk IP must both match. */
@@ -75,6 +77,45 @@ export function remainingInWindow(claims, key, now = Date.now()) {
   return used >= CAP_SOMPI ? 0n : CAP_SOMPI - used;
 }
 
+function countsTowardPool(row) {
+  if (!String(row?.key || "").startsWith("addr:")) return false;
+  return !isDeskUnlimited(row.address, row.ip);
+}
+
+export function usedPool(claims, now = Date.now()) {
+  const start = windowStart(now);
+  let used = 0n;
+  for (const c of claims || []) {
+    if (!countsTowardPool(c)) continue;
+    if (Number(c.at) < start) continue;
+    used += BigInt(c.sompi || 0);
+  }
+  return used;
+}
+
+export function remainingPool(claims, now = Date.now()) {
+  const used = usedPool(claims, now);
+  return used >= POOL_SOMPI ? 0n : POOL_SOMPI - used;
+}
+
+function oldestPoolAt(claims, now = Date.now()) {
+  const start = windowStart(now);
+  let oldest = null;
+  for (const c of claims || []) {
+    if (!countsTowardPool(c)) continue;
+    const at = Number(c.at);
+    if (at < start) continue;
+    if (oldest == null || at < oldest) oldest = at;
+  }
+  return oldest;
+}
+
+/** Whole hours until the oldest counted payout leaves the window. At least 1. */
+export function restHours(ms) {
+  const hours = Math.ceil(Math.max(0, Number(ms)) / (60 * 60 * 1000));
+  return hours < 1 ? 1 : hours;
+}
+
 export function dripAmount(remaining) {
   const rem = BigInt(remaining);
   if (rem <= 0n) return 0n;
@@ -121,12 +162,28 @@ export function rateLimitError({ claims, addrKey, ipKey, now = Date.now() }) {
   return err;
 }
 
-export function planClaim({ address, ip, claims, now = Date.now(), amountTkas }) {
+export function poolLimitError({ claims, now = Date.now() }) {
+  const oldest = oldestPoolAt(claims, now);
+  const retryAfterMs = oldest == null ? WINDOW_MS : Math.max(0, oldest + WINDOW_MS - now);
+  const hours = restHours(retryAfterMs);
+  const unit = hours === 1 ? "hour" : "hours";
+  const err = new Error(
+    "Bot detected (not you). Faucet reached pay out limit. Rest for " + hours + " " + unit + "."
+  );
+  err.code = "POOL";
+  err.retryAfterMs = retryAfterMs;
+  err.retryAfter = formatWait(retryAfterMs);
+  err.restHours = hours;
+  err.remainingTkas = "0";
+  return err;
+}
+
+export function planClaim({ address, ip, claims, now = Date.now(), amountTkas, enforcePool = true }) {
   const dest = requireTestnetAddress(address);
   const ipKey = "ip:" + String(ip || "unknown");
   const addrKey = "addr:" + dest.toLowerCase();
   if (isDeskUnlimited(dest, ip)) {
-    const sompi = tkasToSompi(amountTkas == null || amountTkas === "" ? "30000" : amountTkas);
+    const sompi = tkasToSompi(amountTkas == null || amountTkas === "" ? sompiToTkas(DRIP_SOMPI) : amountTkas);
     return {
       address: dest,
       sompi,
@@ -143,7 +200,15 @@ export function planClaim({ address, ip, claims, now = Date.now(), amountTkas })
   }
   const leftAddr = remainingInWindow(claims, addrKey, now);
   const leftIp = remainingInWindow(claims, ipKey, now);
-  const remaining = leftAddr < leftIp ? leftAddr : leftIp;
+  const personal = leftAddr < leftIp ? leftAddr : leftIp;
+  if (personal < MIN_SOMPI) {
+    throw rateLimitError({ claims, addrKey, ipKey, now });
+  }
+  const leftPool = enforcePool ? remainingPool(claims, now) : POOL_SOMPI;
+  if (enforcePool && leftPool < MIN_SOMPI) {
+    throw poolLimitError({ claims, now });
+  }
+  const remaining = personal < leftPool ? personal : leftPool;
   const sompi = dripAmount(remaining);
   if (sompi <= 0n) {
     throw rateLimitError({ claims, addrKey, ipKey, now });
@@ -151,11 +216,11 @@ export function planClaim({ address, ip, claims, now = Date.now(), amountTkas })
   return {
     address: dest,
     sompi,
-    remainingAfter: remaining - sompi,
+    remainingAfter: personal - sompi,
     leftAddr,
     leftIp,
     tkas: sompiToTkas(sompi),
-    capTkas: "30000",
+    capTkas: sompiToTkas(CAP_SOMPI),
     windowHours: 24,
     addrKey,
     ipKey,
