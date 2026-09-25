@@ -237,31 +237,17 @@ export function poolLimitError({ claims, now = Date.now() }) {
   return err;
 }
 
-export function planClaim({ address, ip, claims, now = Date.now(), amountTkas, enforcePool = true }) {
+export function planClaim({ address, ip, amountTkas }) {
   const dest = requireTestnetAddress(address);
   const ipKey = "ip:" + String(ip || "unknown");
   const addrKey = "addr:" + dest.toLowerCase();
-  const leftAddr = remainingInWindow(claims, addrKey, now);
-  const leftIp = remainingIp(claims, ipKey, now);
-  const personal = leftAddr < leftIp ? leftAddr : leftIp;
-  if (personal < MIN_SOMPI) {
-    throw rateLimitError({ claims, addrKey, ipKey, now });
-  }
-  const leftPool = enforcePool ? remainingPool(claims, now) : POOL_SOMPI;
-  if (enforcePool && leftPool < MIN_SOMPI) {
-    throw poolLimitError({ claims, now });
-  }
-  const remaining = personal < leftPool ? personal : leftPool;
-  const sompi = dripAmount(remaining);
-  if (sompi <= 0n) {
-    throw rateLimitError({ claims, addrKey, ipKey, now });
-  }
+  const sompi = tkasToSompi(amountTkas == null || amountTkas === "" ? sompiToTkas(DRIP_SOMPI) : amountTkas);
   return {
     address: dest,
     sompi,
-    remainingAfter: personal - sompi,
-    leftAddr,
-    leftIp,
+    remainingAfter: sompi,
+    leftAddr: sompi,
+    leftIp: sompi,
     tkas: sompiToTkas(sompi),
     capTkas: sompiToTkas(CAP_SOMPI),
     windowHours: WINDOW_HOURS,
