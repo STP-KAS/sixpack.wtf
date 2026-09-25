@@ -5,7 +5,7 @@
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { FROM } from "./policy.mjs";
+import { FROM, MIN_SOMPI } from "./policy.mjs";
 
 const WASM =
   process.env.KASPA_WASM ||
@@ -151,7 +151,8 @@ export async function payTn10(toAddr, sompi, onStep) {
     let guard = 0;
     while (sent < want && cursor < entries.length && guard < 160) {
       guard += 1;
-      const need = want - sent + 50_000_000n;
+      const feeReserve = 50_000_000n;
+      const need = want - sent + feeReserve;
       const picked = [];
       let acc = 0n;
       while (cursor < entries.length && picked.length < MAX_INPUTS && acc < need) {
@@ -159,9 +160,9 @@ export async function payTn10(toAddr, sompi, onStep) {
         acc += BigInt(entries[cursor].amount);
         cursor += 1;
       }
-      if (!picked.length || acc < 10n * 100_000_000n + 1_000_000n) break;
-      const chunk = acc - 50_000_000n > want - sent ? want - sent : acc - 50_000_000n;
-      if (chunk <= 0n) break;
+      if (!picked.length || acc <= feeReserve) break;
+      const chunk = acc - feeReserve > want - sent ? want - sent : acc - feeReserve;
+      if (chunk < MIN_SOMPI) break;
       step("Signing the send");
       const { transactions } = await kaspa.createTransactions({
         entries: picked,

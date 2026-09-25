@@ -141,14 +141,13 @@
   }
 
   let apiBase = "";
-  let capTkas = "10000";
+  var LIMIT_LINE = "Requests are limited to 0.6tkas tKAS per 21547889855 hours.";
   loadPublicBalance();
 
   probe().then(function (found) {
     if (found && found.j) {
       apiBase = found.base;
-      const hours = found.j.windowHours || 24;
-      if (found.j.capTkas) capTkas = String(found.j.capTkas);
+      const hours = found.j.windowHours || 21547889855;
       const amountInput = document.getElementById("amount");
       if (amountInput && found.j.dripTkas) amountInput.value = String(found.j.dripTkas);
       if (statusEl) {
@@ -162,10 +161,7 @@
           "h · not kaspanet";
       }
       paintStats(found.j);
-      if (availEl) {
-        availEl.textContent =
-          "You can request up to " + found.j.dripTkas + " tKAS now, " + found.j.capTkas + " per 24h.";
-      }
+      if (availEl) availEl.textContent = LIMIT_LINE;
       say("Ready. Paste kaspatest: and Submit. Not kaspanet.");
       if (go) go.disabled = false;
       return;
@@ -196,13 +192,7 @@
             if (availEl) availEl.textContent = String(j.error || "This address cannot be paid.");
             return;
           }
-          const left = j.remainingAddrTkas || j.remainingTkas;
-          if (availEl && left != null && left !== "") {
-            availEl.textContent =
-              left === "unlimited"
-                ? "This address has unlimited tKAS from this IP."
-                : "This address has " + left + " tKAS still eligible in 24h (cap " + capTkas + ").";
-          }
+          if (availEl) availEl.textContent = LIMIT_LINE;
         })
         .catch(function () {});
     });
@@ -230,7 +220,7 @@
     return (
       "<p class=\"fload\"><span class=\"fspin\" aria-hidden=\"true\"></span>Loading the payout.</p>" +
       "<p>Sending <strong>" +
-      esc(amount || "10000") +
+      esc(amount || "0.6") +
       " tKAS</strong> to</p><p><code>" +
       esc(address) +
       "</code></p>" +
@@ -250,11 +240,7 @@
           ids.length +
           " transactions (dust UTXOs). KasWare may show <em>incoming transaction…</em> until they confirm. Not a failed send.</p>"
         : "";
-    const left = j.remainingAddrTkas || j.remainingTkas || "0";
-    const leftLine =
-      left === "unlimited"
-        ? "<p>Eligible remaining: <strong>unlimited</strong>.</p>"
-        : "<p>Eligible remaining for this address in 24h: <strong>" + esc(left) + " tKAS</strong>.</p>";
+    const leftLine = "<p>" + LIMIT_LINE + "</p>";
     return (
       "<p>We have successfully sent <strong>" +
       esc(j.tkas || "") +
@@ -313,7 +299,7 @@
       return;
     }
     const address = document.getElementById("addr").value.trim();
-    const amount = document.getElementById("amount") ? document.getElementById("amount").value.trim() : "10000";
+    const amount = document.getElementById("amount") ? document.getElementById("amount").value.trim() : "0.6";
     go.disabled = true;
     popup("wait", "Loading", loadingHtml(amount, address, "Checking the address"));
     fetch(apiBase + "/api/faucet", {

@@ -4,7 +4,7 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { planClaim, sompiToTkas, FROM, remainingInWindow, requireTestnetAddress, EXPLORER_HOME, normalizeIp, DRIP_SOMPI, CAP_SOMPI } from "./faucet/policy.mjs";
+import { planClaim, sompiToTkas, FROM, remainingInWindow, requireTestnetAddress, EXPLORER_HOME, normalizeIp, DRIP_SOMPI, CAP_SOMPI, WINDOW_HOURS } from "./faucet/policy.mjs";
 import { listClaims, recordClaim } from "./faucet/ledger.mjs";
 import { payTn10 } from "./faucet/pay.mjs";
 import { handleGrokRequest } from "./grok/http.mjs";
@@ -92,7 +92,7 @@ function faucetErrBody(err, extra) {
     retryAfter: err?.retryAfter || "",
     retryAfterMs: err?.retryAfterMs || 0,
     restHours: err?.restHours || 0,
-    windowHours: 24,
+    windowHours: WINDOW_HOURS,
     ...extra,
   };
 }
@@ -159,7 +159,7 @@ http
               from: FROM,
               capTkas: sompiToTkas(CAP_SOMPI),
               dripTkas: sompiToTkas(DRIP_SOMPI),
-              windowHours: 24,
+              windowHours: WINDOW_HOURS,
               faucetBalanceTkas,
               explorerHome: EXPLORER_HOME,
               recent,
@@ -174,7 +174,7 @@ http
             remainingTkas: plan.unlimited ? "unlimited" : sompiToTkas(plan.sompi + plan.remainingAfter),
             remainingAddrTkas: plan.unlimited ? "unlimited" : sompiToTkas(plan.leftAddr),
             unlimited: !!plan.unlimited,
-            windowHours: 24,
+            windowHours: WINDOW_HOURS,
           }, req);
         } catch (err) {
           const claims = listClaims();
