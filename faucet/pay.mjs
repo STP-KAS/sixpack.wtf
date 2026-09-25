@@ -18,6 +18,14 @@ const SECRET =
   "C:/Users/<user>/Documents/kaspa/groks-wallet/secrets/wallet.txt";
 const RPC_URL = process.env.FAUCET_RPC || "127.0.0.1:17210";
 const MAX_INPUTS = 80;
+const COINBASE_MATURITY = 1000n;
+
+/** Coinbase outputs cannot be spent until 1000 DAA scores have passed. */
+export function isMatureEntry(entry, virtualDaa) {
+  if (entry?.isCoinbase !== true) return true;
+  const born = BigInt(entry.blockDaaScore ?? 0);
+  return BigInt(virtualDaa) >= born + COINBASE_MATURITY;
+}
 const FAST_RESOLVERS = [
   "https://eric.kaspa.stream",
   "https://maxim.kaspa.stream",
@@ -137,12 +145,14 @@ export async function payTn10(toAddr, sompi, onStep) {
   const want = BigInt(sompi);
   try {
     step("Gathering coins");
+    const dag = await withTimeout(rpc.getBlockDagInfo(), 8000, "Reading Testnet-10 tip took too long.");
+    const virtualDaa = dag.virtualDaaScore ?? 0;
     let { entries } = await withTimeout(
       rpc.getUtxosByAddresses([fromAddr]),
       45000,
       "Reading faucet coins took too long."
     );
-    entries = [...entries].sort((a, b) => {
+    entries = [...entries].filter((entry) => isMatureEntry(entry, virtualDaa)).sort((a, b) => {
       const aa = BigInt(a.amount);
       const bb = BigInt(b.amount);
       return aa < bb ? 1 : aa > bb ? -1 : 0;
