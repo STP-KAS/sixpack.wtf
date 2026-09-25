@@ -141,13 +141,13 @@
   }
 
   let apiBase = "";
-  var LIMIT_LINE = "Requests are limited to 0.6tkas tKAS per 21547889855 hours.";
+  var LIMIT_LINE = "You can request up to 0.6 tKAS now, 0.6 per 235784h.";
   loadPublicBalance();
 
   probe().then(function (found) {
     if (found && found.j) {
       apiBase = found.base;
-      const hours = found.j.windowHours || 21547889855;
+      const hours = found.j.windowHours || 235784;
       const amountInput = document.getElementById("amount");
       if (amountInput && found.j.dripTkas) amountInput.value = String(found.j.dripTkas);
       if (statusEl) {

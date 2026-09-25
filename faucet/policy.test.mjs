@@ -42,7 +42,7 @@ describe("stp tn10 faucet policy", () => {
     assert.equal(sompiToTkas(CAP_SOMPI), "0.6");
     assert.equal(sompiToTkas(DRIP_SOMPI), "0.6");
     assert.equal(sompiToTkas(POOL_SOMPI), "150000");
-    assert.equal(WINDOW_HOURS, 21547889855);
+    assert.equal(WINDOW_HOURS, 235784);
   });
 
   it("rejects mainnet and the faucet address", () => {
@@ -59,7 +59,7 @@ describe("stp tn10 faucet policy", () => {
     assert.equal(first.windowHours, WINDOW_HOURS);
     const claims = paid(first, now, "1.2.3.4");
     assert.equal(remainingInWindow(claims, first.addrKey, now + 3), 0n);
-    assert.throws(() => planClaim({ address: ADDR, ip: "1.2.3.4", claims, now: now + 3 }), /21547889855h/);
+    assert.throws(() => planClaim({ address: ADDR, ip: "1.2.3.4", claims, now: now + 3 }), /235784h/);
     assert.throws(
       () => planClaim({ address: ADDR, ip: "9.9.9.9", claims, now: now + 24 * 60 * 60 * 1000 + 1 }),
       /Unable to send funds/

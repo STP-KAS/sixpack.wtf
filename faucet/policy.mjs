@@ -6,7 +6,7 @@ export const NETWORK = "testnet-10";
 export const FROM =
   "kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx";
 /** Personal and IP cap. The hour count is the public rule. */
-export const WINDOW_HOURS = 21547889855;
+export const WINDOW_HOURS = 235784;
 export const WINDOW_MS = WINDOW_HOURS * 60 * 60 * 1000;
 /** Hidden whole-faucet ceiling. Stays on 24h so older payouts do not zero the faucet. */
 export const POOL_WINDOW_MS = 24 * 60 * 60 * 1000;
