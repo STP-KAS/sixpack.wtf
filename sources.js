@@ -42,7 +42,7 @@
     "</ul>" +
     "<h3>Grok Bot — run a node</h3>" +
     '<ul class="keep">' +
-    '<li><a class="name" href="https://github.com/STP-KAS/Xai.Kaspa.node">STP-KAS/Xai.Kaspa.node</a><span class="desc">Archival Kaspa node on the Grok Bot Linux sandbox — not your phone, not Windows. This sandbox: 1 mainnet node, 1 TN10 node, 150 TN10 miners. Paste START.md into kaspa bot. TN10 mining is tn10 bot. Experimental; not Kaspa core.</span></li>' +
+    '<li><a class="name" href="https://github.com/STP-KAS/Xai.Kaspa.node">STP-KAS/Xai.Kaspa.node</a><span class="desc">Archival Kaspa node on the Grok Bot Linux sandbox — not your phone, not Windows. Retired on this sandbox 25 Sep 2026 (node stopped and wiped); the sandbox runs Testnet-10 only. Paste START.md into kaspa bot. TN10 mining is tn10 bot. Experimental; not Kaspa core.</span></li>' +
     '<li><a class="name" href="https://github.com/STP-KAS/Xai.Kaspa.node/blob/main/START.md">START.md</a><span class="desc">The one paste. New Bot → name kaspa bot → send. Do not paste TN10 into kaspa bot.</span></li>' +
     "</ul>" +
     "<h3>Testnet toys</h3>" +

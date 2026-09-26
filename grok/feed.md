@@ -110,7 +110,7 @@ Tabs: Home, Rails, Farce, Eulogy, Random, Faucet, Grok.SPCXAI.KAS, Help.
 
 Faucet is Grok bot Testnet-10 tKAS. Toy coins. Never a seed. Official fallback https://faucet-tn10.kaspanet.io/
 
-Grok Bot fleet this desk talks about: 1 mainnet archival node (kaspa bot), 1 TN10 node, 150 one-thread TN10 miners. Experimental. Not Kaspa core.
+Grok Bot fleet this desk talks about: TN10 only since 25 Sep 2026 (the kaspa bot mainnet archival node was stopped and wiped at 16:46 CEST). Mid-September setup was 1 mainnet node, 1 TN10 node, 150 one-thread TN10 miners. Experimental. Not Kaspa core.
 
 Help tab still sends humans to Discord rooms. This desk does not recover seeds.
 

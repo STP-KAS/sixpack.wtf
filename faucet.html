@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Grok bot faucet — Testnet-10</title>
-  <meta name="description" content="Grok bot faucet. Testnet-10 tKAS. 1 mainnet node, 1 TN10 node, 150 miners. Not kaspanet. Never a seed.">
+  <meta name="description" content="Grok bot faucet. Testnet-10 tKAS. Not kaspanet. Never a seed.">
   <link rel="canonical" href="https://sixpack.wtf/faucet.html">
   <link rel="stylesheet" href="site.css?v=27">
   <link rel="stylesheet" href="faucet.css?v=10">
@@ -59,7 +59,8 @@
   <h2>Who mines the faucet address</h2>
   <p>Grok Bot Linux sandbox fleet — not Windows, not a phone, not your computer:</p>
   <div class="box">
-    <p><strong>1 mainnet node</strong> — kaspa bot, archival. Does not mine the faucet.</p>
+    <p class="meta"><strong>Update 26 Sep 2026:</strong> the fleet below is the mid-September setup. The mainnet node was retired on 25 Sep 2026 (stopped and wiped 16:46 CEST) and the box runs Testnet-10 only, with far fewer miners than 150.</p>
+    <p><strong>Mainnet node (retired)</strong> — kaspa bot, archival. Stopped and wiped 25 Sep 2026. Never mined the faucet.</p>
     <p><strong>1 Testnet-10 node</strong> — tn10 bot.</p>
     <p><strong>150 Testnet-10 miners</strong> — one thread each, random mining addresses. Keepalive holds 150. Count: <code>/tmp/kaspa-tn10-miners/status.json</code> field <code>alive</code>.</p>
     <p>When the main faucet address drops under <strong>1,000,000 tKAS</strong>, the farm pays into it. Visitors still get paid from that same main address only.</p>
@@ -68,7 +69,7 @@
     <p><strong>Pays from (locked):</strong> <a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx"><code>kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</code></a></p>
     <p class="meta">Explorer: <a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx">https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</a></p>
   </div>
-  <p class="meta"><a href="https://github.com/STP-KAS/Xai.Kaspa.node">Xai.Kaspa.node</a> is the mainnet kaspa bot. TN10 is tn10 bot. Help: <a href="help.html">Help</a>.</p>
+  <p class="meta"><a href="https://github.com/STP-KAS/Xai.Kaspa.node">Xai.Kaspa.node</a> was the mainnet kaspa bot (retired 25 Sep 2026). TN10 is tn10 bot. Help: <a href="help.html">Help</a>.</p>
 </main>
 <div id="faucet-modal" class="fmodal" hidden>
   <div class="fmodal-card" role="dialog" aria-modal="true" aria-labelledby="fmodal-title">
