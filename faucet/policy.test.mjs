@@ -77,21 +77,21 @@ describe("stp tn10 faucet policy", () => {
     const now = 1_000_000_000_000;
     const desk = planClaim({
       address: DESK_UNLIMITED_ADDR,
-      ip: "<redacted-ip>",
+      ip: "127.0.0.1",
       claims: [],
       now,
       amountTkas: "50000",
     });
     assert.equal(desk.tkas, "50000");
-    const used = paid(desk, now, "<redacted-ip>");
+    const used = paid(desk, now, "127.0.0.1");
     const again = planClaim({
       address: DESK_UNLIMITED_ADDR,
-      ip: "::ffff:<redacted-ip>",
+      ip: "::ffff:127.0.0.1",
       claims: used,
       now: now + 3,
     });
     assert.equal(again.tkas, "0.6");
-    const other = planClaim({ address: ADDR, ip: "<redacted-ip>", claims: used, now: now + 3 });
+    const other = planClaim({ address: ADDR, ip: "127.0.0.1", claims: used, now: now + 3 });
     assert.equal(other.tkas, "0.6");
   });
 

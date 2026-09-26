@@ -1,13 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 export const sixpackRoot = path.join(here, "..");
-export const grokRepo = process.env.GROK_DESK_REPO || "C:\\Users\\<user>\\Grok.SPCXAI.KAS";
-export const masterRoot = process.env.KASPA_MASTER || "C:\\Users\\<user>\\kaspa-master-file-git";
+export const grokRepo = process.env.GROK_DESK_REPO || path.join(os.homedir(), "Grok.SPCXAI.KAS");
+export const masterRoot = process.env.KASPA_MASTER || path.join(os.homedir(), "kaspa-master-file-git");
 
 const FEED_FILES = ["system.md", "feed.md", "catalog.md"];
 

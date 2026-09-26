@@ -1,3 +1,4 @@
+import { homedir } from "node:os";
 /**
  * Pay tKAS from groks-wallet on Testnet-10.
  * Keys stay in groks-wallet/secrets (gitignored). Never imported into git here.
@@ -9,13 +10,13 @@ import { FROM, MIN_SOMPI } from "./policy.mjs";
 
 const WASM =
   process.env.KASPA_WASM ||
-  "C:/Users/<user>/grok-test-cascade-work/wasm-sdk/kaspa-wasm32-sdk/nodejs/kaspa/kaspa.js";
+  `${homedir().replace(/\\/g, "/")}/grok-test-cascade-work/wasm-sdk/kaspa-wasm32-sdk/nodejs/kaspa/kaspa.js`;
 const WS_FROM =
   process.env.KASPA_WS_FROM ||
-  "C:/Users/<user>/grok-test-cascade-work/wasm-sdk/kaspa-wasm32-sdk/examples/nodejs/javascript/transactions/simple-transaction.js";
+  `${homedir().replace(/\\/g, "/")}/grok-test-cascade-work/wasm-sdk/kaspa-wasm32-sdk/examples/nodejs/javascript/transactions/simple-transaction.js`;
 const SECRET =
   process.env.FAUCET_SECRET ||
-  "C:/Users/<user>/Documents/kaspa/groks-wallet/secrets/wallet.txt";
+  `${homedir().replace(/\\/g, "/")}/Documents/kaspa/groks-wallet/secrets/wallet.txt`;
 const RPC_URL = process.env.FAUCET_RPC || "127.0.0.1:17210";
 const MAX_INPUTS = 80;
 const COINBASE_MATURITY = 1000n;

@@ -19,7 +19,15 @@ export const EXPLORER_HOME = "https://tn10.kaspa.stream/";
 /** Desk-only unlimited withdrawals. Address + desk IP must both match. */
 export const DESK_UNLIMITED_ADDR =
   "kaspatest:qzpvdakagvwfm95g8pv9ndpupjtndgjfhmve08cg3tv5wgfytjzf7cudwwzv0";
-export const DESK_IPS = new Set(["<redacted-ip>", "127.0.0.1", "::1"]);
+/** Loopback plus the desk's public IP(s) from FAUCET_DESK_IPS (comma-separated). Kept out of git. */
+export const DESK_IPS = new Set([
+  "127.0.0.1",
+  "::1",
+  ...String(process.env.FAUCET_DESK_IPS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
+]);
 
 const BECH = /^kaspatest:[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{50,80}$/i;
 
