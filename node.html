@@ -41,12 +41,12 @@
       <tr>
         <td><strong>tn10 bot</strong></td>
         <td>testnet-10</td>
-        <td>1 TN10 node + 150 one-thread miners on random addresses. Faucet pays from the address above; miners top it up under 1M tKAS. Do not paste this into kaspa bot.</td>
+        <td>A few TN10 nodes and miners, used to test KNS and vprogs tic-tac-toe; the setup changes over time. Faucet pays from the address above; miners top it up under 1M tKAS. Do not paste this into kaspa bot.</td>
       </tr>
       <tr>
         <td>Windows desk</td>
-        <td>both</td>
-        <td>Mainnet public <code>kaspad</code> on 16111. TN10 <code>kaspad</code> + miner on 16211 / 16210. Leave mainnet running.</td>
+        <td>testnet-10</td>
+        <td>TN10 <code>kaspad</code> + miner on 16211 / 16210. Mainnet is retired; no desk mainnet node is kept running.</td>
       </tr>
     </tbody>
   </table>
@@ -88,7 +88,6 @@ kaspa-miner -t 8 --user-agent-suffix grokwallet
   <ul>
     <li>Paste a seed here, in Discord, or into kaspa bot.</li>
     <li>Paste TN10 instructions into kaspa bot.</li>
-    <li>Stop the mainnet node to mine testnet.</li>
     <li>Expose gRPC / wRPC (16110 / 16210) to the internet.</li>
     <li>Treat tKAS as money. Use it to test the till, covenants, and 402.</li>
   </ul>

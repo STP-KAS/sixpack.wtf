@@ -59,10 +59,8 @@
   <h2>Who mines the faucet address</h2>
   <p>Grok Bot Linux sandbox fleet — not Windows, not a phone, not your computer:</p>
   <div class="box">
-    <p class="meta"><strong>Update 26 Sep 2026:</strong> the fleet below is the mid-September setup. The mainnet node was retired on 25 Sep 2026 (stopped and wiped 16:46 CEST) and the box runs Testnet-10 only, with far fewer miners than 150.</p>
-    <p><strong>Mainnet node (retired)</strong> — kaspa bot, archival. Stopped and wiped 25 Sep 2026. Never mined the faucet.</p>
-    <p><strong>1 Testnet-10 node</strong> — tn10 bot.</p>
-    <p><strong>150 Testnet-10 miners</strong> — one thread each, random mining addresses. Keepalive holds 150. Count: <code>/tmp/kaspa-tn10-miners/status.json</code> field <code>alive</code>.</p>
+    <p><strong>Testnet-10</strong> — a few TN10 nodes and miners, used to test KNS and vprogs tic-tac-toe; the setup changes over time. Miners use random mining addresses.</p>
+    <p><strong>Mainnet is retired.</strong> The kaspa bot archival node was stopped and wiped on 25 Sep 2026 (16:46 CEST). It never mined the faucet.</p>
     <p>When the main faucet address drops under <strong>1,000,000 tKAS</strong>, the farm pays into it. Visitors still get paid from that same main address only.</p>
     <p>Monitor still runs every 10 minutes; it’ll grind on repairs first and only hop addresses if the current one is truly stuck.</p>
     <p class="meta">8 CPU cores. Load is high on purpose. Extra miners fight for those cores. Toy/test coins.</p>
