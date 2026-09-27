@@ -66,6 +66,21 @@ describe("stp tn10 faucet policy", () => {
     );
   });
 
+  it("pays a typed amount at or under 0.6 and clamps anything higher", () => {
+    const now = 1_000_000_000_000;
+    const small = planClaim({ address: ADDR, ip: "5.5.5.5", claims: [], now, amountTkas: "0.2" });
+    assert.equal(small.tkas, "0.2");
+    const claims = paid(small, now, "5.5.5.5");
+    const more = planClaim({ address: ADDR, ip: "5.5.5.5", claims, now: now + 3, amountTkas: "0.4" });
+    assert.equal(more.tkas, "0.4");
+    assert.throws(
+      () => planClaim({ address: ADDR, ip: "5.5.5.5", claims: claims.concat(paid(more, now + 3, "5.5.5.5")), now: now + 6, amountTkas: "0.1" }),
+      /Unable to send funds/
+    );
+    const over = planClaim({ address: addrN(3), ip: "5.5.5.6", claims: [], now, amountTkas: "2" });
+    assert.equal(over.tkas, "0.6");
+  });
+
   it("pays 0.6 or nothing", () => {
     assert.equal(dripAmount(5_000n * 100_000_000n), DRIP_SOMPI);
     assert.equal(dripAmount(DRIP_SOMPI), DRIP_SOMPI);

@@ -84,7 +84,7 @@ export function tkasToSompi(tkas) {
   if (!/^\d+(\.\d{1,8})?$/.test(s)) throw new Error("Amount must be tKAS.");
   const [w, f = ""] = s.split(".");
   const sompi = BigInt(w) * 100000000n + BigInt((f + "00000000").slice(0, 8));
-  if (sompi < MIN_SOMPI) throw new Error("Minimum 0.6 tKAS.");
+  if (sompi <= 0n) throw new Error("Amount must be tKAS.");
   return sompi;
 }
 
@@ -252,17 +252,14 @@ export function planClaim({ address, ip, claims, now = Date.now(), amountTkas, e
   const leftAddr = remainingInWindow(claims, addrKey, now);
   const leftIp = remainingIp(claims, ipKey, now);
   const personal = leftAddr < leftIp ? leftAddr : leftIp;
-  if (personal < MIN_SOMPI) {
+  const raw = tkasToSompi(amountTkas == null || amountTkas === "" ? sompiToTkas(DRIP_SOMPI) : amountTkas);
+  const sompi = raw > CAP_SOMPI ? CAP_SOMPI : raw;
+  if (personal < sompi) {
     throw rateLimitError({ claims, addrKey, ipKey, now });
   }
   const leftPool = enforcePool ? remainingPool(claims, now) : POOL_SOMPI;
-  if (enforcePool && leftPool < MIN_SOMPI) {
+  if (enforcePool && leftPool < sompi) {
     throw poolLimitError({ claims, now });
-  }
-  const remaining = personal < leftPool ? personal : leftPool;
-  const sompi = dripAmount(remaining);
-  if (sompi <= 0n) {
-    throw rateLimitError({ claims, addrKey, ipKey, now });
   }
   return {
     address: dest,

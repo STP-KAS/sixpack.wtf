@@ -6,7 +6,7 @@ import { homedir } from "node:os";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { FROM, MIN_SOMPI } from "./policy.mjs";
+import { FROM } from "./policy.mjs";
 
 const WASM =
   process.env.KASPA_WASM ||
@@ -173,7 +173,7 @@ export async function payTn10(toAddr, sompi, onStep) {
       }
       if (!picked.length || acc <= feeReserve) break;
       const chunk = acc - feeReserve > want - sent ? want - sent : acc - feeReserve;
-      if (chunk < MIN_SOMPI) break;
+      if (chunk <= 0n) break;
       step("Signing the send");
       const { transactions } = await kaspa.createTransactions({
         entries: picked,

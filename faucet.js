@@ -211,13 +211,17 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
   }
-  function loadingHtml(amount, address, step) {
+  function loadingHtml(amount, address, step, downgrade) {
     const at = SEND_STEPS.indexOf(step);
     const items = SEND_STEPS.map(function (name, i) {
       const cls = at < 0 ? "" : i < at ? "done" : i === at ? "on" : "";
       return "<li class=\"" + cls + "\">" + name + "</li>";
     }).join("");
+    const note = downgrade
+      ? "<p>0.6 tKAS is max, downgrading your demand to 0.6 tKAS.</p>"
+      : "";
     return (
+      note +
       "<p class=\"fload\"><span class=\"fspin\" aria-hidden=\"true\"></span>Loading the payout.</p>" +
       "<p>Sending <strong>" +
       esc(amount || "0.6") +
@@ -229,6 +233,16 @@
       "</ol>" +
       "<p class=\"fnote\">Leave this tab open. The transaction id shows here when Testnet-10 accepts it.</p>"
     );
+  }
+  function amountChoice(raw) {
+    var s = String(raw == null ? "" : raw).trim().replace(",", ".");
+    if (!s) return { text: "0.6", send: "0.6", downgrade: false };
+    if (!/^\d+(\.\d{1,8})?$/.test(s)) return null;
+    var n = Number(s);
+    if (!isFinite(n) || n <= 0) return null;
+    if (n > 0.6) return { text: "0.6", send: "0.6", downgrade: true };
+    var text = s.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+    return { text: text, send: s, downgrade: false };
   }
   function successHtml(j, address) {
     const addr = j.address || address;
@@ -299,13 +313,20 @@
       return;
     }
     const address = document.getElementById("addr").value.trim();
-    const amount = document.getElementById("amount") ? document.getElementById("amount").value.trim() : "0.6";
+    const typed = document.getElementById("amount") ? document.getElementById("amount").value.trim() : "0.6";
+    const choice = amountChoice(typed);
+    if (!choice) {
+      popup("error", "Error", "<p>Amount must be tKAS.</p>");
+      go.disabled = false;
+      return;
+    }
+    const amount = choice.text;
     go.disabled = true;
-    popup("wait", "Loading", loadingHtml(amount, address, "Checking the address"));
+    popup("wait", "Loading", loadingHtml(amount, address, "Checking the address", choice.downgrade));
     fetch(apiBase + "/api/faucet", {
       method: "POST",
       headers: { "content-type": "application/json", "Bypass-Tunnel-Reminder": "true" },
-      body: JSON.stringify({ address: address, amount: amount }),
+      body: JSON.stringify({ address: address, amount: choice.send }),
     })
       .then(readJson)
       .then(async function (j) {
@@ -328,7 +349,7 @@
                 popup("error", "Error", "<p>Loading paused. The payout API stopped answering. Stay on this page and refresh.</p>");
                 return;
               }
-              popup("wait", "Loading", loadingHtml(amount, address, j.step || "Checking the address") + "<p class=\"fnote\">Still loading. Checking the payout again.</p>");
+              popup("wait", "Loading", loadingHtml(amount, address, j.step || "Checking the address", choice.downgrade) + "<p class=\"fnote\">Still loading. Checking the payout again.</p>");
               continue;
             }
             if (cur && cur.html) {
@@ -338,7 +359,7 @@
             misses = 0;
             if (showResult(cur, address)) return;
             const step = (cur && cur.step) || j.step || "Checking the address";
-            popup("wait", "Loading", loadingHtml(amount, address, step));
+            popup("wait", "Loading", loadingHtml(amount, address, step, choice.downgrade));
           }
           popup("error", "Error", "<p>Still loading after three minutes. The send may still finish. Refresh this page in a moment and check the address.</p>");
           return;
