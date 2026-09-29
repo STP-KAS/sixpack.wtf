@@ -13,6 +13,7 @@ import {
   sompiForCents,
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
+import { kasSpendAction } from "./kas-spend.mjs";
 import { DRIVE_MS, WALK_MS, mountWorld, seat } from "./view3d.mjs?v=9";
 import { destinationFor, findPath, nearShop, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
@@ -590,7 +591,7 @@ function paintShop(shopId) {
     })
     .join("");
   const txid = rail === "kas"
-    ? '<details class="paid-already"><summary>Already sent tKAS? Paste the txid</summary><textarea id="txid" rows="2"></textarea></details>'
+    ? '<details class="paid-already"' + (shopTxid ? " open" : "") + '><summary>Already sent tKAS? Paste the txid</summary><textarea id="txid" rows="2">' + esc(shopTxid) + "</textarea></details>"
     : "";
   panel.innerHTML =
     '<div class="stall">' +
@@ -604,6 +605,10 @@ function paintShop(shopId) {
     rows + txid +
     "<p class=\"fine\">One rail for the whole menu. POCencept and KUSDT are toys. tKAS asks the wallet. The miner fee is twice the standard Testnet 10 rate, and it is extra.</p></div>";
   document.getElementById("stall-close").onclick = () => openMode("world");
+  const pasted = document.getElementById("txid");
+  if (pasted) pasted.addEventListener("input", () => {
+    shopTxid = pasted.value.trim();
+  });
 }
 
 let lockDraft = "1";
@@ -611,6 +616,8 @@ let redeemDraft = "";
 let swapNoteText = "Nothing moved yet. The top box locks tKAS. The lower box redeems toy dollars.";
 let swapNoteKind = "";
 let swapBusy = false;
+let spendBusy = false;
+let shopTxid = "";
 
 function fieldValue(id) {
   const el = document.getElementById(id);
@@ -800,57 +807,109 @@ function tookPayment(body, sku) {
   }
 }
 
+function rememberShopTxid(txid) {
+  shopTxid = String(txid || "").trim();
+  const box = panel.querySelector("#txid");
+  if (!box || !shopTxid) return;
+  box.value = shopTxid;
+  const details = box.closest("details");
+  if (details) details.open = true;
+}
+
 async function spend(rail, shop, sku, confirmed) {
+  if (spendBusy) return;
   if (!requireId()) return;
-  let txid = "";
-  if (rail === "kas") {
-    const quote = await api("/api/1984/quote?shop=" + encodeURIComponent(shop) + "&sku=" + encodeURIComponent(sku));
-    if (!quote.ok) {
-      say(quote.error || "No quote.", true);
-      return;
-    }
-    if (state.id.kind === "guest") {
-      say("Paying from this tab's test address. Close the tab and it is gone.");
-      let body = await post("/api/1984/guest/spend", { token: state.id.token, shop, sku, confirmed: !!confirmed });
-      if (body.needsConfirm) {
-        const yes = window.confirm("This is over your confirm line. Pay it?");
-        if (!yes) return;
-        body = await post("/api/1984/guest/spend", { token: state.id.token, shop, sku, confirmed: true });
-      }
-      if (!body.ok) {
-        punch("shake");
-        say(body.error || "The shop refused the payment.", true);
+  spendBusy = true;
+  try {
+    let txid = "";
+    let yes = !!confirmed;
+    if (rail === "kas") {
+      const quote = await api("/api/1984/quote?shop=" + encodeURIComponent(shop) + "&sku=" + encodeURIComponent(sku));
+      if (!quote.ok) {
+        say(quote.error || "No quote.", true);
         return;
       }
-      tookPayment(body, sku);
-      await refreshAccount();
-      return;
-    }
-    const typed = panel.querySelector("#txid");
-    txid = typed ? typed.value.trim() : "";
-    if (!txid) {
-      const kit = window.KaspaWallets;
-      if (!kit || (state.id.kind !== "kasware" && state.id.kind !== "kastle")) {
-        say("Connect Kasware or Kastle on Testnet 10, or paste the txid after you pay " + formatTkas(quote.sompi) + " tKAS to the reserve.", true);
+      if (state.id.kind === "guest") {
+        say("Paying from this tab's test address. Close the tab and it is gone.");
+        let body = await post("/api/1984/guest/spend", { token: state.id.token, shop, sku, confirmed: yes });
+        if (body.needsConfirm) {
+          const agreed = window.confirm("This is over your confirm line. Pay it?");
+          if (!agreed) return;
+          body = await post("/api/1984/guest/spend", { token: state.id.token, shop, sku, confirmed: true });
+        }
+        if (!body.ok) {
+          punch("shake");
+          say(body.error || "The shop refused the payment.", true);
+          return;
+        }
+        tookPayment(body, sku);
+        await refreshAccount();
         return;
       }
-      say("Approve " + formatTkas(quote.sompi) + " tKAS in the wallet. The miner fee is twice the standard rate, and it is extra.");
-      txid = await kit.sendKaspa(state.reserve, Number(quote.sompi), { priorityFee: WALLET_PRIORITY_SOMPI, feeRate: payFeeRate(null) });
+      const typed = panel.querySelector("#txid");
+      txid = typed ? typed.value.trim() : shopTxid;
+      if (!txid) {
+        const kit = window.KaspaWallets;
+        if (!kit || (state.id.kind !== "kasware" && state.id.kind !== "kastle")) {
+          say("Connect Kasware or Kastle on Testnet 10, or paste the txid after you pay " + formatTkas(quote.sompi) + " tKAS to the reserve.", true);
+          return;
+        }
+        let gate = await post("/api/1984/spend", { shop, sku, rail, txid: "", confirmed: yes });
+        let action = kasSpendAction({
+          kind: state.id.kind,
+          txid: "",
+          needsConfirm: !!gate.needsConfirm,
+          ready: !!gate.ready,
+        });
+        if (action === "ask") {
+          const agreed = window.confirm("This is over your confirm line. Pay it?");
+          if (!agreed) return;
+          yes = true;
+          gate = await post("/api/1984/spend", { shop, sku, rail, txid: "", confirmed: true });
+          action = kasSpendAction({
+            kind: state.id.kind,
+            txid: "",
+            needsConfirm: !!gate.needsConfirm,
+            ready: !!gate.ready,
+          });
+        }
+        if (action !== "sign") {
+          punch("shake");
+          say(gate.error || "The shop refused the payment.", true);
+          return;
+        }
+        say("Approve " + formatTkas(quote.sompi) + " tKAS in the wallet. The miner fee is twice the standard rate, and it is extra.");
+        txid = await kit.sendKaspa(state.reserve, Number(quote.sompi), { priorityFee: WALLET_PRIORITY_SOMPI, feeRate: payFeeRate(null) });
+        rememberShopTxid(txid);
+        if (!shopTxid) {
+          say("The wallet did not return a transaction. Nothing was claimed.", true);
+          return;
+        }
+        txid = shopTxid;
+      }
     }
-  }
-  let body = await post("/api/1984/spend", { shop, sku, rail, txid, confirmed: !!confirmed });
-  if (body.needsConfirm) {
-    const yes = window.confirm("This is over your confirm line. Pay it?");
-    if (!yes) return;
-    body = await post("/api/1984/spend", { shop, sku, rail, txid, confirmed: true });
-  }
-  if (!body.ok) {
+    let body = await post("/api/1984/spend", { shop, sku, rail, txid, confirmed: yes });
+    if (body.needsConfirm) {
+      const agreed = window.confirm("This is over your confirm line. Pay it?");
+      if (!agreed) return;
+      yes = true;
+      body = await post("/api/1984/spend", { shop, sku, rail, txid, confirmed: true });
+    }
+    if (!body.ok) {
+      punch("shake");
+      const kept = rail === "kas" && txid ? " The txid stays in the paste box. Buy again claims it and does not send a second time." : "";
+      say((body.error || "The shop refused the payment.") + kept, true);
+      return;
+    }
+    if (rail === "kas") shopTxid = "";
+    tookPayment(body, sku);
+    await refreshAccount();
+  } catch (err) {
     punch("shake");
-    say(body.error || "The shop refused the payment.", true);
-    return;
+    say(err && err.message ? err.message : "The shop refused the payment.", true);
+  } finally {
+    spendBusy = false;
   }
-  tookPayment(body, sku);
-  await refreshAccount();
 }
 
 function tagName(rail) {

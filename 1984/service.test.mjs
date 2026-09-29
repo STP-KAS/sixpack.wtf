@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { create1984Service } from "./service.mjs";
-import { RESERVE } from "./money.mjs";
+import { RESERVE, sompiForCents } from "./money.mjs";
 
 const USER = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 
@@ -276,6 +276,99 @@ test("a missing node payment stays unswapped", async () => {
   assert.equal(out.body.ok, false);
   assert.match(out.body.error, /public transaction list is behind/);
   assert.equal(read(), null);
+});
+
+test("a wallet shop buy is refused or marked ready before any Testnet 10 lookup", async () => {
+  let lookups = 0;
+  let fetches = 0;
+  const { svc, read } = harness(async () => ({ txids: ["ab"] }), {
+    txTries: 1,
+    sleep: async () => {},
+    fetch: async (url) => {
+      const u = String(url);
+      if (u.includes("info/price")) return { ok: true, json: async () => ({ price: 0.05 }) };
+      fetches += 1;
+      return { ok: false, status: 404, json: async () => ({}) };
+    },
+    lookupTx: async () => {
+      lookups += 1;
+      throw new Error("That transaction is not on Testnet 10 yet.");
+    },
+  });
+  const ip = "203.0.113.41";
+  const rules = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/rules",
+    query: new URLSearchParams(),
+    body: { address: USER, network: "testnet-10", rules: { confirmOverCents: 5 } },
+    ip,
+  });
+  assert.equal(rules.body.ok, true);
+  const held = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/spend",
+    query: new URLSearchParams(),
+    body: { address: USER, network: "testnet-10", shop: "cafe", sku: "water", rail: "kas", txid: "" },
+    ip,
+  });
+  assert.equal(held.status, 409);
+  assert.equal(held.body.needsConfirm, true);
+  const ready = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/spend",
+    query: new URLSearchParams(),
+    body: { address: USER, network: "testnet-10", shop: "cafe", sku: "water", rail: "kas", txid: "", confirmed: true },
+    ip,
+  });
+  assert.equal(ready.status, 200);
+  assert.equal(ready.body.ok, false);
+  assert.equal(ready.body.ready, true);
+  assert.equal(ready.body.sompi, sompiForCents(10, 0.05).toString());
+  const blocked = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/rules",
+    query: new URLSearchParams(),
+    body: { address: USER, network: "testnet-10", rules: { shops: ["roadster"] } },
+    ip,
+  });
+  assert.equal(blocked.body.ok, true);
+  const refused = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/spend",
+    query: new URLSearchParams(),
+    body: { address: USER, network: "testnet-10", shop: "cafe", sku: "water", rail: "kas", txid: "ab".repeat(32), confirmed: true },
+    ip,
+  });
+  assert.equal(refused.status, 400);
+  assert.match(refused.body.error, /blocks this shop/);
+  assert.equal(lookups, 0);
+  assert.equal(fetches, 0);
+  assert.equal(read().txids["ab".repeat(32)], undefined);
+});
+
+test("a wallet shop buy credits a pasted txid after the rules pass", async () => {
+  const id = "cd".repeat(32);
+  const sompi = sompiForCents(10, 0.05);
+  const { svc, read } = harness(async () => ({ txids: ["ab"] }), {
+    txTries: 1,
+    sleep: async () => {},
+    fetch: async (url) => {
+      const u = String(url);
+      if (u.includes("info/price")) return { ok: true, json: async () => ({ price: 0.05 }) };
+      if (u.includes("/transactions/")) return { ok: true, status: 200, json: async () => txOf(id, sompi) };
+      return { ok: false, status: 404, json: async () => ({}) };
+    },
+  });
+  const out = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/spend",
+    query: new URLSearchParams(),
+    body: { address: USER, network: "testnet-10", shop: "cafe", sku: "water", rail: "kas", txid: id, confirmed: true },
+    ip: "203.0.113.42",
+  });
+  assert.equal(out.body.ok, true);
+  assert.equal(out.body.item, "Water");
+  assert.equal(read().txids[id].kind, "spend");
 });
 
 test("the old payment path still answers", async () => {

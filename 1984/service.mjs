@@ -320,7 +320,38 @@ export function create1984Service(deps) {
           if (body.rail === "kas") {
             const item = itemBySku(body.shop, body.sku);
             if (!item) throw new Error("That item is not on this counter.");
-            pay = await waitPayment(address, body.txid, sompiForCents(item.cents, usd));
+            const gate = await queue(async () => {
+              const account = state.accounts[address] || { rules: {}, spentDay: "", spentCents: "0" };
+              return checkRules(
+                account,
+                { shop: body.shop, rail: "kas", cents: item.cents, confirmed: !!body.confirmed },
+                dayKey(now)
+              );
+            });
+            if (gate.needsConfirm) {
+              return {
+                status: 409,
+                body: {
+                  ok: false,
+                  needsConfirm: true,
+                  cents: item.cents,
+                  error: "This is over your confirm line. Confirm it to pay.",
+                },
+              };
+            }
+            const pasted = String(body.txid || "").trim();
+            if (!pasted) {
+              return {
+                status: 200,
+                body: {
+                  ok: false,
+                  ready: true,
+                  cents: item.cents,
+                  sompi: sompiForCents(item.cents, usd).toString(),
+                },
+              };
+            }
+            pay = await waitPayment(address, pasted, sompiForCents(item.cents, usd));
           }
           return await queue(async () => {
             const out = applySpend(
