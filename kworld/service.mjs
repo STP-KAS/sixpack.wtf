@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { fetchBalance, fetchPrice, fetchTx, paymentFromTx, resolveName } from "./chain.mjs";
+import { guestDesk, GUEST_FUND_SOMPI } from "./guest.mjs";
 import {
   applyConvert,
   applyFreeze,
@@ -12,11 +13,21 @@ import {
   applyRules,
   applySpend,
   attachTxid,
+  checkRules,
   freshState,
   publicAccount,
 } from "./ledger.mjs";
 import { BENCH, POST, REPOS } from "./links.mjs";
-import { RESERVE, assertNotMainnetNetwork, assertTestnet, parseDollars, sompiForCents } from "./money.mjs";
+import {
+  GUEST_DISCLAIMER,
+  RESERVE,
+  assertNotMainnetNetwork,
+  assertTestnet,
+  dayKey,
+  parseDollars,
+  parseTkas,
+  sompiForCents,
+} from "./money.mjs";
 import { SHOPS, itemBySku, shopById } from "./world.mjs";
 
 const DISCLAIMER =
@@ -31,6 +42,7 @@ export function createKworldService(deps) {
   let lock = Promise.resolve();
   let oracle = { price: 0, at: 0 };
   const hits = new Map();
+  const pause = deps.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
 
   function queue(fn) {
     const run = lock.then(fn, fn);
@@ -71,6 +83,102 @@ export function createKworldService(deps) {
     return paymentFromTx(tx, address, need);
   }
 
+  async function waitPayment(address, txid, need) {
+    let last = new Error("That transaction is not on Testnet 10 yet.");
+    const tries = deps.txTries || 10;
+    for (let i = 0; i < tries; i += 1) {
+      try {
+        return await payment(address, txid, need);
+      } catch (err) {
+        last = err;
+        const msg = String((err && err.message) || "");
+        if (!/not on Testnet 10 yet|not accepted yet/i.test(msg)) throw err;
+        if (i === tries - 1) break;
+        await pause(2000);
+      }
+    }
+    throw last;
+  }
+
+  function guestApi() {
+    if (!deps.guests) throw new Error("Test login is not available on this server.");
+    return deps.guests;
+  }
+
+  async function guestCall(pathname, body, ip) {
+    assertNotMainnetNetwork(body && body.network);
+    const guests = guestApi();
+    if (pathname === "/api/kworld/guest") {
+      const opened = await guests.open({ ip, life: body.life });
+      if (!opened || opened.key || opened.privateKey) throw new Error("Test login refused to start.");
+      return { status: 200, body: opened };
+    }
+    const address = assertTestnet(body && body.address);
+    if (pathname === "/api/kworld/guest/keep") {
+      return { status: 200, body: await guests.keep({ token: body.token, address, life: body.life }) };
+    }
+    if (pathname === "/api/kworld/guest/close") {
+      return { status: 200, body: await guests.close({ token: body.token, address, life: body.life }) };
+    }
+    if (pathname === "/api/kworld/guest/spend") {
+      const usd = await price();
+      const shop = shopById(body.shop);
+      const item = shop && itemBySku(shop.id, body.sku);
+      if (!item) throw new Error("That item is not on this counter.");
+      const account = state.accounts[address] || { rules: {}, spentDay: "", spentCents: "0" };
+      const gate = checkRules(
+        account,
+        { shop: shop.id, rail: "kas", cents: item.cents, confirmed: !!body.confirmed },
+        dayKey(deps.now())
+      );
+      if (gate.needsConfirm) {
+        return {
+          status: 409,
+          body: {
+            ok: false,
+            needsConfirm: true,
+            cents: item.cents,
+            error: "This is over your confirm line. Confirm it to pay.",
+          },
+        };
+      }
+      const need = sompiForCents(item.cents, usd);
+      const paid = await guests.pay({ token: body.token, address, sompi: need });
+      const seen = await waitPayment(address, paid.txid, need);
+      return queue(async () => {
+        const out = applySpend(
+          state,
+          {
+            address,
+            shop: shop.id,
+            sku: item.sku,
+            rail: "kas",
+            confirmed: true,
+            payment: seen,
+            usdPerKas: usd,
+          },
+          deps.now()
+        );
+        state = out.state;
+        deps.save(state);
+        return { status: 200, body: out.result };
+      });
+    }
+    if (pathname === "/api/kworld/guest/convert") {
+      const usd = await price();
+      const sompi = parseTkas(body.amount);
+      const paid = await guests.pay({ token: body.token, address, sompi });
+      const seen = await waitPayment(address, paid.txid, sompi);
+      return queue(async () => {
+        const out = applyConvert(state, { address, rail: body.rail, payment: seen, usdPerKas: usd }, deps.now());
+        state = out.state;
+        deps.save(state);
+        return { status: 200, body: out.result };
+      });
+    }
+    return { status: 404, body: { ok: false, error: "Not found." } };
+  }
+
   async function home() {
     let usd = null;
     let oracleError = "";
@@ -92,6 +200,8 @@ export function createKworldService(deps) {
         post: POST,
         repos: REPOS,
         disclaimer: DISCLAIMER,
+        guestDisclaimer: GUEST_DISCLAIMER,
+        guestFundSompi: GUEST_FUND_SOMPI.toString(),
       },
     };
   }
@@ -124,6 +234,19 @@ export function createKworldService(deps) {
   }
 
   return {
+    forget(address) {
+      return queue(async () => {
+        let clean = "";
+        try {
+          clean = assertTestnet(address);
+        } catch {
+          return;
+        }
+        if (!state.accounts[clean]) return;
+        delete state.accounts[clean];
+        deps.save(state);
+      });
+    },
     async handle({ method, pathname, query, body, ip }) {
       try {
         if (method === "GET" && pathname === "/api/kworld") return await home();
@@ -145,6 +268,9 @@ export function createKworldService(deps) {
         }
         if (method !== "POST") return { status: 404, body: { ok: false, error: "Not found." } };
         limit(ip || "unknown");
+        if (pathname === "/api/kworld/guest" || pathname.startsWith("/api/kworld/guest/")) {
+          return await guestCall(pathname, body || {}, ip || "unknown");
+        }
         const address = guard(body || {});
         const now = deps.now();
 
@@ -262,16 +388,19 @@ let singleton;
 
 export function kworldService() {
   if (!singleton) {
+    const guests = guestDesk();
     singleton = createKworldService({
       load: loadFile,
       save: saveFile,
       fetch: globalThis.fetch,
       now: () => Date.now(),
+      guests,
       pay: async (to, sompi) => {
         const { payTn10 } = await import("../faucet/pay.mjs");
         return payTn10(to, sompi);
       },
     });
+    guests.onGone = (address) => singleton.forget(address);
   }
   return singleton;
 }

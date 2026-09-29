@@ -1,5 +1,7 @@
+import { readIdentity, writeIdentity } from "./identity.mjs";
 import { BENCH, POST, REPOS } from "./links.mjs";
 import {
+  GUEST_DISCLAIMER,
   RESERVE,
   assertNotMainnetNetwork,
   assertTestnet,
@@ -9,9 +11,8 @@ import {
   sompiForCents,
 } from "./money.mjs";
 import { destinationFor, findPath, walkable, world } from "./world.mjs";
-
-const KEY = "kworld-id-v1";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
+const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 const map = world();
 const view = document.getElementById("view");
 const mini = document.getElementById("mini");
@@ -42,18 +43,17 @@ const state = {
 const PRIVACY =
   "A .kas name that contains your name, your X handle, or anything that points at you ties this public spending to you. Pay at a shop and that payment sits on Testnet-10 next to the name. This desk prefers a plain kaspatest address, or a .kas name that does not identify you. To register a name, use KNS. This page does not create one.";
 
-function loadId() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(KEY) || "null");
-    if (raw && raw.address) return raw;
-  } catch (_) {}
-  return { address: "", label: "", kind: "" };
+let guestBusy = false;
+
+function boxes() {
+  return { local: localStorage, session: sessionStorage };
 }
 
-function saveId() {
+function loadId() {
   try {
-    localStorage.setItem(KEY, JSON.stringify(state.id));
+    return readIdentity(boxes());
   } catch (_) {}
+  return { address: "", label: "", kind: "" };
 }
 
 function esc(value) {
@@ -114,9 +114,10 @@ function paintChrome() {
   const kusdt = state.account ? formatCents(state.account.kusdt) + " KUSDT" : "— KUSDT";
   const frozen = state.account && state.account.kusdtFrozen ? " · KUSDT frozen" : "";
   const price = state.oracle ? "Live KAS $" + Number(state.oracle).toFixed(4) + ". " : "";
+  const guestLine = id.kind === "guest" ? " This test address dies when you close the tab." : "";
   bar.innerHTML =
     "<strong>" + esc(label) + "</strong> · " + esc(kas) + " · " + esc(poc) + " · " + esc(kusdt) + frozen +
-    '<p class="fine">' + esc(price) + "Testnet-10 toys. Not dollars. Not Tether. Not a SEPA rail. Mainnet wallets are refused. The POC and KUSDT tags do not move when the KAS price moves.</p>";
+    '<p class="fine">' + esc(price) + "Testnet-10 toys. Not dollars. Not Tether. Not a SEPA rail. Mainnet wallets are refused. The POC and KUSDT tags do not move when the KAS price moves." + esc(guestLine) + "</p>";
 
   const buttons = [
     ["world", "Square"],
@@ -133,11 +134,17 @@ function paintChrome() {
     .map(([idName, text]) => '<button type="button" data-go="' + idName + '"' + (state.mode === idName ? ' class="on"' : "") + ">" + text + "</button>")
     .join("");
 
+  const guestOn = id.kind === "guest";
   you.innerHTML =
     "<h2>Who is paying</h2>" +
-    "<p class=\"fine\">Stays until you change it. Never a seed.</p>" +
+    "<p class=\"fine\">A wallet or a pasted address stays until you change it. A test address dies with this tab. Never a seed.</p>" +
     '<div class="kw-row"><button type="button" id="use-kasware">Kasware</button><button type="button" id="use-kastle">Kastle</button></div>' +
-    '<label>kaspatest address<input id="addr" spellcheck="false" autocomplete="off" value="' + esc(id.kind === "name" ? "" : id.address) + '"></label>' +
+    '<button type="button" id="use-guest">Test without a wallet</button>' +
+    '<p class="warn">' + esc(GUEST_DISCLAIMER) + "</p>" +
+    (guestOn
+      ? '<p class="warn">You are on a test address for this tab only: ' + esc(short(id.address)) + ". Close the tab and it is gone. A saved Testnet-10 wallet on this browser keeps its history.</p>"
+      : "") +
+    '<label>kaspatest address<input id="addr" spellcheck="false" autocomplete="off" value="' + esc(id.kind === "name" || guestOn ? "" : id.address) + '"></label>' +
     '<button type="button" id="use-addr">Use this address</button>' +
     '<label>.kas name, if you already have one<input id="kasname" spellcheck="false" autocomplete="off" placeholder="name.kas" value="' + esc(id.kind === "name" ? id.label : "") + '"></label>' +
     '<button type="button" id="use-name">Use this name</button>' +
@@ -165,12 +172,28 @@ async function refreshAccount() {
   paintChrome();
 }
 
+function forgetGuest(prev) {
+  if (!prev || prev.kind !== "guest" || !prev.token) return;
+  api("/api/kworld/guest/close", {
+    method: "POST",
+    body: JSON.stringify({ token: prev.token, address: prev.address, life: PAGE_LIFE }),
+  });
+}
+
 function setIdentity(next) {
+  const prev = state.id;
+  try {
+    writeIdentity(boxes(), next);
+  } catch (err) {
+    say(err.message, true);
+    return;
+  }
   state.id = next;
-  saveId();
+  if (prev && prev.kind === "guest" && prev.token && prev.token !== next.token) forgetGuest(prev);
   paintChrome();
   refreshAccount();
-  say("Paying as " + (next.label || next.address) + ".");
+  if (next.kind === "guest") say("Paying as a test address for this tab only. " + GUEST_DISCLAIMER);
+  else say("Paying as " + (next.label || next.address) + ". This one keeps its history on this browser.");
 }
 
 async function connectWallet(kind) {
@@ -197,6 +220,44 @@ async function connectWallet(kind) {
     return;
   }
   setIdentity({ address: got.address, label: got.address, kind });
+}
+
+async function startGuest() {
+  if (guestBusy) return;
+  guestBusy = true;
+  try {
+    say("Making a Testnet-10 address for this tab and putting tKAS on it. " + GUEST_DISCLAIMER);
+    const body = await api("/api/kworld/guest", {
+      method: "POST",
+      body: JSON.stringify({ network: "testnet-10", life: PAGE_LIFE }),
+    });
+    if (!body.ok || !body.address || !body.token || body.key || body.privateKey) {
+      say(body.error || "No test wallet. Use your own Testnet-10 wallet if you want the history kept.", true);
+      return;
+    }
+    setIdentity({ address: body.address, label: "test tab", kind: "guest", token: body.token });
+    say("This tab has " + formatTkas(body.sompi) + " tKAS. The balance can take a moment to show. Close the tab and this address is gone.");
+  } finally {
+    guestBusy = false;
+  }
+}
+
+async function keepGuest() {
+  if (state.id.kind !== "guest" || !state.id.token) return;
+  const body = await api("/api/kworld/guest/keep", {
+    method: "POST",
+    body: JSON.stringify({ token: state.id.token, address: state.id.address, network: "testnet-10", life: PAGE_LIFE }),
+  });
+  if (body.ok) return;
+  const msg = String(body.error || "");
+  if (!/dropped|closing|does not match/i.test(msg)) return;
+  try {
+    sessionStorage.removeItem("kworld-guest-v1");
+  } catch (_) {}
+  state.id = loadId();
+  say(msg || "The test address for this tab is gone.", true);
+  paintChrome();
+  refreshAccount();
 }
 
 async function useAddress() {
@@ -335,8 +396,9 @@ function paintGuide() {
   panel.innerHTML =
     "<h2>How to try this on Testnet 10</h2>" +
     "<ol>" +
-    "<li>Install Kasware or Kastle and set the network to Testnet 10 before you connect. A mainnet address is refused.</li>" +
-    "<li>Or paste a kaspatest address. Or type a .kas name that already resolves on TN10. The choice stays until you change it.</li>" +
+    "<li>Install Kasware or Kastle and set the network to Testnet 10 before you connect. A mainnet address is refused. That login stays on this browser.</li>" +
+    "<li>Or press Test without a wallet. This tab gets a new funded kaspatest address. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved.</li>" +
+    "<li>Or paste a kaspatest address. Or type a .kas name that already resolves on TN10. That choice stays until you change it.</li>" +
     "<li>Need coins: the faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. Take the practice purse in the bank. That purse is play money.</li>" +
     "<li>Walk to a door, or use the left tabs. Pay tKAS, POCencept, or KUSDT.</li>" +
     "<li>tKAS asks the wallet to sign a real Testnet-10 transaction. The miner fee is extra tKAS.</li>" +
@@ -363,7 +425,7 @@ function paintGuide() {
 
 function requireId() {
   if (!state.id.address) {
-    say("Choose a kaspatest address or a .kas name first.", true);
+    say("Choose a Testnet-10 wallet, paste an address, or test without a wallet.", true);
     return false;
   }
   return true;
@@ -380,6 +442,22 @@ async function spend(rail, shop, sku, confirmed) {
     const quote = await api("/api/kworld/quote?shop=" + encodeURIComponent(shop) + "&sku=" + encodeURIComponent(sku));
     if (!quote.ok) {
       say(quote.error || "No quote.", true);
+      return;
+    }
+    if (state.id.kind === "guest") {
+      say("Paying from this tab's test address. Close the tab and it is gone.");
+      let body = await post("/api/kworld/guest/spend", { token: state.id.token, shop, sku, confirmed: !!confirmed });
+      if (body.needsConfirm) {
+        const yes = window.confirm("This is over your confirm line. Pay it?");
+        if (!yes) return;
+        body = await post("/api/kworld/guest/spend", { token: state.id.token, shop, sku, confirmed: true });
+      }
+      if (!body.ok) {
+        say(body.error || "The shop refused the payment.", true);
+        return;
+      }
+      say(body.shop + " took the payment for " + body.item + ".");
+      await refreshAccount();
       return;
     }
     const typed = panel.querySelector("#txid");
@@ -415,6 +493,21 @@ async function lock(rail) {
     sompi = parseTkas(document.getElementById("lock-amt").value);
   } catch (err) {
     say(err.message, true);
+    return;
+  }
+  if (state.id.kind === "guest") {
+    say("Locking tKAS from this tab's test address. Close the tab and the address is gone.");
+    const body = await post("/api/kworld/guest/convert", {
+      token: state.id.token,
+      rail,
+      amount: document.getElementById("lock-amt").value.trim(),
+    });
+    if (!body.ok) {
+      say(body.error || "The lock did not clear.", true);
+      return;
+    }
+    say("Locked. You received " + formatCents(body.cents) + " " + (rail === "poc" ? "POCencept" : "KUSDT") + ".");
+    await refreshAccount();
     return;
   }
   let txid = document.getElementById("lock-txid").value.trim();
@@ -710,6 +803,7 @@ side.addEventListener("click", (ev) => {
 you.addEventListener("click", (ev) => {
   if (ev.target.id === "use-kasware") connectWallet("kasware").catch((err) => say(err.message, true));
   if (ev.target.id === "use-kastle") connectWallet("kastle").catch((err) => say(err.message, true));
+  if (ev.target.id === "use-guest") startGuest().catch((err) => say(err.message, true));
   if (ev.target.id === "use-addr") useAddress();
   if (ev.target.id === "use-name") useName();
 });
@@ -721,7 +815,21 @@ panel.addEventListener("click", (ev) => {
 
 requestAnimationFrame(step);
 paintChrome();
-say("Kworld. Testnet 10. Walk the square. Three rails: tKAS, POCencept, KUSDT.");
+say("Kworld. Testnet 10. Use a wallet, or test without one. A test address dies when you close the tab.");
+window.addEventListener("pagehide", () => {
+  if (state.id.kind !== "guest" || !state.id.token) return;
+  const payload = JSON.stringify({ token: state.id.token, address: state.id.address, life: PAGE_LIFE });
+  for (const base of bases()) {
+    fetch(base + "/api/kworld/guest/close", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: payload,
+      keepalive: true,
+    }).catch(() => {});
+  }
+});
+keepGuest();
+setInterval(keepGuest, 45_000);
 api("/api/kworld").then((body) => {
   if (!body.ok) {
     state.oracleError = body.error || "Ledger offline.";

@@ -132,37 +132,104 @@ function loadKey() {
   return { privHex: pkLine.split(":")[1].trim(), fromAddr };
 }
 
-export async function payTn10(toAddr, sompi, onStep) {
+const TESTNET_ADDRESS = /^kaspatest:[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{50,80}$/i;
+const FEE_RESERVE = 50_000_000n;
+
+function assertPayAddress(value) {
+  const address = String(value || "").trim();
+  if (/^kaspa:/i.test(address) && !/^kaspatest:/i.test(address)) {
+    throw new Error("Mainnet wallets are refused. Use a Testnet-10 address.");
+  }
+  if (!TESTNET_ADDRESS.test(address)) throw new Error("Use a Testnet-10 kaspatest: address.");
+  return address;
+}
+
+/** New Testnet-10 key. Caller stores it. Do not log the return value. */
+export async function mintTestnetAddress() {
+  const kaspa = await sdk();
+  const keypair = kaspa.Keypair.random();
+  let privHex = String(keypair.privateKey || "").trim().toLowerCase();
+  if (privHex.startsWith("0x")) privHex = privHex.slice(2);
+  if (!/^[0-9a-f]{64}$/.test(privHex)) throw new Error("Test wallet was not created.");
+  let address = "";
+  try {
+    address = String(new kaspa.PrivateKey(privHex).toAddress("testnet-10")).trim();
+  } catch {
+    throw new Error("Test wallet was not created.");
+  }
+  if (!TESTNET_ADDRESS.test(address)) throw new Error("Test wallet was not a Testnet-10 address.");
+  return { address, key: privHex };
+}
+
+/**
+ * Send tKAS from a hex key the caller already holds.
+ * drain sends the mature balance back, leaving a small fee remainder.
+ */
+export async function payFromKey({ privHex, fromAddr, toAddr, sompi, drain, onStep }) {
   const step = (name) => {
     if (onStep) onStep(name);
   };
+  const from = assertPayAddress(fromAddr);
+  const to = assertPayAddress(toAddr);
+  if (from.toLowerCase() === to.toLowerCase()) throw new Error("That address cannot pay itself.");
   const kaspa = await sdk();
-  const { privHex, fromAddr } = loadKey();
-  const privateKey = new kaspa.PrivateKey(privHex);
+  let privateKey;
+  try {
+    privateKey = new kaspa.PrivateKey(String(privHex || "").trim());
+  } catch {
+    throw new Error("The signing key could not be read.");
+  }
+  const derived = String(privateKey.toAddress("testnet-10")).trim();
+  if (derived.toLowerCase() !== from.toLowerCase()) throw new Error("The signing key does not match the address.");
   const net = new kaspa.NetworkId("testnet-10");
   const rpc = await connectRpc(kaspa, net, step);
   const txids = [];
   let sent = 0n;
-  const want = BigInt(sompi);
   try {
     step("Gathering coins");
     const dag = await withTimeout(rpc.getBlockDagInfo(), 8000, "Reading Testnet-10 tip took too long.");
     const virtualDaa = dag.virtualDaaScore ?? 0;
     let { entries } = await withTimeout(
-      rpc.getUtxosByAddresses([fromAddr]),
+      rpc.getUtxosByAddresses([from]),
       45000,
-      "Reading faucet coins took too long."
+      "Reading coins took too long."
     );
     entries = [...entries].filter((entry) => isMatureEntry(entry, virtualDaa)).sort((a, b) => {
       const aa = BigInt(a.amount);
       const bb = BigInt(b.amount);
       return aa < bb ? 1 : aa > bb ? -1 : 0;
     });
+    if (drain) {
+      const fee = 1000n;
+      const changeFloor = 20_000_000n;
+      const picked = entries.slice(0, MAX_INPUTS);
+      let acc = 0n;
+      for (const entry of picked) acc += BigInt(entry.amount);
+      if (acc <= fee) return { ok: true, from, to, sompi: "0", txids, dust: true };
+      const chunk = acc > changeFloor + fee ? acc - changeFloor : acc - fee;
+      step("Signing the send");
+      const { transactions } = await kaspa.createTransactions({
+        entries: picked,
+        outputs: [{ address: to, amount: chunk }],
+        priorityFee: fee,
+        changeAddress: to,
+        networkId: net,
+      });
+      for (const pending of transactions) {
+        await pending.sign([privateKey]);
+        step("Broadcasting");
+        const txid = await withTimeout(pending.submit(rpc), 20000, "The Testnet-10 node did not take the send.");
+        txids.push(String(txid));
+      }
+      return { ok: true, from, to, sompi: chunk.toString(), txids };
+    }
+    const want = BigInt(sompi);
+    const feeReserve = FEE_RESERVE;
+    if (want <= 0n) throw new Error("Type a tKAS amount above zero.");
     let cursor = 0;
     let guard = 0;
     while (sent < want && cursor < entries.length && guard < 160) {
       guard += 1;
-      const feeReserve = 50_000_000n;
       const need = want - sent + feeReserve;
       const picked = [];
       let acc = 0n;
@@ -177,9 +244,9 @@ export async function payTn10(toAddr, sompi, onStep) {
       step("Signing the send");
       const { transactions } = await kaspa.createTransactions({
         entries: picked,
-        outputs: [{ address: toAddr, amount: chunk }],
+        outputs: [{ address: to, amount: chunk }],
         priorityFee: 1000n,
-        changeAddress: fromAddr,
+        changeAddress: from,
         networkId: net,
       });
       for (const pending of transactions) {
@@ -191,8 +258,13 @@ export async function payTn10(toAddr, sompi, onStep) {
       sent += chunk;
     }
     if (!txids.length) throw new Error("No mature UTXOs large enough. Miner is still stacking dust.");
-    return { ok: true, from: fromAddr, to: toAddr, sompi: sent.toString(), txids };
+    return { ok: true, from, to, sompi: sent.toString(), txids };
   } finally {
     await rpc.disconnect().catch(() => undefined);
   }
+}
+
+export async function payTn10(toAddr, sompi, onStep) {
+  const { privHex, fromAddr } = loadKey();
+  return payFromKey({ privHex, fromAddr, toAddr, sompi, onStep });
 }

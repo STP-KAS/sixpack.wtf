@@ -15,7 +15,7 @@ function txOf(id, sompi) {
   };
 }
 
-function harness(pay) {
+function harness(pay, extra = {}) {
   let state = null;
   const saved = [];
   const svc = createKworldService({
@@ -42,6 +42,7 @@ function harness(pay) {
     },
     now: () => Date.UTC(2026, 8, 29),
     pay,
+    ...extra,
   });
   return { svc, saved, read: () => state };
 }
@@ -84,4 +85,92 @@ test("mainnet is refused before a purse is given", async () => {
   });
   assert.equal(out.body.ok, false);
   assert.match(out.body.error, /Mainnet/);
+});
+
+test("a test login answer has no key", async () => {
+  const { svc } = harness(async () => ({ txids: ["ab"] }), {
+    guests: {
+      async open() {
+        return {
+          ok: true,
+          address: USER,
+          token: "abc",
+          sompi: "1",
+          disclaimer: "Close the tab and it is gone.",
+        };
+      },
+    },
+  });
+  const out = await svc.handle({
+    method: "POST",
+    pathname: "/api/kworld/guest",
+    query: new URLSearchParams(),
+    body: { network: "testnet-10", life: "page-a" },
+    ip: "203.0.113.8",
+  });
+  assert.equal(out.status, 200);
+  assert.equal(out.body.key, undefined);
+  assert.equal(JSON.stringify(out.body).includes("private"), false);
+  assert.match(out.body.disclaimer, /Close the tab/);
+});
+
+test("a test login that returns a key is refused", async () => {
+  const { svc } = harness(async () => ({ txids: ["ab"] }), {
+    guests: {
+      async open() {
+        return { ok: true, address: USER, token: "abc", key: "secret" };
+      },
+    },
+  });
+  const out = await svc.handle({
+    method: "POST",
+    pathname: "/api/kworld/guest",
+    query: new URLSearchParams(),
+    body: {},
+    ip: "203.0.113.8",
+  });
+  assert.equal(out.body.ok, false);
+  assert.equal(JSON.stringify(out.body).includes("secret"), false);
+});
+
+test("a test spend asks before it pays, then pays once", async () => {
+  const calls = [];
+  const { svc, read } = harness(async () => ({ txids: ["ab"] }), {
+    txTries: 1,
+    sleep: async () => {},
+    guests: {
+      async pay({ sompi }) {
+        calls.push(String(sompi));
+        return { ok: true, txid: "ab".repeat(32), sompi: String(sompi) };
+      },
+    },
+  });
+  const rules = await svc.handle({
+    method: "POST",
+    pathname: "/api/kworld/rules",
+    query: new URLSearchParams(),
+    body: { address: USER, rules: { confirmOverCents: 5 } },
+    ip: "203.0.113.9",
+  });
+  assert.equal(rules.body.ok, true);
+  const held = await svc.handle({
+    method: "POST",
+    pathname: "/api/kworld/guest/spend",
+    query: new URLSearchParams(),
+    body: { address: USER, token: "abc", shop: "cafe", sku: "water" },
+    ip: "203.0.113.9",
+  });
+  assert.equal(held.status, 409);
+  assert.equal(held.body.needsConfirm, true);
+  assert.equal(calls.length, 0);
+  const paid = await svc.handle({
+    method: "POST",
+    pathname: "/api/kworld/guest/spend",
+    query: new URLSearchParams(),
+    body: { address: USER, token: "abc", shop: "cafe", sku: "water", confirmed: true },
+    ip: "203.0.113.9",
+  });
+  assert.equal(paid.body.ok, true);
+  assert.equal(calls.length, 1);
+  assert.equal(read().txids["ab".repeat(32)].kind, "spend");
 });

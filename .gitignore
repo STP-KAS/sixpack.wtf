@@ -6,6 +6,8 @@ convo.html
 faucet/ledger.json
 kworld/ledger.json
 kworld/ledger.json.tmp
+kworld/guests.json
+kworld/guests.json.tmp
 faucet/.local/
 .env
 grok/logs/
