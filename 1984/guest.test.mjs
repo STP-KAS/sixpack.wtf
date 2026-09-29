@@ -42,7 +42,7 @@ function harness(seed) {
     async fund(address, sompi) {
       if (failFund) throw failFund();
       funded.push(sompi.toString());
-      return { txids: ["11".repeat(32)] };
+      return { txids: ["11".repeat(32)], sompi: sompi.toString() };
     },
     async pay(input) {
       paid.push({ from: input.from, sompi: input.sompi.toString() });
@@ -98,6 +98,10 @@ test("a new test wallet is funded and the answer has no key", async () => {
   assert.equal(paid.txid.length, 64);
   assert.equal(h.paid[0].from, opened.address);
   assert.equal(JSON.stringify(paid).includes(h.key()), false);
+  await assert.rejects(
+    () => h.desk.pay({ token: opened.token, address: opened.address, sompi: GUEST_FUND_SOMPI + 1n }),
+    /10000 tKAS/
+  );
 });
 
 test("funding failure does not keep the test wallet or the key", async () => {
@@ -116,18 +120,23 @@ test("funding failure does not keep the test wallet or the key", async () => {
 });
 
 test("one network can open only today's allowance", async () => {
-  const h = harness();
-  for (let i = 0; i < GUEST_PER_IP; i += 1) {
-    const opened = await h.desk.open({ ip: "203.0.113.4", life: "page-" + i });
-    assert.equal(opened.ok, true);
-  }
+  const book = emptyBook();
+  book.days["2026-09-29"] = { n: GUEST_PER_IP - 1, ips: { "203.0.113.4": GUEST_PER_IP - 1 } };
+  const h = harness(book);
+  const opened = await h.desk.open({ ip: "203.0.113.4", life: "last" });
+  assert.equal(opened.ok, true);
+  assert.equal(opened.sompi, GUEST_FUND_SOMPI.toString());
   const blocked = await h.desk.open({ ip: "203.0.113.4", life: "more" }).then(
     () => null,
     (error) => error
   );
   assert.match(blocked.message, /keep their history/);
-  const other = await h.desk.open({ ip: "203.0.113.5", life: "other" });
-  assert.equal(other.ok, true);
+  const other = await h.desk.open({ ip: "203.0.113.5", life: "other" }).then(
+    (row) => row,
+    (error) => error
+  );
+  if (GUEST_PER_IP < GUEST_PER_DAY) assert.equal(other.ok, true);
+  else assert.match(other.message, /keeps its history/);
 });
 
 test("the day's global cap stops new test wallets", async () => {

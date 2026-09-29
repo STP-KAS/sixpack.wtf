@@ -7,9 +7,9 @@ import { fileURLToPath } from "node:url";
 import { GUEST_DISCLAIMER, RESERVE, assertTestnet, dayKey } from "./money.mjs";
 
 export { GUEST_DISCLAIMER };
-export const GUEST_FUND_SOMPI = 400n * 100_000_000n;
-export const GUEST_PER_IP = 8;
-export const GUEST_PER_DAY = 40;
+export const GUEST_FUND_SOMPI = 10000n * 100_000_000n;
+export const GUEST_PER_IP = 1000;
+export const GUEST_PER_DAY = 1000;
 export const GUEST_BYE_MS = 25_000;
 export const GUEST_STALE_MS = 6 * 60 * 60 * 1000;
 const RETRY_MS = 10 * 60 * 1000;
@@ -152,7 +152,8 @@ export function createGuestDesk(deps) {
       try {
         const paid = await deps.fund(address, GUEST_FUND_SOMPI);
         const txid = paid && paid.txids && paid.txids[0];
-        if (!txid) throw new Error("The test wallet was not funded.");
+        const got = BigInt(paid && paid.sompi != null ? paid.sompi : 0);
+        if (!txid || got < GUEST_FUND_SOMPI) throw new Error("The test wallet was not funded.");
         book.sessions[token].fundTxid = String(txid);
         persist();
       } catch (err) {
@@ -185,7 +186,11 @@ export function createGuestDesk(deps) {
       }
       const amount = BigInt(sompi);
       if (amount <= 0n || amount > GUEST_FUND_SOMPI) {
-        throw new Error("This test wallet holds 400 tKAS. That payment is outside it. Use your own Testnet-10 wallet for a larger one.");
+        throw new Error(
+          "This test wallet holds " +
+            (GUEST_FUND_SOMPI / 100_000_000n).toString() +
+            " tKAS. That payment is outside it. Use your own Testnet-10 wallet for a larger one."
+        );
       }
       row.touched = now;
       persist();

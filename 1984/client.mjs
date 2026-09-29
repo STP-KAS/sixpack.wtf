@@ -651,11 +651,13 @@ function paintGuide() {
   panel.innerHTML =
     "<h2>How to try this on Testnet 10</h2>" +
     "<ol>" +
-    "<li>Click Kasware or Kastle and approve the login. This page asks the wallet to open on Testnet 10. If the window is black, close it, click the wallet icon, unlock, and try again. A mainnet address is still refused. A phone wallet cannot switch from this page. That login stays on this browser.</li>" +
-    "<li>Or choose New arrival on the welcome gate. That is the same as Test without a wallet. This tab gets a new funded kaspatest address. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. Returning leaves the gate and uses a wallet that stays on this browser.</li>" +
+    "<li class=\"only-desk\">Click Kasware or Kastle and approve the login. This page asks the wallet to open on Testnet 10. If the window is black, close it, click the wallet icon, unlock, and try again. A mainnet address is still refused. That login stays on this browser.</li>" +
+    "<li class=\"only-phone\">On a phone, set Testnet 10 inside Kasware or Kastle before you log in. This page cannot switch the phone wallet. Or open this page in the Kastle browser. If the window is black, close it, unlock the wallet, and try again. A mainnet address is still refused. That login stays on this browser.</li>" +
+    "<li>Or choose New arrival on the welcome gate. That is the same as Test without a wallet. This tab gets 10000 tKAS from Grok's Testnet-10 wallet. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. Returning leaves the gate and uses a wallet that stays on this browser. One thousand of these test wallets can be opened in a day.</li>" +
     "<li>Or paste a kaspatest address. Or type a .kas name that already resolves on TN10. That choice stays until you change it.</li>" +
-    "<li>Need coins: the faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. Take the practice purse in the bank. That purse is play money.</li>" +
-    "<li>Hold the left mouse button and move to look all the way around. Click the ground to walk, or use the left tabs. Pick one rail, then Buy.</li>" +
+    "<li>Need coins: New arrival gives this tab 10000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. Take the practice purse in the bank. That purse is play money.</li>" +
+    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to walk, or use W A S D. Esc closes. Pick one rail, then Buy.</li>" +
+    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Step moves you. Left and Right turn you. Square closes a shop. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
     "<li>tKAS asks the wallet to sign a real Testnet-10 transaction. The miner fee is extra tKAS.</li>" +
     "<li>Venn's bank opens as a swap. Step 1 locks tKAS. Step 2 redeems toy dollars. Use locked POCencept puts the locked amount in the toy-dollar box. The Result line says whether it landed. KUSDT is the only freeze.</li>" +
     "<li>Pike sells the roadster for 20.00 toy dollars. After that you drive it on the square. Walk into a shop and you get out. The car does not leave town.</li>" +
@@ -1162,9 +1164,11 @@ function setPayOpen(open) {
 }
 if (payToggle) payToggle.addEventListener("click", () => setPayOpen(you.hidden));
 for (const button of document.querySelectorAll("[data-turn]")) {
-  const code = button.getAttribute("data-turn") === "left" ? "ArrowLeft" : "ArrowRight";
+  const turn = button.getAttribute("data-turn");
+  const code = turn === "left" ? "ArrowLeft" : turn === "right" ? "ArrowRight" : "KeyW";
   const down = (ev) => {
     ev.preventDefault();
+    try { button.setPointerCapture(ev.pointerId); } catch { /* the hold still starts */ }
     if (worldView.hold) worldView.hold(code, true);
   };
   const up = () => {
@@ -1173,7 +1177,7 @@ for (const button of document.querySelectorAll("[data-turn]")) {
   button.addEventListener("pointerdown", down);
   button.addEventListener("pointerup", up);
   button.addEventListener("pointercancel", up);
-  button.addEventListener("pointerleave", up);
+  button.addEventListener("lostpointercapture", up);
 }
 document.getElementById("gate-back").addEventListener("click", () => {
   hideGate();
