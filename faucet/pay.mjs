@@ -6,6 +6,7 @@ import { homedir } from "node:os";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { payFeeRate } from "./fee-rate.mjs";
 import { FROM } from "./policy.mjs";
 
 const WASM =
@@ -135,6 +136,15 @@ function loadKey() {
 const TESTNET_ADDRESS = /^kaspatest:[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{50,80}$/i;
 const FEE_RESERVE = 50_000_000n;
 
+async function feeRateFor(rpc) {
+  try {
+    const quoted = await withTimeout(rpc.getFeeEstimate({}), 8000, "Reading the Testnet 10 fee took too long.");
+    return payFeeRate(quoted);
+  } catch {
+    return payFeeRate(null);
+  }
+}
+
 function assertPayAddress(value) {
   const address = String(value || "").trim();
   if (/^kaspa:/i.test(address) && !/^kaspatest:/i.test(address)) {
@@ -199,19 +209,25 @@ export async function payFromKey({ privHex, fromAddr, toAddr, sompi, drain, onSt
       const bb = BigInt(b.amount);
       return aa < bb ? 1 : aa > bb ? -1 : 0;
     });
+    const rate = await feeRateFor(rpc);
+    const slack = BigInt(Math.ceil(rate)) * 50_000n;
     if (drain) {
-      const fee = 1000n;
-      const changeFloor = 20_000_000n;
+      const changeFloor = slack > 20_000_000n ? slack : 20_000_000n;
       const picked = entries.slice(0, MAX_INPUTS);
       let acc = 0n;
       for (const entry of picked) acc += BigInt(entry.amount);
-      if (acc <= fee) return { ok: true, from, to, sompi: "0", txids, dust: true };
-      const chunk = acc > changeFloor + fee ? acc - changeFloor : acc - fee;
+      if (acc <= 1000n) return { ok: true, from, to, sompi: "0", txids, dust: true };
+      let chunk;
+      if (acc > changeFloor + 1000n) chunk = acc - changeFloor;
+      else if (acc > slack) chunk = acc - slack;
+      else chunk = acc / 2n;
+      if (chunk <= 0n) return { ok: true, from, to, sompi: "0", txids, dust: true };
       step("Signing the send");
       const { transactions } = await kaspa.createTransactions({
         entries: picked,
         outputs: [{ address: to, amount: chunk }],
-        priorityFee: fee,
+        priorityFee: 0n,
+        feeRate: rate,
         changeAddress: to,
         networkId: net,
       });
@@ -224,7 +240,8 @@ export async function payFromKey({ privHex, fromAddr, toAddr, sompi, drain, onSt
       return { ok: true, from, to, sompi: chunk.toString(), txids };
     }
     const want = BigInt(sompi);
-    const feeReserve = FEE_RESERVE;
+    const scaled = BigInt(Math.ceil(rate)) * 250_000n;
+    const feeReserve = scaled > FEE_RESERVE ? scaled : FEE_RESERVE;
     if (want <= 0n) throw new Error("Type a tKAS amount above zero.");
     let cursor = 0;
     let guard = 0;
@@ -245,7 +262,8 @@ export async function payFromKey({ privHex, fromAddr, toAddr, sompi, drain, onSt
       const { transactions } = await kaspa.createTransactions({
         entries: picked,
         outputs: [{ address: to, amount: chunk }],
-        priorityFee: 1000n,
+        priorityFee: 0n,
+        feeRate: rate,
         changeAddress: from,
         networkId: net,
       });

@@ -172,7 +172,12 @@
   }
 
   async function sendKaspa(to, sompi, opts) {
-    opts = opts || { priorityFee: 10000 };
+    var given = opts || {};
+    opts = {
+      priorityFee: Math.max(Number(given.priorityFee) || 0, 2000000),
+      feeRate: Math.max(Number(given.feeRate) || 0, 200),
+    };
+    if (given.payload) opts.payload = given.payload;
     const order = [];
     if (window.kasware && typeof window.kasware.sendKaspa === "function") order.push(window.kasware);
     if (window.kastle && typeof window.kastle.sendKaspa === "function") order.push(window.kastle);

@@ -12,6 +12,7 @@ import {
   parseTkas,
   sompiForCents,
 } from "./money.mjs";
+import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { DRIVE_MS, WALK_MS, mountWorld, seat } from "./view3d.mjs?v=9";
 import { destinationFor, findPath, nearShop, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
@@ -601,7 +602,7 @@ function paintShop(shopId) {
     balanceSheet() +
     '<div class="booth-tabs">' + picks + "</div>" +
     rows + txid +
-    "<p class=\"fine\">One rail for the whole menu. POCencept and KUSDT are toys. tKAS asks the wallet, and the miner fee is extra.</p></div>";
+    "<p class=\"fine\">One rail for the whole menu. POCencept and KUSDT are toys. tKAS asks the wallet. The miner fee is twice the standard Testnet 10 rate, and it is extra.</p></div>";
   document.getElementById("stall-close").onclick = () => openMode("world");
 }
 
@@ -758,7 +759,7 @@ function paintGuide() {
     "<li>Need coins: New arrival gives this tab 10000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. Take the practice purse in the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to go in. The counter is a popup. Buy the roadster and you drive it. W A S D move the way you look. The arrow keys do too. G gets in or out. Esc closes. Pick one rail, then Buy.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Step moves you. Left and Right turn you. Tap a building you are next to and you go in. Get in drives. Get out walks. Square closes a shop. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
-    "<li>tKAS asks the wallet to sign a real Testnet-10 transaction. The miner fee is extra tKAS.</li>" +
+    "<li>tKAS asks the wallet to sign a real Testnet-10 transaction. The miner fee is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
     "<li>Venn's bank opens as a swap. Step 1 locks tKAS. Step 2 redeems toy dollars. Use locked POCencept puts the locked amount in the toy-dollar box. The Result line says whether it landed. KUSDT is the only freeze.</li>" +
     "<li>Pike sells the roadster for 1.00 toy dollar. Get in to drive. Get out to walk. Inside a shop you are on foot. The car does not leave town.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
@@ -833,8 +834,8 @@ async function spend(rail, shop, sku, confirmed) {
         say("Connect Kasware or Kastle on Testnet 10, or paste the txid after you pay " + formatTkas(quote.sompi) + " tKAS to the reserve.", true);
         return;
       }
-      say("Approve " + formatTkas(quote.sompi) + " tKAS in the wallet. The miner fee is extra.");
-      txid = await kit.sendKaspa(state.reserve, Number(quote.sompi), { priorityFee: 10000 });
+      say("Approve " + formatTkas(quote.sompi) + " tKAS in the wallet. The miner fee is twice the standard rate, and it is extra.");
+      txid = await kit.sendKaspa(state.reserve, Number(quote.sompi), { priorityFee: WALLET_PRIORITY_SOMPI, feeRate: payFeeRate(null) });
     }
   }
   let body = await post("/api/1984/spend", { shop, sku, rail, txid, confirmed: !!confirmed });
@@ -921,8 +922,8 @@ async function lock(rail) {
           swapNote("Not swapped. Log in with Kasware or Kastle, or paste the txid of tKAS already sent to the reserve. Nothing moved.", "bad");
           return;
         }
-        swapNote("Approve " + shown + " in the wallet. The miner fee is extra.", "wait");
-        txid = await kit.sendKaspa(state.reserve, Number(sompi), { priorityFee: 10000 });
+        swapNote("Approve " + shown + " in the wallet. The miner fee is twice the standard rate, and it is extra.", "wait");
+        txid = await kit.sendKaspa(state.reserve, Number(sompi), { priorityFee: WALLET_PRIORITY_SOMPI, feeRate: payFeeRate(null) });
       }
       sent = true;
       if (txField && txid) {
