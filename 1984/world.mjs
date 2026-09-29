@@ -277,3 +277,12 @@ export function destinationFor(x, y) {
   if (b) return { x: b.npc.x, y: b.npc.y, shop: b.shop };
   return null;
 }
+
+/** Inside that building, or on a tile that touches its door or its keeper. */
+export function nearShop(map, x, y, shop) {
+  const b = map.buildings.find((item) => item.shop === shop);
+  if (!b) return false;
+  if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) return true;
+  const touch = (spot) => Math.max(Math.abs(spot.x - x), Math.abs(spot.y - y)) <= 1;
+  return touch(b.door) || touch(b.npc);
+}

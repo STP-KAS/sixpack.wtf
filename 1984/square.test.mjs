@@ -12,7 +12,7 @@ import {
   publicAccount,
 } from "./ledger.mjs";
 import { RESERVE, centsForSompi, sompiForCents } from "./money.mjs";
-import { findPath, standTile, walkable, world } from "./world.mjs";
+import { findPath, nearShop, standTile, walkable, world } from "./world.mjs";
 
 const USER = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 const USD = 0.05;
@@ -32,6 +32,19 @@ function pay(sompi, n = 1) {
     },
   };
 }
+
+test("a building opens when you stand at the door, and the fountain is outside that reach", () => {
+  const map = world();
+  for (const b of map.buildings) {
+    assert.equal(nearShop(map, b.door.x, b.door.y, b.shop), true, b.id);
+    assert.equal(nearShop(map, b.npc.x, b.npc.y, b.shop), true, b.id);
+    assert.equal(nearShop(map, b.x + 1, b.y + 1, b.shop), true, b.id);
+    assert.equal(nearShop(map, map.spawn.x, map.spawn.y, b.shop), false, b.id);
+  }
+  assert.equal(nearShop(map, 8, 11, "cafe"), true);
+  assert.equal(nearShop(map, 8, 12, "cafe"), false);
+  assert.equal(nearShop(map, 20, 20, "missing"), false);
+});
 
 test("every shop door can be walked from the fountain", () => {
   const map = world();

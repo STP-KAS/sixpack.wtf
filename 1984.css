@@ -300,7 +300,36 @@ body.page-1984 main.kw-stage {
   color: #8a7040;
   font-weight: 400;
 }
-.kw-panel.swap-pop {
+.good {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 0.35rem 0.55rem;
+  align-items: center;
+  margin-top: 0.45rem;
+  padding: 0.45rem 0.5rem 0.5rem;
+  background:
+    linear-gradient(180deg, rgba(255,220,160,0.08), transparent 42%),
+    #2a1c14;
+  border: 2px solid #6b4a2a;
+  box-shadow: inset 0 0 0 1px #1a1008;
+}
+.good strong { display: block; color: #f3e6c8; }
+.good span { display: block; margin-top: 0.12rem; color: #b7a88a; font-size: 0.75rem; }
+.good .buy { grid-column: 1 / -1; margin-top: 0.15rem; }
+.good-mark { display: block; width: 52px; height: 52px; }
+.stall-head { display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.35rem; }
+.stall-head h2 { margin: 0; }
+.stall-head button { margin-left: auto; flex: 0 0 auto; }
+.stall-keeper {
+  margin: 0;
+  color: #f2d48a;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.stall-badge { display: block; width: 58px; height: 58px; flex: 0 0 auto; }
+.kw-panel.swap-pop, .kw-panel.stall-pop {
   position: absolute;
   left: 50%;
   top: 50%;
@@ -605,7 +634,7 @@ a { color: #f2d48a; }
   .swap-status { min-height: 0; margin: 0.25rem 0 0.05rem; padding: 0.28rem 0.4rem; }
   .swap-step { margin: 0.35rem 0 0; }
   .swap-preview { min-height: 0; margin: 0.05rem 0 0.15rem; }
-  .kw-panel.swap-pop {
+  .kw-panel.swap-pop, .kw-panel.stall-pop {
     position: absolute;
     left: 50%;
     top: 50%;

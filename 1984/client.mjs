@@ -12,8 +12,8 @@ import {
   parseTkas,
   sompiForCents,
 } from "./money.mjs";
-import { DRIVE_MS, WALK_MS, mountWorld, seat } from "./view3d.mjs?v=7";
-import { destinationFor, findPath, walkable, world } from "./world.mjs";
+import { DRIVE_MS, WALK_MS, mountWorld, seat } from "./view3d.mjs?v=8";
+import { destinationFor, findPath, nearShop, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 const map = world();
@@ -47,6 +47,7 @@ const state = {
   boothHits: [],
   lapUntil: 0,
   aboard: false,
+  inside: false,
 };
 
 const PRIVACY =
@@ -431,14 +432,34 @@ function chooseRail(rail) {
   if (state.mode === "bank") paintBank();
 }
 
+function isVisit(mode) {
+  return mode === "bank" || mode === "cafe" || mode === "restaurant" || mode === "groceries" || mode === "roadster";
+}
+
+function arriveVisit(shop) {
+  state.inside = true;
+  openMode(shop);
+}
+
+function enterVisit(shop) {
+  state.path = [];
+  state.arrived = null;
+  state.inside = true;
+  openMode(shop);
+}
+
 function openMode(mode) {
   const enteringBank = mode === "bank" && state.mode !== "bank";
+  const enteringShop = isVisit(mode) && mode !== "bank" && state.mode !== mode;
+  if (mode === "world" && state.mode !== "world") state.arrived = null;
+  if (!isVisit(mode)) state.inside = false;
   state.mode = mode;
   markRoom();
   paintChrome();
   const shade = document.getElementById("bank-shade");
   panel.classList.toggle("swap-pop", mode === "bank");
-  if (shade) shade.hidden = mode !== "bank";
+  panel.classList.toggle("stall-pop", isVisit(mode) && mode !== "bank");
+  if (shade) shade.hidden = !isVisit(mode);
   if (mode === "world") {
     panel.hidden = true;
     panel.innerHTML = "";
@@ -454,7 +475,14 @@ function openMode(mode) {
   } else if (mode === "rules") paintRules();
   else if (mode === "bench") paintBench();
   else if (mode === "guide") paintGuide();
-  else paintShop(mode);
+  else {
+    if (enteringShop) {
+      const shop = (state.home && state.home.shops ? state.home.shops : []).find((item) => item.id === mode);
+      const keeper = shop ? shop.keeper : (map.npcs.find((npc) => npc.shop === mode) || {}).name;
+      say((keeper || "The keeper") + " is at the counter.");
+    }
+    paintShop(mode);
+  }
 }
 
 function splitCents(total, backed) {
@@ -491,11 +519,46 @@ function canPay(rail, cents) {
   return have >= BigInt(cents);
 }
 
+const STALL_FACE = {
+  cafe: { tint: "#8d3b2f", letter: "C" },
+  restaurant: { tint: "#8a5a2a", letter: "T" },
+  groceries: { tint: "#3d6b45", letter: "M" },
+  roadster: { tint: "#6e2430", letter: "R" },
+};
+
+function goodsMark(sku) {
+  const marks = {
+    water: ["#1c4a5c", "#9fd4ea", "M32 8c9 14 16 20 16 32a16 16 0 1 1-32 0C16 28 23 22 32 8z"],
+    coffee: ["#4a2a1c", "#f4efe6", "M18 24h22v16a10 10 0 0 1-10 10h-2a10 10 0 0 1-10-10zm22 4h6a6 6 0 0 1 0 12h-6"],
+    tea: ["#2a4030", "#d7e6c8", "M20 22h20l-2 26H22zm6-10c2 4 2 6 0 10m8-10c2 4 2 6 0 10"],
+    bun: ["#6a4020", "#e7c27a", "M16 36c0-12 8-20 16-20s16 8 16 20z"],
+    soup: ["#3a2414", "#e7c27a", "M14 28h36c-2 14-8 22-18 22S16 42 14 28zm6-8c4 2 6 2 8 0m8 0c2 2 4 2 8 0"],
+    supper: ["#3a2414", "#f4efe6", "M12 30h40v6H12zm6 6h28l-2 16H20z"],
+    cake: ["#5a3028", "#f0c0c8", "M16 28h32v20H16zm0-8h32v8H16m8-8v-6m8 6v-8m8 8v-6"],
+    pebble: ["#3a342c", "#c8beb0", "M22 40c-6-2-8-10-4-16 4-8 14-10 20-4 8 6 8 16 2 20-4 4-12 2-18 0z"],
+    bread: ["#6a4020", "#e0b060", "M14 36c0-10 8-16 18-16s18 6 18 16v6H14z"],
+    milk: ["#e8e4dc", "#f7f4ee", "M24 16h16l4 10v24H20V26zm2 14h12"],
+    apples: ["#2a4030", "#d24a3a", "M22 36a10 10 0 1 1 8-16 10 10 0 1 1 8 16c-2 6-6 10-8 10s-6-4-8-10z"],
+    keys: ["#6e2430", "#e7c27a", "M18 32a8 8 0 1 1 4 7v5h4v4h4v4H22v-12a8 8 0 0 1-4-8z"],
+    postcard: ["#1c3a4a", "#f4efe6", "M12 18h40v28H12zm4 6h14v10H16zm18 2h14m-14 6h14m-14 6h10"],
+    sit: ["#2a241c", "#f0a36a", "M16 40h32v6H16zm6-6h8V22h12v12h6l-4 8"],
+    lap: ["#6e2430", "#e7c27a", "M10 36c8-14 36-14 44 0M18 36a6 6 0 1 0 0.1 0M46 36a6 6 0 1 0 0.1 0"],
+  };
+  const pair = marks[sku] || marks.pebble;
+  return (
+    '<svg class="good-mark" viewBox="0 0 64 64" aria-hidden="true">' +
+    '<rect width="64" height="64" rx="8" fill="' + pair[0] + '"/>' +
+    '<path d="' + pair[2] + '" fill="none" stroke="' + pair[1] + '" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>' +
+    "</svg>"
+  );
+}
+
 function paintShop(shopId) {
   const shop = (state.home && state.home.shops ? state.home.shops : []).find((item) => item.id === shopId);
   const fallback = map.npcs.find((npc) => npc.shop === shopId);
   if (!shop) {
-    panel.innerHTML = balanceSheet() + "<h2>" + esc(fallback ? fallback.name : "Shop") + "</h2><p>The menu loads from the village ledger. " + esc(state.oracleError || "It is not reachable from this browser yet.") + "</p>";
+    panel.innerHTML = '<div class="stall-head"><h2>' + esc(fallback ? fallback.name : "Shop") + '</h2><button type="button" id="stall-close">Close</button></div>' + balanceSheet() + "<p>The menu loads from the village ledger. " + esc(state.oracleError || "It is not reachable from this browser yet.") + "</p>";
+    document.getElementById("stall-close").onclick = () => openMode("world");
     return;
   }
   const rail = state.shopRail === "kas" || state.shopRail === "kusdt" ? state.shopRail : "poc";
@@ -503,6 +566,7 @@ function paintShop(shopId) {
   const picks = ["poc", "kusdt", "kas"]
     .map((id) => '<button type="button" data-rail-pick="' + id + '"' + (id === rail ? ' class="on"' : "") + ">" + names[id] + "</button>")
     .join("");
+  const face = STALL_FACE[shop.id] || { tint: "#8a7040", letter: "S" };
   const rows = shop.items
     .map((item) => {
       const sompi = quoteSompi(item.cents);
@@ -518,8 +582,9 @@ function paintShop(shopId) {
         ? '<button type="button" class="buy short" data-short="' + esc(short) + '">' + esc(frozenRail ? "KUSDT is frozen" : "Not enough " + names[rail]) + "</button>"
         : '<button type="button" class="buy" data-pay="' + rail + '" data-shop="' + shop.id + '" data-sku="' + item.sku + '">Buy · ' + esc(price) + "</button>";
       return (
-        '<div class="item"><strong>' + esc(item.name) + "</strong> · " + esc(formatCents(item.cents)) +
-        " toy dollars · " + esc(kas) + button + "</div>"
+        '<article class="good">' + goodsMark(item.sku) +
+        "<div><strong>" + esc(item.name) + "</strong><span>" + esc(formatCents(item.cents)) +
+        " toy dollars · " + esc(kas) + "</span></div>" + button + "</article>"
       );
     })
     .join("");
@@ -527,11 +592,17 @@ function paintShop(shopId) {
     ? '<details class="paid-already"><summary>Already sent tKAS? Paste the txid</summary><textarea id="txid" rows="2"></textarea></details>'
     : "";
   panel.innerHTML =
+    '<div class="stall">' +
+    '<div class="stall-head">' +
+    '<svg class="stall-badge" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="10" fill="' + face.tint + '"/><text x="32" y="42" text-anchor="middle" fill="#f3e6c8" font-size="28" font-family="Georgia, serif">' + face.letter + "</text></svg>" +
+    "<div><p class=\"stall-keeper\">" + esc(shop.keeper) + "</p><h2>" + esc(shop.name) + "</h2></div>" +
+    '<button type="button" id="stall-close">Close</button></div>' +
+    "<p>" + esc(shop.line) + "</p>" +
     balanceSheet() +
-    "<h2>" + esc(shop.name) + "</h2><p>" + esc(shop.line) + "</p>" +
     '<div class="booth-tabs">' + picks + "</div>" +
     rows + txid +
-    "<p class=\"fine\">One rail for the whole menu. POCencept and KUSDT are toys. tKAS asks the wallet, and the miner fee is extra.</p>";
+    "<p class=\"fine\">One rail for the whole menu. POCencept and KUSDT are toys. tKAS asks the wallet, and the miner fee is extra.</p></div>";
+  document.getElementById("stall-close").onclick = () => openMode("world");
 }
 
 let lockDraft = "1";
@@ -685,8 +756,8 @@ function paintGuide() {
     "<li>Or choose New arrival on the welcome gate. That is the same as Test without a wallet. This tab gets 10000 tKAS from Grok's Testnet-10 wallet. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. Returning leaves the gate and uses a wallet that stays on this browser. One thousand of these test wallets can be opened in a day.</li>" +
     "<li>Or paste a kaspatest address. Or type a .kas name that already resolves on TN10. That choice stays until you change it.</li>" +
     "<li>Need coins: New arrival gives this tab 10000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. Take the practice purse in the bank. That purse is play money.</li>" +
-    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to walk, or use W A S D. G gets in or out of the roadster. Esc closes. Pick one rail, then Buy.</li>" +
-    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Step moves you. Left and Right turn you. Get in drives. Get out walks. Square closes a shop. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
+    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to walk, or use W A S D. Stand next to a building and click it to go in. The counter is a popup. G gets in or out of the roadster. Esc closes. Pick one rail, then Buy.</li>" +
+    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Step moves you. Left and Right turn you. Tap a building you are next to and you go in. Get in drives. Get out walks. Square closes a shop. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
     "<li>tKAS asks the wallet to sign a real Testnet-10 transaction. The miner fee is extra tKAS.</li>" +
     "<li>Venn's bank opens as a swap. Step 1 locks tKAS. Step 2 redeems toy dollars. Use locked POCencept puts the locked amount in the toy-dollar box. The Result line says whether it landed. KUSDT is the only freeze.</li>" +
     "<li>Pike sells the roadster for 1.00 toy dollar. Get in to drive. Get out to walk. Inside a shop you are on foot. The car does not leave town.</li>" +
@@ -1066,8 +1137,15 @@ const worldView = mountWorld(view, map, {
   facing: () => state.facing,
   walk(x, y) {
     const npc = map.npcs.find((item) => item.x === x && item.y === y);
-    walkTo(x, y, npc ? () => openMode(npc.shop) : null);
+    walkTo(x, y, npc ? () => arriveVisit(npc.shop) : null);
   },
+  near(shop) {
+    return nearShop(map, state.player.x, state.player.y, shop);
+  },
+  enter(shop) {
+    enterVisit(shop);
+  },
+  room: () => state.inside,
   step(dx, dy) {
     if (!dx && !dy) return;
     state.path = [];
@@ -1137,8 +1215,8 @@ window.addEventListener("keydown", (ev) => {
       bestD = d;
     }
   }
-  if (best && bestD <= 2) openMode(best.shop);
-  else if (best) walkTo(best.x, best.y, () => openMode(best.shop));
+  if (best && nearShop(map, state.player.x, state.player.y, best.shop)) enterVisit(best.shop);
+  else if (best) walkTo(best.x, best.y, () => arriveVisit(best.shop));
 });
 
 window.addEventListener("resize", () => worldView.resize());
@@ -1148,7 +1226,7 @@ side.addEventListener("click", (ev) => {
   const mode = button.getAttribute("data-go");
   if (mode !== "world" && mode !== "rules" && mode !== "bench" && mode !== "guide") {
     const npc = map.npcs.find((item) => item.shop === mode);
-    if (npc) walkTo(npc.x, npc.y, () => openMode(mode));
+    if (npc) walkTo(npc.x, npc.y, () => arriveVisit(mode));
   }
   openMode(mode);
 });

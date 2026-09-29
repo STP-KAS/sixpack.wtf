@@ -326,9 +326,10 @@ function nameTag(text) {
   return sprite;
 }
 
-function tagPick(object, pick) {
+function tagPick(object, pick, shop) {
   object.traverse((child) => {
     child.userData.pick = pick;
+    if (shop) child.userData.shop = shop;
   });
 }
 
@@ -493,9 +494,10 @@ function addBuildings(parent, map, maps, pick, awnings) {
       cloth.position.set(doorPos.x + face.nx * 0.55, 1.72, doorPos.z + face.nz * 0.55);
       if (face.nx) cloth.rotation.y = Math.PI / 2;
       cloth.castShadow = true;
-      cloth.userData.shop = b.shop;
       parent.add(cloth);
       if (awnings) awnings.push(cloth);
+      tagPick(cloth, { x: b.npc.x, y: b.npc.y }, b.shop);
+      pick.push(cloth);
     }
     const sign = nameTag(b.sign);
     sign.position.set(wallX + face.nx * 0.35, h + 0.55, wallZ + face.nz * 0.35);
@@ -511,8 +513,12 @@ function addBuildings(parent, map, maps, pick, awnings) {
         parent.add(merlon);
       }
     }
-    tagPick(body, { x: b.npc.x, y: b.npc.y });
-    pick.push(body);
+    const visit = { x: b.npc.x, y: b.npc.y };
+    tagPick(body, visit, b.shop);
+    tagPick(door, visit, b.shop);
+    tagPick(roof, visit, b.shop);
+    tagPick(sign, visit, b.shop);
+    pick.push(body, door, roof, sign);
   }
 }
 
@@ -793,6 +799,152 @@ function buildBankRoom(maps) {
   return { room, booths, rope, teller, lamp };
 }
 
+const STALLS = [
+  { id: "cafe", color: "#e7b3c2", title: "Cafe", tint: "#8d3b2f", wash: "#3a2420" },
+  { id: "restaurant", color: "#e6c15a", title: "Table", tint: "#8a5a2a", wash: "#3a2c1c" },
+  { id: "groceries", color: "#b7e38d", title: "Market", tint: "#3d6b45", wash: "#243028" },
+  { id: "roadster", color: "#f0a36a", title: "Roadster", tint: "#6e2430", wash: "#321820" },
+];
+
+function stallCup(color) {
+  const group = new THREE.Group();
+  const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.05, 0.12, 10), stone(color, 0.4));
+  bowl.position.y = 0.06;
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.012, 6, 10), stone(color, 0.4));
+  handle.position.set(0.07, 0.06, 0);
+  handle.rotation.y = Math.PI / 2;
+  group.add(bowl, handle);
+  return group;
+}
+
+function stallGoods(id) {
+  const group = new THREE.Group();
+  if (id === "cafe") {
+    const milk = stallCup("#f4efe6");
+    milk.position.set(-0.34, 0, 0.04);
+    const coffee = stallCup("#6b3a2a");
+    coffee.position.set(0.02, 0, -0.02);
+    const bun = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 8), stone("#e0b060", 0.55));
+    bun.position.set(0.4, 0.08, 0.02);
+    group.add(milk, coffee, bun);
+  } else if (id === "restaurant") {
+    const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.03, 16), stone("#f4efe6", 0.35));
+    plate.position.set(-0.22, 0.02, 0);
+    const supper = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), stone("#c45a28", 0.5));
+    supper.position.set(-0.22, 0.08, 0);
+    const cake = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.22), stone("#e7c27a", 0.55));
+    cake.position.set(0.28, 0.08, 0);
+    group.add(plate, supper, cake);
+  } else if (id === "groceries") {
+    const crate = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.18, 0.24), stone("#8a5a32", 0.75));
+    crate.position.set(-0.22, 0.1, 0);
+    group.add(crate);
+    const colors = ["#d24a3a", "#3d6b45", "#e0b060"];
+    colors.forEach((color, i) => {
+      const fruit = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), stone(color, 0.45));
+      fruit.position.set(0.18 + i * 0.14, 0.06, (i - 1) * 0.06);
+      group.add(fruit);
+    });
+  } else {
+    const plinth = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.5), stone("#2a241c", 0.7));
+    plinth.position.y = 0.03;
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.18, 0.32), stone("#6e2430", 0.42));
+    body.position.y = 0.18;
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.14, 0.26), stone("#d7e6ef", 0.28));
+    cab.position.set(-0.05, 0.32, 0);
+    group.add(plinth, body, cab);
+    for (const [x, z] of [[-0.22, -0.16], [-0.22, 0.16], [0.22, -0.16], [0.22, 0.16]]) {
+      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.05, 10), stone("#1c1916", 0.7));
+      wheel.rotation.z = Math.PI / 2;
+      wheel.position.set(x, 0.08, z);
+      group.add(wheel);
+    }
+  }
+  return group;
+}
+
+function stallBoard(title, tint) {
+  const map = paintTex(256, (g, s) => {
+    g.fillStyle = "#241910";
+    g.fillRect(0, 0, s, s);
+    g.strokeStyle = tint;
+    g.lineWidth = 14;
+    g.strokeRect(12, 12, s - 24, s - 24);
+    g.fillStyle = "#f3e6c8";
+    g.font = "700 40px Georgia, serif";
+    g.textAlign = "center";
+    g.fillText(title, s / 2, 148);
+  });
+  map.wrapS = THREE.ClampToEdgeWrapping;
+  map.wrapT = THREE.ClampToEdgeWrapping;
+  const board = new THREE.Mesh(
+    new THREE.BoxGeometry(1.5, 0.9, 0.06),
+    new THREE.MeshStandardMaterial({ map, roughness: 0.6 }),
+  );
+  board.position.set(0, 2.15, -4.15);
+  return board;
+}
+
+/** One counter room. The shop you entered dresses it. Walls face inward. */
+function buildStallRoom(maps) {
+  const room = new THREE.Group();
+  room.name = "stall";
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 9), stone("#8a5a32", 0.86, maps.wood));
+  floor.position.y = -0.1;
+  floor.receiveShadow = true;
+  room.add(floor);
+  const wallMat = stone("#f0e2cc", 0.9, maps.plaster);
+  wallMat.side = THREE.DoubleSide;
+  const back = new THREE.Mesh(new THREE.BoxGeometry(12, 3.6, 0.28), wallMat);
+  back.position.set(0, 1.7, -4.4);
+  const left = new THREE.Mesh(new THREE.BoxGeometry(0.28, 3.6, 9), wallMat);
+  left.position.set(-6, 1.7, 0);
+  const right = left.clone();
+  right.position.x = 6;
+  const frontL = new THREE.Mesh(new THREE.BoxGeometry(4.6, 3.6, 0.28), wallMat);
+  frontL.position.set(-3.7, 1.7, 4.4);
+  const frontR = frontL.clone();
+  frontR.position.x = 3.7;
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.85, 0.28), wallMat);
+  lintel.position.set(0, 3.05, 4.4);
+  room.add(back, left, right, frontL, frontR, lintel);
+  const counter = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.9, 0.7), stone("#8a5a32", 0.7, maps.wood));
+  counter.position.set(0, 0.5, -2.9);
+  counter.castShadow = true;
+  room.add(counter);
+  const runner = new THREE.Mesh(
+    new THREE.BoxGeometry(3.2, 0.04, 0.72),
+    new THREE.MeshStandardMaterial({ color: "#8d3b2f", roughness: 0.55 }),
+  );
+  runner.position.set(0, 0.97, -2.9);
+  room.add(runner);
+  const lamp = new THREE.PointLight("#ffd2a8", 0, 16, 1.6);
+  lamp.position.set(0, 2.7, -1.2);
+  room.add(lamp);
+  hangLantern(room, 0, 2.45, -1.2);
+  const keepers = {};
+  const goods = {};
+  const boards = {};
+  for (const stall of STALLS) {
+    const keeper = figure(stall.color);
+    keeper.position.set(-1.15, 0, -3.45);
+    keeper.rotation.y = headingYaw(0, 1);
+    keeper.visible = false;
+    room.add(keeper);
+    keepers[stall.id] = keeper;
+    const tray = stallGoods(stall.id);
+    tray.position.set(0.15, 1.0, -2.85);
+    tray.visible = false;
+    room.add(tray);
+    goods[stall.id] = tray;
+    const board = stallBoard(stall.title, stall.tint);
+    board.visible = false;
+    room.add(board);
+    boards[stall.id] = board;
+  }
+  return { room, keepers, goods, boards, lamp, runner, stalls: STALLS };
+}
+
 export function mountWorld(canvas, map, api) {
   let renderer;
   try {
@@ -861,7 +1013,7 @@ export function mountWorld(canvas, map, api) {
     const at = worldOf(map, npc.x + 0.5, npc.y + 0.5, 0);
     person.position.copy(at);
     person.add(nameTag(npc.name));
-    tagPick(person, { x: npc.x, y: npc.y });
+    tagPick(person, { x: npc.x, y: npc.y }, npc.shop);
     pick.push(person);
     town.add(person);
     actors.push(person);
@@ -869,6 +1021,9 @@ export function mountWorld(canvas, map, api) {
 
   const bank = buildBankRoom(maps);
   scene.add(bank.room);
+  const stall = buildStallRoom(maps);
+  scene.add(stall.room);
+  stall.room.visible = false;
 
   const marker = new THREE.Mesh(
     new THREE.RingGeometry(0.28, 0.46, 24),
@@ -887,7 +1042,7 @@ export function mountWorld(canvas, map, api) {
   let bankDistance = 9;
   let townYaw = yaw;
   let townPitch = pitch;
-  let seenMode = api.mode();
+  let wasInside = false;
   const shown = worldOf(map, map.spawn.x + 0.5, map.spawn.y + 0.5, 1.15);
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
@@ -972,9 +1127,9 @@ export function mountWorld(canvas, map, api) {
 
   function render(now) {
     resize();
-    const inside = api.mode() === "bank";
-    if (inside !== (seenMode === "bank")) {
-      if (inside) {
+    const indoors = !!(api.room && api.room());
+    if (indoors !== wasInside) {
+      if (indoors) {
         townYaw = yaw;
         townPitch = pitch;
         yaw = 0.22;
@@ -983,7 +1138,7 @@ export function mountWorld(canvas, map, api) {
         yaw = townYaw;
         pitch = townPitch;
       }
-      seenMode = api.mode();
+      wasInside = indoors;
     }
     const dt = lastNow ? Math.min(0.05, (now - lastNow) / 1000) : 0.016;
     lastNow = now;
@@ -991,20 +1146,31 @@ export function mountWorld(canvas, map, api) {
     shake = Math.max(0, shake - dt * 2.2);
     juicePitch = nod > 0 ? Math.sin(nod * Math.PI) * 0.045 : 0;
     juiceYaw = shake > 0 ? Math.sin(now / 28) * 0.03 * shake : 0;
-    const talking = !inside && api.mode() !== "world" && api.mode() !== "rules" && api.mode() !== "bench" && api.mode() !== "guide";
+    const talking = !indoors && api.mode() !== "world" && api.mode() !== "rules" && api.mode() !== "bench" && api.mode() !== "guide";
     talk += ((talking ? 1 : 0) - talk) * Math.min(1, dt * 2.5);
-    frameDistance = inside ? bankDistance : townDistance * (1 - 0.2 * talk);
+    frameDistance = indoors ? bankDistance : townDistance * (1 - 0.2 * talk);
     let spin = 0;
     if (held.has("ArrowLeft") || held.has("KeyQ")) spin += 1;
     if (held.has("ArrowRight") || held.has("KeyR")) spin -= 1;
     if (spin) yaw += spin * dt * 1.5;
-    town.visible = !inside;
-    sky.visible = !inside;
-    bank.room.visible = inside;
-    bank.lamp.intensity = inside ? 7 : 0;
-    scene.fog.near = inside ? 10 : 22;
-    scene.fog.far = inside ? 28 : 70;
-    scene.background.set(inside ? "#2a241c" : "#c47a52");
+    const stallId = stall.stalls.some((item) => item.id === api.mode()) ? api.mode() : "";
+    town.visible = !indoors;
+    sky.visible = !indoors;
+    bank.room.visible = indoors && api.mode() === "bank";
+    stall.room.visible = indoors && !!stallId;
+    bank.lamp.intensity = bank.room.visible ? 7 : 0;
+    stall.lamp.intensity = stall.room.visible ? 7 : 0;
+    for (const item of stall.stalls) {
+      const on = stall.room.visible && item.id === stallId;
+      stall.keepers[item.id].visible = on;
+      stall.goods[item.id].visible = on;
+      stall.boards[item.id].visible = on;
+      if (on) stall.runner.material.color.set(item.tint);
+    }
+    scene.fog.near = indoors ? 10 : 22;
+    scene.fog.far = indoors ? 28 : 70;
+    const wash = bank.room.visible ? "#2a241c" : stall.room.visible ? stall.stalls.find((item) => item.id === stallId).wash : "#c47a52";
+    scene.background.set(wash);
     const rail = api.rail();
     for (const booth of bank.booths) {
       const open = booth.id === rail;
@@ -1028,9 +1194,10 @@ export function mountWorld(canvas, map, api) {
       const stir = api.mode() === cloth.userData.shop ? 0.14 : 0.035;
       cloth.rotation.x = Math.sin(now / 280 + cloth.position.x) * stir;
     }
-    if (inside) {
+    if (indoors) {
       placeCamera(new THREE.Vector3(0, 0.9, -0.8));
-      pose(bank.teller, now, false);
+      if (bank.room.visible) pose(bank.teller, now, false);
+      if (stallId && stall.keepers[stallId].visible) pose(stall.keepers[stallId], now, false);
     } else {
       placeCamera(new THREE.Vector3(shown.x, 1.15, shown.z));
       const owns = !!(api.driving && api.driving());
@@ -1121,7 +1288,7 @@ export function mountWorld(canvas, map, api) {
       placeCamera(camFocus);
       for (const actor of actors) pose(actor, now, actor === player && moving && !riding);
     }
-    canvas.dataset.mode = inside ? "bank" : "world";
+    canvas.dataset.mode = indoors ? api.mode() : "world";
     renderer.render(scene, camera);
   }
 
@@ -1155,16 +1322,24 @@ export function mountWorld(canvas, map, api) {
     if (!was || was.moved || was.button !== 0) return;
     ndc(ev);
     raycaster.setFromCamera(pointer, camera);
-    if (api.mode() === "bank") {
+    if (api.room && api.room() && api.mode() === "bank") {
       const hits = raycaster.intersectObjects(bank.booths.map((booth) => booth.opening), false);
       if (hits[0]) api.booth(hits[0].object.userData.rail);
       return;
     }
+    if (api.room && api.room()) return;
     const hits = raycaster.intersectObjects(pick, true);
     if (!hits[0]) return;
     let owner = hits[0].object;
     while (owner && !owner.userData.pick && owner.name !== "walk") owner = owner.parent;
     if (owner && owner.userData.pick) {
+      const shop = owner.userData.shop;
+      if (shop && api.near && api.near(shop)) {
+        marker.visible = false;
+        markTile = null;
+        api.enter(shop);
+        return;
+      }
       markTile = { x: owner.userData.pick.x, y: owner.userData.pick.y };
       const at = worldOf(map, markTile.x + 0.5, markTile.y + 0.5, 0.08);
       marker.position.set(at.x, 0.08, at.z);
@@ -1181,7 +1356,7 @@ export function mountWorld(canvas, map, api) {
   canvas.addEventListener("contextmenu", (ev) => ev.preventDefault());
   canvas.addEventListener("wheel", (ev) => {
     ev.preventDefault();
-    if (api.mode() === "bank") bankDistance = Math.min(14, Math.max(6.5, bankDistance + Math.sign(ev.deltaY) * 0.45));
+    if (api.room && api.room()) bankDistance = Math.min(14, Math.max(6.5, bankDistance + Math.sign(ev.deltaY) * 0.45));
     else townDistance = Math.min(42, Math.max(12, townDistance + Math.sign(ev.deltaY) * 0.8));
   }, { passive: false });
   function typing(ev) {
