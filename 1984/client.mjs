@@ -77,7 +77,7 @@ function say(text, bad) {
 function bases() {
   const list = [];
   if (location.origin && location.origin !== "null") list.push(location.origin);
-  if (window.KWORLD_API) list.push(window.KWORLD_API);
+  if (window.TOWN_API) list.push(window.TOWN_API);
   if (window.FAUCET_API) list.push(window.FAUCET_API);
   list.push(TUNNEL);
   list.push("http://127.0.0.1:4020");
@@ -163,7 +163,7 @@ async function refreshAccount() {
     paintChrome();
     return;
   }
-  const body = await api("/api/kworld/account?address=" + encodeURIComponent(state.id.address));
+  const body = await api("/api/1984/account?address=" + encodeURIComponent(state.id.address));
   if (!body.ok) {
     say(body.error || "Could not read the account.", true);
     paintChrome();
@@ -179,7 +179,7 @@ async function refreshAccount() {
 
 function forgetGuest(prev) {
   if (!prev || prev.kind !== "guest" || !prev.token) return;
-  api("/api/kworld/guest/close", {
+  api("/api/1984/guest/close", {
     method: "POST",
     body: JSON.stringify({ token: prev.token, address: prev.address, life: PAGE_LIFE }),
   });
@@ -284,7 +284,7 @@ async function startGuest() {
   guestBusy = true;
   try {
     say("Making a Testnet-10 address for this tab and putting tKAS on it. " + GUEST_DISCLAIMER);
-    const body = await api("/api/kworld/guest", {
+    const body = await api("/api/1984/guest", {
       method: "POST",
       body: JSON.stringify({ network: "testnet-10", life: PAGE_LIFE }),
     });
@@ -308,7 +308,7 @@ function gateStatus(text, bad) {
 
 async function keepGuest() {
   if (state.id.kind !== "guest" || !state.id.token) return;
-  const body = await api("/api/kworld/guest/keep", {
+  const body = await api("/api/1984/guest/keep", {
     method: "POST",
     body: JSON.stringify({ token: state.id.token, address: state.id.address, network: "testnet-10", life: PAGE_LIFE }),
   });
@@ -316,6 +316,7 @@ async function keepGuest() {
   const msg = String(body.error || "");
   if (!/dropped|closing|does not match/i.test(msg)) return;
   try {
+    sessionStorage.removeItem("1984-guest-v1");
     sessionStorage.removeItem("kworld-guest-v1");
   } catch (_) {}
   state.id = loadId();
@@ -335,7 +336,7 @@ async function useAddress() {
 
 async function useName() {
   const raw = document.getElementById("kasname").value;
-  const body = await api("/api/kworld/resolve?name=" + encodeURIComponent(raw));
+  const body = await api("/api/1984/resolve?name=" + encodeURIComponent(raw));
   if (!body.ok) {
     say(body.error || "KNS did not answer.", true);
     return;
@@ -615,18 +616,18 @@ async function spend(rail, shop, sku, confirmed) {
   if (!requireId()) return;
   let txid = "";
   if (rail === "kas") {
-    const quote = await api("/api/kworld/quote?shop=" + encodeURIComponent(shop) + "&sku=" + encodeURIComponent(sku));
+    const quote = await api("/api/1984/quote?shop=" + encodeURIComponent(shop) + "&sku=" + encodeURIComponent(sku));
     if (!quote.ok) {
       say(quote.error || "No quote.", true);
       return;
     }
     if (state.id.kind === "guest") {
       say("Paying from this tab's test address. Close the tab and it is gone.");
-      let body = await post("/api/kworld/guest/spend", { token: state.id.token, shop, sku, confirmed: !!confirmed });
+      let body = await post("/api/1984/guest/spend", { token: state.id.token, shop, sku, confirmed: !!confirmed });
       if (body.needsConfirm) {
         const yes = window.confirm("This is over your confirm line. Pay it?");
         if (!yes) return;
-        body = await post("/api/kworld/guest/spend", { token: state.id.token, shop, sku, confirmed: true });
+        body = await post("/api/1984/guest/spend", { token: state.id.token, shop, sku, confirmed: true });
       }
       if (!body.ok) {
         say(body.error || "The shop refused the payment.", true);
@@ -648,11 +649,11 @@ async function spend(rail, shop, sku, confirmed) {
       txid = await kit.sendKaspa(state.reserve, Number(quote.sompi), { priorityFee: 10000 });
     }
   }
-  let body = await post("/api/kworld/spend", { shop, sku, rail, txid, confirmed: !!confirmed });
+  let body = await post("/api/1984/spend", { shop, sku, rail, txid, confirmed: !!confirmed });
   if (body.needsConfirm) {
     const yes = window.confirm("This is over your confirm line. Pay it?");
     if (!yes) return;
-    body = await post("/api/kworld/spend", { shop, sku, rail, txid, confirmed: true });
+    body = await post("/api/1984/spend", { shop, sku, rail, txid, confirmed: true });
   }
   if (!body.ok) {
     say(body.error || "The shop refused the payment.", true);
@@ -673,7 +674,7 @@ async function lock(rail) {
   }
   if (state.id.kind === "guest") {
     say("Locking tKAS from this tab's test address. Close the tab and the address is gone.");
-    const body = await post("/api/kworld/guest/convert", {
+    const body = await post("/api/1984/guest/convert", {
       token: state.id.token,
       rail,
       amount: document.getElementById("lock-amt").value.trim(),
@@ -699,7 +700,7 @@ async function lock(rail) {
     say("Approve the lock of " + formatTkas(sompi) + " tKAS.");
     txid = await kit.sendKaspa(state.reserve, Number(sompi), { priorityFee: 10000 });
   }
-  const body = await post("/api/kworld/convert", { rail, txid });
+  const body = await post("/api/1984/convert", { rail, txid });
   if (!body.ok) {
     say(body.error || "The lock did not clear.", true);
     return;
@@ -715,7 +716,7 @@ async function redeem(rail) {
   if (!requireId()) return;
   const amount = document.getElementById("redeem-amt").value.trim();
   say("Redeeming " + amount + " toy dollars. Testnet-10 has to accept the send.");
-  const body = await post("/api/kworld/redeem", { rail, amount });
+  const body = await post("/api/1984/redeem", { rail, amount });
   if (!body.ok) {
     say(body.error || "Redeem failed. The toy balance should still be there.", true);
     await refreshAccount();
@@ -727,7 +728,7 @@ async function redeem(rail) {
 
 async function practice() {
   if (!requireId()) return;
-  const body = await post("/api/kworld/practice", {});
+  const body = await post("/api/1984/practice", {});
   if (!body.ok) {
     say(body.error || "No purse.", true);
     return;
@@ -739,7 +740,7 @@ async function practice() {
 async function freeze() {
   if (!requireId()) return;
   const next = !(state.account && state.account.kusdtFrozen);
-  const body = await post("/api/kworld/freeze", { frozen: next });
+  const body = await post("/api/1984/freeze", { frozen: next });
   if (!body.ok) {
     say(body.error || "Freeze failed.", true);
     return;
@@ -767,7 +768,7 @@ async function saveRules() {
     say(err.message, true);
     return;
   }
-  const body = await post("/api/kworld/rules", { rules });
+  const body = await post("/api/1984/rules", { rules });
   if (!body.ok) {
     say(body.error || "Rules were not saved.", true);
     return;
@@ -1019,7 +1020,7 @@ window.addEventListener("pagehide", () => {
   if (state.id.kind !== "guest" || !state.id.token) return;
   const payload = JSON.stringify({ token: state.id.token, address: state.id.address, life: PAGE_LIFE });
   for (const base of bases()) {
-    fetch(base + "/api/kworld/guest/close", {
+    fetch(base + "/api/1984/guest/close", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: payload,
@@ -1029,7 +1030,7 @@ window.addEventListener("pagehide", () => {
 });
 keepGuest();
 setInterval(keepGuest, 45_000);
-api("/api/kworld").then((body) => {
+api("/api/1984").then((body) => {
   if (!body.ok) {
     state.oracleError = body.error || "Ledger offline.";
     say(state.oracleError, true);

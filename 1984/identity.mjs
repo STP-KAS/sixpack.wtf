@@ -1,7 +1,21 @@
 /** Browser identity. A test tab never writes the saved wallet. */
 
-export const SAVED_KEY = "kworld-id-v1";
-export const GUEST_KEY = "kworld-guest-v1";
+export const SAVED_KEY = "1984-id-v1";
+export const GUEST_KEY = "1984-guest-v1";
+const OLD_SAVED_KEY = "kworld-id-v1";
+const OLD_GUEST_KEY = "kworld-guest-v1";
+
+function migrate(storage, box, key, oldKey) {
+  const previous = storage[box].getItem(oldKey);
+  if (!previous) return;
+  if (!storage[box].getItem(key)) storage[box].setItem(key, previous);
+  storage[box].removeItem(oldKey);
+}
+
+function migrateAll(storage) {
+  migrate(storage, "session", GUEST_KEY, OLD_GUEST_KEY);
+  migrate(storage, "local", SAVED_KEY, OLD_SAVED_KEY);
+}
 
 function parse(raw) {
   try {
@@ -12,6 +26,7 @@ function parse(raw) {
 }
 
 export function readIdentity(storage) {
+  migrateAll(storage);
   const guest = parse(storage.session.getItem(GUEST_KEY));
   if (guest && guest.address && guest.token && guest.kind !== "saved") {
     return { address: guest.address, label: "test tab", kind: "guest", token: guest.token };
@@ -25,6 +40,7 @@ export function readIdentity(storage) {
 
 /** Guest writes session only. A recurring wallet writes local and clears the test tab. */
 export function writeIdentity(storage, next) {
+  migrateAll(storage);
   if (!next || !next.address) throw new Error("Choose an address first.");
   if (next.kind === "guest") {
     if (!next.token) throw new Error("This test tab has no login.");

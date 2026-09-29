@@ -1,4 +1,4 @@
-/** Kworld HTTP. Testnet-10 only. Toy ledger on disk. tKAS reads and payouts go through the node. */
+/** 1984 HTTP. Testnet-10 only. Toy ledger on disk. tKAS reads and payouts go through the node. */
 
 import fs from "node:fs";
 import path from "node:path";
@@ -37,7 +37,7 @@ function clone(state) {
   return structuredClone(state);
 }
 
-export function createKworldService(deps) {
+export function create1984Service(deps) {
   let state = deps.load();
   let lock = Promise.resolve();
   let oracle = { price: 0, at: 0 };
@@ -108,19 +108,19 @@ export function createKworldService(deps) {
   async function guestCall(pathname, body, ip) {
     assertNotMainnetNetwork(body && body.network);
     const guests = guestApi();
-    if (pathname === "/api/kworld/guest") {
+    if (pathname === "/api/1984/guest") {
       const opened = await guests.open({ ip, life: body.life });
       if (!opened || opened.key || opened.privateKey) throw new Error("Test login refused to start.");
       return { status: 200, body: opened };
     }
     const address = assertTestnet(body && body.address);
-    if (pathname === "/api/kworld/guest/keep") {
+    if (pathname === "/api/1984/guest/keep") {
       return { status: 200, body: await guests.keep({ token: body.token, address, life: body.life }) };
     }
-    if (pathname === "/api/kworld/guest/close") {
+    if (pathname === "/api/1984/guest/close") {
       return { status: 200, body: await guests.close({ token: body.token, address, life: body.life }) };
     }
-    if (pathname === "/api/kworld/guest/spend") {
+    if (pathname === "/api/1984/guest/spend") {
       const usd = await price();
       const shop = shopById(body.shop);
       const item = shop && itemBySku(shop.id, body.sku);
@@ -164,7 +164,7 @@ export function createKworldService(deps) {
         return { status: 200, body: out.result };
       });
     }
-    if (pathname === "/api/kworld/guest/convert") {
+    if (pathname === "/api/1984/guest/convert") {
       const usd = await price();
       const sompi = parseTkas(body.amount);
       const paid = await guests.pay({ token: body.token, address, sompi });
@@ -249,13 +249,16 @@ export function createKworldService(deps) {
     },
     async handle({ method, pathname, query, body, ip }) {
       try {
-        if (method === "GET" && pathname === "/api/kworld") return await home();
-        if (method === "GET" && pathname === "/api/kworld/account") return await accountOf(query.get("address"));
-        if (method === "GET" && pathname === "/api/kworld/resolve") {
+        if (pathname === "/api/kworld" || (typeof pathname === "string" && pathname.startsWith("/api/kworld/"))) {
+          pathname = "/api/1984" + pathname.slice("/api/kworld".length);
+        }
+        if (method === "GET" && pathname === "/api/1984") return await home();
+        if (method === "GET" && pathname === "/api/1984/account") return await accountOf(query.get("address"));
+        if (method === "GET" && pathname === "/api/1984/resolve") {
           const found = await resolveName(query.get("name") || "", deps.fetch);
           return { status: 200, body: { ok: true, found } };
         }
-        if (method === "GET" && pathname === "/api/kworld/quote") {
+        if (method === "GET" && pathname === "/api/1984/quote") {
           const shop = shopById(query.get("shop"));
           const item = shop && itemBySku(shop.id, query.get("sku"));
           if (!item) throw new Error("That item is not on this counter.");
@@ -268,13 +271,13 @@ export function createKworldService(deps) {
         }
         if (method !== "POST") return { status: 404, body: { ok: false, error: "Not found." } };
         limit(ip || "unknown");
-        if (pathname === "/api/kworld/guest" || pathname.startsWith("/api/kworld/guest/")) {
+        if (pathname === "/api/1984/guest" || pathname.startsWith("/api/1984/guest/")) {
           return await guestCall(pathname, body || {}, ip || "unknown");
         }
         const address = guard(body || {});
         const now = deps.now();
 
-        if (pathname === "/api/kworld/practice") {
+        if (pathname === "/api/1984/practice") {
           return await queue(async () => {
             const out = applyPractice(state, { address }, now);
             state = out.state;
@@ -282,7 +285,7 @@ export function createKworldService(deps) {
             return { status: 200, body: out.result };
           });
         }
-        if (pathname === "/api/kworld/rules") {
+        if (pathname === "/api/1984/rules") {
           return await queue(async () => {
             const out = applyRules(state, { address, rules: body.rules }, now);
             state = out.state;
@@ -290,7 +293,7 @@ export function createKworldService(deps) {
             return { status: 200, body: out.result };
           });
         }
-        if (pathname === "/api/kworld/freeze") {
+        if (pathname === "/api/1984/freeze") {
           return await queue(async () => {
             const out = applyFreeze(state, { address, frozen: body.frozen }, now);
             state = out.state;
@@ -298,7 +301,7 @@ export function createKworldService(deps) {
             return { status: 200, body: out.result };
           });
         }
-        if (pathname === "/api/kworld/spend") {
+        if (pathname === "/api/1984/spend") {
           const usd = body.rail === "kas" ? await price() : 0;
           let pay = null;
           if (body.rail === "kas") {
@@ -326,7 +329,7 @@ export function createKworldService(deps) {
             return { status: 200, body: out.result };
           });
         }
-        if (pathname === "/api/kworld/convert") {
+        if (pathname === "/api/1984/convert") {
           const usd = await price();
           const tx = await fetchTx(body.txid, deps.fetch);
           const pay = paymentFromTx(tx, address, 1n);
@@ -337,7 +340,7 @@ export function createKworldService(deps) {
             return { status: 200, body: out.result };
           });
         }
-        if (pathname === "/api/kworld/redeem") {
+        if (pathname === "/api/1984/redeem") {
           const usd = await price();
           const cents = parseDollars(body.amount);
           return await queue(async () => {
@@ -386,10 +389,10 @@ function saveFile(state) {
 
 let singleton;
 
-export function kworldService() {
+export function service1984() {
   if (!singleton) {
     const guests = guestDesk();
-    singleton = createKworldService({
+    singleton = create1984Service({
       load: loadFile,
       save: saveFile,
       fetch: globalThis.fetch,
@@ -405,7 +408,7 @@ export function kworldService() {
   return singleton;
 }
 
-export async function handleKworldRequest(req, res, url, tools) {
+export async function handle1984Request(req, res, url, tools) {
   if (req.method === "OPTIONS") {
     tools.sendJson(res, 204, {}, req);
     return;
@@ -424,7 +427,7 @@ export async function handleKworldRequest(req, res, url, tools) {
       return;
     }
   }
-  const result = await kworldService().handle({
+  const result = await service1984().handle({
     method: req.method,
     pathname: url.pathname,
     query: url.searchParams,

@@ -1,4 +1,4 @@
-body.kworld-page {
+body.page-1984 {
   height: 100dvh;
   overflow: hidden;
   display: flex;
@@ -7,24 +7,24 @@ body.kworld-page {
   color: #f3e6c8;
   color-scheme: dark;
 }
-body.kworld-page .top {
+body.page-1984 .top {
   background: #241e18;
   color: #f3e6c8;
   border-bottom: 1px solid #8a7040;
   padding: 0.28rem 0.5rem;
   gap: 0.4rem;
 }
-body.kworld-page .wordmark { color: #f3e6c8; }
-body.kworld-page .tabs a,
-body.kworld-page .tabs button {
+body.page-1984 .wordmark { color: #f3e6c8; }
+body.page-1984 .tabs a,
+body.page-1984 .tabs button {
   background: #2c261f;
   color: #f3e6c8;
   border-color: #8a7040;
   font-size: 0.78rem;
   padding: 0.08rem 0.42rem;
 }
-body.kworld-page .tabs a.on,
-body.kworld-page .tabs button.on { background: #8a7040; color: #1a1612; }
+body.page-1984 .tabs a.on,
+body.page-1984 .tabs button.on { background: #8a7040; color: #1a1612; }
 
 .kw {
   position: relative;
@@ -82,7 +82,7 @@ body.kworld-page .tabs button.on { background: #8a7040; color: #1a1612; }
 }
 .kw-bar strong { color: #f2d48a; }
 .kw-bar .fine, .fine { color: #b7a88a; font-size: 0.75rem; margin: 0.1rem 0 0; }
-body.kworld-page main.kw-stage {
+body.page-1984 main.kw-stage {
   max-width: none;
   width: auto;
   margin: 0;
@@ -347,7 +347,7 @@ a { color: #f2d48a; }
 .kw-gate-row button { flex: 1; text-align: center; font-weight: 700; padding: 0.55rem 0.4rem; }
 
 @media (max-width: 980px) {
-  body.kworld-page { height: auto; overflow: auto; }
+  body.page-1984 { height: auto; overflow: auto; }
   .kw {
     display: flex;
     flex-direction: column;

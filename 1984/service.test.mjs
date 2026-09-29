@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createKworldService } from "./service.mjs";
+import { create1984Service } from "./service.mjs";
 import { RESERVE } from "./money.mjs";
 
 const USER = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
@@ -18,7 +18,7 @@ function txOf(id, sompi) {
 function harness(pay, extra = {}) {
   let state = null;
   const saved = [];
-  const svc = createKworldService({
+  const svc = create1984Service({
     load: () =>
       state || {
         accounts: {},
@@ -54,7 +54,7 @@ test("a failed redeem puts the toy balance back", async () => {
   const id = "c".repeat(64);
   const minted = await svc.handle({
     method: "POST",
-    pathname: "/api/kworld/convert",
+    pathname: "/api/1984/convert",
     query: new URLSearchParams(),
     body: { address: USER, rail: "poc", txid: id },
     ip: "127.0.0.1",
@@ -63,7 +63,7 @@ test("a failed redeem puts the toy balance back", async () => {
   assert.equal(read().accounts[USER].pocBacked, "100");
   const redeemed = await svc.handle({
     method: "POST",
-    pathname: "/api/kworld/redeem",
+    pathname: "/api/1984/redeem",
     query: new URLSearchParams(),
     body: { address: USER, rail: "poc", amount: "1.00" },
     ip: "127.0.0.1",
@@ -78,7 +78,7 @@ test("mainnet is refused before a purse is given", async () => {
   const { svc } = harness(async () => ({ txids: ["ab"] }));
   const out = await svc.handle({
     method: "POST",
-    pathname: "/api/kworld/practice",
+    pathname: "/api/1984/practice",
     query: new URLSearchParams(),
     body: { address: "kaspa:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq", network: "mainnet" },
     ip: "127.0.0.1",
@@ -103,7 +103,7 @@ test("a test login answer has no key", async () => {
   });
   const out = await svc.handle({
     method: "POST",
-    pathname: "/api/kworld/guest",
+    pathname: "/api/1984/guest",
     query: new URLSearchParams(),
     body: { network: "testnet-10", life: "page-a" },
     ip: "203.0.113.8",
@@ -124,7 +124,7 @@ test("a test login that returns a key is refused", async () => {
   });
   const out = await svc.handle({
     method: "POST",
-    pathname: "/api/kworld/guest",
+    pathname: "/api/1984/guest",
     query: new URLSearchParams(),
     body: {},
     ip: "203.0.113.8",
@@ -147,7 +147,7 @@ test("a test spend asks before it pays, then pays once", async () => {
   });
   const rules = await svc.handle({
     method: "POST",
-    pathname: "/api/kworld/rules",
+    pathname: "/api/1984/rules",
     query: new URLSearchParams(),
     body: { address: USER, rules: { confirmOverCents: 5 } },
     ip: "203.0.113.9",
@@ -155,7 +155,7 @@ test("a test spend asks before it pays, then pays once", async () => {
   assert.equal(rules.body.ok, true);
   const held = await svc.handle({
     method: "POST",
-    pathname: "/api/kworld/guest/spend",
+    pathname: "/api/1984/guest/spend",
     query: new URLSearchParams(),
     body: { address: USER, token: "abc", shop: "cafe", sku: "water" },
     ip: "203.0.113.9",
@@ -165,7 +165,7 @@ test("a test spend asks before it pays, then pays once", async () => {
   assert.equal(calls.length, 0);
   const paid = await svc.handle({
     method: "POST",
-    pathname: "/api/kworld/guest/spend",
+    pathname: "/api/1984/guest/spend",
     query: new URLSearchParams(),
     body: { address: USER, token: "abc", shop: "cafe", sku: "water", confirmed: true },
     ip: "203.0.113.9",
@@ -173,4 +173,20 @@ test("a test spend asks before it pays, then pays once", async () => {
   assert.equal(paid.body.ok, true);
   assert.equal(calls.length, 1);
   assert.equal(read().txids["ab".repeat(32)].kind, "spend");
+});
+
+test("the old payment path still answers", async () => {
+  const { svc } = harness(async () => ({ txid: "aa" }));
+  const result = await svc.handle({
+    method: "GET",
+    pathname: "/api/kworld",
+    query: new URLSearchParams(),
+    body: {},
+    ip: "127.0.0.1",
+  });
+  assert.equal(result.status, 200);
+  assert.equal(result.body.ok, true);
+  assert.equal(result.body.network, "testnet-10");
+  assert.equal(result.body.repos.includes("1984"), true);
+  assert.equal(result.body.repos.includes("kworld"), false);
 });

@@ -8,7 +8,7 @@
     { href: "random.html", files: ["random.html"], label: "Random" },
     { href: "aigen.html", files: ["aigen.html"], label: "ai gen" },
     { href: "faucet.html", files: ["faucet.html"], label: "Faucet" },
-    { href: "kworld.html", files: ["kworld.html"], label: "1984" },
+    { href: "1984.html", files: ["1984.html", "kworld.html"], label: "1984" },
     { href: "grok.html", files: ["grok.html"], label: "Grok.SPCXAI.KAS" },
     { href: "help.html", files: ["help.html"], label: "Help" },
   ];
@@ -36,6 +36,6 @@
   }
   if (root) {
     if (file === "help.html") load(root + "sources.js?v=36");
-    if (file !== "faucet.html" && file !== "random.html" && file !== "grok.html" && file !== "aigen.html" && file !== "kworld.html") load(root + "intro.js?v=10");
+    if (file !== "faucet.html" && file !== "random.html" && file !== "grok.html" && file !== "aigen.html" && file !== "1984.html" && file !== "kworld.html") load(root + "intro.js?v=10");
   }
 })();

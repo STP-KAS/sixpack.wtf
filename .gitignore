@@ -4,10 +4,10 @@ Thumbs.db
 node_modules/
 convo.html
 faucet/ledger.json
-kworld/ledger.json
-kworld/ledger.json.tmp
-kworld/guests.json
-kworld/guests.json.tmp
+1984/ledger.json
+1984/ledger.json.tmp
+1984/guests.json
+1984/guests.json.tmp
 faucet/.local/
 .env
 grok/logs/

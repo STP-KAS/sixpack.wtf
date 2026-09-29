@@ -36,6 +36,22 @@ test("a test tab does not replace the saved Testnet wallet", () => {
   assert.equal(after.token, undefined);
 });
 
+test("an older saved wallet and test tab are read once under the new keys", () => {
+  const storage = mem();
+  storage.raw.local.set("kworld-id-v1", JSON.stringify({ address: WALLET, label: "kasware", kind: "kasware" }));
+  storage.raw.session.set("kworld-guest-v1", JSON.stringify({ address: GUEST, token: "tab-token" }));
+  const during = readIdentity(storage);
+  assert.equal(during.kind, "guest");
+  assert.equal(during.address, GUEST);
+  assert.equal(storage.raw.session.has("kworld-guest-v1"), false);
+  assert.equal(storage.raw.local.has("kworld-id-v1"), false);
+  assert.equal(JSON.parse(storage.raw.local.get(SAVED_KEY)).address, WALLET);
+  storage.session.removeItem(GUEST_KEY);
+  const after = readIdentity(storage);
+  assert.equal(after.kind, "kasware");
+  assert.equal(after.address, WALLET);
+});
+
 test("choosing a wallet again clears the test tab and keeps the new history", () => {
   const storage = mem();
   writeIdentity(storage, { address: WALLET, label: WALLET, kind: "address" });

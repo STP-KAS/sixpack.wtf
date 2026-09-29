@@ -65,9 +65,9 @@ export const BENCH = [
       ["poc-revisited", "https://github.com/STP-KAS/poc-revisited"],
       ["kcc-importance", "https://github.com/STP-KAS/kcc-importance"],
       ["kaspa-till", "https://github.com/STP-KAS/kaspa-till"],
-      ["kworld", "https://github.com/STP-KAS/kworld"],
-      ["kworld-rails", "https://github.com/STP-KAS/kworld-rails"],
-      ["kworld-prompts", "https://github.com/STP-KAS/kworld-prompts"],
+      ["1984", "https://github.com/STP-KAS/1984"],
+      ["1984-rails", "https://github.com/STP-KAS/1984-rails"],
+      ["1984-prompts", "https://github.com/STP-KAS/1984-prompts"],
       ["rails on this site", "https://sixpack.wtf/rails.html"],
     ],
   },
@@ -109,9 +109,9 @@ export const REPOS = [
   "kaspa-llm-forum",
   "kaspa-master-file",
   "kaspa-till",
-  "kworld",
-  "kworld-prompts",
-  "kworld-rails",
+  "1984",
+  "1984-prompts",
+  "1984-rails",
   "kaspa-x402",
   "kaspa.org-kaspaexplained",
   "kaspaexplained-delusional-stp",
@@ -164,7 +164,7 @@ Not dollars. Not Tether. Not mainnet. Not a SEPA rail.
 
 Kasware or Kastle on Testnet 10 only. A plain kaspatest address, or a .kas name that is not your real name. A name that points at you publishes the payment next to you.
 
-https://sixpack.wtf/kworld.html
+https://sixpack.wtf/1984.html
 
 Faucet, if you need toy coins: https://sixpack.wtf/faucet.html
 `;

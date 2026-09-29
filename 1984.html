@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sixpack.wtf — 1984</title>
+  <meta name="description" content="1984 is a Testnet-10 village. Pay a shop with tKAS, POCencept, or the KUSDT toy. Test without a wallet in this tab, or keep a Testnet wallet. Mainnet wallets are refused.">
+  <link rel="canonical" href="https://sixpack.wtf/1984.html">
+  <link rel="stylesheet" href="site.css?v=27">
+  <link rel="stylesheet" href="1984.css?v=9">
+</head>
+<body class="page-1984">
+<header class="top">
+  <a class="wordmark" href="./">sixpack.wtf</a>
+  <nav data-site-nav></nav>
+</header>
+<div class="kw">
+  <aside class="kw-side" id="side"></aside>
+  <header class="kw-bar" id="bar"></header>
+  <main class="kw-stage">
+    <canvas id="view"></canvas>
+    <canvas id="mini" class="kw-mini" width="116" height="88"></canvas>
+    <p class="kw-hint">Click the ground to walk. Left and right turn around you. W A S D walk the way you look. Drag looks. E talks. Esc closes.</p>
+    <button type="button" id="pay-toggle" class="kw-pay-toggle" aria-controls="you" aria-expanded="false">Who pays</button>
+    <div class="kw-turns">
+      <button type="button" class="kw-turn" data-turn="left">Left</button>
+      <button type="button" class="kw-turn" data-turn="right">Right</button>
+    </div>
+    <div id="panel" class="kw-panel" hidden></div>
+  </main>
+  <aside class="kw-you" id="you" hidden></aside>
+  <footer class="kw-chat" id="chat" aria-live="polite"></footer>
+  <div id="gate" class="kw-gate">
+    <div class="kw-gate-card">
+      <p class="kw-world">Testnet 10 · Ashfields</p>
+      <h1>Welcome</h1>
+      <p>This is a village square on proof of work. Choose who pays. The square is behind this gate.</p>
+      <div class="kw-gate-row">
+        <button type="button" id="gate-new">New arrival</button>
+        <button type="button" id="gate-back" onclick="var g=document.getElementById('gate');if(g)g.hidden=true">Returning</button>
+      </div>
+      <p id="gate-status" class="gate-status" role="status"></p>
+      <p class="fine">New arrival opens a funded test address that exists only in this tab. Close the tab and it is gone. Returning uses Kasware, Kastle, a kaspatest address, or a .kas name, and that choice stays on this browser. Never a seed. A mainnet wallet is refused.</p>
+    </div>
+  </div>
+</div>
+<script src="nav.js?v=49"></script>
+<script src="wallets/kaspa-wallets.js?v=4"></script>
+<script type="module" src="1984/client.mjs?v=12"></script>
+</body>
+</html>

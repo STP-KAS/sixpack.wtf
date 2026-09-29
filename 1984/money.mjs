@@ -1,4 +1,4 @@
-/** Toy-dollar math for the Kworld square. No keys. No mainnet. */
+/** Toy-dollar math for the 1984 square. No keys. No mainnet. */
 
 export const RESERVE =
   "kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx";

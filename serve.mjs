@@ -8,7 +8,7 @@ import { planClaim, sompiToTkas, FROM, remainingInWindow, requireTestnetAddress,
 import { listClaims, recordClaim } from "./faucet/ledger.mjs";
 import { payTn10 } from "./faucet/pay.mjs";
 import { handleGrokRequest } from "./grok/http.mjs";
-import { handleKworldRequest } from "./kworld/service.mjs";
+import { handle1984Request } from "./1984/service.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 4020);
@@ -255,7 +255,10 @@ http
       return;
     }
     if (url.pathname === "/api/kworld" || url.pathname.startsWith("/api/kworld/")) {
-      handleKworldRequest(req, res, url, { readBody, sendJson, clientIp });
+      url.pathname = "/api/1984" + url.pathname.slice("/api/kworld".length);
+    }
+    if (url.pathname === "/api/1984" || url.pathname.startsWith("/api/1984/")) {
+      handle1984Request(req, res, url, { readBody, sendJson, clientIp });
       return;
     }
     if (url.pathname === "/api/grok" || url.pathname.startsWith("/api/grok/")) {
@@ -304,5 +307,5 @@ http
     console.log(`http://${HOST}:${PORT}/till.html`);
     console.log(`http://${HOST}:${PORT}/x402.html`);
     console.log(`http://${HOST}:${PORT}/grok.html`);
-    console.log(`http://${HOST}:${PORT}/kworld.html`);
+    console.log(`http://${HOST}:${PORT}/1984.html`);
   });
