@@ -5,8 +5,10 @@ import {
   RESERVE,
   assertNotMainnetNetwork,
   assertTestnet,
+  centsForSompi,
   formatCents,
   formatTkas,
+  parseDollars,
   parseTkas,
   sompiForCents,
 } from "./money.mjs";
@@ -498,12 +500,58 @@ function paintShop(shopId) {
     "<p class=\"fine\">One rail for the whole menu. POCencept and KUSDT are toys. tKAS asks the wallet, and the miner fee is extra.</p>";
 }
 
-function swapAmount() {
-  const el = document.getElementById("swap-amt");
+let lockDraft = "1";
+let redeemDraft = "";
+let swapNoteText = "Nothing moved yet. The top box locks tKAS. The lower box redeems toy dollars.";
+let swapNoteKind = "";
+let swapBusy = false;
+
+function fieldValue(id) {
+  const el = document.getElementById(id);
   return el ? el.value : "";
 }
 
+function rememberSwapFields() {
+  const lockEl = document.getElementById("lock-amt");
+  const redeemEl = document.getElementById("redeem-amt");
+  if (lockEl) lockDraft = lockEl.value;
+  if (redeemEl) redeemDraft = redeemEl.value;
+}
+
+function swapNote(text, kind) {
+  swapNoteText = text;
+  swapNoteKind = kind || "";
+  const el = document.getElementById("swap-status");
+  if (el) {
+    el.textContent = text;
+    el.className = "swap-status" + (swapNoteKind ? " " + swapNoteKind : "");
+  }
+  say(text, kind === "bad");
+}
+
+function paintLockPreview() {
+  const el = document.getElementById("lock-preview");
+  if (!el) return;
+  let sompi;
+  try {
+    sompi = parseTkas(fieldValue("lock-amt"));
+  } catch (err) {
+    el.textContent = err.message;
+    return;
+  }
+  if (!state.oracle) {
+    el.textContent = formatTkas(sompi) + " tKAS. The live price is not in yet, so the tag amount is not known.";
+    return;
+  }
+  const cents = centsForSompi(sompi, state.oracle);
+  const tag = formatCents(cents);
+  el.textContent = cents > 0n
+    ? formatTkas(sompi) + " tKAS becomes about " + tag + " POCencept or KUSDT at $" + Number(state.oracle).toFixed(4) + ". Redeem " + tag + " in the toy-dollar box."
+    : formatTkas(sompi) + " tKAS is below 0.01 at this price. Lock more tKAS.";
+}
+
 function paintBank() {
+  rememberSwapFields();
   const rail = state.bankRail || "kas";
   const quote = state.oracle ? "Live KAS $" + Number(state.oracle).toFixed(4) + "." : "Live quote unavailable.";
   const kas = !state.id.address ? "—" : state.kasSompi == null ? "…" : formatTkas(state.kasSompi);
@@ -516,26 +564,52 @@ function paintBank() {
   panel.innerHTML =
     '<div class="swap">' +
     '<div class="swap-head"><h2>Venn\'s bank</h2><button type="button" id="bank-close">Close</button></div>' +
-    '<p class="fine">Swap. tKAS moves. POCencept and KUSDT are tags.</p>' +
+    '<p class="fine">Lock spends tKAS and adds a tag. Redeem pays tKAS back for the locked tag only. The purse does not redeem.</p>' +
     '<div class="swap-bals">' +
     card("kas", "tKAS", kas, "spendable") +
     card("poc", "POCencept", formatCents(poc.have), "locked " + formatCents(poc.lock) + " · purse " + formatCents(poc.purse)) +
     card("kusdt", "KUSDT", formatCents(kusdt.have), "locked " + formatCents(kusdt.lock) + " · purse " + formatCents(kusdt.purse) + (frozen ? " · frozen" : ""), frozen ? "frozen" : "") +
     "</div>" +
-    '<label class="amt">Amount<input id="swap-amt" value="1" inputmode="decimal"></label>' +
-    '<div class="kw-row"><button type="button" id="lock-poc">tKAS → POCencept</button><button type="button" id="lock-kusdt">tKAS → KUSDT</button></div>' +
+    '<p id="swap-status" class="swap-status' + (swapNoteKind ? " " + swapNoteKind : "") + '" role="status">' + esc(swapNoteText) + "</p>" +
+    '<p class="swap-step">1. Lock tKAS</p>' +
+    '<label class="amt">tKAS to lock<input id="lock-amt" value="' + esc(lockDraft) + '" inputmode="decimal" autocomplete="off"></label>' +
+    '<p class="swap-preview" id="lock-preview"></p>' +
+    '<div class="kw-row"><button type="button" id="lock-poc">Lock into POCencept</button><button type="button" id="lock-kusdt">Lock into KUSDT</button></div>' +
+    '<p class="swap-step">2. Redeem toy dollars</p>' +
+    '<label class="amt">Toy dollars to redeem<input id="redeem-amt" value="' + esc(redeemDraft) + '" placeholder="type 0.05" inputmode="decimal" autocomplete="off"></label>' +
+    '<p class="fine">This box is toy dollars, like 0.05. It is not tKAS. Only the locked part comes back.</p>' +
+    '<div class="kw-row"><button type="button" id="fill-poc">Use locked POCencept</button><button type="button" id="fill-kusdt">Use locked KUSDT</button></div>' +
     '<div class="kw-row"><button type="button" id="redeem-poc">Redeem POCencept</button><button type="button" id="redeem-kusdt">Redeem KUSDT</button></div>' +
     '<div class="kw-row"><button type="button" id="purse">Practice purse</button><button type="button" id="freeze">' + (frozen ? "Thaw KUSDT" : "Freeze KUSDT") + "</button></div>" +
     '<details class="paid-already"><summary>Already sent tKAS? Paste the txid</summary><textarea id="lock-txid" rows="2"></textarea></details>' +
-    '<p class="fine">' + esc(quote) + " Reserve " + esc(state.reserve) + ". Miner fee is extra tKAS. Redeem returns only the locked part.</p>" +
+    '<p class="fine">' + esc(quote) + " Reserve " + esc(state.reserve) + ". Miner fee is extra tKAS.</p>" +
     "</div>";
+  paintLockPreview();
+  document.getElementById("lock-amt").addEventListener("input", () => {
+    lockDraft = fieldValue("lock-amt");
+    paintLockPreview();
+  });
+  document.getElementById("redeem-amt").addEventListener("input", () => {
+    redeemDraft = fieldValue("redeem-amt");
+  });
   document.getElementById("bank-close").onclick = () => openMode("world");
   document.getElementById("lock-poc").onclick = () => lock("poc");
   document.getElementById("lock-kusdt").onclick = () => lock("kusdt");
+  document.getElementById("fill-poc").onclick = () => fillRedeem("poc");
+  document.getElementById("fill-kusdt").onclick = () => fillRedeem("kusdt");
   document.getElementById("redeem-poc").onclick = () => redeem("poc");
   document.getElementById("redeem-kusdt").onclick = () => redeem("kusdt");
   document.getElementById("purse").onclick = practice;
   document.getElementById("freeze").onclick = freeze;
+  if (swapBusy) setSwapBusy(true);
+}
+
+function setSwapBusy(on) {
+  swapBusy = on;
+  for (const id of ["lock-poc", "lock-kusdt", "fill-poc", "fill-kusdt", "redeem-poc", "redeem-kusdt", "purse", "freeze"]) {
+    const button = document.getElementById(id);
+    if (button) button.disabled = on;
+  }
 }
 
 function paintRules() {
@@ -578,7 +652,7 @@ function paintGuide() {
     "<li>Need coins: the faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. Take the practice purse in the bank. That purse is play money.</li>" +
     "<li>Hold the left mouse button and move to look all the way around. Click the ground to walk, or use the left tabs. Pick one rail, then Buy.</li>" +
     "<li>tKAS asks the wallet to sign a real Testnet-10 transaction. The miner fee is extra tKAS.</li>" +
-    "<li>Venn's bank opens as a swap. The three balances sit at the top. tKAS locks into a tag. Redeem returns only the locked part. KUSDT is the only freeze.</li>" +
+    "<li>Venn's bank opens as a swap. Step 1 locks tKAS. Step 2 redeems toy dollars. Use locked POCencept puts the locked amount in the toy-dollar box. The Result line says whether it landed. KUSDT is the only freeze.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +
@@ -656,86 +730,158 @@ async function spend(rail, shop, sku, confirmed) {
   await refreshAccount();
 }
 
-async function lock(rail) {
-  if (!requireId()) return;
-  let sompi;
-  try {
-    sompi = parseTkas(swapAmount());
-  } catch (err) {
-    say(err.message, true);
+function tagName(rail) {
+  return rail === "poc" ? "POCencept" : "KUSDT";
+}
+
+function lockedDollars(rail) {
+  if (!state.account) return "";
+  const field = rail === "poc" ? "pocBacked" : "kusdtBacked";
+  const cents = BigInt(state.account[field] || 0);
+  if (cents <= 0n) return "";
+  return formatCents(cents);
+}
+
+function putRedeemAmount(amount) {
+  redeemDraft = amount;
+  const el = document.getElementById("redeem-amt");
+  if (el) el.value = amount;
+}
+
+function fillRedeem(rail) {
+  if (swapBusy) return;
+  const name = tagName(rail);
+  const amount = lockedDollars(rail);
+  if (!amount) {
+    punch("shake");
+    swapNote("Nothing locked in " + name + ". Lock tKAS first. The purse does not redeem.", "bad");
     return;
   }
-  if (state.id.kind === "guest") {
-    say("Locking tKAS from this tab's test address. Close the tab and the address is gone.");
-    const body = await post("/api/1984/guest/convert", {
-      token: state.id.token,
-      rail,
-      amount: swapAmount().trim(),
-    });
+  putRedeemAmount(amount);
+  swapNote(amount + " locked " + name + " is in the toy-dollar box. Press Redeem " + name + ".", "wait");
+}
+
+async function lock(rail) {
+  if (swapBusy) return;
+  const name = tagName(rail);
+  if (!requireId()) {
+    punch("shake");
+    swapNote("Not swapped. Choose Kasware, Kastle, a test tab, or a kaspatest address first. Nothing moved.", "bad");
+    return;
+  }
+  let sompi;
+  try {
+    sompi = parseTkas(fieldValue("lock-amt"));
+  } catch (err) {
+    punch("shake");
+    swapNote("Not swapped. " + err.message, "bad");
+    return;
+  }
+  const shown = formatTkas(sompi) + " tKAS";
+  setSwapBusy(true);
+  swapNote("Locking " + shown + " into " + name + "…", "wait");
+  try {
+    let body;
+    if (state.id.kind === "guest") {
+      body = await post("/api/1984/guest/convert", {
+        token: state.id.token,
+        rail,
+        amount: fieldValue("lock-amt").trim(),
+      });
+    } else {
+      const txField = document.getElementById("lock-txid");
+      let txid = txField ? txField.value.trim() : "";
+      if (!txid) {
+        const kit = window.KaspaWallets;
+        if (!kit || !kit.sendKaspa || (state.id.kind !== "kasware" && state.id.kind !== "kastle")) {
+          punch("shake");
+          swapNote("Not swapped. Log in with Kasware or Kastle, or paste the txid of tKAS already sent to the reserve. Nothing moved.", "bad");
+          return;
+        }
+        swapNote("Approve " + shown + " in the wallet. The miner fee is extra.", "wait");
+        txid = await kit.sendKaspa(state.reserve, Number(sompi), { priorityFee: 10000 });
+      }
+      body = await post("/api/1984/convert", { rail, txid });
+    }
     if (!body.ok) {
       punch("shake");
-      say(body.error || "The lock did not clear.", true);
+      swapNote("Not swapped. " + (body.error || "The lock did not clear.") + " Nothing moved.", "bad");
       return;
     }
     punch("nod");
-    say("Locked. You received " + formatCents(body.cents) + " " + (rail === "poc" ? "POCencept" : "KUSDT") + ".");
+    const got = body.cents == null || body.cents === "" ? "" : formatCents(body.cents);
+    if (got) putRedeemAmount(got);
+    swapNote(
+      got
+        ? "Swapped. " + shown + " became " + got + " " + name + ". That amount is in the toy-dollar box."
+        : "Swapped. " + shown + " locked into " + name + ". The locked line on the card has the amount.",
+      "ok"
+    );
     await refreshAccount();
     state.bankRail = "kas";
     state.bankFlight = { rail, until: performance.now() + 600 };
     if (state.mode === "bank") paintBank();
-    return;
-  }
-  const txField = document.getElementById("lock-txid");
-  let txid = txField ? txField.value.trim() : "";
-  if (!txid) {
-    const kit = window.KaspaWallets;
-    if (!kit || (state.id.kind !== "kasware" && state.id.kind !== "kastle")) {
-      say("Connect a Testnet-10 wallet, or paste the txid of a payment to the reserve.", true);
-      return;
-    }
-    say("Approve the lock of " + formatTkas(sompi) + " tKAS.");
-    txid = await kit.sendKaspa(state.reserve, Number(sompi), { priorityFee: 10000 });
-  }
-  const body = await post("/api/1984/convert", { rail, txid });
-  if (!body.ok) {
+  } catch (err) {
     punch("shake");
-    say(body.error || "The lock did not clear.", true);
-    return;
+    swapNote("Not swapped. " + (err && err.message ? err.message : "The lock did not clear.") + " Nothing moved.", "bad");
+  } finally {
+    setSwapBusy(false);
   }
-  punch("nod");
-  say("Locked. You received " + formatCents(body.cents) + " " + (rail === "poc" ? "POCencept" : "KUSDT") + ".");
-  await refreshAccount();
-  state.bankRail = "kas";
-  state.bankFlight = { rail, until: performance.now() + 600 };
-  if (state.mode === "bank") paintBank();
 }
 
 async function redeem(rail) {
-  if (!requireId()) return;
-  const amount = swapAmount().trim();
-  say("Redeeming " + amount + " toy dollars. Testnet-10 has to accept the send.");
-  const body = await post("/api/1984/redeem", { rail, amount });
-  if (!body.ok) {
+  if (swapBusy) return;
+  const name = tagName(rail);
+  if (!requireId()) {
     punch("shake");
-    say(body.error || "Redeem failed. The toy balance should still be there.", true);
-    await refreshAccount();
+    swapNote("Not redeemed. Choose who pays first. Nothing moved.", "bad");
     return;
   }
-  punch("nod");
-  say("Redeem broadcast " + ((body.txids && body.txids[0]) || "a transaction") + ".");
-  await refreshAccount();
+  const amount = fieldValue("redeem-amt").trim();
+  if (!amount) {
+    punch("shake");
+    swapNote("Not redeemed. The toy-dollar box is empty. Press Use locked " + name + ", or type an amount like 0.05.", "bad");
+    return;
+  }
+  try {
+    parseDollars(amount);
+  } catch (err) {
+    punch("shake");
+    swapNote("Not redeemed. " + err.message + " Use the toy-dollar box, not the tKAS box.", "bad");
+    return;
+  }
+  setSwapBusy(true);
+  swapNote("Redeeming " + amount + " " + name + "…", "wait");
+  try {
+    const body = await post("/api/1984/redeem", { rail, amount });
+    if (!body.ok) {
+      punch("shake");
+      swapNote("Not redeemed. " + (body.error || "The redeem did not clear.") + " The tag was put back.", "bad");
+      await refreshAccount();
+      return;
+    }
+    punch("nod");
+    const tx = body.txids && body.txids[0] ? " Tx " + String(body.txids[0]).slice(0, 10) + "…" : "";
+    swapNote("Redeemed. " + amount + " " + name + " left the locked balance and tKAS was sent." + tx, "ok");
+    await refreshAccount();
+  } catch (err) {
+    punch("shake");
+    swapNote("Not redeemed. " + (err && err.message ? err.message : "The redeem did not clear.") + " The tag was put back.", "bad");
+  } finally {
+    setSwapBusy(false);
+  }
 }
 
 async function practice() {
   if (!requireId()) return;
   const body = await post("/api/1984/practice", {});
   if (!body.ok) {
-    say(body.error || "No purse.", true);
+    punch("shake");
+    swapNote("No purse. " + (body.error || "The practice purse was not given."), "bad");
     return;
   }
   punch("purse");
-  showBanner("Practice purse.");
-  say("Practice purse taken. 20.00 POC and 20.00 KUSDT. Not redeemable.");
+  swapNote("Practice purse taken. 20.00 POCencept and 20.00 KUSDT. That purse does not redeem.", "ok");
   await refreshAccount();
 }
 
@@ -744,10 +890,11 @@ async function freeze() {
   const next = !(state.account && state.account.kusdtFrozen);
   const body = await post("/api/1984/freeze", { frozen: next });
   if (!body.ok) {
-    say(body.error || "Freeze failed.", true);
+    punch("shake");
+    swapNote("Not changed. " + (body.error || "The freeze did not stick."), "bad");
     return;
   }
-  say(next ? "KUSDT is frozen. POC and tKAS are not." : "KUSDT is thawed.");
+  swapNote(next ? "KUSDT is frozen. POCencept and tKAS still move." : "KUSDT is thawed.", "ok");
   await refreshAccount();
 }
 

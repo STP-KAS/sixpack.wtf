@@ -47,6 +47,56 @@ function harness(pay, extra = {}) {
   return { svc, saved, read: () => state };
 }
 
+test("one tKAS locks five cents, and redeeming one toy dollar does not", async () => {
+  const txid = "ab".repeat(32);
+  const sompi = 100_000_000;
+  const { svc, read } = harness(async () => ({ txids: ["zz"] }), {
+    txTries: 1,
+    guests: {
+      async pay() {
+        return { txid };
+      },
+    },
+    fetch: async (url) => {
+      const u = String(url);
+      if (u.includes("info/price")) return { ok: true, json: async () => ({ price: 0.05 }) };
+      if (u.includes("/transactions/")) return { ok: true, status: 200, json: async () => txOf(txid, sompi) };
+      return { ok: false, status: 404, json: async () => ({}) };
+    },
+  });
+  const locked = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/guest/convert",
+    query: new URLSearchParams(),
+    body: { address: USER, network: "testnet-10", token: "tok", rail: "poc", amount: "1" },
+    ip: "127.0.0.1",
+  });
+  assert.equal(locked.body.ok, true);
+  assert.equal(locked.body.cents, "5");
+  assert.equal(read().accounts[USER].poc, "5");
+  assert.equal(read().accounts[USER].pocBacked, "5");
+  const tooMuch = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/redeem",
+    query: new URLSearchParams(),
+    body: { address: USER, rail: "poc", amount: "1.00" },
+    ip: "127.0.0.1",
+  });
+  assert.equal(tooMuch.body.ok, false);
+  assert.equal(read().accounts[USER].poc, "5");
+  assert.equal(read().accounts[USER].pocBacked, "5");
+  const exact = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/redeem",
+    query: new URLSearchParams(),
+    body: { address: USER, rail: "poc", amount: "0.05" },
+    ip: "127.0.0.1",
+  });
+  assert.equal(exact.body.ok, true);
+  assert.equal(read().accounts[USER].poc, "0");
+  assert.equal(read().accounts[USER].pocBacked, "0");
+});
+
 test("a failed redeem puts the toy balance back", async () => {
   const { svc, read } = harness(async () => {
     throw new Error("node down");

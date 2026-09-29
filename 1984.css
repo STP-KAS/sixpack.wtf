@@ -293,6 +293,10 @@ body.page-1984 main.kw-stage {
   padding: 0.12rem 0;
   font: inherit;
 }
+.amt input::placeholder {
+  color: #8a7040;
+  font-weight: 400;
+}
 .kw-panel.swap-pop {
   position: absolute;
   left: 50%;
@@ -301,7 +305,7 @@ body.page-1984 main.kw-stage {
   bottom: auto;
   transform: translate(-50%, -50%);
   width: min(520px, calc(100% - 1rem));
-  max-height: min(74dvh, 560px);
+  max-height: min(88dvh, 760px);
   z-index: 6;
   margin: 0;
   padding: 0.85rem 0.9rem 1rem;
@@ -330,6 +334,48 @@ body.page-1984 main.kw-stage {
   pointer-events: none;
 }
 .juice-banner[hidden] { display: none; }
+.swap-status {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-height: 2.7em;
+  margin: 0.4rem 0 0.15rem;
+  padding: 0.4rem 0.5rem;
+  background: #241910;
+  border: 2px solid #8a7040;
+  color: #b7a88a;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.swap-status::before {
+  content: "Result";
+  display: block;
+  margin-bottom: 0.12rem;
+  color: #f2d48a;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.swap-status.ok { color: #9dff8a; border-color: #3d8f4a; background: #142416; }
+.swap-status.bad { color: #ffb4a8; border-color: #c0392b; background: #2a1210; }
+.swap-status.wait { color: #f2d48a; border-color: #e7c27a; background: #2a2210; }
+.swap-step {
+  margin: 0.55rem 0 0.1rem;
+  color: #f2d48a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.swap-preview {
+  min-height: 2.4em;
+  margin: 0.15rem 0 0.3rem;
+  color: #f3e6c8;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
 .swap-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
 .swap-head h2 { margin: 0; }
 .swap-head button { flex: 0 0 auto; }
@@ -467,7 +513,7 @@ a { color: #f2d48a; }
     right: auto;
     bottom: auto;
     width: min(520px, calc(100% - 1rem));
-    max-height: min(74dvh, 560px);
+    max-height: min(88dvh, 760px);
     margin: 0;
     z-index: 6;
   }
