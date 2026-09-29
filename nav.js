@@ -8,7 +8,7 @@
     { href: "random.html", files: ["random.html"], label: "Random" },
     { href: "aigen.html", files: ["aigen.html"], label: "ai gen" },
     { href: "faucet.html", files: ["faucet.html"], label: "Faucet" },
-    { href: "kworld.html", files: ["kworld.html"], label: "Kworld" },
+    { href: "kworld.html", files: ["kworld.html"], label: "1984" },
     { href: "grok.html", files: ["grok.html"], label: "Grok.SPCXAI.KAS" },
     { href: "help.html", files: ["help.html"], label: "Help" },
   ];

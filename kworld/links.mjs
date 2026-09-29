@@ -151,7 +151,7 @@ export const REPOS = [
   "xai-reasoning-3",
 ];
 
-export const POST = `Kworld is a Testnet-10 village square.
+export const POST = `1984 is a Testnet-10 village square.
 
 Walk in. Cafe, restaurant, groceries, a bank, and a roadster that does not leave the square.
 

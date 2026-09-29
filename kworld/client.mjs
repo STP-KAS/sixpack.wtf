@@ -596,7 +596,7 @@ function paintGuide() {
     "</ol>" +
     "<p>Also on the bench: KNS, tic-tac-toe, KaChat, Kaspero Labs, SilverScript, Argent. Tidewater is an MIT fishing island; this square did not copy that ocean. The Go topic list is markers and private-server code. This page uses neither of those, and it does not ship a soundtrack.</p>" +
     "<p class=\"warn\">" + esc(PRIVACY) + "</p>" +
-    "<h2>Name</h2><p>This tab is called Kworld. The name can change.</p>";
+    "<h2>Name</h2><p>This tab is called 1984.</p>";
 }
 
 function requireId() {
@@ -1014,7 +1014,7 @@ panel.addEventListener("click", (ev) => {
 
 requestAnimationFrame(step);
 paintChrome();
-say("Kworld. Ashfields. Testnet 10. The gate asks if you are a new arrival or returning.");
+say("1984. Ashfields. Testnet 10. The gate asks if you are a new arrival or returning.");
 window.addEventListener("pagehide", () => {
   if (state.id.kind !== "guest" || !state.id.token) return;
   const payload = JSON.stringify({ token: state.id.token, address: state.id.address, life: PAGE_LIFE });
