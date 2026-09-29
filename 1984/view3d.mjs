@@ -40,6 +40,13 @@ export function drives(owns, tile) {
   return !!owns && tile !== "i";
 }
 
+/** none before the sale, foot when walking or indoors, drive when the seat is chosen outdoors. */
+export function seat(owns, aboard, tile) {
+  if (!owns) return "none";
+  if (tile === "i" || !aboard) return "foot";
+  return "drive";
+}
+
 /** One tile along a ground direction. Tile +x is world +x. Tile +y is world +z. */
 export function gridStep(wx, wz) {
   const ax = Math.abs(wx);

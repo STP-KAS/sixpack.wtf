@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { CAR_NOSE, DRIVE_MS, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, WALK_MS, buildingBoxes, clearCamera, drives, groundStep, headingYaw, orbitOffset } from "./view3d.mjs";
+import { CAR_NOSE, DRIVE_MS, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, WALK_MS, buildingBoxes, clearCamera, drives, groundStep, headingYaw, orbitOffset, seat } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -63,6 +63,15 @@ test("you drive on the grass and walk inside a shop", () => {
   assert.equal(drives(false, "i"), false);
   assert.equal(WALK_MS, 140);
   assert.ok(DRIVE_MS < WALK_MS);
+});
+
+test("get in drives outdoors, get out walks, and a shop is on foot", () => {
+  assert.equal(seat(false, true, "g"), "none");
+  assert.equal(seat(true, false, "g"), "foot");
+  assert.equal(seat(true, true, "g"), "drive");
+  assert.equal(seat(true, true, "d"), "drive");
+  assert.equal(seat(true, true, "i"), "foot");
+  assert.equal(seat(true, false, "i"), "foot");
 });
 
 test("at the opening view, forward is north and right is east", () => {

@@ -114,6 +114,7 @@ body.page-1984 main.kw-stage {
 }
 .hint-phone, .only-phone { display: none; }
 .kw-step { display: none; }
+.kw-ride[hidden] { display: none; }
 .kw-pay-toggle {
   position: absolute;
   top: 8px;

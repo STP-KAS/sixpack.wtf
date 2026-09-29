@@ -225,6 +225,59 @@ test("a test spend asks before it pays, then pays once", async () => {
   assert.equal(read().txids["ab".repeat(32)].kind, "spend");
 });
 
+test("a stuck public list still locks when the node has the payment", async () => {
+  const id = "d".repeat(64);
+  let lookups = 0;
+  const { svc, read } = harness(async () => ({ txids: ["ab"] }), {
+    txTries: 1,
+    sleep: async () => {},
+    fetch: async (url) => {
+      const u = String(url);
+      if (u.includes("info/price")) return { ok: true, json: async () => ({ price: 0.05 }) };
+      return { ok: false, status: 404, json: async () => ({}) };
+    },
+    lookupTx: async (txid) => {
+      lookups += 1;
+      return txOf(txid, 2_000_000_000);
+    },
+  });
+  const out = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/convert",
+    query: new URLSearchParams(),
+    body: { address: USER, rail: "poc", txid: id },
+    ip: "127.0.0.1",
+  });
+  assert.equal(out.body.ok, true);
+  assert.equal(lookups, 1);
+  assert.equal(read().accounts[USER].pocBacked, "100");
+});
+
+test("a missing node payment stays unswapped", async () => {
+  const { svc, read } = harness(async () => ({ txids: ["ab"] }), {
+    txTries: 1,
+    sleep: async () => {},
+    fetch: async (url) => {
+      const u = String(url);
+      if (u.includes("info/price")) return { ok: true, json: async () => ({ price: 0.05 }) };
+      return { ok: false, status: 404, json: async () => ({}) };
+    },
+    lookupTx: async () => {
+      throw new Error("That transaction is not on Testnet 10 yet.");
+    },
+  });
+  const out = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/convert",
+    query: new URLSearchParams(),
+    body: { address: USER, rail: "poc", txid: "e".repeat(64) },
+    ip: "127.0.0.1",
+  });
+  assert.equal(out.body.ok, false);
+  assert.match(out.body.error, /public transaction list is behind/);
+  assert.equal(read(), null);
+});
+
 test("the old payment path still answers", async () => {
   const { svc } = harness(async () => ({ txid: "aa" }));
   const result = await svc.handle({

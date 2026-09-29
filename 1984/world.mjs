@@ -43,9 +43,9 @@ export const SHOPS = [
     id: "roadster",
     name: "Pike's Roadster",
     keeper: "Pike",
-    line: "Buy the roadster and you drive it on the square. It does not leave town. A lap is one paid circuit.",
+    line: "The roadster is 1.00 toy dollar. Get in to drive. Get out to walk. It does not leave town. A lap is one paid circuit.",
     items: [
-      { sku: "keys", name: "The roadster", cents: 2000 },
+      { sku: "keys", name: "The roadster", cents: 100 },
       { sku: "postcard", name: "Postcard of the car", cents: 100 },
       { sku: "sit", name: "Sit in it", cents: 2500 },
       { sku: "lap", name: "Lap of the square", cents: 10000 },

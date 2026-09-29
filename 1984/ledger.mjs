@@ -253,7 +253,7 @@ export function applySpend(state, input, now) {
   const cents = BigInt(item.cents);
   const held = state.accounts[address.toLowerCase()];
   if (item.sku === "keys" && held && held.roadster) {
-    throw new Error("You already drive this roadster.");
+    throw new Error("You already own this roadster.");
   }
   const today = dayKey(now);
   const peek = ensure(clone(state), address);

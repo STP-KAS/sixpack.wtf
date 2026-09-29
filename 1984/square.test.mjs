@@ -118,7 +118,7 @@ test("spending rules can block a shop and ask for a confirm", () => {
   assert.equal(paid.result.ok, true);
 });
 
-test("the roadster spends the purse once and a second buy does not charge", () => {
+test("the roadster costs one toy dollar and a second buy does not charge", () => {
   let state = freshState();
   state = applyPractice(state, { address: USER }, NOW).state;
   const extra = pay(2_000_000_000n, 9);
@@ -126,14 +126,14 @@ test("the roadster spends the purse once and a second buy does not charge", () =
   assert.equal(state.accounts[USER].poc, "2100");
   const bought = applySpend(state, { address: USER, shop: "roadster", sku: "keys", rail: "poc" }, NOW);
   assert.equal(bought.result.ok, true);
-  assert.equal(bought.state.accounts[USER].poc, "100");
+  assert.equal(bought.state.accounts[USER].poc, "2000");
   assert.equal(bought.state.accounts[USER].roadster, true);
   assert.equal(bought.result.account.roadster, true);
   assert.throws(
     () => applySpend(bought.state, { address: USER, shop: "roadster", sku: "keys", rail: "poc" }, NOW),
     /already/
   );
-  assert.equal(bought.state.accounts[USER].poc, "100");
+  assert.equal(bought.state.accounts[USER].poc, "2000");
   const bare = freshState();
   bare.accounts[USER] = { address: USER, poc: "5", kusdt: "0", pocBacked: "0", kusdtBacked: "0", liability: "0" };
   assert.equal(publicAccount(bare, USER).roadster, false);

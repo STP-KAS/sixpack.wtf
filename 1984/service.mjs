@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { fetchBalance, fetchPrice, fetchTx, paymentFromTx, resolveName } from "./chain.mjs";
+import { lookupAccepted, warmNodeWindow } from "./node-tx.mjs";
 import { guestDesk, GUEST_FUND_SOMPI } from "./guest.mjs";
 import {
   applyConvert,
@@ -79,13 +80,20 @@ export function create1984Service(deps) {
   }
 
   async function payment(address, txid, need) {
-    const tx = await fetchTx(txid, deps.fetch);
+    let tx;
+    try {
+      tx = await fetchTx(txid, deps.fetch);
+    } catch (err) {
+      const msg = String((err && err.message) || "");
+      if (!deps.lookupTx || !/not on Testnet 10 yet/i.test(msg)) throw err;
+      tx = await deps.lookupTx(txid);
+    }
     return paymentFromTx(tx, address, need);
   }
 
   async function waitPayment(address, txid, need) {
     let last = new Error("That transaction is not on Testnet 10 yet.");
-    const tries = deps.txTries || 10;
+    const tries = deps.txTries || 8;
     for (let i = 0; i < tries; i += 1) {
       try {
         return await payment(address, txid, need);
@@ -94,8 +102,13 @@ export function create1984Service(deps) {
         const msg = String((err && err.message) || "");
         if (!/not on Testnet 10 yet|not accepted yet/i.test(msg)) throw err;
         if (i === tries - 1) break;
-        await pause(2000);
+        await pause(1500);
       }
+    }
+    if (/not on Testnet 10 yet/i.test(String((last && last.message) || ""))) {
+      throw new Error(
+        "That payment is not in the recent Testnet 10 blocks. The public transaction list is behind. Wait and lock again."
+      );
     }
     throw last;
   }
@@ -307,7 +320,7 @@ export function create1984Service(deps) {
           if (body.rail === "kas") {
             const item = itemBySku(body.shop, body.sku);
             if (!item) throw new Error("That item is not on this counter.");
-            pay = await payment(address, body.txid, sompiForCents(item.cents, usd));
+            pay = await waitPayment(address, body.txid, sompiForCents(item.cents, usd));
           }
           return await queue(async () => {
             const out = applySpend(
@@ -331,8 +344,7 @@ export function create1984Service(deps) {
         }
         if (pathname === "/api/1984/convert") {
           const usd = await price();
-          const tx = await fetchTx(body.txid, deps.fetch);
-          const pay = paymentFromTx(tx, address, 1n);
+          const pay = await waitPayment(address, body.txid, 1n);
           return await queue(async () => {
             const out = applyConvert(state, { address, rail: body.rail, payment: pay, usdPerKas: usd }, now);
             state = out.state;
@@ -391,12 +403,14 @@ let singleton;
 
 export function service1984() {
   if (!singleton) {
+    warmNodeWindow();
     const guests = guestDesk();
     singleton = create1984Service({
       load: loadFile,
       save: saveFile,
       fetch: globalThis.fetch,
       now: () => Date.now(),
+      lookupTx: lookupAccepted,
       guests,
       pay: async (to, sompi) => {
         const { payTn10 } = await import("../faucet/pay.mjs");

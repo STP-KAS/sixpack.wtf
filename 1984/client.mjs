@@ -12,7 +12,7 @@ import {
   parseTkas,
   sompiForCents,
 } from "./money.mjs";
-import { DRIVE_MS, WALK_MS, drives, mountWorld } from "./view3d.mjs?v=6";
+import { DRIVE_MS, WALK_MS, mountWorld, seat } from "./view3d.mjs?v=7";
 import { destinationFor, findPath, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -46,6 +46,7 @@ const state = {
   bankFlight: null,
   boothHits: [],
   lapUntil: 0,
+  aboard: false,
 };
 
 const PRIVACY =
@@ -123,7 +124,7 @@ function paintChrome() {
   const kusdt = state.account ? formatCents(state.account.kusdt) + " KUSDT" : "— KUSDT";
   const frozen = state.account && state.account.kusdtFrozen ? " · KUSDT frozen" : "";
   const guestLine = id.kind === "guest" ? " · this tab only" : "";
-  const driving = state.account && state.account.roadster ? " · driving" : "";
+  const driving = state.account && state.account.roadster ? (state.aboard ? " · driving" : " · walking") : "";
   bar.innerHTML =
     "<strong>" + esc(label) + "</strong> · " + esc(kas) + " · " + esc(poc) + " · " + esc(kusdt) + frozen + esc(guestLine) + driving;
 
@@ -159,6 +160,34 @@ function paintChrome() {
     '<button type="button" id="use-name">Use this name</button>' +
     '<p class="warn">' + esc(PRIVACY) + '</p>' +
     '<p class="fine"><a href="https://app.knsdomains.org" target="_blank" rel="noopener">KNS app</a> · <a href="https://tn10.knsdomains.org" target="_blank" rel="noopener">TN10 names</a></p>';
+  syncRide();
+}
+
+function groundTile() {
+  return map.grid[state.player.y] && map.grid[state.player.y][state.player.x];
+}
+
+function syncRide() {
+  const btn = document.getElementById("ride");
+  if (!btn) return;
+  const owns = !!(state.account && state.account.roadster);
+  btn.hidden = !owns;
+  btn.textContent = state.aboard ? "Get out" : "Get in";
+}
+
+function toggleRide() {
+  if (!state.account || !state.account.roadster) return;
+  state.aboard = !state.aboard;
+  if (state.aboard) {
+    showBanner("You drive.");
+    say(groundTile() === "i"
+      ? "You will drive when you step outside. Inside, you walk."
+      : "You are in the roadster. Get out when you want to walk.");
+  } else {
+    showBanner("You walk.");
+    say("You got out. The car stays here. Get in when you want to drive.");
+  }
+  paintChrome();
 }
 
 async function refreshAccount() {
@@ -484,7 +513,7 @@ function paintShop(shopId) {
       const afford = frozenRail ? false : canPay(rail, item.cents);
       const short = frozenRail ? "KUSDT is frozen. POCencept and tKAS still spend." : "Not enough " + names[rail] + " for " + item.name + ".";
       const button = ownedCar
-        ? '<button type="button" class="buy" disabled>Yours. You drive it.</button>'
+        ? '<button type="button" class="buy" disabled>Yours. Get in or get out.</button>'
         : afford === false
         ? '<button type="button" class="buy short" data-short="' + esc(short) + '">' + esc(frozenRail ? "KUSDT is frozen" : "Not enough " + names[rail]) + "</button>"
         : '<button type="button" class="buy" data-pay="' + rail + '" data-shop="' + shop.id + '" data-sku="' + item.sku + '">Buy · ' + esc(price) + "</button>";
@@ -656,11 +685,11 @@ function paintGuide() {
     "<li>Or choose New arrival on the welcome gate. That is the same as Test without a wallet. This tab gets 10000 tKAS from Grok's Testnet-10 wallet. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. Returning leaves the gate and uses a wallet that stays on this browser. One thousand of these test wallets can be opened in a day.</li>" +
     "<li>Or paste a kaspatest address. Or type a .kas name that already resolves on TN10. That choice stays until you change it.</li>" +
     "<li>Need coins: New arrival gives this tab 10000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. Take the practice purse in the bank. That purse is play money.</li>" +
-    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to walk, or use W A S D. Esc closes. Pick one rail, then Buy.</li>" +
-    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Step moves you. Left and Right turn you. Square closes a shop. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
+    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to walk, or use W A S D. G gets in or out of the roadster. Esc closes. Pick one rail, then Buy.</li>" +
+    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Step moves you. Left and Right turn you. Get in drives. Get out walks. Square closes a shop. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
     "<li>tKAS asks the wallet to sign a real Testnet-10 transaction. The miner fee is extra tKAS.</li>" +
     "<li>Venn's bank opens as a swap. Step 1 locks tKAS. Step 2 redeems toy dollars. Use locked POCencept puts the locked amount in the toy-dollar box. The Result line says whether it landed. KUSDT is the only freeze.</li>" +
-    "<li>Pike sells the roadster for 20.00 toy dollars. After that you drive it on the square. Walk into a shop and you get out. The car does not leave town.</li>" +
+    "<li>Pike sells the roadster for 1.00 toy dollar. Get in to drive. Get out to walk. Inside a shop you are on foot. The car does not leave town.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +
@@ -683,9 +712,11 @@ async function post(path, body) {
 
 function tookPayment(body, sku) {
   if (sku === "keys") {
+    state.aboard = true;
     punch("nod");
     showBanner("You drive.");
-    say("You drive the roadster on the square. Inside a shop you get out and walk.");
+    say("The roadster is yours. You are in it. Get out to walk. Inside a shop you are on foot. Get in when you want to drive.");
+    syncRide();
   } else if (sku === "lap") {
     punch("lap");
     showBanner("One lap.");
@@ -800,6 +831,7 @@ async function lock(rail) {
   const shown = formatTkas(sompi) + " tKAS";
   setSwapBusy(true);
   swapNote("Locking " + shown + " into " + name + "…", "wait");
+  let sent = false;
   try {
     let body;
     if (state.id.kind === "guest") {
@@ -821,11 +853,17 @@ async function lock(rail) {
         swapNote("Approve " + shown + " in the wallet. The miner fee is extra.", "wait");
         txid = await kit.sendKaspa(state.reserve, Number(sompi), { priorityFee: 10000 });
       }
+      sent = true;
+      if (txField && txid) {
+        txField.value = txid;
+        const box = txField.closest("details");
+        if (box) box.open = true;
+      }
       body = await post("/api/1984/convert", { rail, txid });
     }
     if (!body.ok) {
       punch("shake");
-      swapNote("Not swapped. " + (body.error || "The lock did not clear.") + " Nothing moved.", "bad");
+      swapNote("Not swapped. " + (body.error || "The lock did not clear.") + (sent ? " The txid is in the paste box. Press Lock again to claim it. That does not send a second time." : " Nothing moved."), "bad");
       return;
     }
     punch("nod");
@@ -843,7 +881,7 @@ async function lock(rail) {
     if (state.mode === "bank") paintBank();
   } catch (err) {
     punch("shake");
-    swapNote("Not swapped. " + (err && err.message ? err.message : "The lock did not clear.") + " Nothing moved.", "bad");
+    swapNote("Not swapped. " + (err && err.message ? err.message : "The lock did not clear.") + (sent ? " The txid is in the paste box. Press Lock again to claim it. That does not send a second time." : " Nothing moved."), "bad");
   } finally {
     setSwapBusy(false);
   }
@@ -984,7 +1022,7 @@ function step(now) {
   if (!ridingLap) {
     if (state.lapUntil) state.lapUntil = 0;
     const ground = map.grid[state.player.y] && map.grid[state.player.y][state.player.x];
-    const pace = drives(!!(state.account && state.account.roadster), ground) ? DRIVE_MS : WALK_MS;
+    const pace = seat(!!(state.account && state.account.roadster), state.aboard, ground) === "drive" ? DRIVE_MS : WALK_MS;
     if (state.path.length && now - state.stepAt > pace) {
       const next = state.path.shift();
       state.facing = { x: next.x - state.player.x, y: next.y - state.player.y };
@@ -1051,7 +1089,8 @@ const worldView = mountWorld(view, map, {
   },
   frozen: () => !!(state.account && state.account.kusdtFrozen),
   driving() {
-    return !!(state.account && state.account.roadster);
+    const ground = map.grid[state.player.y] && map.grid[state.player.y][state.player.x];
+    return seat(!!(state.account && state.account.roadster), state.aboard, ground) === "drive";
   },
   place(x, y) {
     state.path = [];
@@ -1078,9 +1117,13 @@ function punch(kind) {
 
 window.addEventListener("keydown", (ev) => {
   const key = ev.key.toLowerCase();
-  if (key !== "e" && key !== "escape") return;
+  if (key !== "e" && key !== "escape" && key !== "g") return;
   if (ev.target && (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA")) return;
   ev.preventDefault();
+  if (key === "g") {
+    toggleRide();
+    return;
+  }
   if (key === "escape") {
     openMode("world");
     return;
@@ -1179,6 +1222,8 @@ for (const button of document.querySelectorAll("[data-turn]")) {
   button.addEventListener("pointercancel", up);
   button.addEventListener("lostpointercapture", up);
 }
+const rideButton = document.getElementById("ride");
+if (rideButton) rideButton.addEventListener("click", toggleRide);
 document.getElementById("gate-back").addEventListener("click", () => {
   hideGate();
   setPayOpen(false);
