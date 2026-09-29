@@ -63,6 +63,7 @@ function ensure(state, address) {
       liability: "0",
       kusdtFrozen: false,
       practice: false,
+      roadster: false,
       rules: defaultRules(),
       spentDay: "",
       spentCents: "0",
@@ -179,6 +180,7 @@ export function publicAccount(state, address) {
     liability: base.liability,
     kusdtFrozen: !!base.kusdtFrozen,
     practice: !!base.practice,
+    roadster: !!base.roadster,
     rules: base.rules,
     spentDay: base.spentDay,
     spentCents: base.spentCents,
@@ -249,6 +251,10 @@ export function applySpend(state, input, now) {
   if (!item) throw new Error("That item is not on this counter.");
   if (!RAILS.includes(input.rail)) throw new Error("Pick tKAS, POCencept, or KUSDT.");
   const cents = BigInt(item.cents);
+  const held = state.accounts[address.toLowerCase()];
+  if (item.sku === "keys" && held && held.roadster) {
+    throw new Error("You already drive this roadster.");
+  }
   const today = dayKey(now);
   const peek = ensure(clone(state), address);
   const gate = checkRules(peek, { shop: shop.id, rail: input.rail, cents, confirmed: !!input.confirmed }, today);
@@ -283,6 +289,7 @@ export function applySpend(state, input, now) {
     takeToken(account, input.rail, cents);
   }
   bumpSpent(account, today, cents);
+  if (item.sku === "keys") account.roadster = true;
   const receipt = pushReceipt(next, account, {
     at: now,
     kind: "spend",

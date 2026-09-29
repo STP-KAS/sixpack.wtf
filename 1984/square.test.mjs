@@ -9,9 +9,10 @@ import {
   applyRules,
   applySpend,
   freshState,
+  publicAccount,
 } from "./ledger.mjs";
 import { RESERVE, centsForSompi, sompiForCents } from "./money.mjs";
-import { findPath, world } from "./world.mjs";
+import { findPath, standTile, walkable, world } from "./world.mjs";
 
 const USER = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 const USD = 0.05;
@@ -115,6 +116,38 @@ test("spending rules can block a shop and ask for a confirm", () => {
   assert.equal(ask.state, state);
   const paid = applySpend(state, { address: USER, shop: "cafe", sku: "coffee", rail: "poc", confirmed: true }, NOW);
   assert.equal(paid.result.ok, true);
+});
+
+test("the roadster spends the purse once and a second buy does not charge", () => {
+  let state = freshState();
+  state = applyPractice(state, { address: USER }, NOW).state;
+  const extra = pay(2_000_000_000n, 9);
+  state = applyConvert(state, { address: USER, rail: "poc", payment: extra, usdPerKas: USD }, NOW).state;
+  assert.equal(state.accounts[USER].poc, "2100");
+  const bought = applySpend(state, { address: USER, shop: "roadster", sku: "keys", rail: "poc" }, NOW);
+  assert.equal(bought.result.ok, true);
+  assert.equal(bought.state.accounts[USER].poc, "100");
+  assert.equal(bought.state.accounts[USER].roadster, true);
+  assert.equal(bought.result.account.roadster, true);
+  assert.throws(
+    () => applySpend(bought.state, { address: USER, shop: "roadster", sku: "keys", rail: "poc" }, NOW),
+    /already/
+  );
+  assert.equal(bought.state.accounts[USER].poc, "100");
+  const bare = freshState();
+  bare.accounts[USER] = { address: USER, poc: "5", kusdt: "0", pocBacked: "0", kusdtBacked: "0", liability: "0" };
+  assert.equal(publicAccount(bare, USER).roadster, false);
+});
+
+test("the roadster stops on a path and never indoors", () => {
+  const map = world();
+  for (let y = 0; y < map.h; y++) {
+    for (let x = 0; x < map.w; x++) {
+      const stand = standTile(map, x, y);
+      const got = map.grid[stand.y][stand.x];
+      assert.equal(walkable(got) && got !== "i", true, x + "," + y + " -> " + got);
+    }
+  }
 });
 
 test("the same transaction cannot mint twice", () => {

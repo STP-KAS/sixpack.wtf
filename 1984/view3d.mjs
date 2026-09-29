@@ -1,6 +1,7 @@
 /** Ashfields in 3D. Original meshes. The camera turns around the player through a full circle. */
 
 import * as THREE from "./vendor/three.module.js";
+import { standTile } from "./world.mjs";
 
 const TILE = 1.15;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -27,6 +28,16 @@ export function orbitOffset(yaw, pitch) {
 /** Yaw for a mesh whose front is local −z. Moving +x returns −π/2. */
 export function headingYaw(dx, dz) {
   return Math.atan2(-dx, -dz);
+}
+
+/** Hood marker. The roadster's nose is this local point, the same −z front as a figure. */
+export const CAR_NOSE = { x: 0, y: 0.5, z: -0.9 };
+export const WALK_MS = 140;
+export const DRIVE_MS = 75;
+
+/** Outdoors with the keys, the car is the body. A shop interior is on foot. */
+export function drives(owns, tile) {
+  return !!owns && tile !== "i";
 }
 
 /** One tile along a ground direction. Tile +x is world +x. Tile +y is world +z. */
@@ -574,25 +585,33 @@ function addDressing(parent, map, maps) {
   parent.add(basin, lip, water, jet, cap, lap);
   const carAt = worldOf(map, 17.6, 21.7, 0);
   const car = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.32, 1.05), stone("#c0392b", 0.4));
-  body.position.y = 0.38;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.28, 2.15), stone("#c0392b", 0.4));
+  body.position.set(0, 0.36, 0.05);
   body.castShadow = true;
-  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.32, 0.92), stone("#1a1612", 0.45));
-  cabin.position.set(-0.15, 0.62, 0);
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.28, 0.85), stone("#1a1612", 0.45));
+  cabin.position.set(0, 0.58, 0.28);
   const glass = new THREE.Mesh(
-    new THREE.BoxGeometry(0.9, 0.22, 0.84),
+    new THREE.BoxGeometry(0.84, 0.2, 0.7),
     new THREE.MeshStandardMaterial({ color: "#9fd4ee", roughness: 0.12, metalness: 0.25 }),
   );
-  glass.position.set(-0.15, 0.66, 0);
+  glass.position.set(0, 0.62, 0.22);
+  const hood = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.08, 0.42), stone("#922b21", 0.32));
+  hood.position.set(CAR_NOSE.x, CAR_NOSE.y, CAR_NOSE.z);
+  hood.name = "hood";
   const wheelGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.12, 10);
-  for (const [wx, wz] of [[-0.75, -0.48], [-0.75, 0.48], [0.75, -0.48], [0.75, 0.48]]) {
+  const wheels = [];
+  for (const [wx, wz] of [[-0.5, -0.62], [0.5, -0.62], [-0.5, 0.72], [0.5, 0.72]]) {
+    const hanger = new THREE.Group();
+    hanger.position.set(wx, 0.18, wz);
     const wheel = new THREE.Mesh(wheelGeo, stone("#1a1612", 0.7));
-    wheel.rotation.x = Math.PI / 2;
-    wheel.position.set(wx, 0.18, wz);
-    car.add(wheel);
+    wheel.rotation.z = Math.PI / 2;
+    hanger.add(wheel);
+    car.add(hanger);
+    wheels.push(hanger);
   }
-  car.add(body, cabin, glass);
+  car.add(body, cabin, glass, hood);
   car.position.set(carAt.x, 0, carAt.z);
+  car.userData.wheels = wheels;
   car.name = "roadster-car";
   car.userData.park = car.position.clone();
   car.userData.parkYaw = 0;
@@ -879,6 +898,7 @@ export function mountWorld(canvas, map, api) {
   let talk = 0;
   const camFocus = shown.clone();
   const focusGoal = new THREE.Vector3();
+  const carGoal = new THREE.Vector3();
   const puffs = [];
   for (let i = 0; i < 8; i++) {
     const puff = new THREE.Mesh(
@@ -1006,11 +1026,14 @@ export function mountWorld(canvas, map, api) {
       pose(bank.teller, now, false);
     } else {
       placeCamera(new THREE.Vector3(shown.x, 1.15, shown.z));
-      if (now >= nextStep) {
+      const owns = !!(api.driving && api.driving());
+      if (lapLeft <= 0 && now >= nextStep) {
         const step = stepFromKeys();
         if (step && (step.x || step.y) && api.step) {
           api.step(step.x, step.y);
-          nextStep = now + 140;
+          const after = api.player();
+          const ground = map.grid[after.y] && map.grid[after.y][after.x];
+          nextStep = now + (drives(owns, ground) ? DRIVE_MS : WALK_MS);
         }
       }
       const who = api.player();
@@ -1019,22 +1042,52 @@ export function mountWorld(canvas, map, api) {
       shown.lerp(goal, 0.28);
       const moving = shown.distanceTo(lastStep) > 0.004;
       lastStep.lerp(shown, 0.4);
-      player.position.set(shown.x, 0, shown.z);
+      const tile = map.grid[who.y] && map.grid[who.y][who.x];
+      const drive = drives(owns, tile) && lapLeft <= 0;
       const car = town.getObjectByName("roadster-car");
-      if (car) {
-        if (lapLeft > 0) {
-          lapLeft = Math.max(0, lapLeft - dt);
-          const u = 1 - lapLeft / 6;
-          const ang = u * Math.PI * 2;
-          const center = car.userData.center;
-          car.position.set(center.x + Math.cos(ang) * 8.2, 0, center.z + Math.sin(ang) * 8.2);
-          car.rotation.y = headingYaw(-Math.sin(ang), Math.cos(ang));
-          if (lapLeft === 0) {
+      if (car && lapLeft > 0) {
+        lapLeft = Math.max(0, lapLeft - dt);
+        const u = 1 - lapLeft / 6;
+        const ang = u * Math.PI * 2;
+        const center = car.userData.center;
+        car.position.set(center.x + Math.cos(ang) * 8.2, 0, center.z + Math.sin(ang) * 8.2);
+        car.rotation.y = headingYaw(-Math.sin(ang), Math.cos(ang));
+        if (lapLeft === 0) {
+          if (owns && api.place) {
+            const spot = tileOf(map, car.position);
+            const stand = standTile(map, spot.x, spot.y);
+            api.place(stand.x, stand.y);
+            const parked = worldOf(map, stand.x + 0.5, stand.y + 0.5, shown.y);
+            shown.copy(parked);
+            lastStep.copy(shown);
+          } else {
             car.position.copy(car.userData.park);
             car.rotation.y = car.userData.parkYaw;
           }
         }
       }
+      const riding = !!(car && owns && (drive || lapLeft > 0));
+      if (riding) {
+        if (player.parent !== car) car.add(player);
+        player.position.set(0, 0.22, 0.28);
+        player.rotation.y = 0;
+        if (drive) {
+          carGoal.set(shown.x, 0, shown.z);
+          car.position.lerp(carGoal, car.userData.riding ? 0.5 : 0.16);
+          car.userData.riding = true;
+          if (face && (face.x || face.y)) car.rotation.y = headingYaw(face.x, face.y);
+        }
+      } else {
+        if (player.parent !== town) town.add(player);
+        player.position.set(shown.x, 0, shown.z);
+        if (car) car.userData.riding = false;
+        if (face && (face.x || face.y)) player.rotation.y = headingYaw(face.x, face.y);
+      }
+      if (car && car.userData.wheels) {
+        const spin = lapLeft > 0 || (drive && moving) ? 0.55 : 0;
+        for (const hanger of car.userData.wheels) hanger.rotation.x += spin;
+      }
+      canvas.dataset.ride = riding ? "car" : "foot";
       for (const puff of puffs) {
         if (puff.userData.life <= 0) continue;
         puff.userData.life -= dt;
@@ -1053,13 +1106,13 @@ export function mountWorld(canvas, map, api) {
         puff.position.set(shown.x, 0.08, shown.z);
         puff.material.opacity = 0.45;
       }
-      if (face && (face.x || face.y)) player.rotation.y = headingYaw(face.x, face.y);
       if (markTile && markTile.x === who.x && markTile.y === who.y) marker.visible = false;
       marker.rotation.z = now / 700;
-      focusGoal.set(shown.x, 1.15, shown.z);
+      const look = riding && car ? car.position : shown;
+      focusGoal.set(look.x, 1.15, look.z);
       camFocus.lerp(focusGoal, 1 - Math.exp(-dt * 4.5));
       placeCamera(camFocus);
-      for (const actor of actors) pose(actor, now, actor === player && moving);
+      for (const actor of actors) pose(actor, now, actor === player && moving && !riding);
     }
     canvas.dataset.mode = inside ? "bank" : "world";
     renderer.render(scene, camera);

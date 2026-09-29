@@ -12,7 +12,7 @@ import {
   parseTkas,
   sompiForCents,
 } from "./money.mjs";
-import { mountWorld } from "./view3d.mjs?v=5";
+import { DRIVE_MS, WALK_MS, drives, mountWorld } from "./view3d.mjs?v=6";
 import { destinationFor, findPath, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -45,6 +45,7 @@ const state = {
   bankShutter: 0,
   bankFlight: null,
   boothHits: [],
+  lapUntil: 0,
 };
 
 const PRIVACY =
@@ -122,8 +123,9 @@ function paintChrome() {
   const kusdt = state.account ? formatCents(state.account.kusdt) + " KUSDT" : "— KUSDT";
   const frozen = state.account && state.account.kusdtFrozen ? " · KUSDT frozen" : "";
   const guestLine = id.kind === "guest" ? " · this tab only" : "";
+  const driving = state.account && state.account.roadster ? " · driving" : "";
   bar.innerHTML =
-    "<strong>" + esc(label) + "</strong> · " + esc(kas) + " · " + esc(poc) + " · " + esc(kusdt) + frozen + esc(guestLine);
+    "<strong>" + esc(label) + "</strong> · " + esc(kas) + " · " + esc(poc) + " · " + esc(kusdt) + frozen + esc(guestLine) + driving;
 
   const buttons = [
     ["world", "Square"],
@@ -478,9 +480,12 @@ function paintShop(shopId) {
       const kas = sompi == null ? "quote down" : formatTkas(sompi) + " tKAS";
       const price = rail === "kas" ? kas : formatCents(item.cents) + " " + names[rail];
       const frozenRail = rail === "kusdt" && state.account && state.account.kusdtFrozen;
+      const ownedCar = item.sku === "keys" && state.account && state.account.roadster;
       const afford = frozenRail ? false : canPay(rail, item.cents);
       const short = frozenRail ? "KUSDT is frozen. POCencept and tKAS still spend." : "Not enough " + names[rail] + " for " + item.name + ".";
-      const button = afford === false
+      const button = ownedCar
+        ? '<button type="button" class="buy" disabled>Yours. You drive it.</button>'
+        : afford === false
         ? '<button type="button" class="buy short" data-short="' + esc(short) + '">' + esc(frozenRail ? "KUSDT is frozen" : "Not enough " + names[rail]) + "</button>"
         : '<button type="button" class="buy" data-pay="' + rail + '" data-shop="' + shop.id + '" data-sku="' + item.sku + '">Buy · ' + esc(price) + "</button>";
       return (
@@ -653,6 +658,7 @@ function paintGuide() {
     "<li>Hold the left mouse button and move to look all the way around. Click the ground to walk, or use the left tabs. Pick one rail, then Buy.</li>" +
     "<li>tKAS asks the wallet to sign a real Testnet-10 transaction. The miner fee is extra tKAS.</li>" +
     "<li>Venn's bank opens as a swap. Step 1 locks tKAS. Step 2 redeems toy dollars. Use locked POCencept puts the locked amount in the toy-dollar box. The Result line says whether it landed. KUSDT is the only freeze.</li>" +
+    "<li>Pike sells the roadster for 20.00 toy dollars. After that you drive it on the square. Walk into a shop and you get out. The car does not leave town.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +
@@ -671,6 +677,22 @@ function requireId() {
 
 async function post(path, body) {
   return api(path, { method: "POST", body: JSON.stringify({ ...body, address: state.id.address, network: "testnet-10" }) });
+}
+
+function tookPayment(body, sku) {
+  if (sku === "keys") {
+    punch("nod");
+    showBanner("You drive.");
+    say("You drive the roadster on the square. Inside a shop you get out and walk.");
+  } else if (sku === "lap") {
+    punch("lap");
+    showBanner("One lap.");
+    if (state.account && state.account.roadster) state.lapUntil = performance.now() + 6000;
+    say(body.shop + " took the payment for " + body.item + ".");
+  } else {
+    punch("nod");
+    say(body.shop + " took the payment for " + body.item + ".");
+  }
 }
 
 async function spend(rail, shop, sku, confirmed) {
@@ -695,9 +717,7 @@ async function spend(rail, shop, sku, confirmed) {
         say(body.error || "The shop refused the payment.", true);
         return;
       }
-      punch(sku === "lap" ? "lap" : "nod");
-      if (sku === "lap") showBanner("One lap.");
-      say(body.shop + " took the payment for " + body.item + ".");
+      tookPayment(body, sku);
       await refreshAccount();
       return;
     }
@@ -724,9 +744,7 @@ async function spend(rail, shop, sku, confirmed) {
     say(body.error || "The shop refused the payment.", true);
     return;
   }
-  punch(sku === "lap" ? "lap" : "nod");
-  if (sku === "lap") showBanner("One lap.");
-  say(body.shop + " took the payment for " + body.item + ".");
+  tookPayment(body, sku);
   await refreshAccount();
 }
 
@@ -960,15 +978,21 @@ function step(now) {
     state.bankShutter = now;
     if (state.mode === "bank") paintBank();
   }
-  if (state.path.length && now - state.stepAt > 140) {
-    const next = state.path.shift();
-    state.facing = { x: next.x - state.player.x, y: next.y - state.player.y };
-    state.player = next;
-    state.stepAt = now;
-    if (!state.path.length && state.arrived) {
-      const fn = state.arrived;
-      state.arrived = null;
-      fn();
+  const ridingLap = state.lapUntil && now < state.lapUntil;
+  if (!ridingLap) {
+    if (state.lapUntil) state.lapUntil = 0;
+    const ground = map.grid[state.player.y] && map.grid[state.player.y][state.player.x];
+    const pace = drives(!!(state.account && state.account.roadster), ground) ? DRIVE_MS : WALK_MS;
+    if (state.path.length && now - state.stepAt > pace) {
+      const next = state.path.shift();
+      state.facing = { x: next.x - state.player.x, y: next.y - state.player.y };
+      state.player = next;
+      state.stepAt = now;
+      if (!state.path.length && state.arrived) {
+        const fn = state.arrived;
+        state.arrived = null;
+        fn();
+      }
     }
   }
   worldView.render(now);
@@ -1024,6 +1048,15 @@ const worldView = mountWorld(view, map, {
     chooseRail(rail);
   },
   frozen: () => !!(state.account && state.account.kusdtFrozen),
+  driving() {
+    return !!(state.account && state.account.roadster);
+  },
+  place(x, y) {
+    state.path = [];
+    state.arrived = null;
+    state.player = { x, y };
+    state.lapUntil = 0;
+  },
 });
 
 let bannerTimer = 0;

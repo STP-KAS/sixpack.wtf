@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, buildingBoxes, clearCamera, groundStep, headingYaw, orbitOffset } from "./view3d.mjs";
+import { CAR_NOSE, DRIVE_MS, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, WALK_MS, buildingBoxes, clearCamera, drives, groundStep, headingYaw, orbitOffset } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -41,6 +41,28 @@ test("a figure nose follows the tile the player steps toward", () => {
     const move = new THREE.Vector3(dx, 0, dz).normalize();
     assert.ok(cue.dot(move) > 0.9, cue.dot(move) + " for " + dx + "," + dz);
   }
+});
+
+test("the roadster hood follows the way the car travels", () => {
+  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const yaw = headingYaw(dx, dz);
+    const turn = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    const nose = new THREE.Vector3(CAR_NOSE.x, CAR_NOSE.y, CAR_NOSE.z).applyQuaternion(turn);
+    const mid = new THREE.Vector3(0, CAR_NOSE.y, 0).applyQuaternion(turn);
+    const cue = nose.sub(mid).setY(0).normalize();
+    const move = new THREE.Vector3(dx, 0, dz).normalize();
+    assert.ok(cue.dot(move) > 0.9, cue.dot(move) + " for " + dx + "," + dz);
+  }
+});
+
+test("you drive on the grass and walk inside a shop", () => {
+  assert.equal(drives(true, "g"), true);
+  assert.equal(drives(true, "d"), true);
+  assert.equal(drives(true, "i"), false);
+  assert.equal(drives(false, "g"), false);
+  assert.equal(drives(false, "i"), false);
+  assert.equal(WALK_MS, 140);
+  assert.ok(DRIVE_MS < WALK_MS);
 });
 
 test("at the opening view, forward is north and right is east", () => {

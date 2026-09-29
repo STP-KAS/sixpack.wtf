@@ -43,8 +43,9 @@ export const SHOPS = [
     id: "roadster",
     name: "Pike's Roadster",
     keeper: "Pike",
-    line: "The car stays on the square. You are buying a turn, not a title.",
+    line: "Buy the roadster and you drive it on the square. It does not leave town. A lap is one paid circuit.",
     items: [
+      { sku: "keys", name: "The roadster", cents: 2000 },
       { sku: "postcard", name: "Postcard of the car", cents: 100 },
       { sku: "sit", name: "Sit in it", cents: 2500 },
       { sku: "lap", name: "Lap of the square", cents: 10000 },
@@ -84,6 +85,23 @@ function inBounds(x, y) {
 
 export function walkable(tile) {
   return tile === "g" || tile === "c" || tile === "p" || tile === "d" || tile === "i" || tile === "f";
+}
+
+/** A tile the roadster can stop on. Indoors is for feet, so the car waits outside. */
+export function standTile(map, x, y) {
+  const tx = Math.round(x);
+  const ty = Math.round(y);
+  for (let r = 0; r <= 5; r++) {
+    for (let yy = ty - r; yy <= ty + r; yy++) {
+      for (let xx = tx - r; xx <= tx + r; xx++) {
+        if (Math.max(Math.abs(xx - tx), Math.abs(yy - ty)) !== r) continue;
+        if (yy < 0 || xx < 0 || yy >= map.h || xx >= map.w) continue;
+        const tile = map.grid[yy][xx];
+        if (walkable(tile) && tile !== "i") return { x: xx, y: yy };
+      }
+    }
+  }
+  return { x: map.spawn.x, y: map.spawn.y };
 }
 
 function paint(grid, x, y, tile) {
