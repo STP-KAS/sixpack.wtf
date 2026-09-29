@@ -13,7 +13,7 @@ import {
   sompiForCents,
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
-import { kasSpendAction } from "./kas-spend.mjs";
+import { kasSpendAction, shopBanner } from "./kas-spend.mjs";
 import { DRIVE_MS, WALK_MS, mountWorld, seat } from "./view3d.mjs?v=9";
 import { destinationFor, findPath, nearShop, shopVisit, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
@@ -790,15 +790,14 @@ async function post(path, body) {
 }
 
 function tookPayment(body, sku) {
+  showBanner(shopBanner(sku));
   if (sku === "keys") {
     state.aboard = true;
     punch("nod");
-    showBanner("You drive.");
     say("The roadster is yours. You are in it. Get out to walk. Inside a shop you are on foot. Get in when you want to drive.");
     syncRide();
   } else if (sku === "lap") {
     punch("lap");
-    showBanner("One lap.");
     if (state.account && state.account.roadster) state.lapUntil = performance.now() + 6000;
     say(body.shop + " took the payment for " + body.item + ".");
   } else {

@@ -1,9 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { kasSpendAction } from "./kas-spend.mjs";
+import { kasSpendAction, shopBanner } from "./kas-spend.mjs";
 
 test("a guest shop payment stays on the server, which asks before the key signs", () => {
   assert.equal(kasSpendAction({ kind: "guest", txid: "", needsConfirm: true, ready: false }), "guest");
+});
+
+test("a shop purchase shows a banner, including an ordinary item", () => {
+  assert.equal(shopBanner("keys"), "You drive.");
+  assert.equal(shopBanner("lap"), "One lap.");
+  assert.equal(shopBanner("coffee"), "Paid.");
+  assert.equal(shopBanner("water"), "Paid.");
 });
 
 test("a wallet shop payment asks before it signs, then signs, and a pasted txid is only claimed", () => {
