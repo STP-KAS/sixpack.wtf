@@ -30,24 +30,21 @@ body.kworld-page .tabs button.on { background: #8a7040; color: #1a1612; }
   position: relative;
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
-  grid-template-areas:
-    "side bar"
-    "side stage";
+  background: #1a1612;
 }
 .kw-side {
-  grid-area: side;
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 4;
+  width: 104px;
   display: flex;
   flex-direction: column;
   gap: 0.28rem;
   padding: 0.45rem 0.35rem;
-  background:
-    linear-gradient(90deg, rgba(255,255,255,0.04), transparent 30%),
-    #3a3630;
-  border-right: 3px solid #1c1916;
-  box-shadow: inset -8px 0 0 #2a2723;
+  background: rgba(36, 32, 28, 0.72);
+  border-right: 2px solid #1c1916;
   overflow: auto;
 }
 .kw-side button, .kw button, .kw-you button, .kw-panel button {
@@ -67,7 +64,22 @@ body.kworld-page .tabs button.on { background: #8a7040; color: #1a1612; }
   font-weight: 700;
   box-shadow: inset 0 0 0 1px #f3e6c8;
 }
-.kw-bar { grid-area: bar; padding: 0.35rem 0.6rem; background: #2a231b; border-bottom: 1px solid #8a7040; }
+.kw-bar {
+  position: absolute;
+  left: 112px;
+  right: 132px;
+  top: 6px;
+  z-index: 3;
+  margin: 0;
+  padding: 0.12rem 0.4rem;
+  background: rgba(26, 22, 18, 0.45);
+  border: none;
+  pointer-events: none;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .kw-bar strong { color: #f2d48a; }
 .kw-bar .fine, .fine { color: #b7a88a; font-size: 0.75rem; margin: 0.1rem 0 0; }
 body.kworld-page main.kw-stage {
@@ -76,12 +88,13 @@ body.kworld-page main.kw-stage {
   margin: 0;
   padding: 0;
 }
-.kw-stage { grid-area: stage; position: relative; min-height: 0; background: #1a1612; }
-.kw-stage canvas#view { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+.kw-stage { position: absolute; inset: 0; min-height: 0; background: #1a1612; }
+.kw-stage canvas#view { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; background: #6a7a48; }
 .kw-mini {
   position: absolute;
   right: 8px;
   top: 8px;
+  z-index: 3;
   width: 116px;
   height: 88px;
   border: 2px solid #c6a15a;
@@ -90,8 +103,8 @@ body.kworld-page main.kw-stage {
 }
 .kw-hint {
   position: absolute;
-  left: 8px;
-  top: 8px;
+  left: 112px;
+  top: 34px;
   margin: 0;
   max-width: min(520px, calc(100% - 250px));
   font-size: 0.72rem;
@@ -156,11 +169,11 @@ body.kworld-page main.kw-stage {
 }
 .kw-chat {
   position: absolute;
-  left: 124px;
+  left: 112px;
   bottom: 10px;
   z-index: 4;
-  width: min(440px, 38vw);
-  height: 92px;
+  width: min(380px, 34vw);
+  height: 78px;
   overflow: auto;
   background:
     linear-gradient(180deg, rgba(255,210,140,0.05), transparent 30%),
@@ -201,8 +214,8 @@ body.kworld-page main.kw-stage {
   right: 8px;
   top: auto;
   bottom: 8px;
-  width: min(520px, 46%);
-  max-height: min(560px, 70%);
+  width: min(400px, 38%);
+  max-height: min(520px, 68%);
   overflow: auto;
   background:
     linear-gradient(180deg, rgba(255,220,160,0.07), transparent 18%),
@@ -216,7 +229,7 @@ body.kworld-page main.kw-stage {
 .booth-tabs button { flex: 1 1 0; text-align: center; white-space: nowrap; }
 .slots {
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 3px;
   padding: 6px;
   background: #2a180e;
@@ -341,10 +354,24 @@ a { color: #f2d48a; }
     min-height: 100dvh;
   }
   .kw.room .kw-mini { display: none; }
-  .kw-stage { height: auto; min-height: 48dvh; }
-  .kw-stage canvas#view { height: 48dvh; }
-  .kw-side { flex-direction: row; overflow: auto; box-shadow: none; }
+  .kw-stage { position: relative; inset: auto; height: auto; min-height: 62dvh; }
+  .kw-stage canvas#view { height: 62dvh; }
+  .kw-side {
+    position: relative;
+    top: auto;
+    bottom: auto;
+    width: auto;
+    flex-direction: row;
+    overflow: auto;
+  }
   .kw-side button { white-space: nowrap; }
+  .kw-bar {
+    position: relative;
+    left: auto;
+    right: auto;
+    top: auto;
+    white-space: normal;
+  }
   .kw-hint { max-width: calc(100% - 130px); }
   .kw-pay-toggle { top: auto; right: 8px; bottom: 8px; }
   .kw-turns { bottom: 52px; }
@@ -361,5 +388,5 @@ a { color: #f2d48a; }
   }
   .kw-chat { height: 92px; }
   .booth-tabs { flex-wrap: nowrap; }
-  .slots { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+  .slots { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 }

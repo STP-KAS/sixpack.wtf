@@ -4,6 +4,9 @@ import * as THREE from "./vendor/three.module.js";
 
 const TILE = 1.15;
 const UP = new THREE.Vector3(0, 1, 0);
+const BANK_BODY = 5.1;
+const SHOP_BODY = 3.45;
+const ROOF_RISE = 1.35;
 
 /** Camera offset from the look target. yaw 0 and pitch = π/2 sits the camera on +Z. */
 export function orbitOffset(yaw, pitch) {
@@ -45,7 +48,7 @@ export function buildingBoxes(map) {
   return map.buildings.map((b) => {
     const w = b.w * TILE * 0.9;
     const d = b.h * TILE * 0.9;
-    const body = b.id === "bank" ? 2.7 : 2.25;
+    const body = b.id === "bank" ? BANK_BODY : SHOP_BODY;
     const cx = (b.x + b.w / 2 - map.w / 2) * TILE;
     const cz = (b.y + b.h / 2 - map.h / 2) * TILE;
     return {
@@ -54,7 +57,7 @@ export function buildingBoxes(map) {
       maxX: cx + w / 2,
       minZ: cz - d / 2,
       maxZ: cz + d / 2,
-      roofY: body + 0.12 + 1.15,
+      roofY: body + 0.12 + ROOF_RISE,
     };
   });
 }
@@ -203,8 +206,8 @@ function makeMaps() {
   const sky = paintTex(32, (g, s) => {
     const grd = g.createLinearGradient(0, 0, 0, s);
     grd.addColorStop(0, "#6ea0d8");
-    grd.addColorStop(0.45, "#d7c4a2");
-    grd.addColorStop(1, "#e7c49a");
+    grd.addColorStop(0.62, "#8eafd0");
+    grd.addColorStop(1, "#b7c3b0");
     g.fillStyle = grd;
     g.fillRect(0, 0, s, s);
   });
@@ -406,10 +409,11 @@ function addBuildings(parent, map, maps, pick) {
   for (const b of map.buildings) {
     const w = b.w * TILE * 0.9;
     const d = b.h * TILE * 0.9;
-    const h = b.id === "bank" ? 2.7 : 2.25;
+    const h = b.id === "bank" ? BANK_BODY : SHOP_BODY;
     const center = worldOf(map, b.x + b.w / 2, b.y + b.h / 2, 0);
     const plaster = stone("#ffffff", 0.9, maps.plaster);
-    const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), plaster);
+    const shell = b.id === "bank" ? stone("#d8d4cc", 0.88, maps.blocks) : plaster;
+    const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), shell);
     body.position.set(center.x, h / 2 + 0.12, center.z);
     body.castShadow = true;
     body.receiveShadow = true;
@@ -419,7 +423,7 @@ function addBuildings(parent, map, maps, pick) {
     const face = doorFacing(b);
     const ridgeAlongX = w >= d;
     const roof = new THREE.Mesh(
-      gableGeometry(ridgeAlongX ? w + 0.45 : d + 0.45, ridgeAlongX ? d + 0.45 : w + 0.45, 1.15),
+      gableGeometry(ridgeAlongX ? w + 0.45 : d + 0.45, ridgeAlongX ? d + 0.45 : w + 0.45, ROOF_RISE),
       new THREE.MeshStandardMaterial({ map: maps.tiles, color: b.roof, roughness: 0.74, side: THREE.DoubleSide }),
     );
     roof.position.set(center.x, h + 0.12, center.z);
@@ -445,6 +449,13 @@ function addBuildings(parent, map, maps, pick) {
     if (face.nx) door.rotation.y = Math.PI / 2;
     door.castShadow = true;
     parent.add(door);
+    if (b.id !== "bank") {
+      const cloth = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.06, 0.95), stone(b.roof, 0.62));
+      cloth.position.set(doorPos.x + face.nx * 0.55, 1.72, doorPos.z + face.nz * 0.55);
+      if (face.nx) cloth.rotation.y = Math.PI / 2;
+      cloth.castShadow = true;
+      parent.add(cloth);
+    }
     const sign = nameTag(b.sign);
     sign.position.set(wallX + face.nx * 0.35, h + 0.55, wallZ + face.nz * 0.35);
     parent.add(sign);
@@ -465,7 +476,7 @@ function addBuildings(parent, map, maps, pick) {
 }
 
 function addDressing(parent, map, maps) {
-  const wallGeo = new THREE.BoxGeometry(TILE * 0.98, 1.25, TILE * 0.98);
+  const wallGeo = new THREE.BoxGeometry(TILE * 0.98, 2.4, TILE * 0.98);
   const edges = [];
   const trees = [];
   for (let y = 0; y < map.h; y++) {
@@ -482,7 +493,7 @@ function addDressing(parent, map, maps) {
     mesh.receiveShadow = true;
     const dummy = new THREE.Object3D();
     edges.forEach((cell, i) => {
-      const p = worldOf(map, cell.x + 0.5, cell.y + 0.5, 0.62);
+      const p = worldOf(map, cell.x + 0.5, cell.y + 0.5, 1.2);
       dummy.position.copy(p);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
@@ -566,29 +577,77 @@ function addDressing(parent, map, maps) {
   parent.add(post, plaque);
 }
 
+function diamondGlass() {
+  return paintTex(64, (g, s) => {
+    g.fillStyle = "#1b4a30";
+    g.fillRect(0, 0, s, s);
+    for (let y = -8; y < s + 8; y += 16) {
+      for (let x = -8; x < s + 8; x += 16) {
+        g.beginPath();
+        g.moveTo(x + 8, y);
+        g.lineTo(x + 16, y + 8);
+        g.lineTo(x + 8, y + 16);
+        g.lineTo(x, y + 8);
+        g.closePath();
+        g.fillStyle = ((x + y) / 16) % 2 ? "#2f7a46" : "#3e9a58";
+        g.fill();
+        g.strokeStyle = "#d5ead0";
+        g.lineWidth = 1.5;
+        g.stroke();
+      }
+    }
+  });
+}
+
+function rugKnot() {
+  return paintTex(128, (g, s) => {
+    g.fillStyle = "#1a4f88";
+    g.fillRect(0, 0, s, s);
+    g.strokeStyle = "#e4c27a";
+    g.lineWidth = 4;
+    g.strokeRect(10, 10, s - 20, s - 20);
+    g.lineWidth = 3;
+    g.beginPath();
+    g.arc(s * 0.4, s * 0.5, 24, 0.5, Math.PI * 1.6);
+    g.stroke();
+    g.beginPath();
+    g.arc(s * 0.6, s * 0.5, 24, Math.PI + 0.5, Math.PI * 2.6);
+    g.stroke();
+    g.beginPath();
+    g.moveTo(s * 0.5, s * 0.26);
+    g.quadraticCurveTo(s * 0.78, s * 0.5, s * 0.5, s * 0.74);
+    g.quadraticCurveTo(s * 0.22, s * 0.5, s * 0.5, s * 0.26);
+    g.stroke();
+  });
+}
+
 function buildBankRoom(maps) {
   const room = new THREE.Group();
   room.name = "bank";
-  const floor = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 9), stone("#ffffff", 0.78, maps.wood));
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 9), stone("#8a5a32", 0.86, maps.wood));
   floor.position.y = -0.1;
   floor.receiveShadow = true;
   room.add(floor);
-  const wallMat = stone("#ffffff", 0.9, maps.blocks);
+  const wallMat = stone("#d8d4cc", 0.9, maps.blocks);
   wallMat.side = THREE.DoubleSide;
-  const back = new THREE.Mesh(new THREE.BoxGeometry(12, 3.3, 0.28), wallMat);
-  back.position.set(0, 1.55, -4.4);
-  const left = new THREE.Mesh(new THREE.BoxGeometry(0.28, 3.3, 9), wallMat);
-  left.position.set(-6, 1.55, 0);
+  const back = new THREE.Mesh(new THREE.BoxGeometry(12, 3.6, 0.28), wallMat);
+  back.position.set(0, 1.7, -4.4);
+  const left = new THREE.Mesh(new THREE.BoxGeometry(0.28, 3.6, 9), wallMat);
+  left.position.set(-6, 1.7, 0);
   const right = left.clone();
   right.position.x = 6;
-  const frontL = new THREE.Mesh(new THREE.BoxGeometry(4.6, 3.3, 0.28), wallMat);
-  frontL.position.set(-3.7, 1.55, 4.4);
+  const frontL = new THREE.Mesh(new THREE.BoxGeometry(4.6, 3.6, 0.28), wallMat);
+  frontL.position.set(-3.7, 1.7, 4.4);
   const frontR = frontL.clone();
   frontR.position.x = 3.7;
-  const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.7, 0.28), wallMat);
-  lintel.position.set(0, 2.85, 4.4);
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.85, 0.28), wallMat);
+  lintel.position.set(0, 3.05, 4.4);
   room.add(back, left, right, frontL, frontR, lintel);
-  const rug = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.04, 3.2), stone("#1d4e89", 0.6));
+  const rugMap = rugKnot();
+  const rug = new THREE.Mesh(
+    new THREE.BoxGeometry(2.2, 0.04, 3.2),
+    new THREE.MeshStandardMaterial({ map: rugMap, color: "#ffffff", roughness: 0.8 }),
+  );
   rug.position.set(0, 0.02, 0.6);
   room.add(rug);
   const plant = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), stone("#2f6a34", 0.7));
@@ -596,7 +655,7 @@ function buildBankRoom(maps) {
   const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.32, 8), stone("#ffffff", 0.75, maps.wood));
   pot.position.set(-4.8, 0.18, 2.4);
   room.add(plant, pot);
-  const counter = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.9, 0.55), stone("#ffffff", 0.65, maps.wood));
+  const counter = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.9, 0.55), stone("#8a5a32", 0.7, maps.wood));
   counter.position.set(0, 0.5, -3.15);
   counter.castShadow = true;
   room.add(counter);
@@ -610,21 +669,39 @@ function buildBankRoom(maps) {
     { id: "poc", label: "POCencept", x: 0 },
     { id: "kusdt", label: "KUSDT", x: 2.4 },
   ];
+  const glassMat = new THREE.MeshStandardMaterial({
+    map: diamondGlass(),
+    color: "#d7f0dc",
+    roughness: 0.18,
+    metalness: 0.04,
+    transparent: true,
+    opacity: 0.86,
+    side: THREE.DoubleSide,
+  });
+  const woodFrame = stone("#ffffff", 0.72, maps.wood);
   for (const rail of rails) {
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.15, 0.16), stone("#e6d3b0", 0.55));
-    frame.position.set(rail.x, 1.5, -4.18);
-    const opening = new THREE.Mesh(new THREE.BoxGeometry(1.25, 1.35, 0.08), stone("#2a2118", 0.8));
-    opening.position.set(rail.x, 1.55, -4.05);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.85, 2.25, 0.18), woodFrame);
+    frame.position.set(rail.x, 1.55, -4.2);
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(1.22, 1.28, 0.05), glassMat);
+    glass.position.set(rail.x, 1.58, -4.08);
+    const opening = new THREE.Mesh(
+      new THREE.BoxGeometry(1.25, 1.35, 0.08),
+      new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
+    );
+    opening.position.set(rail.x, 1.55, -3.98);
     opening.userData.rail = rail.id;
-    const shutter = new THREE.Mesh(new THREE.BoxGeometry(1.22, 1.32, 0.07), stone("#ffffff", 0.75, maps.wood));
-    shutter.position.set(rail.x, 1.55, -3.92);
+    const shutter = new THREE.Mesh(new THREE.BoxGeometry(1.28, 1.36, 0.08), stone("#ffffff", 0.75, maps.wood));
+    shutter.position.set(rail.x, 1.55, -3.9);
     const tag = nameTag(rail.label);
-    tag.position.set(rail.x, 2.35, -3.7);
-    const postL = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.95, 6), stone("#e1c27a", 0.4));
+    tag.position.set(rail.x, 2.55, -3.65);
+    const postL = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.05, 0.05, 0.95, 8),
+      new THREE.MeshStandardMaterial({ color: "#e8c56b", metalness: 0.62, roughness: 0.28 }),
+    );
     postL.position.set(rail.x - 0.42, 0.48, -2.15);
     const postR = postL.clone();
     postR.position.x = rail.x + 0.42;
-    room.add(frame, opening, shutter, tag, postL, postR);
+    room.add(frame, glass, opening, shutter, tag, postL, postR);
     booths.push({ id: rail.id, opening, shutter, postL, postR });
   }
   const rope = new THREE.Mesh(
@@ -664,14 +741,14 @@ export function mountWorld(canvas, map, api) {
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#9eb6d4");
-  scene.fog = new THREE.Fog("#d5c4a4", 28, 78);
+  scene.fog = new THREE.Fog("#9aafb8", 48, 120);
   const sky = new THREE.Mesh(
     new THREE.SphereGeometry(140, 20, 12),
     new THREE.MeshBasicMaterial({ map: maps.sky, side: THREE.BackSide, depthWrite: false }),
   );
   scene.add(sky);
 
-  const camera = new THREE.PerspectiveCamera(48, 1, 0.08, 240);
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.08, 240);
   const hemi = new THREE.HemisphereLight("#d5e4f5", "#6a7a40", 0.85);
   const sun = new THREE.DirectionalLight("#ffe0b8", 2.15);
   sun.position.set(-18, 28, 12);
@@ -728,9 +805,9 @@ export function mountWorld(canvas, map, api) {
 
   const boxes = buildingBoxes(map);
   let yaw = 2.55;
-  let pitch = 0.72;
-  let townDistance = 12;
-  let bankDistance = 4.8;
+  let pitch = 0.88;
+  let townDistance = 24;
+  let bankDistance = 9;
   let townYaw = yaw;
   let townPitch = pitch;
   let seenMode = api.mode();
@@ -795,7 +872,7 @@ export function mountWorld(canvas, map, api) {
         townYaw = yaw;
         townPitch = pitch;
         yaw = 0.22;
-        pitch = 1.26;
+        pitch = 0.98;
       } else {
         yaw = townYaw;
         pitch = townPitch;
@@ -828,7 +905,7 @@ export function mountWorld(canvas, map, api) {
     const water = town.getObjectByName("fountain-water");
     if (water) water.position.y = 0.28 + Math.sin(now / 420) * 0.012;
     if (inside) {
-      placeCamera(new THREE.Vector3(0, 1.15, -1.8));
+      placeCamera(new THREE.Vector3(0, 0.9, -0.8));
       pose(bank.teller, now, false);
     } else {
       placeCamera(new THREE.Vector3(shown.x, 1.15, shown.z));
@@ -912,8 +989,8 @@ export function mountWorld(canvas, map, api) {
   canvas.addEventListener("contextmenu", (ev) => ev.preventDefault());
   canvas.addEventListener("wheel", (ev) => {
     ev.preventDefault();
-    if (api.mode() === "bank") bankDistance = Math.min(12, Math.max(4.4, bankDistance + Math.sign(ev.deltaY) * 0.45));
-    else townDistance = Math.min(32, Math.max(6.5, townDistance + Math.sign(ev.deltaY) * 0.8));
+    if (api.mode() === "bank") bankDistance = Math.min(14, Math.max(6.5, bankDistance + Math.sign(ev.deltaY) * 0.45));
+    else townDistance = Math.min(42, Math.max(12, townDistance + Math.sign(ev.deltaY) * 0.8));
   }, { passive: false });
   function typing(ev) {
     const el = ev.target;

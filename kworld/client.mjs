@@ -10,7 +10,7 @@ import {
   parseTkas,
   sompiForCents,
 } from "./money.mjs";
-import { mountWorld } from "./view3d.mjs?v=2";
+import { mountWorld } from "./view3d.mjs?v=3";
 import { destinationFor, findPath, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -119,11 +119,9 @@ function paintChrome() {
   const poc = state.account ? formatCents(state.account.poc) + " POC" : "— POC";
   const kusdt = state.account ? formatCents(state.account.kusdt) + " KUSDT" : "— KUSDT";
   const frozen = state.account && state.account.kusdtFrozen ? " · KUSDT frozen" : "";
-  const price = state.oracle ? "Live KAS $" + Number(state.oracle).toFixed(4) + ". " : "";
-  const guestLine = id.kind === "guest" ? " This test address dies when you close the tab." : "";
+  const guestLine = id.kind === "guest" ? " · this tab only" : "";
   bar.innerHTML =
-    "<strong>" + esc(label) + "</strong> · " + esc(kas) + " · " + esc(poc) + " · " + esc(kusdt) + frozen +
-    '<p class="fine">' + esc(price) + "Testnet-10 toys. Not dollars. Not Tether. Not a SEPA rail. Mainnet wallets are refused. The POC and KUSDT tags do not move when the KAS price moves." + esc(guestLine) + "</p>";
+    "<strong>" + esc(label) + "</strong> · " + esc(kas) + " · " + esc(poc) + " · " + esc(kusdt) + frozen + esc(guestLine);
 
   const buttons = [
     ["world", "Square"],
@@ -485,7 +483,7 @@ function paintShop(shopId) {
 
 function slotGrid(cells) {
   let html = "";
-  for (let i = 0; i < 32; i++) {
+  for (let i = 0; i < 28; i++) {
     const cell = cells[i];
     if (!cell) {
       html += '<div class="slot"></div>';
@@ -517,27 +515,25 @@ function paintBank() {
   let actions = "";
   if (rail === "kas") {
     actions =
-      '<label class="amt">Enter amount<input id="lock-amt" value="1" inputmode="decimal"></label>' +
-      '<div class="kw-row"><button type="button" id="lock-poc">Lock into POCencept</button><button type="button" id="lock-kusdt">Lock into KUSDT</button></div>' +
+      '<label class="amt">Amount<input id="lock-amt" value="1" inputmode="decimal"></label>' +
+      '<div class="kw-row"><button type="button" id="lock-poc">Lock → POCencept</button><button type="button" id="lock-kusdt">Lock → KUSDT</button></div>' +
       '<label class="amt">txid, if you sent it yourself<input id="lock-txid" spellcheck="false" autocomplete="off"></label>' +
       '<p class="fine">' + esc(quote) + " Spendable " + esc(kas) + " tKAS. Reserve " + esc(state.reserve) + ". Miner fee is extra tKAS.</p>";
   } else if (rail === "poc") {
     cells = [{ label: "POC", count: poc }];
     if (state.account && state.account.practice) cells[1] = { label: "Purse", count: "20" };
     actions =
-      '<label class="amt">Enter amount<input id="redeem-amt" value="0.05" inputmode="decimal"></label>' +
-      '<div class="kw-row"><button type="button" id="redeem-poc">Redeem POC</button><button type="button" id="purse">Take the practice purse</button></div>';
+      '<label class="amt">Amount<input id="redeem-amt" value="0.05" inputmode="decimal"></label>' +
+      '<div class="kw-row"><button type="button" id="redeem-poc">Redeem</button><button type="button" id="purse">Practice purse</button></div>';
   } else {
     cells = [{ label: "KUSDT", count: kusdt, extra: frozen ? "frozen-coin" : "" }];
     actions =
-      '<label class="amt">Enter amount<input id="redeem-amt" value="0.05" inputmode="decimal"></label>' +
-      '<p class="fine">' + (frozen ? "Frozen." : "Thawed.") + "</p>" +
-      '<div class="kw-row"><button type="button" id="redeem-kusdt">Redeem KUSDT</button><button type="button" id="freeze">Freeze or thaw KUSDT</button></div>';
+      '<label class="amt">Amount<input id="redeem-amt" value="0.05" inputmode="decimal"></label>' +
+      '<div class="kw-row"><button type="button" id="redeem-kusdt">Redeem</button><button type="button" id="freeze">' + (frozen ? "Thaw" : "Freeze") + "</button></div>";
   }
   panel.innerHTML =
-    balanceSheet() +
     '<div class="booth-tabs">' + tabs + "</div>" +
-    "<h2>Venn's bank — " + names[rail] + "</h2>" +
+    "<h2>Venn's bank</h2>" +
     '<div class="slots' + (rail === "kusdt" && frozen ? " frozen" : "") + '">' + slotGrid(cells) + "</div>" +
     actions;
   const lockPoc = document.getElementById("lock-poc");
