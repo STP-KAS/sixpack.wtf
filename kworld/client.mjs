@@ -397,7 +397,7 @@ function paintGuide() {
     "<h2>How to try this on Testnet 10</h2>" +
     "<ol>" +
     "<li>Install Kasware or Kastle and set the network to Testnet 10 before you connect. A mainnet address is refused. That login stays on this browser.</li>" +
-    "<li>Or press Test without a wallet. This tab gets a new funded kaspatest address. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved.</li>" +
+    "<li>Or choose New arrival on the welcome gate. That is the same as Test without a wallet. This tab gets a new funded kaspatest address. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. Returning leaves the gate and uses a wallet that stays on this browser.</li>" +
     "<li>Or paste a kaspatest address. Or type a .kas name that already resolves on TN10. That choice stays until you change it.</li>" +
     "<li>Need coins: the faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. Take the practice purse in the bank. That purse is play money.</li>" +
     "<li>Walk to a door, or use the left tabs. Pay tKAS, POCencept, or KUSDT.</li>" +
@@ -613,17 +613,21 @@ function frame() {
 }
 
 function tileColor(tile, x, y, t) {
-  if (tile === "g") return (x + y) % 2 ? "#3e6b38" : "#46743f";
-  if (tile === "c") return (x + y) % 2 ? "#8d8478" : "#9a9186";
-  if (tile === "p") return "#c2b48a";
-  if (tile === "i") return (x + y) % 2 ? "#6d5a45" : "#75624c";
-  if (tile === "W") return "#5c4638";
-  if (tile === "d") return "#e1c27a";
-  if (tile === "w") return t % 800 < 400 ? "#2f6f98" : "#3d82ad";
-  if (tile === "t") return "#1d4a2c";
-  if (tile === "f") return "#3e6b38";
-  if (tile === "r") return "#8d3a32";
+  if (tile === "g") return (x + y) % 2 ? "#6f8f3c" : "#7c9a46";
+  if (tile === "c") return (x + y) % 2 ? "#8f8b84" : "#9c978f";
+  if (tile === "p") return (x + y) % 2 ? "#b7a888" : "#c6b896";
+  if (tile === "i") return "#6a5340";
+  if (tile === "W") return (x + y) % 2 ? "#8e8a84" : "#7d7973";
+  if (tile === "d") return "#6b3e22";
+  if (tile === "w") return t % 900 < 450 ? "#2f6fa3" : "#3d82b8";
+  if (tile === "t") return "#24502e";
+  if (tile === "f") return (x + y) % 2 ? "#6f8f3c" : "#7c9a46";
+  if (tile === "r") return "#6e342c";
   return "#333";
+}
+
+function buildingAt(x, y) {
+  return map.buildings.find((b) => x >= b.x && y >= b.y && x < b.x + b.w && y < b.y + b.h) || null;
 }
 
 function drawPerson(g, x, y, color, name, tile) {
@@ -631,21 +635,78 @@ function drawPerson(g, x, y, color, name, tile) {
   const py = y * tile + tile / 2;
   g.fillStyle = "rgba(0,0,0,0.35)";
   g.beginPath();
-  g.ellipse(px, py + 8, 7, 3, 0, 0, Math.PI * 2);
+  g.ellipse(px, py + tile * 0.28, tile * 0.28, tile * 0.1, 0, 0, Math.PI * 2);
   g.fill();
+  g.fillStyle = "#2a241c";
+  g.fillRect(px - tile * 0.1, py + tile * 0.05, tile * 0.08, tile * 0.22);
+  g.fillRect(px + tile * 0.02, py + tile * 0.05, tile * 0.08, tile * 0.22);
   g.fillStyle = color;
-  g.fillRect(px - 5, py - 4, 10, 12);
+  g.fillRect(px - tile * 0.18, py - tile * 0.16, tile * 0.36, tile * 0.28);
   g.fillStyle = "#f3e0c8";
   g.beginPath();
-  g.arc(px, py - 8, 4, 0, Math.PI * 2);
+  g.arc(px, py - tile * 0.28, tile * 0.14, 0, Math.PI * 2);
   g.fill();
   if (name) {
-    g.font = "11px Segoe UI, sans-serif";
+    g.font = Math.max(10, tile * 0.42) + "px Segoe UI, sans-serif";
     g.textAlign = "center";
     g.fillStyle = "#1a1612";
-    g.fillText(name, px + 1, py - 16);
+    g.fillText(name, px + 1, py - tile * 0.52);
     g.fillStyle = "#f2d48a";
-    g.fillText(name, px, py - 17);
+    g.fillText(name, px, py - tile * 0.56);
+  }
+}
+
+function drawBuildings(g, tile, offX, offY) {
+  for (const b of map.buildings) {
+    const x = offX + b.x * tile;
+    const y = offY + b.y * tile;
+    const w = b.w * tile;
+    const h = b.h * tile;
+    g.fillStyle = b.id === "bank" ? "#1d4e86" : "#6a5344";
+    g.fillRect(x + tile * 0.15, y + tile * 0.85, w - tile * 0.3, h - tile * 0.95);
+    g.fillStyle = "#9b9791";
+    g.fillRect(x, y + tile * 0.45, w, h - tile * 0.45);
+    g.fillStyle = "#6f6b65";
+    g.fillRect(x, y + h - tile * 0.35, w, tile * 0.35);
+    for (let col = 1; col < b.w; col++) {
+      g.fillStyle = "rgba(30,28,24,0.28)";
+      g.fillRect(x + col * tile, y + tile * 0.45, 1, h - tile * 0.45);
+    }
+    g.fillStyle = b.roof;
+    g.beginPath();
+    g.moveTo(x - tile * 0.2, y + tile * 0.7);
+    g.lineTo(x + w / 2, y - tile * 0.15);
+    g.lineTo(x + w + tile * 0.2, y + tile * 0.7);
+    g.closePath();
+    g.fill();
+    g.fillStyle = "#1a1612";
+    g.fillRect(x + tile * 0.4, y + tile * 0.62, w - tile * 0.8, tile * 0.08);
+    const sx = x + w / 2;
+    g.font = "600 " + Math.max(13, tile * 0.62) + "px Segoe UI, sans-serif";
+    g.textAlign = "center";
+    const board = Math.min(w - tile * 0.4, Math.max(tile * 2.4, g.measureText(b.sign).width + tile * 0.9));
+    g.fillStyle = "#5c3a22";
+    g.fillRect(sx - board / 2, y + tile * 0.95, board, tile * 0.72);
+    g.fillStyle = "#f3e6c8";
+    g.fillText(b.sign, sx, y + tile * 1.48);
+    const dx = offX + b.door.x * tile;
+    const dy = offY + b.door.y * tile;
+    g.fillStyle = "#5a3418";
+    g.fillRect(dx + tile * 0.22, dy + tile * 0.12, tile * 0.56, tile * 0.88);
+    g.fillStyle = "#e1c27a";
+    g.fillRect(dx + tile * 0.62, dy + tile * 0.5, tile * 0.08, tile * 0.08);
+  }
+  const market = map.buildings.find((b) => b.id === "groceries");
+  if (market) {
+    const ax = offX + (market.x - 1) * tile;
+    const ay = offY + (market.y + market.h) * tile;
+    const aw = (market.w + 1) * tile;
+    g.fillStyle = "#2f5f9a";
+    g.fillRect(ax, ay, aw, tile * 0.55);
+    for (let i = 0; i < market.w + 1; i++) {
+      g.fillStyle = i % 2 ? "#f4f1e8" : "#2f5f9a";
+      g.fillRect(ax + i * tile, ay, tile, tile * 0.55);
+    }
   }
 }
 
@@ -654,37 +715,60 @@ function draw() {
   const box = frame();
   const { dpr, tile, offX, offY, cssW, cssH } = box;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = "#142016";
+  ctx.fillStyle = "#8ec4e8";
   ctx.fillRect(0, 0, cssW, cssH);
   for (let y = 0; y < map.h; y++) {
     for (let x = 0; x < map.w; x++) {
-      ctx.fillStyle = tileColor(map.grid[y][x], x, y, t);
-      ctx.fillRect(offX + x * tile, offY + y * tile, tile + 0.4, tile + 0.4);
-      if (map.grid[y][x] === "f") {
-        ctx.fillStyle = "#e7c56a";
-        ctx.fillRect(offX + x * tile + tile * 0.4, offY + y * tile + tile * 0.45, tile * 0.2, tile * 0.2);
-      }
-      if (map.grid[y][x] === "t") {
-        ctx.fillStyle = "#14381f";
+      const kind = map.grid[y][x];
+      const home = buildingAt(x, y);
+      ctx.fillStyle = home && home.id === "bank" && kind === "i" ? "#245a96" : tileColor(kind, x, y, t);
+      ctx.fillRect(offX + x * tile, offY + y * tile, tile + 0.5, tile + 0.5);
+      const px = offX + x * tile;
+      const py = offY + y * tile;
+      const edge = x === 0 || y === 0 || x === map.w - 1 || y === map.h - 1;
+      if (kind === "t" && edge) {
+        ctx.fillStyle = "#b7b2aa";
+        ctx.fillRect(px, py, tile + 0.5, tile + 0.5);
+        ctx.fillStyle = "#8a857e";
+        if ((x + y) % 2 === 0) ctx.fillRect(px, py, tile * 0.45, tile * 0.35);
+      } else if (kind === "t") {
+        ctx.fillStyle = "#6b4a2a";
+        ctx.fillRect(px + tile * 0.42, py + tile * 0.45, tile * 0.16, tile * 0.5);
+        ctx.fillStyle = "#2f6a34";
         ctx.beginPath();
-        ctx.arc(offX + x * tile + tile / 2, offY + y * tile + tile * 0.42, tile * 0.32, 0, Math.PI * 2);
+        ctx.arc(px + tile / 2, py + tile * 0.38, tile * 0.34, 0, Math.PI * 2);
         ctx.fill();
+      }
+      if (kind === "f") {
+        ctx.fillStyle = "#e7c56a";
+        ctx.fillRect(px + tile * 0.38, py + tile * 0.42, tile * 0.18, tile * 0.18);
+      }
+      if (kind === "w") {
+        ctx.fillStyle = "#d7d2c8";
+        ctx.fillRect(px, py, tile + 0.5, tile * 0.12);
       }
     }
   }
-  for (const building of map.buildings) {
-    ctx.fillStyle = building.roof;
-    ctx.fillRect(offX + building.x * tile, offY + building.y * tile, building.w * tile, tile * 1.15);
-    ctx.fillStyle = "#f3e6c8";
-    ctx.font = Math.max(10, tile * 0.46) + "px Segoe UI, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(building.sign, offX + (building.x + building.w / 2) * tile, offY + building.y * tile + tile * 0.8);
-  }
+  drawBuildings(ctx, tile, offX, offY);
+  const fx = offX + 20.5 * tile;
+  const fy = offY + 16 * tile;
+  ctx.fillStyle = "#d7d2c8";
+  ctx.beginPath();
+  ctx.ellipse(fx, fy, tile * 2.1, tile * 1.35, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = t % 900 < 450 ? "#2f6fa3" : "#3d82b8";
+  ctx.beginPath();
+  ctx.ellipse(fx, fy, tile * 1.55, tile * 0.95, 0, 0, Math.PI * 2);
+  ctx.fill();
   ctx.fillStyle = "#c0392b";
-  ctx.fillRect(offX + map.car.x * tile, offY + map.car.y * tile + tile * 0.2, map.car.w * tile, tile * 0.7);
+  ctx.fillRect(offX + map.car.x * tile, offY + map.car.y * tile + tile * 0.25, map.car.w * tile, tile * 0.55);
+  ctx.fillStyle = "#8fd0f0";
+  ctx.fillRect(offX + map.car.x * tile + tile * 0.4, offY + map.car.y * tile + tile * 0.32, tile * 1.1, tile * 0.28);
   ctx.fillStyle = "#1a1612";
-  ctx.fillRect(offX + map.car.x * tile + tile * 0.25, offY + map.car.y * tile + tile * 0.7, tile * 0.28, tile * 0.28);
-  ctx.fillRect(offX + (map.car.x + map.car.w) * tile - tile * 0.55, offY + map.car.y * tile + tile * 0.7, tile * 0.28, tile * 0.28);
+  ctx.beginPath();
+  ctx.arc(offX + map.car.x * tile + tile * 0.7, offY + map.car.y * tile + tile * 0.85, tile * 0.22, 0, Math.PI * 2);
+  ctx.arc(offX + (map.car.x + map.car.w) * tile - tile * 0.7, offY + map.car.y * tile + tile * 0.85, tile * 0.22, 0, Math.PI * 2);
+  ctx.fill();
   for (const npc of map.npcs) drawPerson(ctx, npc.x + offX / tile, npc.y + offY / tile, npc.color, npc.name, tile);
   const bob = Math.sin(t / 180) * 0.04;
   drawPerson(ctx, state.player.x + offX / tile, state.player.y + offY / tile + bob, "#f2d16b", "", tile);
@@ -807,6 +891,30 @@ you.addEventListener("click", (ev) => {
   if (ev.target.id === "use-addr") useAddress();
   if (ev.target.id === "use-name") useName();
 });
+
+const gate = document.getElementById("gate");
+function hideGate() {
+  if (gate) gate.hidden = true;
+}
+document.getElementById("gate-new").addEventListener("click", () => {
+  startGuest()
+    .then(() => {
+      if (state.id.kind === "guest") hideGate();
+    })
+    .catch((err) => say(err.message, true));
+});
+document.getElementById("gate-back").addEventListener("click", () => {
+  hideGate();
+  if (state.id.kind === "guest") {
+    say("This tab is already a new arrival. Close the tab and that address is gone. Pick a wallet in the panel if you want the history kept.");
+  } else if (state.id.address) {
+    say("Returning as " + (state.id.label || state.id.address) + ". This one stays on this browser.");
+  } else {
+    say("Returning. Pick Kasware, Kastle, a kaspatest address, or a .kas name. That choice stays on this browser.");
+  }
+  const addr = document.getElementById("addr");
+  if (addr) addr.focus();
+});
 panel.addEventListener("click", (ev) => {
   const button = ev.target.closest("[data-pay]");
   if (!button) return;
@@ -815,7 +923,7 @@ panel.addEventListener("click", (ev) => {
 
 requestAnimationFrame(step);
 paintChrome();
-say("Kworld. Testnet 10. Use a wallet, or test without one. A test address dies when you close the tab.");
+say("Kworld. Testnet 10. The gate asks if you are a new arrival or returning.");
 window.addEventListener("pagehide", () => {
   if (state.id.kind !== "guest" || !state.id.token) return;
   const payload = JSON.stringify({ token: state.id.token, address: state.id.address, life: PAGE_LIFE });

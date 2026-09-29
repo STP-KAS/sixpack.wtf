@@ -26,6 +26,7 @@ body.kworld-page .tabs a.on,
 body.kworld-page .tabs button.on { background: #8a7040; color: #1a1612; }
 
 .kw {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: grid;
@@ -115,6 +116,48 @@ body.kworld-page .tabs button.on { background: #8a7040; color: #1a1612; }
 .repo-cloud { display: flex; flex-wrap: wrap; gap: 0.25rem; }
 .repo-cloud a { color: #f2d48a; font-size: 0.72rem; }
 a { color: #f2d48a; }
+
+.kw-gate {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(ellipse at 18% 78%, rgba(196, 92, 28, 0.45), transparent 36%),
+    radial-gradient(ellipse at 82% 78%, rgba(196, 92, 28, 0.45), transparent 36%),
+    linear-gradient(#4a453c 0%, #1a1614 42%, #2c2822 100%);
+}
+.kw-gate[hidden] { display: none; }
+.kw-gate-card {
+  width: min(460px, calc(100% - 1.5rem));
+  text-align: center;
+  color: #f3e6c8;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), transparent 30%),
+    linear-gradient(#5c574e, #3a3630 55%, #2a2723);
+  border: 3px solid #7a756c;
+  border-radius: 12px;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.55), inset 0 0 0 2px #1c1916;
+  padding: 1.15rem 1rem 0.95rem;
+}
+.kw-gate h1 {
+  margin: 0.35rem 0 0.4rem;
+  color: #f2d48a;
+  font-size: 1.55rem;
+  letter-spacing: 0.03em;
+}
+.kw-gate-card > p { margin: 0.35rem 0; }
+.kw-world {
+  display: inline-block;
+  margin: 0;
+  padding: 0.12rem 0.5rem;
+  border: 1px solid #c6a15a;
+  color: #f2d48a;
+  font-size: 0.75rem;
+}
+.kw-gate-row { display: flex; gap: 0.55rem; margin: 0.85rem 0 0.7rem; }
+.kw-gate-row button { flex: 1; text-align: center; font-weight: 700; padding: 0.55rem 0.4rem; }
 
 @media (max-width: 980px) {
   body.kworld-page { height: auto; overflow: auto; }
