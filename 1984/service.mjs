@@ -271,6 +271,17 @@ export function create1984Service(deps) {
           const found = await resolveName(query.get("name") || "", deps.fetch);
           return { status: 200, body: { ok: true, found } };
         }
+        if (method === "GET" && pathname === "/api/1984/fee") {
+          let rate = 200;
+          try {
+            const quoted = deps.feeRate ? await deps.feeRate() : await (await import("../faucet/pay.mjs")).quotedPayFeeRate();
+            const n = Number(quoted);
+            if (Number.isFinite(n) && n >= 200) rate = n;
+          } catch {
+            rate = 200;
+          }
+          return { status: 200, body: { ok: true, network: "testnet-10", feerate: rate } };
+        }
         if (method === "GET" && pathname === "/api/1984/quote") {
           const shop = shopById(query.get("shop"));
           const item = shop && itemBySku(shop.id, query.get("sku"));

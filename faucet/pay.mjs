@@ -145,6 +145,18 @@ async function feeRateFor(rpc) {
   }
 }
 
+/** Doubled ordinary fee from a synced Testnet 10 node. No key and no spend. */
+export async function quotedPayFeeRate() {
+  const kaspa = await sdk();
+  const net = new kaspa.NetworkId("testnet-10");
+  const rpc = await connectRpc(kaspa, net);
+  try {
+    return await feeRateFor(rpc);
+  } finally {
+    await rpc.disconnect().catch(() => undefined);
+  }
+}
+
 function assertPayAddress(value) {
   const address = String(value || "").trim();
   if (/^kaspa:/i.test(address) && !/^kaspatest:/i.test(address)) {

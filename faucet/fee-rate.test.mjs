@@ -20,4 +20,5 @@ test("a wallet payment carries the same double rate", () => {
   assert.equal(WALLET_PRIORITY_SOMPI, 2_000_000);
   assert.match(page, /payFeeRate/);
   assert.match(page, /WALLET_PRIORITY_SOMPI/);
+  assert.match(page, /\/api\/1984\/fee/);
 });

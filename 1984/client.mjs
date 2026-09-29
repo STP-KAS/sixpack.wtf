@@ -807,6 +807,13 @@ function tookPayment(body, sku) {
   }
 }
 
+async function walletFeeRate() {
+  const body = await api("/api/1984/fee");
+  const n = Number(body && body.feerate);
+  if (body && body.ok && Number.isFinite(n) && n >= 200) return n;
+  return payFeeRate(null);
+}
+
 function rememberShopTxid(txid) {
   shopTxid = String(txid || "").trim();
   const box = panel.querySelector("#txid");
@@ -879,7 +886,7 @@ async function spend(rail, shop, sku, confirmed) {
           return;
         }
         say("Approve " + formatTkas(quote.sompi) + " tKAS in the wallet. The miner fee is twice the standard rate, and it is extra.");
-        txid = await kit.sendKaspa(state.reserve, Number(quote.sompi), { priorityFee: WALLET_PRIORITY_SOMPI, feeRate: payFeeRate(null) });
+        txid = await kit.sendKaspa(state.reserve, Number(quote.sompi), { priorityFee: WALLET_PRIORITY_SOMPI, feeRate: await walletFeeRate() });
         rememberShopTxid(txid);
         if (!shopTxid) {
           say("The wallet did not return a transaction. Nothing was claimed.", true);
@@ -982,7 +989,7 @@ async function lock(rail) {
           return;
         }
         swapNote("Approve " + shown + " in the wallet. The miner fee is twice the standard rate, and it is extra.", "wait");
-        txid = await kit.sendKaspa(state.reserve, Number(sompi), { priorityFee: WALLET_PRIORITY_SOMPI, feeRate: payFeeRate(null) });
+        txid = await kit.sendKaspa(state.reserve, Number(sompi), { priorityFee: WALLET_PRIORITY_SOMPI, feeRate: await walletFeeRate() });
       }
       sent = true;
       if (txField && txid) {
