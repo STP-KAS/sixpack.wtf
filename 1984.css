@@ -293,6 +293,58 @@ body.page-1984 main.kw-stage {
   padding: 0.12rem 0;
   font: inherit;
 }
+.kw-panel.swap-pop {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  width: min(520px, calc(100% - 1rem));
+  max-height: min(74dvh, 560px);
+  z-index: 6;
+  margin: 0;
+  padding: 0.85rem 0.9rem 1rem;
+  overflow: auto;
+}
+.bank-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: rgba(10, 8, 6, 0.5);
+}
+.bank-shade[hidden] { display: none; }
+.swap-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.swap-head h2 { margin: 0; }
+.swap-head button { flex: 0 0 auto; }
+.swap-bals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0.55rem 0 0.35rem;
+}
+button.swap-bal {
+  width: 100%;
+  background: #2a1a10;
+  border: 2px solid #8a7040;
+  box-shadow: none;
+  padding: 0.5rem 0.35rem 0.55rem;
+  text-align: center;
+  color: #f3e6c8;
+  cursor: pointer;
+}
+button.swap-bal.on { border-color: #f2d48a; background: #3a2818; }
+button.swap-bal.frozen { box-shadow: inset 0 -4px 0 #c0392b; }
+button.swap-bal span { display: block; color: #f2d48a; font-size: 0.72rem; font-weight: 700; }
+button.swap-bal strong {
+  display: block;
+  margin: 0.2rem 0 0.1rem;
+  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+  overflow-wrap: anywhere;
+  color: #f3e6c8;
+}
+button.swap-bal small { display: block; color: #b7a88a; font-size: 0.68rem; line-height: 1.25; font-weight: 400; }
+.swap .kw-row button { text-align: center; font-weight: 700; }
 .kw-panel[hidden] { display: none; }
 .kw-row { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.25rem 0 0.45rem; }
 .kw-row button { flex: 1 1 7rem; }
@@ -342,6 +394,8 @@ a { color: #f2d48a; }
   font-size: 0.75rem;
 }
 .kw-gate-row { display: flex; gap: 0.55rem; margin: 0.85rem 0 0.35rem; }
+.kw-wallets { margin-top: 0.2rem; }
+.kw-wallets button { font-weight: 700; }
 .gate-status { min-height: 1.25em; margin: 0.15rem 0 0.35rem; color: #f2d48a; font-size: 0.88rem; }
 .gate-status.bad { color: #ffb4a8; }
 .kw-gate-row button { flex: 1; text-align: center; font-weight: 700; padding: 0.55rem 0.4rem; }
@@ -389,4 +443,16 @@ a { color: #f2d48a; }
   .kw-chat { height: 92px; }
   .booth-tabs { flex-wrap: nowrap; }
   .slots { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .swap-bals { grid-template-columns: 1fr; }
+  .kw-panel.swap-pop {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    right: auto;
+    bottom: auto;
+    width: min(520px, calc(100% - 1rem));
+    max-height: min(74dvh, 560px);
+    margin: 0;
+    z-index: 6;
+  }
 }

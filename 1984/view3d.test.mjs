@@ -2,7 +2,21 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { buildingBoxes, clearCamera, groundStep, headingYaw, orbitOffset } from "./view3d.mjs";
+import { LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, buildingBoxes, clearCamera, groundStep, headingYaw, orbitOffset } from "./view3d.mjs";
+
+test("a long left-button drag turns most of a circle and stays short of two", () => {
+  const sweep = 1000 * LOOK_YAW;
+  assert.ok(sweep > Math.PI / 2);
+  assert.ok(sweep < 2.2 * Math.PI);
+  assert.ok(LOOK_PITCH > 0 && LOOK_PITCH < LOOK_YAW);
+  assert.ok(PITCH_MIN > 0 && PITCH_MIN < 0.5);
+  assert.ok(PITCH_MAX > 1.2 && PITCH_MAX < Math.PI / 2);
+  const here = orbitOffset(0.4, 0.9);
+  const around = orbitOffset(0.4 + Math.PI * 2, 0.9);
+  assert.ok(Math.abs(here.x - around.x) < 1e-9);
+  assert.ok(Math.abs(here.y - around.y) < 1e-9);
+  assert.ok(Math.abs(here.z - around.z) < 1e-9);
+});
 
 test("yaw 0 and a right-angle pitch puts the camera on +Z", () => {
   const offset = orbitOffset(0, Math.PI / 2);

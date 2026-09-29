@@ -8,6 +8,13 @@ const BANK_BODY = 5.1;
 const SHOP_BODY = 3.45;
 const ROOF_RISE = 1.35;
 
+/** Radians per pixel while the left button is held. A 1000px drag is about 240 degrees. */
+export const LOOK_YAW = 0.0042;
+export const LOOK_PITCH = 0.0026;
+/** Pitch stays above the floor and short of upside down. Yaw is a full circle. */
+export const PITCH_MIN = 0.2;
+export const PITCH_MAX = 1.45;
+
 /** Camera offset from the look target. yaw 0 and pitch = π/2 sits the camera on +Z. */
 export function orbitOffset(yaw, pitch) {
   return {
@@ -949,10 +956,10 @@ export function mountWorld(canvas, map, api) {
     if (!drag) return;
     const dx = ev.clientX - drag.x;
     const dy = ev.clientY - drag.y;
-    if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
-    if (!drag.moved) return;
-    yaw -= dx * 0.008;
-    pitch = Math.min(1.28, Math.max(0.28, pitch + dy * 0.005));
+    if (Math.abs(dx) + Math.abs(dy) > 5) drag.moved = true;
+    if (!drag.moved || drag.button !== 0) return;
+    yaw -= dx * LOOK_YAW;
+    pitch = Math.min(PITCH_MAX, Math.max(PITCH_MIN, pitch + dy * LOOK_PITCH));
     drag.x = ev.clientX;
     drag.y = ev.clientY;
   });

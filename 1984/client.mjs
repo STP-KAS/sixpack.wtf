@@ -10,7 +10,7 @@ import {
   parseTkas,
   sompiForCents,
 } from "./money.mjs";
-import { mountWorld } from "./view3d.mjs?v=3";
+import { mountWorld } from "./view3d.mjs?v=4";
 import { destinationFor, findPath, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -142,7 +142,8 @@ function paintChrome() {
   you.innerHTML =
     "<h2>Who is paying</h2>" +
     "<p class=\"fine\">A wallet or a pasted address stays until you change it. A test address dies with this tab. Never a seed.</p>" +
-    '<div class="kw-row"><button type="button" id="use-kasware">Kasware</button><button type="button" id="use-kastle">Kastle</button></div>' +
+    '<p class="fine">Testnet 10 only. A mainnet wallet is refused.</p>' +
+    '<div class="kw-row"><button type="button" id="use-kasware">Log in with Kasware</button><button type="button" id="use-kastle">Log in with Kastle</button></div>' +
     '<button type="button" id="use-guest">Test without a wallet</button>' +
     '<p class="warn">' + esc(GUEST_DISCLAIMER) + "</p>" +
     (guestOn
@@ -248,7 +249,8 @@ async function connectWallet(kind) {
     return;
   }
   const name = kind === "kasware" ? "Kasware" : "Kastle";
-  say(name + ": approve Log in. This page is opening the wallet on Testnet 10. If the window is black, close it, click the " + name + " icon, unlock, and try again.");
+  gateStatus("Opening " + name + " on Testnet 10…");
+  say(name + ": approve the login. This page accepts Testnet 10 only.");
   const got = await kit.connect(kind);
   let switchError = "";
   try {
@@ -256,14 +258,21 @@ async function connectWallet(kind) {
   } catch (err) {
     switchError = err && err.message ? err.message : name + " did not switch to Testnet 10.";
   }
+  await new Promise((resolve) => setTimeout(resolve, 300));
   let address = await readLiveAddress(kind);
   if (!address) address = (got && got.address) || "";
-  if (/^kaspa:/i.test(address) && !/^kaspatest:/i.test(address) && !switchError) {
+  let net = await readLiveNetwork(kind);
+  if (/main/i.test(net) || (/^kaspa:/i.test(address) && !/^kaspatest:/i.test(address))) {
+    try {
+      await switchToTn10(kind);
+    } catch (err) {
+      switchError = switchError || (err && err.message) || name + " did not switch to Testnet 10.";
+    }
     await new Promise((resolve) => setTimeout(resolve, 400));
     const again = await readLiveAddress(kind);
     if (again) address = again;
+    net = await readLiveNetwork(kind);
   }
-  const net = await readLiveNetwork(kind);
   try {
     assertNotMainnetNetwork(net);
     assertTestnet(address);
@@ -271,12 +280,16 @@ async function connectWallet(kind) {
     try {
       await kit.logout();
     } catch (_) {}
+    gateStatus("Testnet 10 only. Mainnet was refused.", true);
+    say(name + " is not on Testnet 10. Set Testnet 10 in the wallet and click again. Mainnet is refused.", true);
     if (switchError) say(switchError, true);
-    say(err.message, true);
     return;
   }
-  setIdentity({ address, label: address, kind });
-  if (switchError) say("The wallet did not change network from this page. This address is already Testnet 10.");
+  setIdentity({ address, label: name, kind });
+  hideGate();
+  gateStatus("");
+  if (switchError) say(name + " is logged in. The address is Testnet 10. The wallet did not switch from this page.");
+  else say(name + " is logged in on Testnet 10. This login stays on this browser.");
 }
 
 async function startGuest() {
@@ -390,6 +403,9 @@ function openMode(mode) {
   state.mode = mode;
   markRoom();
   paintChrome();
+  const shade = document.getElementById("bank-shade");
+  panel.classList.toggle("swap-pop", mode === "bank");
+  if (shade) shade.hidden = mode !== "bank";
   if (mode === "world") {
     panel.hidden = true;
     panel.innerHTML = "";
@@ -482,73 +498,44 @@ function paintShop(shopId) {
     "<p class=\"fine\">One rail for the whole menu. POCencept and KUSDT are toys. tKAS asks the wallet, and the miner fee is extra.</p>";
 }
 
-function slotGrid(cells) {
-  let html = "";
-  for (let i = 0; i < 28; i++) {
-    const cell = cells[i];
-    if (!cell) {
-      html += '<div class="slot"></div>';
-      continue;
-    }
-    html +=
-      '<div class="slot filled' + (cell.extra ? " " + cell.extra : "") + '">' +
-      '<span class="coin">' + esc(cell.label) + "</span>" +
-      '<span class="qty">' + esc(cell.count) + "</span></div>";
-  }
-  return html;
+function swapAmount() {
+  const el = document.getElementById("swap-amt");
+  return el ? el.value : "";
 }
 
 function paintBank() {
   const rail = state.bankRail || "kas";
-  const names = { kas: "tKAS", poc: "POCencept", kusdt: "KUSDT" };
-  const tabs = ["kas", "poc", "kusdt"]
-    .map((id) => {
-      const on = id === rail && !state.bankFlight ? ' class="on"' : "";
-      return '<button type="button" data-booth="' + id + '"' + on + ">" + names[id] + "</button>";
-    })
-    .join("");
   const quote = state.oracle ? "Live KAS $" + Number(state.oracle).toFixed(4) + "." : "Live quote unavailable.";
   const kas = !state.id.address ? "—" : state.kasSompi == null ? "…" : formatTkas(state.kasSompi);
-  const poc = state.account ? formatCents(state.account.poc) : "0.00";
-  const kusdt = state.account ? formatCents(state.account.kusdt) : "0.00";
+  const poc = splitCents(state.account && state.account.poc, state.account && state.account.pocBacked);
+  const kusdt = splitCents(state.account && state.account.kusdt, state.account && state.account.kusdtBacked);
   const frozen = !!(state.account && state.account.kusdtFrozen);
-  let cells = [{ label: "tKAS", count: kas, extra: state.bankFlight ? "leaving" : "" }];
-  let actions = "";
-  if (rail === "kas") {
-    actions =
-      '<label class="amt">Amount<input id="lock-amt" value="1" inputmode="decimal"></label>' +
-      '<div class="kw-row"><button type="button" id="lock-poc">Lock → POCencept</button><button type="button" id="lock-kusdt">Lock → KUSDT</button></div>' +
-      '<label class="amt">txid, if you sent it yourself<input id="lock-txid" spellcheck="false" autocomplete="off"></label>' +
-      '<p class="fine">' + esc(quote) + " Spendable " + esc(kas) + " tKAS. Reserve " + esc(state.reserve) + ". Miner fee is extra tKAS.</p>";
-  } else if (rail === "poc") {
-    cells = [{ label: "POC", count: poc }];
-    if (state.account && state.account.practice) cells[1] = { label: "Purse", count: "20" };
-    actions =
-      '<label class="amt">Amount<input id="redeem-amt" value="0.05" inputmode="decimal"></label>' +
-      '<div class="kw-row"><button type="button" id="redeem-poc">Redeem</button><button type="button" id="purse">Practice purse</button></div>';
-  } else {
-    cells = [{ label: "KUSDT", count: kusdt, extra: frozen ? "frozen-coin" : "" }];
-    actions =
-      '<label class="amt">Amount<input id="redeem-amt" value="0.05" inputmode="decimal"></label>' +
-      '<div class="kw-row"><button type="button" id="redeem-kusdt">Redeem</button><button type="button" id="freeze">' + (frozen ? "Thaw" : "Freeze") + "</button></div>";
-  }
+  const card = (id, title, amount, detail, extra) =>
+    '<button type="button" class="swap-bal' + (id === rail ? " on" : "") + (extra ? " " + extra : "") + '" data-booth="' + id + '">' +
+    "<span>" + esc(title) + "</span><strong>" + esc(amount) + "</strong><small>" + esc(detail) + "</small></button>";
   panel.innerHTML =
-    '<div class="booth-tabs">' + tabs + "</div>" +
-    "<h2>Venn's bank</h2>" +
-    '<div class="slots' + (rail === "kusdt" && frozen ? " frozen" : "") + '">' + slotGrid(cells) + "</div>" +
-    actions;
-  const lockPoc = document.getElementById("lock-poc");
-  const lockKusdt = document.getElementById("lock-kusdt");
-  const redeemPoc = document.getElementById("redeem-poc");
-  const redeemKusdt = document.getElementById("redeem-kusdt");
-  const purse = document.getElementById("purse");
-  const freezeBtn = document.getElementById("freeze");
-  if (lockPoc) lockPoc.onclick = () => lock("poc");
-  if (lockKusdt) lockKusdt.onclick = () => lock("kusdt");
-  if (redeemPoc) redeemPoc.onclick = () => redeem("poc");
-  if (redeemKusdt) redeemKusdt.onclick = () => redeem("kusdt");
-  if (purse) purse.onclick = practice;
-  if (freezeBtn) freezeBtn.onclick = freeze;
+    '<div class="swap">' +
+    '<div class="swap-head"><h2>Venn\'s bank</h2><button type="button" id="bank-close">Close</button></div>' +
+    '<p class="fine">Swap. tKAS moves. POCencept and KUSDT are tags.</p>' +
+    '<div class="swap-bals">' +
+    card("kas", "tKAS", kas, "spendable") +
+    card("poc", "POCencept", formatCents(poc.have), "locked " + formatCents(poc.lock) + " · purse " + formatCents(poc.purse)) +
+    card("kusdt", "KUSDT", formatCents(kusdt.have), "locked " + formatCents(kusdt.lock) + " · purse " + formatCents(kusdt.purse) + (frozen ? " · frozen" : ""), frozen ? "frozen" : "") +
+    "</div>" +
+    '<label class="amt">Amount<input id="swap-amt" value="1" inputmode="decimal"></label>' +
+    '<div class="kw-row"><button type="button" id="lock-poc">tKAS → POCencept</button><button type="button" id="lock-kusdt">tKAS → KUSDT</button></div>' +
+    '<div class="kw-row"><button type="button" id="redeem-poc">Redeem POCencept</button><button type="button" id="redeem-kusdt">Redeem KUSDT</button></div>' +
+    '<div class="kw-row"><button type="button" id="purse">Practice purse</button><button type="button" id="freeze">' + (frozen ? "Thaw KUSDT" : "Freeze KUSDT") + "</button></div>" +
+    '<details class="paid-already"><summary>Already sent tKAS? Paste the txid</summary><textarea id="lock-txid" rows="2"></textarea></details>' +
+    '<p class="fine">' + esc(quote) + " Reserve " + esc(state.reserve) + ". Miner fee is extra tKAS. Redeem returns only the locked part.</p>" +
+    "</div>";
+  document.getElementById("bank-close").onclick = () => openMode("world");
+  document.getElementById("lock-poc").onclick = () => lock("poc");
+  document.getElementById("lock-kusdt").onclick = () => lock("kusdt");
+  document.getElementById("redeem-poc").onclick = () => redeem("poc");
+  document.getElementById("redeem-kusdt").onclick = () => redeem("kusdt");
+  document.getElementById("purse").onclick = practice;
+  document.getElementById("freeze").onclick = freeze;
 }
 
 function paintRules() {
@@ -589,9 +576,9 @@ function paintGuide() {
     "<li>Or choose New arrival on the welcome gate. That is the same as Test without a wallet. This tab gets a new funded kaspatest address. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. Returning leaves the gate and uses a wallet that stays on this browser.</li>" +
     "<li>Or paste a kaspatest address. Or type a .kas name that already resolves on TN10. That choice stays until you change it.</li>" +
     "<li>Need coins: the faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. Take the practice purse in the bank. That purse is play money.</li>" +
-    "<li>Click the ground to walk to a door, or use the left tabs. Pick one rail, then Buy. Left and right turn the view around you.</li>" +
+    "<li>Hold the left mouse button and move to look all the way around. Click the ground to walk, or use the left tabs. Pick one rail, then Buy.</li>" +
     "<li>tKAS asks the wallet to sign a real Testnet-10 transaction. The miner fee is extra tKAS.</li>" +
-    "<li>Venn's bank is a room with three booths. tKAS locks. POCencept redeems the locked part. KUSDT is the only booth with a freeze. The long note sits in Rules.</li>" +
+    "<li>Venn's bank opens as a swap. The three balances sit at the top. tKAS locks into a tag. Redeem returns only the locked part. KUSDT is the only freeze.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +
@@ -667,7 +654,7 @@ async function lock(rail) {
   if (!requireId()) return;
   let sompi;
   try {
-    sompi = parseTkas(document.getElementById("lock-amt").value);
+    sompi = parseTkas(swapAmount());
   } catch (err) {
     say(err.message, true);
     return;
@@ -677,7 +664,7 @@ async function lock(rail) {
     const body = await post("/api/1984/guest/convert", {
       token: state.id.token,
       rail,
-      amount: document.getElementById("lock-amt").value.trim(),
+      amount: swapAmount().trim(),
     });
     if (!body.ok) {
       say(body.error || "The lock did not clear.", true);
@@ -690,7 +677,8 @@ async function lock(rail) {
     if (state.mode === "bank") paintBank();
     return;
   }
-  let txid = document.getElementById("lock-txid").value.trim();
+  const txField = document.getElementById("lock-txid");
+  let txid = txField ? txField.value.trim() : "";
   if (!txid) {
     const kit = window.KaspaWallets;
     if (!kit || (state.id.kind !== "kasware" && state.id.kind !== "kastle")) {
@@ -714,7 +702,7 @@ async function lock(rail) {
 
 async function redeem(rail) {
   if (!requireId()) return;
-  const amount = document.getElementById("redeem-amt").value.trim();
+  const amount = swapAmount().trim();
   say("Redeeming " + amount + " toy dollars. Testnet-10 has to accept the send.");
   const body = await post("/api/1984/redeem", { rail, amount });
   if (!body.ok) {
@@ -988,6 +976,21 @@ document.getElementById("gate-back").addEventListener("click", () => {
     say("The square is open. Who pays is in the corner for Kasware, Kastle, a kaspatest address, or a .kas name.");
   }
 });
+for (const [id, kind] of [["gate-kasware", "kasware"], ["gate-kastle", "kastle"]]) {
+  const button = document.getElementById(id);
+  if (!button) continue;
+  button.addEventListener("click", () => {
+    button.disabled = true;
+    connectWallet(kind).catch((err) => {
+      gateStatus(err.message, true);
+      say(err.message, true);
+    }).finally(() => {
+      button.disabled = false;
+    });
+  });
+}
+const bankShade = document.getElementById("bank-shade");
+if (bankShade) bankShade.addEventListener("click", () => openMode("world"));
 panel.addEventListener("click", (ev) => {
   const pick = ev.target.closest("[data-rail-pick]");
   if (pick) {
