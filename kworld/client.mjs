@@ -39,6 +39,7 @@ const state = {
   id: loadId(),
   arrived: null,
   bankRail: "kas",
+  shopRail: "poc",
   bankShutter: 0,
   bankFlight: null,
   boothHits: [],
@@ -400,32 +401,78 @@ function openMode(mode) {
   else paintShop(mode);
 }
 
+function splitCents(total, backed) {
+  const have = BigInt(total || 0);
+  const lock = BigInt(backed || 0);
+  const purse = have > lock ? have - lock : 0n;
+  return { have, lock, purse };
+}
+
+function balanceSheet() {
+  const kas = !state.id.address ? "—" : state.kasSompi == null ? "…" : formatTkas(state.kasSompi) + " tKAS";
+  const poc = splitCents(state.account && state.account.poc, state.account && state.account.pocBacked);
+  const kusdt = splitCents(state.account && state.account.kusdt, state.account && state.account.kusdtBacked);
+  const lockedKas = state.account ? formatTkas(state.account.liability) + " tKAS is locked behind the toys" : "";
+  const frozen = state.account && state.account.kusdtFrozen ? " · frozen" : "";
+  return (
+    '<div class="balances">' +
+    "<p><strong>tKAS</strong> " + esc(kas) + "</p>" +
+    "<p><strong>POCencept</strong> " + esc(formatCents(poc.have)) + " · locked " + esc(formatCents(poc.lock)) + " · purse " + esc(formatCents(poc.purse)) + "</p>" +
+    "<p><strong>KUSDT</strong> " + esc(formatCents(kusdt.have)) + " · locked " + esc(formatCents(kusdt.lock)) + " · purse " + esc(formatCents(kusdt.purse)) + esc(frozen) + "</p>" +
+    (lockedKas ? '<p class="fine">' + esc(lockedKas) + "</p>" : "") +
+    "</div>"
+  );
+}
+
+function canPay(rail, cents) {
+  if (rail === "kas") {
+    const sompi = quoteSompi(cents);
+    if (sompi == null || state.kasSompi == null) return null;
+    return BigInt(state.kasSompi) >= sompi;
+  }
+  if (!state.account) return null;
+  const have = BigInt(rail === "kusdt" ? state.account.kusdt || 0 : state.account.poc || 0);
+  return have >= BigInt(cents);
+}
+
 function paintShop(shopId) {
   const shop = (state.home && state.home.shops ? state.home.shops : []).find((item) => item.id === shopId);
   const fallback = map.npcs.find((npc) => npc.shop === shopId);
   if (!shop) {
-    panel.innerHTML = "<h2>" + esc(fallback ? fallback.name : "Shop") + "</h2><p>The menu loads from the village ledger. " + esc(state.oracleError || "It is not reachable from this browser yet.") + "</p>";
+    panel.innerHTML = balanceSheet() + "<h2>" + esc(fallback ? fallback.name : "Shop") + "</h2><p>The menu loads from the village ledger. " + esc(state.oracleError || "It is not reachable from this browser yet.") + "</p>";
     return;
   }
+  const rail = state.shopRail === "kas" || state.shopRail === "kusdt" ? state.shopRail : "poc";
+  const names = { kas: "tKAS", poc: "POCencept", kusdt: "KUSDT" };
+  const picks = ["poc", "kusdt", "kas"]
+    .map((id) => '<button type="button" data-rail-pick="' + id + '"' + (id === rail ? ' class="on"' : "") + ">" + names[id] + "</button>")
+    .join("");
   const rows = shop.items
     .map((item) => {
       const sompi = quoteSompi(item.cents);
-      const kas = sompi == null ? "oracle down" : formatTkas(sompi) + " tKAS";
+      const kas = sompi == null ? "quote down" : formatTkas(sompi) + " tKAS";
+      const price = rail === "kas" ? kas : formatCents(item.cents) + " " + names[rail];
+      const frozenRail = rail === "kusdt" && state.account && state.account.kusdtFrozen;
+      const afford = frozenRail ? false : canPay(rail, item.cents);
+      const short = frozenRail ? "KUSDT is frozen. POCencept and tKAS still spend." : "Not enough " + names[rail] + " for " + item.name + ".";
+      const button = afford === false
+        ? '<button type="button" class="buy short" data-short="' + esc(short) + '">' + esc(frozenRail ? "KUSDT is frozen" : "Not enough " + names[rail]) + "</button>"
+        : '<button type="button" class="buy" data-pay="' + rail + '" data-shop="' + shop.id + '" data-sku="' + item.sku + '">Buy · ' + esc(price) + "</button>";
       return (
         '<div class="item"><strong>' + esc(item.name) + "</strong> · " + esc(formatCents(item.cents)) +
-        " toy dollars · " + esc(kas) +
-        '<div class="kw-row">' +
-        '<button type="button" data-pay="kas" data-shop="' + shop.id + '" data-sku="' + item.sku + '">Pay tKAS</button>' +
-        '<button type="button" data-pay="poc" data-shop="' + shop.id + '" data-sku="' + item.sku + '">Pay POC</button>' +
-        '<button type="button" data-pay="kusdt" data-shop="' + shop.id + '" data-sku="' + item.sku + '">Pay KUSDT</button>' +
-        "</div></div>"
+        " toy dollars · " + esc(kas) + button + "</div>"
       );
     })
     .join("");
+  const txid = rail === "kas"
+    ? '<details class="paid-already"><summary>Already sent tKAS? Paste the txid</summary><textarea id="txid" rows="2"></textarea></details>'
+    : "";
   panel.innerHTML =
-    "<h2>" + esc(shop.name) + "</h2><p>" + esc(shop.line) + "</p>" + rows +
-    '<label>If the wallet did not return a txid, paste it<textarea id="txid" rows="2" style="width:100%"></textarea></label>' +
-    "<p class=\"fine\">tKAS is a real Testnet-10 payment to the reserve, plus a miner fee. POC and KUSDT are the village toys. A frozen KUSDT button fails on purpose.</p>";
+    balanceSheet() +
+    "<h2>" + esc(shop.name) + "</h2><p>" + esc(shop.line) + "</p>" +
+    '<div class="booth-tabs">' + picks + "</div>" +
+    rows + txid +
+    "<p class=\"fine\">One rail for the whole menu. POCencept and KUSDT are toys. tKAS asks the wallet, and the miner fee is extra.</p>";
 }
 
 function slotGrid(cells) {
@@ -480,6 +527,7 @@ function paintBank() {
       '<div class="kw-row"><button type="button" id="redeem-kusdt">Redeem KUSDT</button><button type="button" id="freeze">Freeze or thaw KUSDT</button></div>';
   }
   panel.innerHTML =
+    balanceSheet() +
     '<div class="booth-tabs">' + tabs + "</div>" +
     "<h2>Venn's bank — " + names[rail] + "</h2>" +
     '<div class="slots' + (rail === "kusdt" && frozen ? " frozen" : "") + '">' + slotGrid(cells) + "</div>" +
@@ -536,7 +584,7 @@ function paintGuide() {
     "<li>Or choose New arrival on the welcome gate. That is the same as Test without a wallet. This tab gets a new funded kaspatest address. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. Returning leaves the gate and uses a wallet that stays on this browser.</li>" +
     "<li>Or paste a kaspatest address. Or type a .kas name that already resolves on TN10. That choice stays until you change it.</li>" +
     "<li>Need coins: the faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. Take the practice purse in the bank. That purse is play money.</li>" +
-    "<li>Click the ground to walk to a door, or use the left tabs. Left and right turn the view around you. Pay tKAS, POCencept, or KUSDT.</li>" +
+    "<li>Click the ground to walk to a door, or use the left tabs. Pick one rail, then Buy. Left and right turn the view around you.</li>" +
     "<li>tKAS asks the wallet to sign a real Testnet-10 transaction. The miner fee is extra tKAS.</li>" +
     "<li>Venn's bank is a room with three booths. tKAS locks. POCencept redeems the locked part. KUSDT is the only booth with a freeze. The long note sits in Rules.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
@@ -899,18 +947,30 @@ for (const button of document.querySelectorAll("[data-turn]")) {
 }
 document.getElementById("gate-back").addEventListener("click", () => {
   hideGate();
-  setPayOpen(true);
+  setPayOpen(false);
   if (state.id.kind === "guest") {
-    say("This tab is already a new arrival. Close the tab and that address is gone. Pick a wallet in the panel if you want the history kept.");
+    say("This tab is already a new arrival. Close the tab and that address is gone. Who pays is in the corner if you want a wallet kept.");
   } else if (state.id.address) {
-    say("Returning as " + (state.id.label || state.id.address) + ". This one stays on this browser.");
+    say("Returning as " + (state.id.label || state.id.address) + ". The square is open.");
   } else {
-    say("Returning. Pick Kasware, Kastle, a kaspatest address, or a .kas name. That choice stays on this browser.");
+    say("The square is open. Who pays is in the corner for Kasware, Kastle, a kaspatest address, or a .kas name.");
   }
-  const addr = document.getElementById("addr");
-  if (addr) addr.focus();
 });
 panel.addEventListener("click", (ev) => {
+  const pick = ev.target.closest("[data-rail-pick]");
+  if (pick) {
+    const rail = pick.getAttribute("data-rail-pick");
+    if (rail === "kas" || rail === "poc" || rail === "kusdt") {
+      state.shopRail = rail;
+      paintShop(state.mode);
+    }
+    return;
+  }
+  const short = ev.target.closest("[data-short]");
+  if (short) {
+    say(short.getAttribute("data-short"), true);
+    return;
+  }
   const booth = ev.target.closest("[data-booth]");
   if (booth) {
     chooseRail(booth.getAttribute("data-booth"));
