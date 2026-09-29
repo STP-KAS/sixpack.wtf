@@ -10,7 +10,7 @@ import {
   parseTkas,
   sompiForCents,
 } from "./money.mjs";
-import { mountWorld } from "./view3d.mjs?v=4";
+import { mountWorld } from "./view3d.mjs?v=5";
 import { destinationFor, findPath, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -617,9 +617,12 @@ async function spend(rail, shop, sku, confirmed) {
         body = await post("/api/1984/guest/spend", { token: state.id.token, shop, sku, confirmed: true });
       }
       if (!body.ok) {
+        punch("shake");
         say(body.error || "The shop refused the payment.", true);
         return;
       }
+      punch(sku === "lap" ? "lap" : "nod");
+      if (sku === "lap") showBanner("One lap.");
       say(body.shop + " took the payment for " + body.item + ".");
       await refreshAccount();
       return;
@@ -643,9 +646,12 @@ async function spend(rail, shop, sku, confirmed) {
     body = await post("/api/1984/spend", { shop, sku, rail, txid, confirmed: true });
   }
   if (!body.ok) {
+    punch("shake");
     say(body.error || "The shop refused the payment.", true);
     return;
   }
+  punch(sku === "lap" ? "lap" : "nod");
+  if (sku === "lap") showBanner("One lap.");
   say(body.shop + " took the payment for " + body.item + ".");
   await refreshAccount();
 }
@@ -667,9 +673,11 @@ async function lock(rail) {
       amount: swapAmount().trim(),
     });
     if (!body.ok) {
+      punch("shake");
       say(body.error || "The lock did not clear.", true);
       return;
     }
+    punch("nod");
     say("Locked. You received " + formatCents(body.cents) + " " + (rail === "poc" ? "POCencept" : "KUSDT") + ".");
     await refreshAccount();
     state.bankRail = "kas";
@@ -690,9 +698,11 @@ async function lock(rail) {
   }
   const body = await post("/api/1984/convert", { rail, txid });
   if (!body.ok) {
+    punch("shake");
     say(body.error || "The lock did not clear.", true);
     return;
   }
+  punch("nod");
   say("Locked. You received " + formatCents(body.cents) + " " + (rail === "poc" ? "POCencept" : "KUSDT") + ".");
   await refreshAccount();
   state.bankRail = "kas";
@@ -706,10 +716,12 @@ async function redeem(rail) {
   say("Redeeming " + amount + " toy dollars. Testnet-10 has to accept the send.");
   const body = await post("/api/1984/redeem", { rail, amount });
   if (!body.ok) {
+    punch("shake");
     say(body.error || "Redeem failed. The toy balance should still be there.", true);
     await refreshAccount();
     return;
   }
+  punch("nod");
   say("Redeem broadcast " + ((body.txids && body.txids[0]) || "a transaction") + ".");
   await refreshAccount();
 }
@@ -721,6 +733,8 @@ async function practice() {
     say(body.error || "No purse.", true);
     return;
   }
+  punch("purse");
+  showBanner("Practice purse.");
   say("Practice purse taken. 20.00 POC and 20.00 KUSDT. Not redeemable.");
   await refreshAccount();
 }
@@ -862,7 +876,23 @@ const worldView = mountWorld(view, map, {
   booth(rail) {
     chooseRail(rail);
   },
+  frozen: () => !!(state.account && state.account.kusdtFrozen),
 });
+
+let bannerTimer = 0;
+function showBanner(text) {
+  const el = document.getElementById("juice-banner");
+  if (!el) return;
+  el.hidden = false;
+  el.textContent = text;
+  window.clearTimeout(bannerTimer);
+  bannerTimer = window.setTimeout(() => {
+    el.hidden = true;
+  }, 2200);
+}
+function punch(kind) {
+  if (worldView && worldView.feel) worldView.feel(kind);
+}
 
 window.addEventListener("keydown", (ev) => {
   const key = ev.key.toLowerCase();
@@ -1003,6 +1033,7 @@ panel.addEventListener("click", (ev) => {
   }
   const short = ev.target.closest("[data-short]");
   if (short) {
+    punch("shake");
     say(short.getAttribute("data-short"), true);
     return;
   }

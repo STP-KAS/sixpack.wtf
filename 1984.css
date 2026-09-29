@@ -72,7 +72,7 @@ body.page-1984 .tabs button.on { background: #8a7040; color: #1a1612; }
   z-index: 3;
   margin: 0;
   padding: 0.12rem 0.4rem;
-  background: rgba(26, 22, 18, 0.45);
+  background: rgba(20, 14, 10, 0.78);
   border: none;
   pointer-events: none;
   font-size: 0.78rem;
@@ -314,6 +314,22 @@ body.page-1984 main.kw-stage {
   background: rgba(10, 8, 6, 0.5);
 }
 .bank-shade[hidden] { display: none; }
+.juice-banner {
+  position: absolute;
+  left: 50%;
+  top: 16%;
+  transform: translateX(-50%);
+  z-index: 7;
+  margin: 0;
+  padding: 0.35rem 0.85rem;
+  background: rgba(20, 14, 10, 0.86);
+  border: 2px solid #e7c27a;
+  color: #f3e6c8;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+}
+.juice-banner[hidden] { display: none; }
 .swap-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
 .swap-head h2 { margin: 0; }
 .swap-head button { flex: 0 0 auto; }

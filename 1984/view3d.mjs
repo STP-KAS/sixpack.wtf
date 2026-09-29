@@ -116,21 +116,21 @@ function paintTex(size, draw) {
 
 function makeMaps() {
   const grass = paintTex(128, (g, s) => {
-    g.fillStyle = "#6f8a3c";
+    g.fillStyle = "#5c6840";
     g.fillRect(0, 0, s, s);
     for (let i = 0; i < 700; i++) {
       const x = (hash(i, 1) * s) | 0;
       const y = (hash(i, 2) * s) | 0;
-      g.fillStyle = ["#5d7630", "#87a34a", "#7c9440", "#8a7340", "#4f6a32"][i % 5];
+      g.fillStyle = ["#4e5a34", "#6d7844", "#7a6840", "#3f4e30", "#8a6238"][i % 5];
       g.fillRect(x, y, 2 + (i % 3), 2 + ((i * 3) % 4));
     }
   });
   const cobble = paintTex(128, (g, s) => {
-    g.fillStyle = "#8d8982";
+    g.fillStyle = "#8a7b6c";
     g.fillRect(0, 0, s, s);
     for (let y = 4; y < s; y += 16) {
       for (let x = ((y / 16) % 2) * 8; x < s; x += 16) {
-        g.fillStyle = hash(x, y) > 0.5 ? "#a39e96" : "#7a756e";
+        g.fillStyle = hash(x, y) > 0.5 ? "#a89480" : "#6e6054";
         g.beginPath();
         g.ellipse(x + 6, y + 6, 6, 5, 0, 0, Math.PI * 2);
         g.fill();
@@ -138,10 +138,10 @@ function makeMaps() {
     }
   });
   const dirt = paintTex(128, (g, s) => {
-    g.fillStyle = "#a89070";
+    g.fillStyle = "#8a6244";
     g.fillRect(0, 0, s, s);
     for (let i = 0; i < 400; i++) {
-      g.fillStyle = i % 2 ? "#c6b896" : "#8a7048";
+      g.fillStyle = i % 2 ? "#a88462" : "#6a4830";
       g.fillRect((hash(i, 3) * s) | 0, (hash(i, 4) * s) | 0, 3, 2);
     }
   });
@@ -212,9 +212,10 @@ function makeMaps() {
   });
   const sky = paintTex(32, (g, s) => {
     const grd = g.createLinearGradient(0, 0, 0, s);
-    grd.addColorStop(0, "#6ea0d8");
-    grd.addColorStop(0.62, "#8eafd0");
-    grd.addColorStop(1, "#b7c3b0");
+    grd.addColorStop(0, "#243456");
+    grd.addColorStop(0.42, "#c45a32");
+    grd.addColorStop(0.72, "#e89458");
+    grd.addColorStop(1, "#f0c49a");
     g.fillStyle = grd;
     g.fillRect(0, 0, s, s);
   });
@@ -377,6 +378,7 @@ function addGround(parent, map, maps, pick) {
     const mat = stone("#ffffff", kind === "w" ? 0.22 : 0.92, kindMap[kind] || maps.grass);
     if (kind === "w") mat.metalness = 0.18;
     const mesh = new THREE.InstancedMesh(geo, mat, cells.length);
+    if (kind === "w") mesh.name = "pond-water";
     mesh.receiveShadow = true;
     const dummy = new THREE.Object3D();
     const tint = new THREE.Color();
@@ -406,7 +408,18 @@ function addGround(parent, map, maps, pick) {
   pick.push(plane);
 }
 
-function addBuildings(parent, map, maps, pick) {
+function hangLantern(parent, x, y, z) {
+  const glow = new THREE.Mesh(
+    new THREE.SphereGeometry(0.07, 8, 6),
+    new THREE.MeshStandardMaterial({ color: "#ffb15a", emissive: "#ff8a2a", emissiveIntensity: 1.6, roughness: 0.35 }),
+  );
+  glow.position.set(x, y, z);
+  const light = new THREE.PointLight("#ffb15a", 0.85, 7.5, 2);
+  light.position.set(x, y, z);
+  parent.add(glow, light);
+}
+
+function addBuildings(parent, map, maps, pick, awnings) {
   const winMat = new THREE.MeshStandardMaterial({
     color: "#1a120c",
     emissive: "#e08a30",
@@ -456,12 +469,15 @@ function addBuildings(parent, map, maps, pick) {
     if (face.nx) door.rotation.y = Math.PI / 2;
     door.castShadow = true;
     parent.add(door);
+    hangLantern(parent, doorPos.x + face.nx * 0.2, 1.62, doorPos.z + face.nz * 0.2);
     if (b.id !== "bank") {
       const cloth = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.06, 0.95), stone(b.roof, 0.62));
       cloth.position.set(doorPos.x + face.nx * 0.55, 1.72, doorPos.z + face.nz * 0.55);
       if (face.nx) cloth.rotation.y = Math.PI / 2;
       cloth.castShadow = true;
+      cloth.userData.shop = b.shop;
       parent.add(cloth);
+      if (awnings) awnings.push(cloth);
     }
     const sign = nameTag(b.sign);
     sign.position.set(wallX + face.nx * 0.35, h + 0.55, wallZ + face.nz * 0.35);
@@ -532,23 +548,30 @@ function addDressing(parent, map, maps) {
     }
   }
   const fountain = worldOf(map, 21, 16.5, 0);
-  const basin = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.5, 0.32, 10), stone("#d7d2c8", 0.62));
+  const basin = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.5, 0.32, 10), stone("#6e8f86", 0.55));
   basin.position.set(fountain.x, 0.16, fountain.z);
   basin.castShadow = true;
-  const lip = new THREE.Mesh(new THREE.TorusGeometry(1.28, 0.07, 6, 14), stone("#eee8de", 0.45));
+  const lip = new THREE.Mesh(new THREE.TorusGeometry(1.28, 0.07, 6, 14), stone("#8fb8ae", 0.4));
   lip.rotation.x = Math.PI / 2;
   lip.position.set(fountain.x, 0.32, fountain.z);
   const water = new THREE.Mesh(
     new THREE.CylinderGeometry(1.12, 1.12, 0.08, 18),
-    new THREE.MeshLambertMaterial({ color: "#1f649c" }),
+    new THREE.MeshStandardMaterial({ map: maps.water, color: "#d7e6ef", roughness: 0.18, metalness: 0.22 }),
   );
   water.position.set(fountain.x, 0.28, fountain.z);
   water.name = "fountain-water";
+  const lap = new THREE.Mesh(
+    new THREE.TorusGeometry(8.2, 0.05, 4, 72),
+    new THREE.MeshBasicMaterial({ color: "#e7c27a", transparent: true, opacity: 0.8 }),
+  );
+  lap.rotation.x = Math.PI / 2;
+  lap.position.set(fountain.x, 0.06, fountain.z);
+  lap.name = "lap-line";
   const jet = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.07, 0.85, 8), stone("#d5e8f5", 0.08));
   jet.position.set(fountain.x, 0.72, fountain.z);
   const cap = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), stone("#e8f4ff", 0.08));
   cap.position.set(fountain.x, 1.12, fountain.z);
-  parent.add(basin, lip, water, jet, cap);
+  parent.add(basin, lip, water, jet, cap, lap);
   const carAt = worldOf(map, 17.6, 21.7, 0);
   const car = new THREE.Group();
   const body = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.32, 1.05), stone("#c0392b", 0.4));
@@ -570,6 +593,10 @@ function addDressing(parent, map, maps) {
   }
   car.add(body, cabin, glass);
   car.position.set(carAt.x, 0, carAt.z);
+  car.name = "roadster-car";
+  car.userData.park = car.position.clone();
+  car.userData.parkYaw = 0;
+  car.userData.center = new THREE.Vector3(fountain.x, 0, fountain.z);
   parent.add(car);
   const hayAt = worldOf(map, 9.5, 29, 0);
   const hay = new THREE.Mesh(new THREE.ConeGeometry(0.7, 0.85, 8), stone("#c4a15a", 0.9));
@@ -699,6 +726,22 @@ function buildBankRoom(maps) {
     opening.userData.rail = rail.id;
     const shutter = new THREE.Mesh(new THREE.BoxGeometry(1.28, 1.36, 0.08), stone("#ffffff", 0.75, maps.wood));
     shutter.position.set(rail.x, 1.55, -3.9);
+    let chain = null;
+    if (rail.id === "kusdt") {
+      chain = new THREE.Group();
+      chain.name = "kusdt-chain";
+      chain.visible = false;
+      for (let i = 0; i < 4; i++) {
+        const link = new THREE.Mesh(
+          new THREE.TorusGeometry(0.09, 0.022, 4, 8),
+          new THREE.MeshStandardMaterial({ color: "#9aa3ad", metalness: 0.72, roughness: 0.32 }),
+        );
+        link.position.set(rail.x - 0.27 + i * 0.18, 1.12, -3.72);
+        link.rotation.y = Math.PI / 2;
+        chain.add(link);
+      }
+      room.add(chain);
+    }
     const tag = nameTag(rail.label);
     tag.position.set(rail.x, 2.55, -3.65);
     const postL = new THREE.Mesh(
@@ -709,7 +752,7 @@ function buildBankRoom(maps) {
     const postR = postL.clone();
     postR.position.x = rail.x + 0.42;
     room.add(frame, glass, opening, shutter, tag, postL, postR);
-    booths.push({ id: rail.id, opening, shutter, postL, postR });
+    booths.push({ id: rail.id, opening, shutter, postL, postR, chain });
   }
   const rope = new THREE.Mesh(
     new THREE.CylinderGeometry(0.025, 0.025, 0.84, 6),
@@ -732,13 +775,13 @@ export function mountWorld(canvas, map, api) {
     console.error(err);
     canvas.dataset.gl = "fail";
     canvas.dataset.err = String(err && err.message ? err.message : err);
-    return { render() {}, resize() {}, hold() {} };
+    return { render() {}, resize() {}, hold() {}, feel() {} };
   }
   canvas.dataset.gl = "ok";
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 0.94;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -747,8 +790,8 @@ export function mountWorld(canvas, map, api) {
   for (const tex of Object.values(maps)) tex.anisotropy = aniso;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color("#9eb6d4");
-  scene.fog = new THREE.Fog("#9aafb8", 48, 120);
+  scene.background = new THREE.Color("#c47a52");
+  scene.fog = new THREE.Fog("#6e5348", 22, 72);
   const sky = new THREE.Mesh(
     new THREE.SphereGeometry(140, 20, 12),
     new THREE.MeshBasicMaterial({ map: maps.sky, side: THREE.BackSide, depthWrite: false }),
@@ -756,25 +799,26 @@ export function mountWorld(canvas, map, api) {
   scene.add(sky);
 
   const camera = new THREE.PerspectiveCamera(42, 1, 0.08, 240);
-  const hemi = new THREE.HemisphereLight("#d5e4f5", "#6a7a40", 0.85);
-  const sun = new THREE.DirectionalLight("#ffe0b8", 2.15);
-  sun.position.set(-18, 28, 12);
+  const hemi = new THREE.HemisphereLight("#8aa4c8", "#6a4030", 0.55);
+  const sun = new THREE.DirectionalLight("#ffb06a", 1.65);
+  sun.position.set(-26, 11, 16);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.camera.near = 4;
-  sun.shadow.camera.far = 90;
-  sun.shadow.camera.left = -36;
-  sun.shadow.camera.right = 36;
-  sun.shadow.camera.top = 36;
-  sun.shadow.camera.bottom = -36;
-  sun.shadow.bias = -0.00045;
-  scene.add(hemi, sun, new THREE.AmbientLight("#fff4e4", 0.16));
+  sun.shadow.camera.far = 120;
+  sun.shadow.camera.left = -50;
+  sun.shadow.camera.right = 50;
+  sun.shadow.camera.top = 50;
+  sun.shadow.camera.bottom = -50;
+  sun.shadow.bias = -0.0006;
+  scene.add(hemi, sun, new THREE.AmbientLight("#ffd8b0", 0.12));
 
   const town = new THREE.Group();
   scene.add(town);
   const pick = [];
+  const awnings = [];
   addGround(town, map, maps, pick);
-  addBuildings(town, map, maps, pick);
+  addBuildings(town, map, maps, pick, awnings);
   addDressing(town, map, maps);
   const player = figure("#f2d16b");
   const shadow = new THREE.Mesh(
@@ -826,6 +870,33 @@ export function mountWorld(canvas, map, api) {
   const held = new Set();
   let lastNow = 0;
   let nextStep = 0;
+  let frameDistance = townDistance;
+  let juicePitch = 0;
+  let juiceYaw = 0;
+  let nod = 0;
+  let shake = 0;
+  let lapLeft = 0;
+  let talk = 0;
+  const camFocus = shown.clone();
+  const focusGoal = new THREE.Vector3();
+  const puffs = [];
+  for (let i = 0; i < 8; i++) {
+    const puff = new THREE.Mesh(
+      new THREE.SphereGeometry(0.055, 5, 4),
+      new THREE.MeshBasicMaterial({ color: "#c4a882", transparent: true, opacity: 0, depthWrite: false }),
+    );
+    puff.userData.life = 0;
+    town.add(puff);
+    puffs.push(puff);
+  }
+  let puffAt = 0;
+  let puffI = 0;
+
+  function feel(kind) {
+    if (kind === "nod" || kind === "purse") nod = 1;
+    if (kind === "shake") shake = 1;
+    if (kind === "lap") lapLeft = 6;
+  }
 
   function resize() {
     const rect = canvas.getBoundingClientRect();
@@ -839,8 +910,9 @@ export function mountWorld(canvas, map, api) {
   }
 
   function placeCamera(target) {
-    const offset = orbitOffset(yaw, pitch);
-    const distance = api.mode() === "bank" ? bankDistance : townDistance;
+    const usePitch = Math.min(PITCH_MAX, Math.max(PITCH_MIN, pitch + juicePitch));
+    const offset = orbitOffset(yaw + juiceYaw, usePitch);
+    const distance = frameDistance;
     const pos = {
       x: target.x + offset.x * distance,
       y: target.y + offset.y * distance,
@@ -888,6 +960,13 @@ export function mountWorld(canvas, map, api) {
     }
     const dt = lastNow ? Math.min(0.05, (now - lastNow) / 1000) : 0.016;
     lastNow = now;
+    nod = Math.max(0, nod - dt * 1.4);
+    shake = Math.max(0, shake - dt * 2.2);
+    juicePitch = nod > 0 ? Math.sin(nod * Math.PI) * 0.045 : 0;
+    juiceYaw = shake > 0 ? Math.sin(now / 28) * 0.03 * shake : 0;
+    const talking = !inside && api.mode() !== "world" && api.mode() !== "rules" && api.mode() !== "bench" && api.mode() !== "guide";
+    talk += ((talking ? 1 : 0) - talk) * Math.min(1, dt * 2.5);
+    frameDistance = inside ? bankDistance : townDistance * (1 - 0.2 * talk);
     let spin = 0;
     if (held.has("ArrowLeft") || held.has("KeyQ")) spin += 1;
     if (held.has("ArrowRight") || held.has("KeyR")) spin -= 1;
@@ -896,9 +975,9 @@ export function mountWorld(canvas, map, api) {
     sky.visible = !inside;
     bank.room.visible = inside;
     bank.lamp.intensity = inside ? 7 : 0;
-    scene.fog.near = inside ? 10 : 28;
-    scene.fog.far = inside ? 28 : 78;
-    scene.background.set(inside ? "#3a342c" : "#9eb6d4");
+    scene.fog.near = inside ? 10 : 22;
+    scene.fog.far = inside ? 28 : 70;
+    scene.background.set(inside ? "#2a241c" : "#c47a52");
     const rail = api.rail();
     for (const booth of bank.booths) {
       const open = booth.id === rail;
@@ -909,8 +988,19 @@ export function mountWorld(canvas, map, api) {
     const active = bank.booths.find((booth) => booth.id === rail) || bank.booths[0];
     bank.rope.position.set(active.postL.position.x + 0.42, 0.72, active.postL.position.z);
     bank.teller.position.x = active.opening.position.x;
+    const cold = !!(api.frozen && api.frozen());
+    for (const booth of bank.booths) {
+      if (!booth.chain) continue;
+      booth.chain.visible = cold;
+      booth.shutter.material.color.set(cold ? "#7d8b98" : "#ffffff");
+    }
     const water = town.getObjectByName("fountain-water");
     if (water) water.position.y = 0.28 + Math.sin(now / 420) * 0.012;
+    if (maps.water) maps.water.offset.y = (now / 3800) % 1;
+    for (const cloth of awnings) {
+      const stir = api.mode() === cloth.userData.shop ? 0.14 : 0.035;
+      cloth.rotation.x = Math.sin(now / 280 + cloth.position.x) * stir;
+    }
     if (inside) {
       placeCamera(new THREE.Vector3(0, 0.9, -0.8));
       pose(bank.teller, now, false);
@@ -930,10 +1020,45 @@ export function mountWorld(canvas, map, api) {
       const moving = shown.distanceTo(lastStep) > 0.004;
       lastStep.lerp(shown, 0.4);
       player.position.set(shown.x, 0, shown.z);
+      const car = town.getObjectByName("roadster-car");
+      if (car) {
+        if (lapLeft > 0) {
+          lapLeft = Math.max(0, lapLeft - dt);
+          const u = 1 - lapLeft / 6;
+          const ang = u * Math.PI * 2;
+          const center = car.userData.center;
+          car.position.set(center.x + Math.cos(ang) * 8.2, 0, center.z + Math.sin(ang) * 8.2);
+          car.rotation.y = headingYaw(-Math.sin(ang), Math.cos(ang));
+          if (lapLeft === 0) {
+            car.position.copy(car.userData.park);
+            car.rotation.y = car.userData.parkYaw;
+          }
+        }
+      }
+      for (const puff of puffs) {
+        if (puff.userData.life <= 0) continue;
+        puff.userData.life -= dt;
+        puff.position.y += dt * 0.35;
+        puff.material.opacity = Math.max(0, puff.userData.life * 1.4);
+        if (puff.userData.life <= 0) puff.visible = false;
+      }
+      if (moving && now >= puffAt) {
+        const whoNow = api.player();
+        const ground = map.grid[whoNow.y] && map.grid[whoNow.y][whoNow.x];
+        puffAt = now + (ground === "p" || ground === "d" ? 120 : 220);
+        const puff = puffs[puffI % puffs.length];
+        puffI += 1;
+        puff.visible = true;
+        puff.userData.life = ground === "c" ? 0.28 : 0.45;
+        puff.position.set(shown.x, 0.08, shown.z);
+        puff.material.opacity = 0.45;
+      }
       if (face && (face.x || face.y)) player.rotation.y = headingYaw(face.x, face.y);
       if (markTile && markTile.x === who.x && markTile.y === who.y) marker.visible = false;
       marker.rotation.z = now / 700;
-      placeCamera(new THREE.Vector3(shown.x, 1.15, shown.z));
+      focusGoal.set(shown.x, 1.15, shown.z);
+      camFocus.lerp(focusGoal, 1 - Math.exp(-dt * 4.5));
+      placeCamera(camFocus);
       for (const actor of actors) pose(actor, now, actor === player && moving);
     }
     canvas.dataset.mode = inside ? "bank" : "world";
@@ -1024,5 +1149,5 @@ export function mountWorld(canvas, map, api) {
 
   resize();
   placeCamera(shown);
-  return { render, resize, hold };
+  return { render, resize, hold, feel };
 }
