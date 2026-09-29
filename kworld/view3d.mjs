@@ -1,4 +1,4 @@
-/** Ashfields in 3D. Original meshes. The camera yaw is free through a full turn. */
+/** Ashfields in 3D. Original meshes. The camera turns around the player through a full circle. */
 
 import * as THREE from "./vendor/three.module.js";
 
@@ -17,6 +17,58 @@ export function orbitOffset(yaw, pitch) {
 /** Yaw for a mesh whose front is local −z. Moving +x returns −π/2. */
 export function headingYaw(dx, dz) {
   return Math.atan2(-dx, -dz);
+}
+
+/** One tile along a ground direction. Tile +x is world +x. Tile +y is world +z. */
+export function gridStep(wx, wz) {
+  const ax = Math.abs(wx);
+  const az = Math.abs(wz);
+  if (ax + az < 1e-8) return { x: 0, y: 0 };
+  let sx = 0;
+  let sy = 0;
+  if (ax >= az * 0.55) sx = wx > 0 ? 1 : -1;
+  if (az >= ax * 0.55) sy = wz > 0 ? 1 : -1;
+  if (!sx && !sy) {
+    if (ax >= az) sx = wx > 0 ? 1 : -1;
+    else sy = wz > 0 ? 1 : -1;
+  }
+  return { x: sx, y: sy };
+}
+
+/** forward +1 walks the way the camera looks. strafe +1 walks to the camera's right. */
+export function groundStep(fwdX, fwdZ, rightX, rightZ, forward, strafe) {
+  return gridStep(fwdX * forward + rightX * strafe, fwdZ * forward + rightZ * strafe);
+}
+
+/** Roof peaks for the drawn buildings. Footprints match the meshes. */
+export function buildingBoxes(map) {
+  return map.buildings.map((b) => {
+    const w = b.w * TILE * 0.9;
+    const d = b.h * TILE * 0.9;
+    const body = b.id === "bank" ? 2.7 : 2.25;
+    const cx = (b.x + b.w / 2 - map.w / 2) * TILE;
+    const cz = (b.y + b.h / 2 - map.h / 2) * TILE;
+    return {
+      id: b.id,
+      minX: cx - w / 2,
+      maxX: cx + w / 2,
+      minZ: cz - d / 2,
+      maxZ: cz + d / 2,
+      roofY: body + 0.12 + 1.15,
+    };
+  });
+}
+
+/** Lift a camera that would sit inside a roof to just above that roof. */
+export function clearCamera(pos, boxes) {
+  let y = pos.y;
+  for (const box of boxes) {
+    if (pos.x < box.minX - 0.4 || pos.x > box.maxX + 0.4) continue;
+    if (pos.z < box.minZ - 0.4 || pos.z > box.maxZ + 0.4) continue;
+    const floor = box.roofY + 0.45;
+    if (y < floor) y = floor;
+  }
+  return y;
 }
 
 function worldOf(map, tx, ty, y = 0) {
@@ -596,7 +648,7 @@ export function mountWorld(canvas, map, api) {
     console.error(err);
     canvas.dataset.gl = "fail";
     canvas.dataset.err = String(err && err.message ? err.message : err);
-    return { render() {}, resize() {} };
+    return { render() {}, resize() {}, hold() {} };
   }
   canvas.dataset.gl = "ok";
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -641,6 +693,13 @@ export function mountWorld(canvas, map, api) {
   addBuildings(town, map, maps, pick);
   addDressing(town, map, maps);
   const player = figure("#f2d16b");
+  const shadow = new THREE.Mesh(
+    new THREE.CircleGeometry(0.34, 14),
+    new THREE.MeshBasicMaterial({ color: "#140f0c", transparent: true, opacity: 0.4, depthWrite: false }),
+  );
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.y = 0.02;
+  player.add(shadow);
   town.add(player);
   const actors = [player];
   for (const npc of map.npcs) {
@@ -667,16 +726,22 @@ export function mountWorld(canvas, map, api) {
   town.add(marker);
   let markTile = null;
 
+  const boxes = buildingBoxes(map);
   let yaw = 2.55;
-  let pitch = 0.9;
-  let townDistance = 15;
+  let pitch = 0.72;
+  let townDistance = 12;
   let bankDistance = 4.8;
+  let townYaw = yaw;
+  let townPitch = pitch;
   let seenMode = api.mode();
   const shown = worldOf(map, map.spawn.x + 0.5, map.spawn.y + 0.5, 1.15);
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
   let drag = null;
   let lastStep = shown.clone();
+  const held = new Set();
+  let lastNow = 0;
+  let nextStep = 0;
 
   function resize() {
     const rect = canvas.getBoundingClientRect();
@@ -692,13 +757,34 @@ export function mountWorld(canvas, map, api) {
   function placeCamera(target) {
     const offset = orbitOffset(yaw, pitch);
     const distance = api.mode() === "bank" ? bankDistance : townDistance;
-    camera.position.set(
-      target.x + offset.x * distance,
-      target.y + offset.y * distance,
-      target.z + offset.z * distance,
-    );
+    const pos = {
+      x: target.x + offset.x * distance,
+      y: target.y + offset.y * distance,
+      z: target.z + offset.z * distance,
+    };
+    if (api.mode() !== "bank") pos.y = clearCamera(pos, boxes);
+    camera.position.set(pos.x, pos.y, pos.z);
     camera.up.copy(UP);
     camera.lookAt(target);
+  }
+
+  function stepFromKeys() {
+    let forward = 0;
+    let strafe = 0;
+    if (held.has("KeyW") || held.has("ArrowUp")) forward += 1;
+    if (held.has("KeyS") || held.has("ArrowDown")) forward -= 1;
+    if (held.has("KeyD")) strafe += 1;
+    if (held.has("KeyA")) strafe -= 1;
+    if (!forward && !strafe) return null;
+    const fwd = new THREE.Vector3();
+    camera.getWorldDirection(fwd);
+    fwd.y = 0;
+    if (fwd.lengthSq() < 1e-8) return null;
+    fwd.normalize();
+    const right = new THREE.Vector3().crossVectors(fwd, UP);
+    if (right.lengthSq() < 1e-8) return null;
+    right.normalize();
+    return groundStep(fwd.x, fwd.z, right.x, right.z, forward, strafe);
   }
 
   function render(now) {
@@ -706,14 +792,22 @@ export function mountWorld(canvas, map, api) {
     const inside = api.mode() === "bank";
     if (inside !== (seenMode === "bank")) {
       if (inside) {
+        townYaw = yaw;
+        townPitch = pitch;
         yaw = 0.22;
         pitch = 1.26;
       } else {
-        yaw = 2.55;
-        pitch = 0.9;
+        yaw = townYaw;
+        pitch = townPitch;
       }
       seenMode = api.mode();
     }
+    const dt = lastNow ? Math.min(0.05, (now - lastNow) / 1000) : 0.016;
+    lastNow = now;
+    let spin = 0;
+    if (held.has("ArrowLeft") || held.has("KeyQ")) spin += 1;
+    if (held.has("ArrowRight") || held.has("KeyR")) spin -= 1;
+    if (spin) yaw += spin * dt * 1.5;
     town.visible = !inside;
     sky.visible = !inside;
     bank.room.visible = inside;
@@ -737,6 +831,14 @@ export function mountWorld(canvas, map, api) {
       placeCamera(new THREE.Vector3(0, 1.15, -1.8));
       pose(bank.teller, now, false);
     } else {
+      placeCamera(new THREE.Vector3(shown.x, 1.15, shown.z));
+      if (now >= nextStep) {
+        const step = stepFromKeys();
+        if (step && (step.x || step.y) && api.step) {
+          api.step(step.x, step.y);
+          nextStep = now + 140;
+        }
+      }
       const who = api.player();
       const face = api.facing();
       const goal = worldOf(map, who.x + 0.5, who.y + 0.5, 1.15);
@@ -813,12 +915,30 @@ export function mountWorld(canvas, map, api) {
     if (api.mode() === "bank") bankDistance = Math.min(12, Math.max(4.4, bankDistance + Math.sign(ev.deltaY) * 0.45));
     else townDistance = Math.min(32, Math.max(6.5, townDistance + Math.sign(ev.deltaY) * 0.8));
   }, { passive: false });
+  function typing(ev) {
+    const el = ev.target;
+    return !!(el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable));
+  }
+  const codes = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "KeyW", "KeyA", "KeyS", "KeyD", "KeyQ", "KeyR"]);
   window.addEventListener("keydown", (ev) => {
-    if (ev.target && (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA")) return;
-    if (ev.key === "q" || ev.key === "Q") yaw -= 0.12;
-    if (ev.key === "r" || ev.key === "R") yaw += 0.12;
+    if (typing(ev) || !codes.has(ev.code)) return;
+    ev.preventDefault();
+    if (!ev.repeat) nextStep = 0;
+    held.add(ev.code);
   });
+  window.addEventListener("keyup", (ev) => {
+    held.delete(ev.code);
+  });
+  window.addEventListener("blur", () => held.clear());
+
+  function hold(code, down) {
+    if (down) {
+      nextStep = 0;
+      held.add(code);
+    } else held.delete(code);
+  }
 
   resize();
-  return { render, resize };
+  placeCamera(shown);
+  return { render, resize, hold };
 }

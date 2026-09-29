@@ -1,5 +1,5 @@
 import { readIdentity, writeIdentity } from "./identity.mjs";
-import { BENCH, POST, REPOS } from "./links.mjs";
+import { BENCH, REPOS } from "./links.mjs";
 import {
   GUEST_DISCLAIMER,
   RESERVE,
@@ -10,7 +10,7 @@ import {
   parseTkas,
   sompiForCents,
 } from "./money.mjs";
-import { mountWorld } from "./view3d.mjs";
+import { mountWorld } from "./view3d.mjs?v=2";
 import { destinationFor, findPath, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -201,30 +201,82 @@ function setIdentity(next) {
   else say("Paying as " + (next.label || next.address) + ". This one keeps its history on this browser.");
 }
 
+async function readLiveAddress(kind) {
+  try {
+    if (kind === "kasware" && window.kasware && window.kasware.getAccounts) {
+      const acc = await window.kasware.getAccounts();
+      if (Array.isArray(acc) && acc[0]) return String(acc[0]);
+    }
+    if (kind === "kastle" && window.kastle && window.kastle.getAccount) {
+      const acc = await window.kastle.getAccount();
+      if (typeof acc === "string") return acc;
+      if (acc && acc.address) return String(acc.address);
+    }
+  } catch (_) {}
+  return "";
+}
+
+async function readLiveNetwork(kind) {
+  try {
+    const w = kind === "kasware" ? window.kasware : window.kastle;
+    if (w && w.getNetwork) return String((await w.getNetwork()) || "");
+  } catch (_) {}
+  return "";
+}
+
+async function switchToTn10(kind) {
+  const label = kind === "kasware" ? "Kasware" : "Kastle";
+  const w = kind === "kasware" ? window.kasware : window.kastle;
+  if (!w || typeof w.switchNetwork !== "function") {
+    throw new Error(label + " has no network switch on this page. Set Testnet 10 in the wallet, then click again.");
+  }
+  try {
+    await w.switchNetwork(kind === "kasware" ? "kaspa_testnet_10" : "testnet-10");
+  } catch (err) {
+    const detail = err && err.message ? String(err.message) : "";
+    throw new Error(
+      label + " did not switch to Testnet 10." +
+      (detail ? " " + detail : " On a phone the wallet cannot switch from a page. Set Testnet 10 in the wallet, then click again."),
+    );
+  }
+}
+
 async function connectWallet(kind) {
   const kit = window.KaspaWallets;
   if (!kit || !kit.connect) {
     say("Wallet kit is not on this page. Hard-refresh.", true);
     return;
   }
-  say(kind === "kasware" ? "Waiting for Kasware. It must already be on Testnet 10." : "Waiting for Kastle. It must already be on Testnet 10.");
+  const name = kind === "kasware" ? "Kasware" : "Kastle";
+  say(name + ": approve Log in. This page is opening the wallet on Testnet 10. If the window is black, close it, click the " + name + " icon, unlock, and try again.");
   const got = await kit.connect(kind);
-  let net = "";
+  let switchError = "";
   try {
-    if (kind === "kasware" && window.kasware && window.kasware.getNetwork) net = String(await window.kasware.getNetwork());
-    if (kind === "kastle" && window.kastle && window.kastle.getNetwork) net = String(await window.kastle.getNetwork());
-  } catch (_) {}
+    await switchToTn10(kind);
+  } catch (err) {
+    switchError = err && err.message ? err.message : name + " did not switch to Testnet 10.";
+  }
+  let address = await readLiveAddress(kind);
+  if (!address) address = (got && got.address) || "";
+  if (/^kaspa:/i.test(address) && !/^kaspatest:/i.test(address) && !switchError) {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    const again = await readLiveAddress(kind);
+    if (again) address = again;
+  }
+  const net = await readLiveNetwork(kind);
   try {
     assertNotMainnetNetwork(net);
-    assertTestnet(got.address);
+    assertTestnet(address);
   } catch (err) {
     try {
       await kit.logout();
     } catch (_) {}
+    if (switchError) say(switchError, true);
     say(err.message, true);
     return;
   }
-  setIdentity({ address: got.address, label: got.address, kind });
+  setIdentity({ address, label: address, kind });
+  if (switchError) say("The wallet did not change network from this page. This address is already Testnet 10.");
 }
 
 async function startGuest() {
@@ -480,11 +532,11 @@ function paintGuide() {
   panel.innerHTML =
     "<h2>How to try this on Testnet 10</h2>" +
     "<ol>" +
-    "<li>Install Kasware or Kastle and set the network to Testnet 10 before you connect. A mainnet address is refused. That login stays on this browser.</li>" +
+    "<li>Click Kasware or Kastle and approve the login. This page asks the wallet to open on Testnet 10. If the window is black, close it, click the wallet icon, unlock, and try again. A mainnet address is still refused. A phone wallet cannot switch from this page. That login stays on this browser.</li>" +
     "<li>Or choose New arrival on the welcome gate. That is the same as Test without a wallet. This tab gets a new funded kaspatest address. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. Returning leaves the gate and uses a wallet that stays on this browser.</li>" +
     "<li>Or paste a kaspatest address. Or type a .kas name that already resolves on TN10. That choice stays until you change it.</li>" +
     "<li>Need coins: the faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. Take the practice purse in the bank. That purse is play money.</li>" +
-    "<li>Walk to a door, or use the left tabs. Pay tKAS, POCencept, or KUSDT.</li>" +
+    "<li>Click the ground to walk to a door, or use the left tabs. Left and right turn the view around you. Pay tKAS, POCencept, or KUSDT.</li>" +
     "<li>tKAS asks the wallet to sign a real Testnet-10 transaction. The miner fee is extra tKAS.</li>" +
     "<li>Venn's bank is a room with three booths. tKAS locks. POCencept redeems the locked part. KUSDT is the only booth with a freeze. The long note sits in Rules.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
@@ -492,19 +544,7 @@ function paintGuide() {
     "</ol>" +
     "<p>Also on the bench: KNS, tic-tac-toe, KaChat, Kaspero Labs, SilverScript, Argent. Tidewater is an MIT fishing island; this square did not copy that ocean. The Go topic list is markers and private-server code. This page uses neither of those, and it does not ship a soundtrack.</p>" +
     "<p class=\"warn\">" + esc(PRIVACY) + "</p>" +
-    "<h2>Name</h2><p>This tab is called Kworld. The name can change.</p>" +
-    "<h2>Text for X, not posted from this desk</h2>" +
-    "<textarea id=\"post\" rows=\"12\" style=\"width:100%\">" + esc(POST) + "</textarea>" +
-    '<button type="button" id="copy-post">Copy</button>';
-  document.getElementById("copy-post").onclick = async () => {
-    const text = document.getElementById("post").value;
-    try {
-      await navigator.clipboard.writeText(text);
-      say("Copied. This desk did not post it.");
-    } catch (_) {
-      say(text);
-    }
-  };
+    "<h2>Name</h2><p>This tab is called Kworld. The name can change.</p>";
 }
 
 function requireId() {
@@ -699,7 +739,15 @@ function paintMini() {
     }
   }
   mctx.fillStyle = "#f2d16b";
+  const px = state.player.x * sx + 1.5;
+  const py = state.player.y * sy + 1.5;
   mctx.fillRect(state.player.x * sx, state.player.y * sy, 3, 3);
+  mctx.strokeStyle = "#f2d16b";
+  mctx.lineWidth = 1;
+  mctx.beginPath();
+  mctx.moveTo(px, py);
+  mctx.lineTo(px + state.facing.x * 7, py + state.facing.y * 7);
+  mctx.stroke();
 }
 
 function step(now) {
@@ -754,6 +802,22 @@ const worldView = mountWorld(view, map, {
     const npc = map.npcs.find((item) => item.x === x && item.y === y);
     walkTo(x, y, npc ? () => openMode(npc.shop) : null);
   },
+  step(dx, dy) {
+    if (!dx && !dy) return;
+    state.path = [];
+    state.arrived = null;
+    const tries = [{ x: dx, y: dy }];
+    if (dx && dy) tries.push({ x: dx, y: 0 }, { x: 0, y: dy });
+    for (const t of tries) {
+      const x = state.player.x + t.x;
+      const y = state.player.y + t.y;
+      if (y >= 0 && x >= 0 && y < map.h && x < map.w && walkable(map.grid[y][x])) {
+        state.player = { x, y };
+        state.facing = { x: t.x, y: t.y };
+        return;
+      }
+    }
+  },
   booth(rail) {
     chooseRail(rail);
   },
@@ -761,37 +825,24 @@ const worldView = mountWorld(view, map, {
 
 window.addEventListener("keydown", (ev) => {
   const key = ev.key.toLowerCase();
-  if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d", "e", "escape"].includes(ev.key.toLowerCase()) || ["w", "a", "s", "d"].includes(key)) {
-    if (ev.target && (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA")) return;
-    ev.preventDefault();
-  }
+  if (key !== "e" && key !== "escape") return;
+  if (ev.target && (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA")) return;
+  ev.preventDefault();
   if (key === "escape") {
     openMode("world");
     return;
   }
-  if (key === "e") {
-    let best = null;
-    let bestD = 99;
-    for (const npc of map.npcs) {
-      const d = Math.abs(npc.x - state.player.x) + Math.abs(npc.y - state.player.y);
-      if (d < bestD) {
-        best = npc;
-        bestD = d;
-      }
+  let best = null;
+  let bestD = 99;
+  for (const npc of map.npcs) {
+    const d = Math.abs(npc.x - state.player.x) + Math.abs(npc.y - state.player.y);
+    if (d < bestD) {
+      best = npc;
+      bestD = d;
     }
-    if (best && bestD <= 2) openMode(best.shop);
-    else if (best) walkTo(best.x, best.y, () => openMode(best.shop));
-    return;
   }
-  const dir = { w: [0, -1], arrowup: [0, -1], s: [0, 1], arrowdown: [0, 1], a: [-1, 0], arrowleft: [-1, 0], d: [1, 0], arrowright: [1, 0] }[key];
-  if (!dir) return;
-  state.path = [];
-  const x = state.player.x + dir[0];
-  const y = state.player.y + dir[1];
-  if (y >= 0 && x >= 0 && y < map.h && x < map.w && walkable(map.grid[y][x])) {
-    state.player = { x, y };
-    state.facing = { x: dir[0], y: dir[1] };
-  }
+  if (best && bestD <= 2) openMode(best.shop);
+  else if (best) walkTo(best.x, best.y, () => openMode(best.shop));
 });
 
 window.addEventListener("resize", () => worldView.resize());
@@ -824,8 +875,31 @@ document.getElementById("gate-new").addEventListener("click", () => {
     })
     .catch((err) => say(err.message, true));
 });
+const payToggle = document.getElementById("pay-toggle");
+function setPayOpen(open) {
+  you.hidden = !open;
+  if (!payToggle) return;
+  payToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  payToggle.textContent = open ? "Close" : "Who pays";
+}
+if (payToggle) payToggle.addEventListener("click", () => setPayOpen(you.hidden));
+for (const button of document.querySelectorAll("[data-turn]")) {
+  const code = button.getAttribute("data-turn") === "left" ? "ArrowLeft" : "ArrowRight";
+  const down = (ev) => {
+    ev.preventDefault();
+    if (worldView.hold) worldView.hold(code, true);
+  };
+  const up = () => {
+    if (worldView.hold) worldView.hold(code, false);
+  };
+  button.addEventListener("pointerdown", down);
+  button.addEventListener("pointerup", up);
+  button.addEventListener("pointercancel", up);
+  button.addEventListener("pointerleave", up);
+}
 document.getElementById("gate-back").addEventListener("click", () => {
   hideGate();
+  setPayOpen(true);
   if (state.id.kind === "guest") {
     say("This tab is already a new arrival. Close the tab and that address is gone. Pick a wallet in the panel if you want the history kept.");
   } else if (state.id.address) {
