@@ -15,7 +15,7 @@ import {
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { kasSpendAction } from "./kas-spend.mjs";
 import { DRIVE_MS, WALK_MS, mountWorld, seat } from "./view3d.mjs?v=9";
-import { destinationFor, findPath, nearShop, walkable, world } from "./world.mjs";
+import { destinationFor, findPath, nearShop, shopVisit, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 const map = world();
@@ -435,7 +435,7 @@ function chooseRail(rail) {
 }
 
 function isVisit(mode) {
-  return mode === "bank" || mode === "cafe" || mode === "restaurant" || mode === "groceries" || mode === "roadster";
+  return shopVisit(mode);
 }
 
 function arriveVisit(shop) {
@@ -454,7 +454,7 @@ function openMode(mode) {
   const enteringBank = mode === "bank" && state.mode !== "bank";
   const enteringShop = isVisit(mode) && mode !== "bank" && state.mode !== mode;
   if (mode === "world" && state.mode !== "world") state.arrived = null;
-  if (!isVisit(mode)) state.inside = false;
+  state.inside = isVisit(mode);
   state.mode = mode;
   markRoom();
   paintChrome();
@@ -1160,7 +1160,7 @@ function step(now) {
   if (!ridingLap) {
     if (state.lapUntil) state.lapUntil = 0;
     const ground = map.grid[state.player.y] && map.grid[state.player.y][state.player.x];
-    const pace = seat(!!(state.account && state.account.roadster), state.aboard, ground) === "drive" ? DRIVE_MS : WALK_MS;
+    const pace = state.inside ? WALK_MS : seat(!!(state.account && state.account.roadster), state.aboard, ground) === "drive" ? DRIVE_MS : WALK_MS;
     if (state.path.length && now - state.stepAt > pace) {
       const next = state.path.shift();
       state.facing = { x: next.x - state.player.x, y: next.y - state.player.y };

@@ -12,7 +12,7 @@ import {
   publicAccount,
 } from "./ledger.mjs";
 import { RESERVE, centsForSompi, sompiForCents } from "./money.mjs";
-import { findPath, nearShop, standTile, walkable, world } from "./world.mjs";
+import { findPath, nearShop, shopVisit, standTile, walkable, world } from "./world.mjs";
 
 const USER = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 const USD = 0.05;
@@ -161,6 +161,18 @@ test("the roadster stops on a path and never indoors", () => {
       assert.equal(walkable(got) && got !== "i", true, x + "," + y + " -> " + got);
     }
   }
+});
+
+test("a shop or the bank is the indoor room, and the rules are not", () => {
+  assert.equal(shopVisit("cafe"), true);
+  assert.equal(shopVisit("restaurant"), true);
+  assert.equal(shopVisit("groceries"), true);
+  assert.equal(shopVisit("roadster"), true);
+  assert.equal(shopVisit("bank"), true);
+  assert.equal(shopVisit("world"), false);
+  assert.equal(shopVisit("rules"), false);
+  assert.equal(shopVisit("bench"), false);
+  assert.equal(shopVisit("guide"), false);
 });
 
 test("the same transaction cannot mint twice", () => {

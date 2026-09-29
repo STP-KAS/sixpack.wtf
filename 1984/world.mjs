@@ -87,6 +87,11 @@ export function walkable(tile) {
   return tile === "g" || tile === "c" || tile === "p" || tile === "d" || tile === "i" || tile === "f";
 }
 
+/** Bank and shop panels are the indoor room. Rules, the bench, and the guide are not. */
+export function shopVisit(mode) {
+  return mode === "bank" || mode === "cafe" || mode === "restaurant" || mode === "groceries" || mode === "roadster";
+}
+
 /** A tile the roadster can stop on. Indoors is for feet, so the car waits outside. */
 export function standTile(map, x, y) {
   const tx = Math.round(x);
