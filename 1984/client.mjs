@@ -12,7 +12,7 @@ import {
   parseTkas,
   sompiForCents,
 } from "./money.mjs";
-import { DRIVE_MS, WALK_MS, mountWorld, seat } from "./view3d.mjs?v=8";
+import { DRIVE_MS, WALK_MS, mountWorld, seat } from "./view3d.mjs?v=9";
 import { destinationFor, findPath, nearShop, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -756,7 +756,7 @@ function paintGuide() {
     "<li>Or choose New arrival on the welcome gate. That is the same as Test without a wallet. This tab gets 10000 tKAS from Grok's Testnet-10 wallet. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. Returning leaves the gate and uses a wallet that stays on this browser. One thousand of these test wallets can be opened in a day.</li>" +
     "<li>Or paste a kaspatest address. Or type a .kas name that already resolves on TN10. That choice stays until you change it.</li>" +
     "<li>Need coins: New arrival gives this tab 10000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. Take the practice purse in the bank. That purse is play money.</li>" +
-    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to walk, or use W A S D. Stand next to a building and click it to go in. The counter is a popup. G gets in or out of the roadster. Esc closes. Pick one rail, then Buy.</li>" +
+    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to go in. The counter is a popup. Buy the roadster and you drive it. W A S D move the way you look. The arrow keys do too. G gets in or out. Esc closes. Pick one rail, then Buy.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Step moves you. Left and Right turn you. Tap a building you are next to and you go in. Get in drives. Get out walks. Square closes a shop. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
     "<li>tKAS asks the wallet to sign a real Testnet-10 transaction. The miner fee is extra tKAS.</li>" +
     "<li>Venn's bank opens as a swap. Step 1 locks tKAS. Step 2 redeems toy dollars. Use locked POCencept puts the locked amount in the toy-dollar box. The Result line says whether it landed. KUSDT is the only freeze.</li>" +
@@ -1286,7 +1286,7 @@ function setPayOpen(open) {
 if (payToggle) payToggle.addEventListener("click", () => setPayOpen(you.hidden));
 for (const button of document.querySelectorAll("[data-turn]")) {
   const turn = button.getAttribute("data-turn");
-  const code = turn === "left" ? "ArrowLeft" : turn === "right" ? "ArrowRight" : "KeyW";
+  const code = turn === "left" ? "TurnLeft" : turn === "right" ? "TurnRight" : "KeyW";
   const down = (ev) => {
     ev.preventDefault();
     try { button.setPointerCapture(ev.pointerId); } catch { /* the hold still starts */ }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { CAR_NOSE, DRIVE_MS, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, WALK_MS, buildingBoxes, clearCamera, drives, groundStep, headingYaw, orbitOffset, seat } from "./view3d.mjs";
+import { CAR_NOSE, DRIVE_MS, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, WALK_MS, buildingBoxes, clearCamera, drives, groundStep, headingYaw, moveIntent, orbitOffset, seat } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -92,6 +92,44 @@ test("at the opening view, forward is north and right is east", () => {
   assert.deepEqual(groundStep(fwd.x, fwd.z, right.x, right.z, -1, 0), { x: 0, y: 1 });
   assert.deepEqual(groundStep(fwd.x, fwd.z, right.x, right.z, 0, 1), { x: 1, y: 0 });
   assert.deepEqual(groundStep(fwd.x, fwd.z, right.x, right.z, 0, -1), { x: -1, y: 0 });
+});
+
+test("arrow keys walk like W A S D, and the on-screen buttons still turn", () => {
+  const camera = new THREE.PerspectiveCamera(48, 1, 0.08, 240);
+  const target = new THREE.Vector3(0, 1.15, 0);
+  const up = new THREE.Vector3(0, 1, 0);
+  const offset = orbitOffset(0, Math.PI / 2);
+  camera.position.set(target.x + offset.x * 12, target.y + offset.y * 12, target.z + offset.z * 12);
+  camera.up.copy(up);
+  camera.lookAt(target);
+  camera.updateMatrixWorld(true);
+  const fwd = new THREE.Vector3();
+  camera.getWorldDirection(fwd);
+  fwd.y = 0;
+  fwd.normalize();
+  const right = new THREE.Vector3().crossVectors(fwd, up).normalize();
+  const step = (code) => {
+    const intent = moveIntent(new Set([code]));
+    return { intent, tile: groundStep(fwd.x, fwd.z, right.x, right.z, intent.forward, intent.strafe) };
+  };
+  const ahead = step("ArrowUp");
+  assert.deepEqual(ahead.intent, { forward: 1, strafe: 0, spin: 0 });
+  assert.deepEqual(ahead.tile, step("KeyW").tile);
+  assert.deepEqual(ahead.tile, { x: 0, y: -1 });
+  const east = step("ArrowRight");
+  assert.deepEqual(east.intent, { forward: 0, strafe: 1, spin: 0 });
+  assert.deepEqual(east.tile, step("KeyD").tile);
+  assert.deepEqual(east.tile, { x: 1, y: 0 });
+  const west = step("ArrowLeft");
+  assert.deepEqual(west.intent, { forward: 0, strafe: -1, spin: 0 });
+  assert.deepEqual(west.tile, step("KeyA").tile);
+  assert.deepEqual(west.tile, { x: -1, y: 0 });
+  assert.deepEqual(step("ArrowDown").intent, { forward: -1, strafe: 0, spin: 0 });
+  assert.deepEqual(step("ArrowDown").tile, step("KeyS").tile);
+  assert.deepEqual(moveIntent(new Set(["KeyQ"])), { forward: 0, strafe: 0, spin: 1 });
+  assert.deepEqual(moveIntent(new Set(["TurnLeft"])), { forward: 0, strafe: 0, spin: 1 });
+  assert.deepEqual(moveIntent(new Set(["KeyR"])), { forward: 0, strafe: 0, spin: -1 });
+  assert.deepEqual(moveIntent(new Set(["TurnRight"])), { forward: 0, strafe: 0, spin: -1 });
 });
 
 test("a turned camera still steps the way it looks", () => {

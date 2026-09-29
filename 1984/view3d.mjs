@@ -68,6 +68,20 @@ export function groundStep(fwdX, fwdZ, rightX, rightZ, forward, strafe) {
   return gridStep(fwdX * forward + rightX * strafe, fwdZ * forward + rightZ * strafe);
 }
 
+/** Arrow keys match W A S D. On-screen Left and Right send TurnLeft and TurnRight. */
+export function moveIntent(held) {
+  let forward = 0;
+  let strafe = 0;
+  let spin = 0;
+  if (held.has("KeyW") || held.has("ArrowUp")) forward += 1;
+  if (held.has("KeyS") || held.has("ArrowDown")) forward -= 1;
+  if (held.has("KeyD") || held.has("ArrowRight")) strafe += 1;
+  if (held.has("KeyA") || held.has("ArrowLeft")) strafe -= 1;
+  if (held.has("KeyQ") || held.has("TurnLeft")) spin += 1;
+  if (held.has("KeyR") || held.has("TurnRight")) spin -= 1;
+  return { forward, strafe, spin };
+}
+
 /** Roof peaks for the drawn buildings. Footprints match the meshes. */
 export function buildingBoxes(map) {
   return map.buildings.map((b) => {
@@ -1107,13 +1121,8 @@ export function mountWorld(canvas, map, api) {
   }
 
   function stepFromKeys() {
-    let forward = 0;
-    let strafe = 0;
-    if (held.has("KeyW") || held.has("ArrowUp")) forward += 1;
-    if (held.has("KeyS") || held.has("ArrowDown")) forward -= 1;
-    if (held.has("KeyD")) strafe += 1;
-    if (held.has("KeyA")) strafe -= 1;
-    if (!forward && !strafe) return null;
+    const intent = moveIntent(held);
+    if (!intent.forward && !intent.strafe) return null;
     const fwd = new THREE.Vector3();
     camera.getWorldDirection(fwd);
     fwd.y = 0;
@@ -1122,7 +1131,7 @@ export function mountWorld(canvas, map, api) {
     const right = new THREE.Vector3().crossVectors(fwd, UP);
     if (right.lengthSq() < 1e-8) return null;
     right.normalize();
-    return groundStep(fwd.x, fwd.z, right.x, right.z, forward, strafe);
+    return groundStep(fwd.x, fwd.z, right.x, right.z, intent.forward, intent.strafe);
   }
 
   function render(now) {
@@ -1149,9 +1158,7 @@ export function mountWorld(canvas, map, api) {
     const talking = !indoors && api.mode() !== "world" && api.mode() !== "rules" && api.mode() !== "bench" && api.mode() !== "guide";
     talk += ((talking ? 1 : 0) - talk) * Math.min(1, dt * 2.5);
     frameDistance = indoors ? bankDistance : townDistance * (1 - 0.2 * talk);
-    let spin = 0;
-    if (held.has("ArrowLeft") || held.has("KeyQ")) spin += 1;
-    if (held.has("ArrowRight") || held.has("KeyR")) spin -= 1;
+    const spin = moveIntent(held).spin;
     if (spin) yaw += spin * dt * 1.5;
     const stallId = stall.stalls.some((item) => item.id === api.mode()) ? api.mode() : "";
     town.visible = !indoors;
