@@ -4,6 +4,8 @@ Thumbs.db
 node_modules/
 convo.html
 faucet/ledger.json
+kworld/ledger.json
+kworld/ledger.json.tmp
 faucet/.local/
 .env
 grok/logs/

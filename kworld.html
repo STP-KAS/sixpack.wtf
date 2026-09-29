@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sixpack.wtf — Kworld</title>
+  <meta name="description" content="Kworld is a Testnet-10 village. Pay a shop with tKAS, POCencept, or the KUSDT toy. Mainnet wallets are refused.">
+  <link rel="canonical" href="https://sixpack.wtf/kworld.html">
+  <link rel="stylesheet" href="site.css?v=27">
+  <link rel="stylesheet" href="kworld.css?v=1">
+</head>
+<body class="kworld-page">
+<header class="top">
+  <a class="wordmark" href="./">sixpack.wtf</a>
+  <nav data-site-nav></nav>
+</header>
+<div class="kw">
+  <aside class="kw-side" id="side"></aside>
+  <header class="kw-bar" id="bar"></header>
+  <main class="kw-stage">
+    <canvas id="view"></canvas>
+    <canvas id="mini" class="kw-mini" width="116" height="88"></canvas>
+    <p class="kw-hint">Click the ground to walk. E talks. Esc closes.</p>
+    <div id="panel" class="kw-panel" hidden></div>
+  </main>
+  <aside class="kw-you" id="you"></aside>
+  <footer class="kw-chat" id="chat" aria-live="polite"></footer>
+</div>
+<script src="nav.js?v=47"></script>
+<script src="wallets/kaspa-wallets.js?v=4"></script>
+<script type="module" src="kworld/client.mjs?v=2"></script>
+</body>
+</html>
