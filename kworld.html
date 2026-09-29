@@ -7,7 +7,7 @@
   <meta name="description" content="Kworld is a Testnet-10 village. Pay a shop with tKAS, POCencept, or the KUSDT toy. Test without a wallet in this tab, or keep a Testnet wallet. Mainnet wallets are refused.">
   <link rel="canonical" href="https://sixpack.wtf/kworld.html">
   <link rel="stylesheet" href="site.css?v=27">
-  <link rel="stylesheet" href="kworld.css?v=6">
+  <link rel="stylesheet" href="kworld.css?v=7">
 </head>
 <body class="kworld-page">
 <header class="top">
@@ -39,12 +39,13 @@
         <button type="button" id="gate-new">New arrival</button>
         <button type="button" id="gate-back" onclick="var g=document.getElementById('gate');if(g)g.hidden=true">Returning</button>
       </div>
+      <p id="gate-status" class="gate-status" role="status"></p>
       <p class="fine">New arrival opens a funded test address that exists only in this tab. Close the tab and it is gone. Returning uses Kasware, Kastle, a kaspatest address, or a .kas name, and that choice stays on this browser. Never a seed. A mainnet wallet is refused.</p>
     </div>
   </div>
 </div>
 <script src="nav.js?v=47"></script>
 <script src="wallets/kaspa-wallets.js?v=4"></script>
-<script type="module" src="kworld/client.mjs?v=8"></script>
+<script type="module" src="kworld/client.mjs?v=9"></script>
 </body>
 </html>

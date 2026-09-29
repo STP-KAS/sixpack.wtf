@@ -328,7 +328,9 @@ a { color: #f2d48a; }
   color: #f2d48a;
   font-size: 0.75rem;
 }
-.kw-gate-row { display: flex; gap: 0.55rem; margin: 0.85rem 0 0.7rem; }
+.kw-gate-row { display: flex; gap: 0.55rem; margin: 0.85rem 0 0.35rem; }
+.gate-status { min-height: 1.25em; margin: 0.15rem 0 0.35rem; color: #f2d48a; font-size: 0.88rem; }
+.gate-status.bad { color: #ffb4a8; }
 .kw-gate-row button { flex: 1; text-align: center; font-weight: 700; padding: 0.55rem 0.4rem; }
 
 @media (max-width: 980px) {
