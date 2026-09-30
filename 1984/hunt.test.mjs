@@ -105,16 +105,18 @@ test("a tKAS snap without payment is not Paid", () => {
 });
 
 test("liquidity records the promise and spends nothing", () => {
-  let state = purse(freshState(), A, 2000);
-  state = purse(state, B, 2000);
-  state = promise(state, A, "liquidity", "poc", 2);
-  state = promise(state, B, "liquidity", "poc", 2);
-  const snap = applySnap(state, { address: A, hunt: "liquidity" }, 70);
-  assert.equal(snap.result.paid, true);
-  assert.equal(snap.result.banner, "Pack paid on this square.");
-  assert.equal(snap.state.accounts[A.toLowerCase()].poc, "2000");
-  assert.equal(snap.state.accounts[B.toLowerCase()].poc, "2000");
-  assert.equal(snap.state.accounts[A.toLowerCase()].pocBacked, "0");
+  for (const rail of ["poc", "kusdt", "kas"]) {
+    let state = purse(freshState(), A, 2000);
+    state = purse(state, B, 2000);
+    state = promise(state, A, "liquidity", rail, 2);
+    state = promise(state, B, "liquidity", rail, 2);
+    const snap = applySnap(state, { address: A, hunt: "liquidity" }, 70);
+    assert.equal(snap.result.paid, true, rail);
+    assert.equal(snap.result.banner, "Pack paid on this square.");
+    assert.equal(snap.state.accounts[A.toLowerCase()].poc, "2000", rail);
+    assert.equal(snap.state.accounts[B.toLowerCase()].kusdt, "2000", rail);
+    assert.equal(Object.keys(snap.state.txids).length, 0, rail);
+  }
 });
 
 test("cars can set the same roadster flag Pike already uses", () => {
@@ -184,9 +186,9 @@ test("the hall sits east of the lot and the other buildings stay put", () => {
   assert.equal(shopVisit("hunt"), true);
   assert.equal(counterFace("hunt"), "hunt");
   assert.equal(counterFace("cinema"), "shop");
-  assert.equal(huntById("basket").rails.includes("kusdt"), false);
-  assert.deepEqual(huntById("liquidity").rails, ["poc"]);
-  assert.equal(huntById("cars").rails.includes("kas"), false);
+  for (const row of HUNTS) {
+    assert.deepEqual(row.rails, ["poc", "kusdt", "kas"], row.id);
+  }
 });
 
 test("the hunts route lists the catalog and hides the open pack", async () => {

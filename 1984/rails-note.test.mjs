@@ -27,6 +27,7 @@ test("the rails note is short and points at the public note", () => {
   assert.match(RAILS_NOTE.lines[2], /ticket/);
   assert.match(RAILS_NOTE.lines[2], /snacks/);
   assert.match(RAILS_NOTE.lines[2], /hop/);
+  assert.match(RAILS_NOTE.lines[2], /Hunt Hall/);
   assert.match(RAILS_NOTE.lines[3], /car/);
   assert.match(RAILS_NOTE.lines[3], /AI service/);
   assert.match(RAILS_NOTE.lines[3], /game purchase/);

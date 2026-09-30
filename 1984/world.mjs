@@ -87,14 +87,16 @@ export function tripBySku(sku) {
 }
 
 /** Classroom shapes. Not shops, and not a company catalog. */
+const PAY_RAILS = Object.freeze(["poc", "kusdt", "kas"]);
+
 export const HUNTS = [
-  { id: "model", name: "A month of a model desk", cents: 500, need: 3, rails: ["poc", "kusdt", "kas"] },
-  { id: "cars", name: "N roadsters as one order", cents: 100, need: 3, rails: ["poc", "kusdt"] },
-  { id: "dish", name: "Dish + first month", cents: 1200, need: 3, rails: ["poc", "kusdt", "kas"] },
-  { id: "stream", name: "A video month", cents: 500, need: 5, rails: ["poc", "kusdt"] },
-  { id: "music", name: "A music month", cents: 500, need: 5, rails: ["poc", "kusdt"] },
-  { id: "basket", name: "A week of food", cents: 1400, need: 3, rails: ["poc", "kas"] },
-  { id: "liquidity", name: "Deepen the toy dollar", cents: 2000, need: 2, rails: ["poc"] },
+  { id: "model", name: "A month of a model desk", cents: 500, need: 3, rails: PAY_RAILS },
+  { id: "cars", name: "N roadsters as one order", cents: 100, need: 3, rails: PAY_RAILS },
+  { id: "dish", name: "Dish + first month", cents: 1200, need: 3, rails: PAY_RAILS },
+  { id: "stream", name: "A video month", cents: 500, need: 5, rails: PAY_RAILS },
+  { id: "music", name: "A music month", cents: 500, need: 5, rails: PAY_RAILS },
+  { id: "basket", name: "A week of food", cents: 1400, need: 3, rails: PAY_RAILS },
+  { id: "liquidity", name: "Deepen the toy dollar", cents: 2000, need: 2, rails: PAY_RAILS },
 ];
 
 export function huntById(id) {
