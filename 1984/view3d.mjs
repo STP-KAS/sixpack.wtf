@@ -186,13 +186,13 @@ export function cruiseLine(progress, name) {
   const world = name || "that world";
   const abyss = /abyss/i.test(world);
   if (progress < APPROACH_MS / CRUISE_MS) {
-    if (abyss) return "On the way out. The roadster's engines are lit.";
+    if (abyss) return "Look at that view. The Gulf of America is beautiful.";
     return "On the way to " + world + ". The climb already pitched downrange.";
   }
   if (abyss) {
-    if (progress < 0.55) return "The old roadster is ahead. The engines stay lit.";
-    if (progress < 1) return "Side by side. They roll and trade the lead.";
-    return "They peel apart. Another world is on the card.";
+    if (progress < 0.55) return "The Gulf of America. Wonderful.";
+    if (progress < 1) return "What a view. The gulf is wonderful.";
+    return "The Gulf of America fills the window. Wonderful.";
   }
   if (progress < 1) return "At " + world + ". You can leave for another world, or go into the abyss.";
   return "At " + world + ". The bar is full. Leave for another world, or go into the abyss.";
@@ -226,10 +226,10 @@ const SPACE_JOKES = {
     "Saturn. The card can send you on.",
   ],
   abyss: [
-    "Engines lit. The old roadster is ahead.",
-    "Side by side. They trade the lead.",
-    "A roll. Then they peel apart.",
-    "Still out. Another world is on the card.",
+    "Look down. The Gulf of America is beautiful.",
+    "Wonderful. That gulf fills the window.",
+    "The Gulf of America. Wonderful.",
+    "Beautiful. The Gulf of America.",
   ],
   any: [
     "KONI shows the accepted block and the mining reward.",
@@ -390,43 +390,34 @@ export function flightPose(ms) {
   };
 }
 
-/** The abyss leaves the release point. No world. The old roadster joins after 7.5s. */
+/** The abyss leaves the release point. No world. The old roadster joins after 7.5s and they tumble. */
 function abyssCar(ms, fromMs) {
   const t = Math.max(0, ms);
   const base = flightPose(Math.max(FLIGHT_SPACE, fromMs || FLIGHT_SPACE));
   const run = t / 1000;
   const rush = flightSmooth(t, 0, 3500);
+  const spin = run * 2.6;
   return {
     base,
     t,
     run,
     rush,
+    spin,
     carX: base.carX + rush * 28 + Math.max(0, run - 3) * 9,
-    carY: base.carY + 2 + Math.sin(run * 1.4) * 3.2,
-    carZ: Math.sin(run * 0.85) * 10,
+    carY: base.carY + 3 + Math.sin(spin) * 7 + Math.sin(run * 0.7) * 2.5,
+    carZ: Math.sin(spin * 0.8) * 14 + Math.cos(run * 0.45) * 6,
   };
 }
 
 function abyssPose(ms, fromMs) {
   const at = abyssCar(ms, fromMs);
   const t = at.t;
-  const run = at.run;
   const trip = tripBySku("abyss");
-  const barrel = t > 15000 && t < 19000 ? ((t - 15000) / 4000) * Math.PI * 2 : 0;
-  let guestX = at.carX;
-  let guestZ = at.carZ;
-  if (t < 14000) {
-    const close = flightSmooth(t, 7500, 14000);
-    guestX = at.carX + 18 * (1 - close * 0.85);
-    guestZ = at.carZ + 4;
-  } else if (t < 24000) {
-    guestX = at.carX + Math.sin((t - 14000) / 2200) * 8;
-    guestZ = at.carZ + Math.sin((t - 14000) / 900) * 7;
-  } else {
-    const peel = flightSmooth(t, 24000, 32000);
-    guestX = at.carX + 6 + peel * 22;
-    guestZ = at.carZ - 4 - peel * 16;
-  }
+  const barrel = (at.run / 2.2) * Math.PI * 2;
+  const meet = t >= 7500;
+  const peel = flightSmooth(t, 24000, 32000);
+  const rad = (meet ? 8 + Math.sin(at.run * 1.3) * 3 : 18) + peel * 20;
+  const ang = meet ? (t - 7500) / 380 : 0;
   return {
     ...at.base,
     beat: "cruise",
@@ -434,7 +425,7 @@ function abyssPose(ms, fromMs) {
     dest: "abyss",
     destName: trip ? trip.name : "Go into the abyss",
     along: cruiseProgress(t),
-    theta: 0,
+    theta: ang,
     worldX: at.carX - 30,
     worldY: at.carY,
     worldZ: at.carZ,
@@ -442,22 +433,22 @@ function abyssPose(ms, fromMs) {
     carX: at.carX,
     carY: at.carY,
     carZ: at.carZ,
-    carYaw: headingYaw(1, 0) + Math.sin(run * 0.8) * 0.7,
-    carRoll: Math.sin(run * 1.5) * 0.7 + barrel,
-    nod: Math.sin(run * 1.1) * 0.55,
-    spin: 0,
+    carYaw: headingYaw(1, 0) + at.spin,
+    carRoll: barrel,
+    nod: Math.sin(at.spin) * 1.15,
+    spin: at.spin,
     plume: 0,
     shipPlume: 0,
     sky: 1,
     released: true,
     separated: true,
-    thrust: 5 + at.rush * 3 + (t > 15000 && t < 19000 ? 2 : 0),
-    guestOn: t >= 7500,
-    guestX,
-    guestY: at.carY + Math.sin(run * 1.1 + 0.6) * 2.4,
-    guestZ,
-    guestYaw: headingYaw(1, 0) + Math.sin(run * 0.7) * 0.5,
-    guestRoll: Math.sin(run * 1.6) * 1.1,
+    thrust: 6 + at.rush * 4,
+    guestOn: meet,
+    guestX: at.carX + Math.cos(ang) * rad,
+    guestY: at.carY + Math.sin(ang * 2) * 8,
+    guestZ: at.carZ + Math.sin(ang) * rad,
+    guestYaw: headingYaw(1, 0) + ang,
+    guestRoll: ang * 1.7,
     jokes: jokeBursts(t, "abyss", fromMs),
   };
 }

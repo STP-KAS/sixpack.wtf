@@ -16,7 +16,7 @@ import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
 import { RAIL_NAMES, RAILS_NOTE, payRail, railBarHtml } from "./rails-note.mjs?v=2";
 import { REELS, reelShuffle, reelStep } from "./reels.mjs?v=2";
-import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=26";
+import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=27";
 import { HUNTS, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -442,7 +442,6 @@ function paintPlanets() {
     box.dataset.sig = sig;
     box.innerHTML = railBarHtml(rail) + items.map((trip) => saleButton(rail, "orbit", trip.sku, trip.cents, trip.name, true)).join("");
   }
-  maybeTeachRails();
 }
 
 function paintFlightCard(now) {
@@ -481,7 +480,12 @@ function paintFlightCard(now) {
     }
   }
   const note = document.getElementById("flight-note");
-  if (note) note.hidden = !(offer || cruising);
+  if (note) {
+    note.hidden = !(offer || cruising);
+    note.textContent = cruising && state.cruiseSku === "abyss"
+      ? "Look at the view. The Gulf of America is beautiful. Wonderful."
+      : FLIGHT_NOTE;
+  }
   const panel = document.getElementById("flight-offer");
   if (panel) panel.hidden = !offer;
   const end = document.getElementById("flight-end");
@@ -1019,7 +1023,6 @@ function paintShow() {
   if (!box || !shop) return;
   const items = shop.items.filter((item) => item.sku !== "reel");
   box.innerHTML = items.map((item) => saleButton(rail, "cinema", item.sku, item.cents, item.name, true)).join("");
-  if (state.ticketAsk || state.watching) maybeTeachRails();
 }
 
 function paintReelList() {
@@ -1369,8 +1372,6 @@ function setShopRail(rail) {
   }
 }
 
-let taughtRails = false;
-
 function fillRailsNote() {
   const title = document.getElementById("rails-title");
   const body = document.getElementById("rails-body");
@@ -1394,19 +1395,6 @@ function openRailsNote() {
 function closeRailsNote() {
   const note = document.getElementById("rails-note");
   if (note) note.hidden = true;
-}
-
-function maybeTeachRails() {
-  if (taughtRails) return;
-  try {
-    if (sessionStorage.getItem("1984-rails-seen") === "1") {
-      taughtRails = true;
-      return;
-    }
-    sessionStorage.setItem("1984-rails-seen", "1");
-  } catch (err) { /* this page load still shows the note once */ }
-  taughtRails = true;
-  openRailsNote();
 }
 
 function canPay(rail, cents) {
@@ -1494,7 +1482,6 @@ function paintShop(shopId) {
     rows + txid +
     "<p class=\"fine\">" + esc(payKind("shop")) + "</p>" +
     "<p class=\"fine\">One rail for this buy. A buy asks on this page, then OK. The wallet opens only when you swap tKAS at the bank. The miner fee on that swap is twice the standard Testnet 10 rate, and it is extra.</p></div>";
-  maybeTeachRails();
   document.getElementById("stall-close").onclick = () => closeCounter();
   const pasted = document.getElementById("txid");
   if (pasted) pasted.addEventListener("input", () => {
@@ -1684,7 +1671,6 @@ function paintBank() {
       swapLoadHtml() + statusLine() + bankFine();
   }
   panel.innerHTML = '<div class="swap">' + body + "</div>";
-  if (!clerk) maybeTeachRails();
   if (clerk === "kas") {
     paintLockPreview();
     document.getElementById("lock-amt").addEventListener("input", () => {
@@ -1931,7 +1917,7 @@ function paintGuide() {
     "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept swap, a KUSDT swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>The roadster parks on the lot in front of Pike's shop. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, starts the countdown. The ship lifts when the count reaches zero. A bar fills until the car leaves the ship. KONI, the Kaspa node, leaves with the roadster, and the climb keeps the comms going. Its screen shows the accepted block and the mining reward. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept, or KUSDT. The way there is ten seconds. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
-    "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept, or KUSDT. What are the rails? opens the short note. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends.</li>" +
+    "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept, or KUSDT. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
