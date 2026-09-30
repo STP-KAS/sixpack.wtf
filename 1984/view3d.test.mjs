@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { CAR_NOSE, DRIVE_MS, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, THRUST_PITCH, WALK_MS, assembleInteriors, buildingBoxes, clearCamera, drives, escapeRoom, groundStep, headingYaw, menuLines, moveIntent, orbitOffset, roomUse, seat, thrustCone, thrustLength } from "./view3d.mjs";
+import { CAR_NOSE, DRIVE_MS, ENTRY_HINT, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, THRUST_PITCH, WALK_MS, assembleInteriors, buildingBoxes, clearCamera, drives, escapeRoom, groundStep, headingYaw, invite, menuLines, moveIntent, orbitOffset, roomUse, seat, thrustCone, thrustLength } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -201,12 +201,16 @@ test("a room opens the card only from the counter, a clerk, or a seat", () => {
   assert.equal(roomUse("bank", false, "clerk").open, "bank");
   assert.equal(roomUse("bank", false, "books").clerk, "books");
   assert.equal(roomUse("cafe", false, "").open, "");
+  assert.equal(roomUse("cafe", false, "").say, "Take a seat.");
   assert.equal(roomUse("cafe", false, "seat").sit, true);
   assert.equal(roomUse("cafe", false, "seat").open, "");
+  assert.equal(roomUse("cafe", false, "seat").say, "The menu, or the card on the table.");
+  assert.equal(roomUse("cafe", true, "").say, "The menu, or the card on the table.");
   assert.equal(roomUse("cafe", false, "menu").open, "");
   assert.equal(roomUse("cafe", false, "qr").say, "Take a seat first.");
   assert.equal(roomUse("cafe", true, "menu").open, "cafe");
   assert.equal(roomUse("cafe", true, "qr").open, "cafe");
+  assert.equal(roomUse("restaurant", false, "").say, "Take a seat.");
   assert.equal(roomUse("restaurant", true, "counter").open, "restaurant");
   assert.equal(roomUse("groceries", false, "").say, "Click the counter.");
   assert.equal(roomUse("groceries", false, "counter").open, "groceries");
@@ -217,6 +221,22 @@ test("a room opens the card only from the counter, a clerk, or a seat", () => {
   assert.equal(escapeRoom(true, true), "counter");
   assert.equal(escapeRoom(false, true), "leave");
   assert.equal(escapeRoom(false, false), "close");
+});
+
+test("the room glows only the next step", () => {
+  assert.equal(ENTRY_HINT.bank, "Click a clerk.");
+  assert.equal(ENTRY_HINT.cafe, "Take a seat.");
+  assert.equal(ENTRY_HINT.restaurant, "Take a seat.");
+  assert.equal(ENTRY_HINT.groceries, "Click the counter.");
+  assert.equal(ENTRY_HINT.roadster, "Click Pike or the sign.");
+  assert.deepEqual(invite("bank", false), ["clerk"]);
+  assert.deepEqual(invite("cafe", false), ["seat"]);
+  assert.deepEqual(invite("cafe", true), ["menu", "qr"]);
+  assert.deepEqual(invite("restaurant", false), ["seat"]);
+  assert.deepEqual(invite("restaurant", true), ["menu", "qr"]);
+  assert.deepEqual(invite("groceries", false), ["counter"]);
+  assert.deepEqual(invite("roadster", false), ["keeper", "sign"]);
+  assert.deepEqual(invite("", false), []);
 });
 
 test("the rooms contain clerks, seats, a menu, and a scan card", () => {
@@ -254,4 +274,10 @@ test("the rooms contain clerks, seats, a menu, and a scan card", () => {
   assert.ok(rooms.marketCounter >= 1);
   assert.ok(rooms.showroomSign >= 1);
   assert.ok(rooms.showroomKeeper >= 1);
+  assert.equal(rooms.invites, 24);
+  assert.equal(rooms.inviteMarked, 0);
+  assert.equal(rooms.inviteBad, 0);
+  assert.ok(rooms.seatRingUp > 0.9, "seat ring " + rooms.seatRingUp);
+  assert.ok(rooms.clerkRingForward > 0.9, "clerk ring " + rooms.clerkRingForward);
+  assert.ok(rooms.menuRingForward > 0.9, "menu ring " + rooms.menuRingForward);
 });

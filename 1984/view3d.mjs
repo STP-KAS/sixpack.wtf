@@ -73,14 +73,23 @@ export function seat(owns, aboard, tile) {
   return "drive";
 }
 
-/** What the room says before anyone opens a card. */
+/** One next step. The gold ring shows the same thing. The card stays shut. */
 export const ENTRY_HINT = {
-  bank: "You are in the bank. Click a clerk.",
-  cafe: "You are in the cafe. Sit, then the menu or the card.",
-  restaurant: "You are at the table. Sit, then the menu or the card.",
-  groceries: "You are in the market. Click the counter.",
-  roadster: "You are in the showroom. Click Pike or the sign.",
+  bank: "Click a clerk.",
+  cafe: "Take a seat.",
+  restaurant: "Take a seat.",
+  groceries: "Click the counter.",
+  roadster: "Click Pike or the sign.",
 };
+
+/** Hits that glow. Seats until you sit, then the menu and the card. */
+export function invite(venue, seated) {
+  if (venue === "bank") return ["clerk"];
+  if (venue === "cafe" || venue === "restaurant") return seated ? ["menu", "qr"] : ["seat"];
+  if (venue === "groceries") return ["counter"];
+  if (venue === "roadster") return ["keeper", "sign"];
+  return [];
+}
 
 /**
  * A click inside a room. Entering never calls this.
@@ -96,12 +105,12 @@ export function roomUse(venue, seated, hit) {
   }
   if (venue === "cafe" || venue === "restaurant") {
     if (hit === "seat") {
-      return { open: "", sit: true, say: "You sat down. The menu is on the wall. The card is on the table.", clerk: "" };
+      return { open: "", sit: true, say: "The menu, or the card on the table.", clerk: "" };
     }
     const service = hit === "menu" || hit === "qr" || hit === "keeper" || hit === "counter";
     if (service && !seated) return { ...none, say: "Take a seat first." };
     if (service) return { open: venue, sit: true, say: "", clerk: "" };
-    return { ...none, say: seated ? "The menu is on the wall. The card is on the table." : "Sit, then the menu or the card." };
+    return { ...none, say: seated ? "The menu, or the card on the table." : "Take a seat." };
   }
   if (venue === "groceries") {
     if (hit === "counter" || hit === "menu" || hit === "keeper") return { open: "groceries", sit: false, say: "", clerk: "" };
@@ -936,6 +945,55 @@ function rugKnot() {
   });
 }
 
+let inviteMat = null;
+
+function inviteMaterial() {
+  if (!inviteMat) {
+    inviteMat = new THREE.MeshBasicMaterial({
+      color: "#f2d16b",
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+  }
+  return inviteMat;
+}
+
+/**
+ * One ring on the group, added after tagHit so it has no hit of its own.
+ * floor lies flat (local +z becomes +y). wall faces +z, into the room.
+ * person: the figure's yaw is π, so another π turns this ring's +z toward the camera.
+ * shelf sits in front of the unit. A centered ring would cross the side wall.
+ */
+function addInvite(group, radius, mode) {
+  const ring = new THREE.Mesh(new THREE.RingGeometry(radius * 0.78, radius, 28), inviteMaterial());
+  ring.name = "invite";
+  ring.visible = false;
+  if (mode === "person") {
+    ring.rotation.y = Math.PI;
+    ring.position.y = 0.95;
+  } else if (mode === "wall") {
+    ring.position.z = 0.22;
+  } else if (mode === "shelf") {
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(0, 0.06, 0.95);
+  } else {
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.06;
+  }
+  group.add(ring);
+}
+
+function showInvites(root, kinds) {
+  const on = new Set(kinds);
+  root.traverse((node) => {
+    if (node.name !== "invite") return;
+    const hit = node.parent && node.parent.userData ? node.parent.userData.hit : "";
+    node.visible = on.has(hit);
+  });
+}
+
 function tagHit(object, hit, extra) {
   object.traverse((child) => {
     child.userData.hit = hit;
@@ -1067,6 +1125,7 @@ function buildBankRoom(maps) {
     const tag = nameTag(rail.label);
     clerk.add(tag);
     tagHit(clerk, "clerk", { rail: rail.id });
+    addInvite(clerk, 0.48, "person");
     const easy = pickPad(1.35, 1.7, 1.15);
     easy.position.set(rail.x, 1.05, -3.15);
     tagHit(easy, "clerk", { rail: rail.id });
@@ -1225,6 +1284,7 @@ function menuBoard(shopId, title, tint, foot, hit) {
   group.add(board, easy);
   group.position.set(0, 2.05, -4.12);
   tagHit(group, hit);
+  addInvite(group, 1.7, "wall");
   return group;
 }
 
@@ -1250,6 +1310,7 @@ function chair(maps, cushion, yaw) {
   easy.position.y = 0.58;
   group.add(easy);
   tagHit(group, "seat");
+  addInvite(group, 0.62, "floor");
   return group;
 }
 
@@ -1299,6 +1360,7 @@ function qrCard() {
   easy.position.y = 0.14;
   group.add(card, easy);
   tagHit(group, "qr");
+  addInvite(group, 0.36, "floor");
   return group;
 }
 
@@ -1323,6 +1385,7 @@ function groceryShelf(maps) {
     }
   }
   tagHit(group, "counter");
+  addInvite(group, 0.85, "shelf");
   return group;
 }
 
@@ -1342,6 +1405,7 @@ function showCar() {
     group.add(wheel);
   }
   tagHit(group, "sign");
+  addInvite(group, 1.55, "floor");
   return group;
 }
 
@@ -1410,6 +1474,7 @@ function buildStallRoom(maps) {
     keeper.rotation.y = headingYaw(0, 1);
     keeper.add(nameTag(names[stall.id]));
     tagHit(keeper, "keeper");
+    addInvite(keeper, 0.48, "person");
     keeper.visible = false;
     room.add(keeper);
     keepers[stall.id] = keeper;
@@ -1868,6 +1933,10 @@ export function mountWorld(canvas, map, api) {
       placeCamera(camFocus, true);
       for (const actor of actors) pose(actor, now, actor === player && moving && !riding);
     }
+    if (inviteMat) inviteMat.opacity = 0.38 + 0.5 * (0.5 + 0.5 * Math.sin(now / 320));
+    const glow = indoors ? invite(venue, !!(api.seated && api.seated())) : [];
+    showInvites(bank.room, venue === "bank" ? glow : []);
+    showInvites(stall.room, stallId ? glow : []);
     canvas.dataset.mode = indoors ? venue : "world";
     renderer.render(scene, camera);
   }
@@ -1878,6 +1947,32 @@ export function mountWorld(canvas, map, api) {
     pointer.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
   }
 
+  function markedHit(list) {
+    const hits = list.length ? raycaster.intersectObjects(list, true) : [];
+    let marked = null;
+    if (hits[0]) {
+      let node = hits[0].object;
+      while (node) {
+        if (node.userData && node.userData.hit) marked = node;
+        node = node.parent;
+      }
+    }
+    return marked;
+  }
+
+  function hoverCursor(ev) {
+    const indoorsNow = (api.room && api.room()) || (api.venue && api.venue());
+    if (!indoorsNow) {
+      canvas.style.cursor = "grab";
+      return;
+    }
+    ndc(ev);
+    raycaster.setFromCamera(pointer, camera);
+    const here = (api.venue && api.venue()) || "";
+    const list = here === "bank" ? bank.picks : (stall.picks[here] || []);
+    canvas.style.cursor = markedHit(list) ? "pointer" : "grab";
+  }
+
   canvas.addEventListener("pointerdown", (ev) => {
     if (ev.button !== 0 && ev.button !== 2) return;
     drag = { x: ev.clientX, y: ev.clientY, moved: false, button: ev.button };
@@ -1885,7 +1980,10 @@ export function mountWorld(canvas, map, api) {
     try { canvas.setPointerCapture(ev.pointerId); } catch { /* lost pointer */ }
   });
   canvas.addEventListener("pointermove", (ev) => {
-    if (!drag) return;
+    if (!drag) {
+      hoverCursor(ev);
+      return;
+    }
     const dx = ev.clientX - drag.x;
     const dy = ev.clientY - drag.y;
     if (Math.abs(dx) + Math.abs(dy) > 5) drag.moved = true;
@@ -1898,22 +1996,14 @@ export function mountWorld(canvas, map, api) {
   canvas.addEventListener("pointerup", (ev) => {
     const was = drag;
     drag = null;
-    canvas.style.cursor = "grab";
+    hoverCursor(ev);
     if (!was || was.moved || was.button !== 0) return;
     ndc(ev);
     raycaster.setFromCamera(pointer, camera);
     if ((api.room && api.room()) || (api.venue && api.venue())) {
       const here = (api.venue && api.venue()) || "";
       const list = here === "bank" ? bank.picks : (stall.picks[here] || []);
-      const hits = list.length ? raycaster.intersectObjects(list, true) : [];
-      let marked = null;
-      if (hits[0]) {
-        let node = hits[0].object;
-        while (node) {
-          if (node.userData && node.userData.hit) marked = node;
-          node = node.parent;
-        }
-      }
+      const marked = markedHit(list);
       if (marked && marked.userData.hit === "seat") satMesh = marked;
       if (api.use) api.use(marked ? marked.userData.hit : "", marked ? marked.userData.rail || "" : "");
       return;
@@ -1998,6 +2088,42 @@ export function assembleInteriors() {
   const wall = bank.room.children.find((child) => child.material && child.material.side === THREE.DoubleSide);
   const stallWall = stall.room.children.find((child) => child.material && child.material.side === THREE.DoubleSide);
   const nose = new THREE.Vector3(0, 0, -1).applyQuaternion(bank.clerks[0].quaternion);
+  bank.room.updateMatrixWorld(true);
+  stall.room.updateMatrixWorld(true);
+  const allowed = new Set(["clerk", "seat", "menu", "qr", "counter", "keeper", "sign"]);
+  let invites = 0;
+  let inviteMarked = 0;
+  let inviteBad = 0;
+  const first = (root, hit) => {
+    let found = null;
+    root.traverse((node) => {
+      if (found || node.name !== "invite") return;
+      const parentHit = node.parent && node.parent.userData ? node.parent.userData.hit : "";
+      if (parentHit === hit) found = node;
+    });
+    return found;
+  };
+  for (const root of [bank.room, stall.room]) {
+    root.traverse((node) => {
+      if (node.name !== "invite") return;
+      invites += 1;
+      if (node.userData && node.userData.hit) inviteMarked += 1;
+      const parentHit = node.parent && node.parent.userData ? node.parent.userData.hit : "";
+      if (!allowed.has(parentHit)) inviteBad += 1;
+    });
+  }
+  const axis = (node) => {
+    const q = new THREE.Quaternion();
+    node.updateWorldMatrix(true, false);
+    node.getWorldQuaternion(q);
+    return new THREE.Vector3(0, 0, 1).applyQuaternion(q);
+  };
+  const seatRing = first(stall.room, "seat");
+  const clerkRing = first(bank.room, "clerk");
+  const menuRing = first(stall.room, "menu");
+  const seatAxis = seatRing ? axis(seatRing) : new THREE.Vector3();
+  const clerkAxis = clerkRing ? axis(clerkRing) : new THREE.Vector3();
+  const menuAxis = menuRing ? axis(menuRing) : new THREE.Vector3();
   return {
     clerkNoseZ: nose.z,
     clerks: bank.clerks.length,
@@ -2011,5 +2137,11 @@ export function assembleInteriors() {
     marketCounter: hits(stall.picks.groceries, "counter"),
     showroomSign: hits(stall.picks.roadster, "sign"),
     showroomKeeper: hits(stall.picks.roadster, "keeper"),
+    invites,
+    inviteMarked,
+    inviteBad,
+    seatRingUp: seatAxis.y,
+    clerkRingForward: clerkAxis.z,
+    menuRingForward: menuAxis.z,
   };
 }

@@ -14,7 +14,7 @@ import {
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
-import { DRIVE_MS, ENTRY_HINT, WALK_MS, escapeRoom, mountWorld, roomUse, seat } from "./view3d.mjs?v=11";
+import { DRIVE_MS, ENTRY_HINT, WALK_MS, escapeRoom, mountWorld, roomUse, seat } from "./view3d.mjs?v=12";
 import { ROADSTER_PARK, counterFace, destinationFor, findPath, nearShop, shopVisit, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -468,8 +468,20 @@ function hidePanel() {
   if (shade) shade.hidden = true;
 }
 
+function veilRoom() {
+  const veil = document.getElementById("veil");
+  if (!veil) return;
+  veil.style.transition = "none";
+  veil.style.opacity = "1";
+  void veil.offsetWidth;
+  veil.style.transition = "opacity 0.48s ease";
+  veil.style.opacity = "0";
+}
+
 function enterVenue(shop) {
   if (!shopVisit(shop)) return;
+  const changed = state.venue !== shop || !state.inside;
+  if (changed) veilRoom();
   state.path = [];
   state.arrived = null;
   if (state.venue !== shop) state.seated = false;
@@ -501,13 +513,13 @@ function closeCounter() {
   state.mode = "world";
   markRoom();
   paintChrome();
-  const hint = ENTRY_HINT[state.venue];
-  if (hint) say(hint);
 }
 
 function openMode(mode) {
   const enteringBank = mode === "bank" && state.mode !== "bank";
   const enteringShop = isVisit(mode) && mode !== "bank" && state.mode !== mode;
+  const wasInside = !!state.venue || state.inside;
+  if (wasInside && !isVisit(mode)) veilRoom();
   if (mode === "world") {
     const leaving = !!state.venue || state.inside || isVisit(state.mode);
     if (leaving || state.mode !== "world") state.arrived = null;
@@ -1671,7 +1683,9 @@ side.addEventListener("click", (ev) => {
   if (!button) return;
   const mode = button.getAttribute("data-go");
   if (shopVisit(mode)) {
+    const near = nearShop(map, state.player.x, state.player.y, mode);
     if (state.venue && state.venue !== mode) {
+      if (!near) veilRoom();
       state.venue = "";
       state.inside = false;
       state.seated = false;
@@ -1680,7 +1694,7 @@ side.addEventListener("click", (ev) => {
       markRoom();
       paintChrome();
     }
-    if (nearShop(map, state.player.x, state.player.y, mode)) enterVenue(mode);
+    if (near) enterVenue(mode);
     else {
       const npc = map.npcs.find((item) => item.shop === mode);
       if (npc) walkTo(npc.x, npc.y, () => enterVenue(mode));
