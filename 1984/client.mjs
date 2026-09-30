@@ -13,7 +13,7 @@ import {
   sompiForCents,
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
-import { kasSpendAction, shopBanner } from "./kas-spend.mjs";
+import { kasSpendAction, lockSigner, shopBanner, txidFromWallet } from "./kas-spend.mjs";
 import { DRIVE_MS, WALK_MS, mountWorld, seat } from "./view3d.mjs?v=9";
 import { destinationFor, findPath, nearShop, shopVisit, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
@@ -618,6 +618,7 @@ let swapNoteKind = "";
 let swapBusy = false;
 let spendBusy = false;
 let shopTxid = "";
+let lockTxid = "";
 
 function fieldValue(id) {
   const el = document.getElementById(id);
@@ -677,7 +678,7 @@ function paintBank() {
   panel.innerHTML =
     '<div class="swap">' +
     '<div class="swap-head"><h2>Venn\'s bank</h2><button type="button" id="bank-close">Close</button></div>' +
-    '<p class="fine">Lock spends tKAS and adds a tag. Redeem pays tKAS back for the locked tag only. The purse does not redeem.</p>' +
+    '<p class="fine">Lock spends tKAS and adds a tag. Redeem pays tKAS back for the locked tag only. The purse does not redeem. ' + esc(payingLine()) + "</p>" +
     '<div class="swap-bals">' +
     card("kas", "tKAS", kas, "spendable") +
     card("poc", "POCencept", formatCents(poc.have), "locked " + formatCents(poc.lock) + " · purse " + formatCents(poc.purse)) +
@@ -694,7 +695,7 @@ function paintBank() {
     '<div class="kw-row"><button type="button" id="fill-poc">Use locked POCencept</button><button type="button" id="fill-kusdt">Use locked KUSDT</button></div>' +
     '<div class="kw-row"><button type="button" id="redeem-poc">Redeem POCencept</button><button type="button" id="redeem-kusdt">Redeem KUSDT</button></div>' +
     '<div class="kw-row"><button type="button" id="purse">Practice purse</button><button type="button" id="freeze">' + (frozen ? "Thaw KUSDT" : "Freeze KUSDT") + "</button></div>" +
-    '<details class="paid-already"><summary>Already sent tKAS? Paste the txid</summary><textarea id="lock-txid" rows="2"></textarea></details>' +
+    '<details class="paid-already"' + (lockTxid ? " open" : "") + '><summary>Already sent tKAS? Paste the txid</summary><textarea id="lock-txid" rows="2">' + esc(lockTxid) + "</textarea></details>" +
     '<p class="fine">' + esc(quote) + " Reserve " + esc(state.reserve) + ". Miner fee is extra tKAS.</p>" +
     "</div>";
   paintLockPreview();
@@ -704,6 +705,9 @@ function paintBank() {
   });
   document.getElementById("redeem-amt").addEventListener("input", () => {
     redeemDraft = fieldValue("redeem-amt");
+  });
+  document.getElementById("lock-txid").addEventListener("input", () => {
+    lockTxid = fieldValue("lock-txid").trim();
   });
   document.getElementById("bank-close").onclick = () => openMode("world");
   document.getElementById("lock-poc").onclick = () => lock("poc");
@@ -806,6 +810,81 @@ function tookPayment(body, sku) {
   }
 }
 
+function payingLine() {
+  if (state.id.kind === "kasware") return "Paying as Kasware.";
+  if (state.id.kind === "kastle") return "Paying as Kastle.";
+  if (state.id.kind === "guest") return "Paying as this tab's test address.";
+  if (state.id.kind === "name") return "Paying as " + (state.id.label || "a .kas name") + ".";
+  if (state.id.address) return "Paying as a pasted address. Lock uses Kasware or Kastle when that wallet is this same address.";
+  return "Choose who pays before locking.";
+}
+
+function signerRefusal(plan) {
+  if (plan === "mainnet") return "The wallet is on mainnet. This square takes Testnet 10 only. Nothing moved.";
+  if (plan === "mismatch") return "The wallet is open on a different address than this page. Click Log in with Kasware so this page uses that address. Nothing moved.";
+  if (plan === "absent") return "This page is logged in with the wallet, and the extension is not in this tab. Unlock it, then press Lock again. Nothing moved.";
+  return "Log in with Kasware or Kastle, or paste the txid of tKAS already sent to the reserve. Nothing moved.";
+}
+
+async function signerNow() {
+  const kaswareAddress = await readLiveAddress("kasware");
+  const kastleAddress = await readLiveAddress("kastle");
+  return lockSigner({
+    kind: state.id.kind,
+    pageAddress: state.id.address,
+    kit: !!(window.KaspaWallets && typeof window.KaspaWallets.sendKaspa === "function"),
+    kaswareReady: !!(window.kasware && typeof window.kasware.sendKaspa === "function"),
+    kastleReady: !!(window.kastle && typeof window.kastle.sendKaspa === "function"),
+    kaswareAddress,
+    kastleAddress,
+  });
+}
+
+async function signerForSpend() {
+  let plan = await signerNow();
+  if (plan === "stop" || plan === "absent") {
+    if (window.kasware && typeof window.kasware.requestAccounts === "function" && !(await readLiveAddress("kasware"))) {
+      try {
+        await window.kasware.requestAccounts();
+      } catch (_) {}
+      plan = await signerNow();
+    }
+  }
+  if ((plan === "stop" || plan === "absent") && state.id.kind !== "kasware") {
+    if (window.kastle && typeof window.kastle.connect === "function" && !(await readLiveAddress("kastle"))) {
+      try {
+        await window.kastle.connect();
+      } catch (_) {}
+      plan = await signerNow();
+    }
+  }
+  return plan;
+}
+
+function rememberWalletKind(plan) {
+  if (plan !== "kasware" && plan !== "kastle") return;
+  if (state.id.kind === plan) return;
+  const label = plan === "kasware" ? "Kasware" : "Kastle";
+  const next = { address: state.id.address, label, kind: plan };
+  try {
+    writeIdentity(boxes(), next);
+  } catch (_) {
+    return;
+  }
+  state.id = next;
+}
+
+async function sendFromWallet(plan, sompi) {
+  const opts = { priorityFee: WALLET_PRIORITY_SOMPI, feeRate: await walletFeeRate() };
+  const amount = Number(sompi);
+  if (plan === "kit") {
+    return window.KaspaWallets.sendKaspa(state.reserve, amount, opts);
+  }
+  const provider = plan === "kastle" ? window.kastle : window.kasware;
+  if (!provider || typeof provider.sendKaspa !== "function") throw new Error("The wallet is not in this tab.");
+  return txidFromWallet(await provider.sendKaspa(state.reserve, amount, opts));
+}
+
 async function walletFeeRate() {
   const body = await api("/api/1984/fee");
   const n = Number(body && body.feerate);
@@ -855,9 +934,17 @@ async function spend(rail, shop, sku, confirmed) {
       const typed = panel.querySelector("#txid");
       txid = typed ? typed.value.trim() : shopTxid;
       if (!txid) {
-        const kit = window.KaspaWallets;
-        if (!kit || (state.id.kind !== "kasware" && state.id.kind !== "kastle")) {
-          say("Connect Kasware or Kastle on Testnet 10, or paste the txid after you pay " + formatTkas(quote.sompi) + " tKAS to the reserve.", true);
+        const plan = await signerForSpend();
+        if (plan !== "kit" && plan !== "kasware" && plan !== "kastle") {
+          punch("shake");
+          const why = plan === "mainnet"
+            ? "The wallet is on mainnet. This square takes Testnet 10 only."
+            : plan === "mismatch"
+              ? "The wallet is open on a different address than this page. Click Log in with Kasware."
+              : plan === "absent"
+                ? "This page is logged in with the wallet, and the extension is not in this tab."
+                : "Connect Kasware or Kastle on Testnet 10.";
+          say(why + " Or paste the txid after you pay " + formatTkas(quote.sompi) + " tKAS to the reserve.", true);
           return;
         }
         let gate = await post("/api/1984/spend", { shop, sku, rail, txid: "", confirmed: yes });
@@ -885,7 +972,8 @@ async function spend(rail, shop, sku, confirmed) {
           return;
         }
         say("Approve " + formatTkas(quote.sompi) + " tKAS in the wallet. The miner fee is twice the standard rate, and it is extra.");
-        txid = await kit.sendKaspa(state.reserve, Number(quote.sompi), { priorityFee: WALLET_PRIORITY_SOMPI, feeRate: await walletFeeRate() });
+        rememberWalletKind(plan);
+        txid = await sendFromWallet(plan, quote.sompi);
         rememberShopTxid(txid);
         if (!shopTxid) {
           say("The wallet did not return a transaction. Nothing was claimed.", true);
@@ -979,22 +1067,27 @@ async function lock(rail) {
       });
     } else {
       const txField = document.getElementById("lock-txid");
-      let txid = txField ? txField.value.trim() : "";
+      let txid = (txField && txField.value.trim()) || lockTxid;
       if (!txid) {
-        const kit = window.KaspaWallets;
-        if (!kit || !kit.sendKaspa || (state.id.kind !== "kasware" && state.id.kind !== "kastle")) {
+        const plan = await signerForSpend();
+        if (plan !== "kit" && plan !== "kasware" && plan !== "kastle") {
           punch("shake");
-          swapNote("Not swapped. Log in with Kasware or Kastle, or paste the txid of tKAS already sent to the reserve. Nothing moved.", "bad");
+          swapNote("Not swapped. " + signerRefusal(plan), "bad");
           return;
         }
         swapNote("Approve " + shown + " in the wallet. The miner fee is twice the standard rate, and it is extra.", "wait");
-        txid = await kit.sendKaspa(state.reserve, Number(sompi), { priorityFee: WALLET_PRIORITY_SOMPI, feeRate: await walletFeeRate() });
+        rememberWalletKind(plan);
+        txid = await sendFromWallet(plan, sompi);
       }
-      sent = true;
-      if (txField && txid) {
-        txField.value = txid;
-        const box = txField.closest("details");
-        if (box) box.open = true;
+      sent = !!txid;
+      if (txid) {
+        lockTxid = txid;
+        const box = document.getElementById("lock-txid");
+        if (box) {
+          box.value = txid;
+          const details = box.closest("details");
+          if (details) details.open = true;
+        }
       }
       body = await post("/api/1984/convert", { rail, txid });
     }
@@ -1004,6 +1097,7 @@ async function lock(rail) {
       return;
     }
     punch("nod");
+    lockTxid = "";
     const got = body.cents == null || body.cents === "" ? "" : formatCents(body.cents);
     if (got) putRedeemAmount(got);
     swapNote(
