@@ -1,3 +1,15 @@
+/**
+ * What a payment actually is.
+ * A shop buy is this square's own ledger. A tKAS swap at the bank is a Testnet 10 transaction.
+ * Neither one is an Argent or SilverScript covenant, and neither one is a vProg tic-tac-toe ply.
+ */
+export function payKind(place) {
+  if (place === "lock") {
+    return "This is a Testnet 10 transaction. The txid is the payment. It is not an Argent or SilverScript covenant, and it is not a vProg tic-tac-toe ply. The toy tag written after it is this square's own ledger.";
+  }
+  return "This buy is this square's own ledger. No covenant is attached, so there is no covenant tx. It is not Argent or SilverScript, and it is not a vProg tic-tac-toe ply.";
+}
+
 /** Banner for a shop purchase. Driving and a lap say what changed. Anything else says paid. */
 export function shopBanner(sku) {
   if (sku === "keys") return "Parked.";

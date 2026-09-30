@@ -1,7 +1,7 @@
 /** Ashfields in 3D. Original meshes. The camera turns around the player through a full circle. */
 
 import * as THREE from "./vendor/three.module.js";
-import { PARKING_BAYS, ROADSTER_PARK, SHOPS, standTile } from "./world.mjs";
+import { PARKING_BAYS, ROADSTER_PARK, SHOPS, standTile, tripBySku } from "./world.mjs";
 
 const TILE = 1.15;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -68,8 +68,11 @@ export const FLIGHT_STAGE = 16000;
 export const FLIGHT_ORBIT = 22000;
 export const FLIGHT_RELEASE = 28000;
 export const FLIGHT_SPACE = 36000;
-/** The return button waits this long after the flight is ended. */
-export const FLIGHT_RETURN_MS = 5000;
+/** A paid hop. The end popup waits this long after the hop starts. The bar uses CRUISE_MS. */
+export const CRUISE_END_MS = 10000;
+export const CRUISE_MS = 40000;
+/** Speed and distance on the hop are not miles. Ten blocks a second is the Kaspa rate. */
+export const FLIGHT_NOTE = "Space is broad. Speed and distance here are relative. Being among the stars in a vast space is hard, and with an average of 10 blocks per second it is possible. Enjoy the flight.";
 /** Cone tip is local +Y. A half turn sends the plume down, toward −Y. */
 export const FLIGHT_PLUME_PITCH = Math.PI;
 
@@ -109,8 +112,41 @@ export function flightClock(ms) {
   return "T+ " + m + ":" + String(r).padStart(2, "0");
 }
 
-export function returnReady(endedAt, now) {
-  return now - endedAt >= FLIGHT_RETURN_MS;
+/** 0 at ignition, 1 when the roadster has left the ship. */
+export function flightProgress(ms) {
+  const t = Math.max(0, ms);
+  if (t >= FLIGHT_SPACE) return 1;
+  return t / FLIGHT_SPACE;
+}
+
+/** End flight stays hidden until the car is out. */
+export function flightOfferEnd(ms) {
+  return flightProgress(ms) >= 1;
+}
+
+/** 0 at the start of a hop, 1 when the bar for that hop is full. */
+export function cruiseProgress(ms) {
+  const t = Math.max(0, ms);
+  if (t >= CRUISE_MS) return 1;
+  return t / CRUISE_MS;
+}
+
+/** The same end popup, ten seconds after a hop starts. */
+export function cruiseOfferEnd(ms) {
+  return Math.max(0, ms) >= CRUISE_END_MS;
+}
+
+export function cruiseLine(progress, name) {
+  const world = name || "that world";
+  if (progress < 0.25) return world + " is ahead. The roadster rolls so one side does not cook.";
+  if (progress < 0.7) return "Coasting. The car does a slow roll. These are not real miles.";
+  if (progress < 1) return world + " grows ahead. You are not covering a real distance.";
+  return "You are at " + world + ". The bar is full. The vastness stayed vast.";
+}
+
+/** Simulation theory is not on a clock. It shows after the rider ends the flight. */
+export function returnReady() {
+  return false;
 }
 
 /**
@@ -156,6 +192,50 @@ export function flightPose(ms) {
     sky,
     separated: t >= FLIGHT_STAGE,
     released: carX > 0.2,
+    beatCruise: false,
+  };
+}
+
+/**
+ * A hop continues from the release pose. The nose stays on headingYaw(1, 0), toward +X.
+ * Roll is local Z. A small nod is local X. The yaw wiggle stays small so the hood still leads.
+ */
+export function cruisePose(ms, sku, fromMs) {
+  const t = Math.max(0, ms);
+  const base = flightPose(Math.max(FLIGHT_SPACE, fromMs || FLIGHT_SPACE));
+  const along = cruiseProgress(t);
+  const trip = tripBySku(sku);
+  return {
+    ...base,
+    beat: "cruise",
+    beatCruise: true,
+    dest: sku || "",
+    destName: trip ? trip.name : "that world",
+    along,
+    carX: base.carX + along * 14,
+    carY: base.carY + Math.sin(t / 640) * 1.6,
+    carZ: Math.sin(t / 900) * 2,
+    carYaw: headingYaw(1, 0) + Math.sin(t / 1100) * 0.22,
+    carRoll: Math.sin(t / 520) * 1.1,
+    nod: Math.sin(t / 700) * 0.35,
+    plume: 0,
+    shipPlume: 0,
+    sky: 1,
+    released: true,
+    separated: true,
+  };
+}
+
+/** Camera around a pose, same orbitOffset frame as the town camera. Looks at the car. */
+export function flightWatch(pose, yaw = 0, pitch = 1.05, dist = 9) {
+  const offset = orbitOffset(yaw, pitch);
+  return {
+    x: pose.carX + offset.x * dist,
+    y: pose.carY + offset.y * dist,
+    z: pose.carZ + offset.z * dist,
+    lx: pose.carX,
+    ly: pose.carY,
+    lz: pose.carZ,
   };
 }
 
@@ -217,17 +297,17 @@ export function seat(owns, aboard, tile) {
 /** One next step. The gold ring shows the same thing. The card stays shut. */
 export const ENTRY_HINT = {
   bank: "Click a clerk.",
-  cafe: "Take a seat.",
-  restaurant: "Take a seat.",
+  cafe: "Take a seat, or order at the counter.",
+  restaurant: "Take a seat, or order at the counter.",
   groceries: "Click the counter.",
   roadster: "Click Pike or the sign.",
 };
 
-/** Hits that glow. Seats until you sit, then the menu and the card. */
+/** Hits that glow. A seat and the counter, or the menu once you sit. */
 export function invite(venue, seated) {
   if (venue === "bank") return ["clerk"];
-  if (venue === "cafe" || venue === "restaurant") return seated ? ["menu", "qr"] : ["seat"];
-  if (venue === "groceries") return ["counter"];
+  if (venue === "cafe" || venue === "restaurant") return seated ? ["menu", "qr"] : ["seat", "counter", "keeper"];
+  if (venue === "groceries") return ["counter", "keeper"];
   if (venue === "roadster") return ["keeper", "sign"];
   return [];
 }
@@ -246,12 +326,15 @@ export function roomUse(venue, seated, hit) {
   }
   if (venue === "cafe" || venue === "restaurant") {
     if (hit === "seat") {
-      return { open: "", sit: true, say: "The menu, or the card on the table.", clerk: "" };
+      return { open: "", sit: true, say: "You are seated. The menu is blinking.", clerk: "" };
     }
-    const service = hit === "menu" || hit === "qr" || hit === "keeper" || hit === "counter";
-    if (service && !seated) return { ...none, say: "Take a seat first." };
-    if (service) return { open: venue, sit: true, say: "", clerk: "" };
-    return { ...none, say: seated ? "The menu, or the card on the table." : "Take a seat." };
+    if (hit === "counter" || hit === "keeper") {
+      return { open: venue, sit: false, say: "", clerk: "" };
+    }
+    const table = hit === "menu" || hit === "qr";
+    if (table && !seated) return { ...none, say: "Take a seat for that menu. The counter takes an order too." };
+    if (table) return { open: venue, sit: true, say: "", clerk: "" };
+    return { ...none, say: seated ? "The menu is blinking." : "Take a seat, or order at the counter." };
   }
   if (venue === "groceries") {
     if (hit === "counter" || hit === "menu" || hit === "keeper") return { open: "groceries", sit: false, say: "", clerk: "" };
@@ -1081,7 +1164,28 @@ export function buildFlight() {
     root.add(puff);
     steam.push(puff);
   }
-  return { root, pad, tower, booster, ship, door, car, plume, plumeHot, shipPlume, burn, earth, stars, steam, engines };
+  const worlds = {};
+  const worldMat = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.72 });
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(2.1, 18, 12), worldMat("#c8c4bc"));
+  const mars = new THREE.Mesh(new THREE.SphereGeometry(2.6, 18, 12), worldMat("#c45a28"));
+  const jupiter = new THREE.Mesh(new THREE.SphereGeometry(4.2, 20, 14), worldMat("#e0b060"));
+  const saturn = new THREE.Group();
+  const saturnBody = new THREE.Mesh(new THREE.SphereGeometry(3.1, 18, 12), worldMat("#e6c98a"));
+  const saturnRing = new THREE.Mesh(
+    new THREE.TorusGeometry(4.6, 0.16, 6, 28),
+    new THREE.MeshStandardMaterial({ color: "#f0e2c0", roughness: 0.55, side: THREE.DoubleSide }),
+  );
+  saturnRing.rotation.x = Math.PI / 2.4;
+  saturn.add(saturnBody, saturnRing);
+  worlds.moon = moon;
+  worlds.mars = mars;
+  worlds.jupiter = jupiter;
+  worlds.saturn = saturn;
+  for (const body of Object.values(worlds)) {
+    body.visible = false;
+    root.add(body);
+  }
+  return { root, pad, tower, booster, ship, door, car, plume, plumeHot, shipPlume, burn, earth, stars, steam, engines, worlds };
 }
 
 export function placeFlight(flight, pose) {
@@ -1089,7 +1193,8 @@ export function placeFlight(flight, pose) {
   flight.ship.position.y = pose.shipY;
   flight.car.position.set(pose.carX, pose.carY, pose.carZ);
   flight.car.rotation.y = pose.carYaw;
-  flight.car.rotation.z = pose.carPitch;
+  flight.car.rotation.x = pose.nod || 0;
+  flight.car.rotation.z = pose.carRoll != null ? pose.carRoll : (pose.carPitch || 0);
   const grow = Math.max(0.001, pose.plume * 14);
   flight.plume.visible = pose.plume > 0.02;
   flight.plume.scale.y = grow;
@@ -1111,7 +1216,18 @@ export function placeFlight(flight, pose) {
   flight.pad.visible = pose.sky < 0.45;
   flight.tower.visible = pose.sky < 0.45;
   flight.earth.visible = pose.sky >= 0.35;
-  flight.earth.position.y = earthCenter(pose);
+  flight.earth.position.y = earthCenter(pose) - (pose.beat === "cruise" ? pose.along * 30 : 0);
+  flight.earth.scale.setScalar(pose.beat === "cruise" ? 1 - pose.along * 0.35 : 1);
+  if (flight.worlds) {
+    for (const key of Object.keys(flight.worlds)) {
+      const body = flight.worlds[key];
+      const on = pose.beat === "cruise" && key === pose.dest;
+      body.visible = on;
+      if (!on) continue;
+      body.position.set(pose.carX + 18 - pose.along * 7, pose.carY, 0);
+      body.scale.setScalar(0.4 + pose.along * 0.9);
+    }
+  }
   flight.stars.visible = pose.sky >= 0.45;
   flight.stars.position.set(0, pose.shipY, 0);
   for (const puff of flight.steam) {
@@ -1708,27 +1824,28 @@ function roundTable(maps, cloth) {
 }
 
 function qrCard() {
-  const map = paintTex(96, (g, s) => {
+  const map = paintTex(256, (g, s) => {
     g.fillStyle = "#f7f4ee";
     g.fillRect(0, 0, s, s);
-    const n = 9;
-    const cell = s / n;
-    for (let y = 0; y < n; y++) {
-      for (let x = 0; x < n; x++) {
-        const finder = (x < 3 && y < 3) || (x > 5 && y < 3) || (x < 3 && y > 5);
-        const edge = x === 0 || y === 0 || x === 2 || y === 2;
-        const on = finder ? edge || (x === 1 && y === 1) || (x === 7 && y === 1) || (x === 1 && y === 7) : ((x * 3 + y * 5) % 4) !== 0;
-        if (!on) continue;
-        g.fillStyle = "#1c1916";
-        g.fillRect(x * cell + 1, y * cell + 1, cell - 2, cell - 2);
-      }
-    }
+    g.strokeStyle = "#1c1916";
+    g.lineWidth = 10;
+    g.strokeRect(8, 8, s - 16, s - 16);
+    g.fillStyle = "#1c1916";
+    g.textAlign = "center";
+    g.font = "700 36px Georgia, serif";
+    g.fillText("Own ledger", s / 2, 58);
+    g.font = "600 22px Georgia, serif";
+    g.fillText("No covenant tx", s / 2, 108);
+    g.fillText("Not Argent", s / 2, 146);
+    g.fillText("Not a vProg", s / 2, 184);
+    g.font = "600 18px Georgia, serif";
+    g.fillText("This square's till", s / 2, 222);
   });
   map.wrapS = THREE.ClampToEdgeWrapping;
   map.wrapT = THREE.ClampToEdgeWrapping;
   const group = new THREE.Group();
   const card = new THREE.Mesh(
-    new THREE.BoxGeometry(0.34, 0.02, 0.34),
+    new THREE.BoxGeometry(0.72, 0.02, 0.5),
     new THREE.MeshStandardMaterial({ map, roughness: 0.4 }),
   );
   card.position.y = 0.02;
@@ -1826,6 +1943,7 @@ function buildStallRoom(maps) {
   counterPad.position.set(0, 1.05, -2.9);
   tagHit(counter, "counter");
   tagHit(counterPad, "counter");
+  addInvite(counterPad, 1.35, "floor");
   room.add(counterPad);
   for (let i = -1; i <= 1; i++) {
     const beam = new THREE.Mesh(new THREE.BoxGeometry(11.4, 0.1, 0.14), stone("#ffffff", 0.75, maps.wood));
@@ -1838,8 +1956,8 @@ function buildStallRoom(maps) {
   const dress = {};
   const picks = {};
   const feet = {
-    cafe: ["Click the menu", "menu"],
-    restaurant: ["Click the menu", "menu"],
+    cafe: ["Sit, then this menu", "menu"],
+    restaurant: ["Sit, then this menu", "menu"],
     groceries: ["Click the counter", "counter"],
     roadster: ["Click the sign", "sign"],
   };
@@ -2137,17 +2255,21 @@ export function mountWorld(canvas, map, api) {
     }
     flightWas = ms;
     flight.root.visible = true;
-    const pose = flightPose(ms);
+    const cruise = api.cruise ? api.cruise() : null;
+    const pose = cruise ? cruisePose(cruise.ms, cruise.sku, cruise.from) : flightPose(ms);
     placeFlight(flight, pose);
-    if (pose.released && flight.car.userData.wheels) {
-      for (const hanger of flight.car.userData.wheels) hanger.rotation.x += 0.35;
+    if ((pose.released || pose.beat === "cruise") && flight.car.userData.wheels) {
+      const spin = pose.beat === "cruise" ? 0.55 : 0.35;
+      for (const hanger of flight.car.userData.wheels) hanger.rotation.x += spin;
     }
     const flick = 0.86 + 0.14 * Math.abs(Math.sin(now / 36));
     if (pose.plume > 0.02) {
       flight.plume.scale.y *= flick;
       flight.plumeHot.scale.y *= flick;
     }
-    const cam = flightCamera(ms, flightYaw, flightPitch);
+    const cam = pose.beat === "cruise"
+      ? flightWatch(pose, flightYaw, flightPitch, 9)
+      : flightCamera(ms, flightYaw, flightPitch);
     const kick = pose.plume > 0.4 ? 1 : 0;
     camera.position.set(cam.x + Math.sin(now / 28) * 0.15 * kick, cam.y + Math.cos(now / 24) * 0.1 * kick, cam.z);
     camera.up.copy(UP);
@@ -2390,7 +2512,7 @@ export function mountWorld(canvas, map, api) {
       placeCamera(camFocus, true);
       for (const actor of actors) pose(actor, now, actor === player && moving && !riding);
     }
-    if (inviteMat) inviteMat.opacity = 0.38 + 0.5 * (0.5 + 0.5 * Math.sin(now / 320));
+    if (inviteMat) inviteMat.opacity = Math.sin(now / 140) > 0 ? 0.95 : 0.18;
     const glow = indoors ? invite(venue, !!(api.seated && api.seated())) : [];
     showInvites(bank.room, venue === "bank" ? glow : []);
     showInvites(stall.room, stallId ? glow : []);

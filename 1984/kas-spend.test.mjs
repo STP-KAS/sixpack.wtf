@@ -1,9 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buyAskLine, kasSpendAction, lockSigner, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
+import { buyAskLine, kasSpendAction, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
 
 test("a guest shop payment stays on the server, which asks before the key signs", () => {
   assert.equal(kasSpendAction({ kind: "guest", txid: "", needsConfirm: true, ready: false }), "guest");
+});
+
+test("a shop buy names this square's ledger, and a tKAS swap names the transaction", () => {
+  const shop = payKind("shop");
+  const lock = payKind("lock");
+  assert.match(shop, /own ledger/);
+  assert.match(shop, /no covenant tx/i);
+  assert.match(shop, /not Argent or SilverScript/);
+  assert.match(shop, /not a vProg/);
+  assert.match(lock, /Testnet 10 transaction/);
+  assert.match(lock, /txid is the payment/);
+  assert.match(lock, /not an Argent or SilverScript covenant/);
+  assert.match(lock, /not a vProg/);
 });
 
 test("a shop purchase shows a banner, including an ordinary item", () => {

@@ -7,7 +7,7 @@
   <meta name="description" content="1984 is a Testnet-10 village. Pay a shop with tKAS, POCencept, or the KUSDT toy. Test without a wallet in this tab, or keep a Testnet wallet. Mainnet wallets are refused.">
   <link rel="canonical" href="https://sixpack.wtf/1984.html">
   <link rel="stylesheet" href="site.css?v=27">
-  <link rel="stylesheet" href="1984.css?v=23">
+  <link rel="stylesheet" href="1984.css?v=24">
 </head>
 <body class="page-1984">
 <header class="top">
@@ -21,8 +21,8 @@
     <canvas id="view"></canvas>
     <div id="veil" class="kw-veil"></div>
     <canvas id="mini" class="kw-mini" width="116" height="88"></canvas>
-    <p class="kw-hint hint-desk">Hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Click a building you are next to and you walk in. The bank card opens when you click a clerk. In the cafe, sit, then the menu or the card on the table. The market opens at the counter. Pike's shop opens when you click Pike or the sign. The roadster waits on the lot. Click it to get in. Get out is the gold button. G does that too. W A S D move the way you look. The arrow keys do too. Esc closes the card, then leaves the room.</p>
-    <p class="kw-hint hint-phone">Drag a finger to look. Tap the ground to walk or drive. Step moves you. Left and Right turn you. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. Tap a clerk in the bank. Square leaves the room. The roadster waits on the lot. Tap it to get in. Get out is the gold button.</p>
+    <p class="kw-hint hint-desk">Hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Click a building you are next to and you walk in. The bank card opens when you click a clerk. In the cafe, take a seat and the menu blinks, or order at the counter. The market opens at the counter. Pike's shop opens when you click Pike or the sign. The roadster waits on the lot. Click it to get in. Get out is the gold button. G does that too. W A S D move the way you look. The arrow keys do too. Esc closes the card, then leaves the room.</p>
+    <p class="kw-hint hint-phone">Drag a finger to look. Tap the ground to walk or drive. Step moves you. Left and Right turn you. Tap a building you are next to and you walk in. In the cafe, take a seat and the menu blinks, or order at the counter. Tap a clerk in the bank. Square leaves the room. The roadster waits on the lot. Tap it to get in. Get out is the gold button.</p>
     <p id="juice-banner" class="juice-banner" hidden></p>
     <button type="button" id="pay-toggle" class="kw-pay-toggle" aria-controls="you" aria-expanded="false">Who pays</button>
     <div class="kw-turns">
@@ -35,8 +35,13 @@
     <div id="flight" class="flight-card" hidden>
       <p id="flight-clock" class="flight-clock"></p>
       <p id="flight-line"></p>
-      <button type="button" id="flight-end">End the flight</button>
-      <p id="flight-bye" hidden>No return policy. You remain in the dark. Enjoy space. Thanks for using SpaceX services.</p>
+      <div id="flight-bar" class="flight-bar"><span id="flight-fill"></span></div>
+      <p id="flight-note" class="flight-note" hidden>Space is broad. Speed and distance here are relative. Being among the stars in a vast space is hard, and with an average of 10 blocks per second it is possible. Enjoy the flight.</p>
+      <div id="flight-offer" hidden>
+        <p id="flight-bye">No return policy. You remain in the dark. Enjoy space. Thanks for using SpaceX services.</p>
+        <button type="button" id="flight-end">End the flight</button>
+        <div id="flight-planets" class="flight-planets"></div>
+      </div>
       <button type="button" id="flight-back" hidden>Simulation theory</button>
     </div>
     <div id="bank-shade" class="bank-shade" hidden></div>
@@ -74,6 +79,6 @@
 </div>
 <script src="nav.js?v=49"></script>
 <script src="wallets/kaspa-wallets.js?v=5"></script>
-<script type="module" src="1984/client.mjs?v=36"></script>
+<script type="module" src="1984/client.mjs?v=37"></script>
 </body>
 </html>

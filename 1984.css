@@ -217,6 +217,31 @@ body.page-1984 main.kw-stage {
   letter-spacing: 0.04em;
 }
 .flight-card p { margin: 0 0 0.55rem; color: #f3e6c8; }
+.flight-bar {
+  height: 10px;
+  margin: 0 0 0.55rem;
+  background: #1c1916;
+  border: 1px solid #e7c27a;
+  overflow: hidden;
+}
+.flight-bar[hidden] { display: none; }
+.flight-bar span {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(#f0d7a0, #c49a45);
+}
+.flight-note { font-size: 0.78rem; color: #e7c27a; }
+#flight-offer[hidden],
+#flight-back[hidden],
+#flight-note[hidden] { display: none; }
+.flight-planets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+.flight-planets[hidden] { display: none; }
 .flight-card button {
   display: block;
   width: 100%;
@@ -224,6 +249,7 @@ body.page-1984 main.kw-stage {
   font-weight: 700;
   padding: 0.55rem 0.4rem;
 }
+.flight-card button[hidden] { display: none; }
 #flight-back {
   background: linear-gradient(#f0d7a0, #c49a45);
   color: #1a1612;

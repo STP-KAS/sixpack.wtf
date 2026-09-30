@@ -51,7 +51,25 @@ export const SHOPS = [
       { sku: "lap", name: "Lap of the square", cents: 10000 },
     ],
   },
+  {
+    id: "orbit",
+    name: "Orbit",
+    keeper: "SpaceX",
+    line: "The launch is free. A hop to another world is toy dollars. Speed and distance on that hop are relative.",
+    items: [
+      { sku: "moon", name: "The Moon", cents: 200 },
+      { sku: "mars", name: "Mars", cents: 500 },
+      { sku: "jupiter", name: "Jupiter", cents: 800 },
+      { sku: "saturn", name: "Saturn", cents: 1200 },
+    ],
+  },
 ];
+
+export function tripBySku(sku) {
+  const shop = SHOPS.find((item) => item.id === "orbit");
+  if (!shop) return null;
+  return shop.items.find((item) => item.sku === sku) || null;
+}
 
 const BUILDINGS = [
   { id: "cafe", shop: "cafe", x: 2, y: 2, w: 12, h: 8, door: { x: 8, y: 9 }, npc: { x: 8, y: 10 }, roof: "#8d3b2f", sign: "Cafe" },
