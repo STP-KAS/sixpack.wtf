@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_RELEASE, FLIGHT_SPACE, FLIGHT_STAGE, JOKE_MS, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, buildingBoxes, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, cruiseWatch, drives, earthCenter, escapeRoom, flightBeat, flightCamera, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, placeFlight, returnReady, roomUse, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
+import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_RELEASE, FLIGHT_SPACE, FLIGHT_STAGE, JOKE_MS, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, buildingBoxes, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, cruiseWatch, drives, earthCenter, escapeRoom, fitScreen, flightBeat, flightCamera, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -298,6 +298,9 @@ test("the rooms contain clerks, seats, a menu, and a scan card", () => {
   assert.equal(rooms.cinemaSeats, 8);
   assert.equal(rooms.cinemaScreen, 1);
   assert.ok(rooms.cinemaSeatNoseZ < -0.9, "seat nose " + rooms.cinemaSeatNoseZ);
+  assert.ok(rooms.cinemaFaceZ > 0.9, "picture faces the seats " + rooms.cinemaFaceZ);
+  assert.equal(rooms.cinemaPictureScaleX, 1);
+  assert.equal(rooms.cinemaPictureScaleY, 1);
   assert.equal(rooms.invites, 37);
   assert.equal(rooms.inviteMarked, 0);
   assert.equal(rooms.inviteBad, 0);
@@ -305,6 +308,34 @@ test("the rooms contain clerks, seats, a menu, and a scan card", () => {
   assert.ok(rooms.clerkRingForward > 0.9, "clerk ring " + rooms.clerkRingForward);
   assert.ok(rooms.menuRingForward > 0.9, "menu ring " + rooms.menuRingForward);
   assert.deepEqual(rooms.railLabels, { tKAS: 1, POCencept: 1, KUSDT: 1 });
+});
+
+test("each film keeps its own shape inside the glass", () => {
+  const night = screenFit(576, 1024);
+  assert.ok(Math.abs(night.w / night.h - 576 / 1024) < 1e-9);
+  assert.ok(night.w < 2.1 && night.w > 1.9);
+  assert.ok(Math.abs(night.h - SCREEN_H) < 1e-9);
+  assert.ok(night.scaleX < 0.3);
+  assert.ok(Math.abs(night.scaleY - 1) < 1e-9);
+  const wide = screenFit(1920, 1080);
+  assert.ok(Math.abs(wide.w / wide.h - 16 / 9) < 1e-6);
+  assert.ok(wide.w < SCREEN_W && wide.w > 6);
+  assert.ok(Math.abs(wide.h - SCREEN_H) < 1e-9);
+  const strip = screenFit(1280, 578);
+  assert.equal(strip.scaleX, 1);
+  assert.ok(strip.h < SCREEN_H);
+  assert.ok(Math.abs(strip.w / strip.h - 1280 / 578) < 1e-9);
+  const idle = screenFit(0, 0);
+  assert.equal(idle.scaleX, 1);
+  assert.equal(idle.scaleY, 1);
+  assert.equal(idle.w, SCREEN_W);
+  assert.equal(idle.h, SCREEN_H);
+  const mesh = { scale: { set(x, y, z) { this.x = x; this.y = y; this.z = z; } } };
+  const fitted = fitScreen(mesh, 576, 1024);
+  assert.equal(mesh.scale.x, fitted.scaleX);
+  assert.equal(mesh.scale.y, fitted.scaleY);
+  assert.equal(mesh.scale.z, 1);
+  assert.equal(fitScreen(null, 1920, 1080).scaleX, wide.scaleX);
 });
 
 test("the ship climbs, drops the booster, then lets the roadster out toward +X", () => {

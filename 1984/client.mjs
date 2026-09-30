@@ -14,8 +14,8 @@ import {
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
-import { REELS, reelShuffle, reelStep } from "./reels.mjs";
-import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=19";
+import { REELS, reelShuffle, reelStep } from "./reels.mjs?v=2";
+import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=20";
 import { ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -997,13 +997,21 @@ function paintReelList() {
   if (on && !list.hidden && on.scrollIntoView) on.scrollIntoView({ block: "nearest" });
 }
 
+function fitReel(video, clip) {
+  if (!worldView || !worldView.fitCinema || !clip) return;
+  const same = video && video.getAttribute("src") === clip.src && video.videoWidth > 0 && video.videoHeight > 0;
+  worldView.fitCinema(same ? video.videoWidth : clip.w, same ? video.videoHeight : clip.h);
+}
+
 function playReelAt(index) {
   const video = reelVideo();
   const clip = REELS[index];
   if (!video || !clip) return;
   state.reelAt = index;
   paintShow();
-  if (video.getAttribute("src") !== clip.src) video.src = clip.src;
+  const changed = video.getAttribute("src") !== clip.src;
+  if (changed) video.src = clip.src;
+  fitReel(changed ? null : video, clip);
   video.muted = false;
   const play = document.getElementById("show-play");
   if (play) play.hidden = true;
@@ -1016,7 +1024,9 @@ function primeReel() {
   const clip = REELS[0];
   if (!video || !clip) return;
   video.muted = true;
+  const changed = video.getAttribute("src") !== clip.src;
   video.src = clip.src;
+  fitReel(changed ? null : video, clip);
   state.reelAt = 0;
   const pending = video.play();
   if (pending && pending.catch) pending.catch(() => {});
@@ -1089,6 +1099,11 @@ function bindReel() {
     reelErrors = 0;
     const play = document.getElementById("show-play");
     if (play) play.hidden = true;
+  });
+  video.addEventListener("loadedmetadata", () => {
+    const clip = REELS[state.reelAt];
+    if (!clip || video.getAttribute("src") !== clip.src) return;
+    if (video.videoWidth > 0 && video.videoHeight > 0) fitReel(video, clip);
   });
   const card = document.getElementById("show");
   if (!card) return;

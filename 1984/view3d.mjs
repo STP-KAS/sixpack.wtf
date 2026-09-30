@@ -42,6 +42,37 @@ export function headingYaw(dx, dz) {
   return Math.atan2(-dx, -dz);
 }
 
+/** The cinema glass, before a film chooses its own shape inside it. */
+export const SCREEN_W = 7.4;
+export const SCREEN_H = 3.5;
+
+/**
+ * Fit a film inside the glass. The picture keeps width / height.
+ * A wider film touches the left and right. A taller film touches the top and bottom.
+ */
+export function screenFit(videoW, videoH, frameW = SCREEN_W, frameH = SCREEN_H) {
+  const vw = Number(videoW);
+  const vh = Number(videoH);
+  if (!(vw > 0) || !(vh > 0) || !(frameW > 0) || !(frameH > 0)) {
+    return { w: frameW, h: frameH, scaleX: 1, scaleY: 1 };
+  }
+  const aspect = vw / vh;
+  let w = frameW;
+  let h = w / aspect;
+  if (h > frameH) {
+    h = frameH;
+    w = h * aspect;
+  }
+  return { w, h, scaleX: w / frameW, scaleY: h / frameH };
+}
+
+/** Scale the picture mesh. scale 1 fills the glass, which is only right for that exact shape. */
+export function fitScreen(mesh, videoW, videoH) {
+  const fit = screenFit(videoW, videoH);
+  if (mesh && mesh.scale) mesh.scale.set(fit.scaleX, fit.scaleY, 1);
+  return fit;
+}
+
 /** Eye in the back-row seat at x −1.15, looking toward the screen on −z. */
 export const CINEMA_EYE = Object.freeze({ x: -1.15, y: 1.12, z: 1.62 });
 /** Screen center. The seat faces this, local −z, world −z. */
@@ -2429,18 +2460,19 @@ function buildCinemaRoom(maps) {
   poster.wrapS = THREE.ClampToEdgeWrapping;
   poster.wrapT = THREE.ClampToEdgeWrapping;
   poster.colorSpace = THREE.SRGBColorSpace;
-  const screenMat = new THREE.MeshStandardMaterial({
-    map: poster,
-    emissive: "#ffffff",
-    emissiveMap: poster,
-    emissiveIntensity: 0.32,
-    roughness: 0.45,
-  });
+  const screenMat = new THREE.MeshBasicMaterial({ map: poster, toneMapped: false });
   const screen = new THREE.Group();
-  const glass = new THREE.Mesh(new THREE.BoxGeometry(7.4, 3.5, 0.08), screenMat);
-  glass.position.z = 0.04;
+  const matte = new THREE.Mesh(
+    new THREE.BoxGeometry(SCREEN_W, SCREEN_H, 0.04),
+    new THREE.MeshBasicMaterial({ color: "#000000", toneMapped: false }),
+  );
+  matte.position.z = 0.09;
+  matte.name = "cinema-matte";
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(SCREEN_W, SCREEN_H, 0.06), screenMat);
+  glass.position.z = 0.15;
+  glass.name = "cinema-picture";
   const frame = new THREE.Mesh(new THREE.BoxGeometry(7.8, 3.9, 0.12), stone("#2a241c", 0.7));
-  screen.add(frame, glass);
+  screen.add(frame, matte, glass);
   screen.position.set(0, 1.85, -4.02);
   tagHit(screen, "screen");
   addInvite(screen, 2.4, "wall");
@@ -2511,7 +2543,7 @@ function buildCinemaRoom(maps) {
     beam.position.set(0, 3.32, i * 1.5);
     room.add(beam);
   }
-  return { room, screen, screenMat, poster, video, videoMap, lamp, glow, keeper, picks };
+  return { room, screen, picture: glass, screenMat, poster, video, videoMap, lamp, glow, keeper, picks, hintW: 0, hintH: 0 };
 }
 
 export function mountWorld(canvas, map, api) {
@@ -2593,6 +2625,8 @@ export function mountWorld(canvas, map, api) {
   const stall = buildStallRoom(maps);
   scene.add(stall.room);
   const cinema = buildCinemaRoom(maps);
+  if (cinema.poster) cinema.poster.anisotropy = aniso;
+  if (cinema.videoMap) cinema.videoMap.anisotropy = aniso;
   scene.add(cinema.room);
   bank.room.visible = false;
   stall.room.visible = false;
@@ -2880,10 +2914,9 @@ export function mountWorld(canvas, map, api) {
       }
       if (cinema.videoMap && cinema.screenMat.map !== cinema.videoMap) {
         cinema.screenMat.map = cinema.videoMap;
-        cinema.screenMat.emissiveMap = cinema.videoMap;
-        cinema.screenMat.emissiveIntensity = 0.9;
         cinema.screenMat.needsUpdate = true;
       }
+      fitScreen(cinema.picture, cinema.hintW, cinema.hintH);
     } else if (indoors) {
       if (camera.fov !== 42) {
         camera.fov = 42;
@@ -2891,10 +2924,9 @@ export function mountWorld(canvas, map, api) {
       }
       if (cinema.screenMat.map !== cinema.poster) {
         cinema.screenMat.map = cinema.poster;
-        cinema.screenMat.emissiveMap = cinema.poster;
-        cinema.screenMat.emissiveIntensity = 0.32;
         cinema.screenMat.needsUpdate = true;
       }
+      if (cinema.picture) cinema.picture.scale.set(1, 1, 1);
       const sitting = !!(api.seated && api.seated()) && !!satMesh;
       roomLook.set(0, ROOM_LOOK_Y, ROOM_LOOK_Z);
       if (sitting) roomLook.set(satMesh.position.x * 0.4, 0.9, Math.min(1.1, satMesh.position.z * 0.35));
@@ -3194,6 +3226,11 @@ export function mountWorld(canvas, map, api) {
     cinemaVideo() {
       return cinema.video;
     },
+    fitCinema(w, h) {
+      cinema.hintW = Number(w) || 0;
+      cinema.hintH = Number(h) || 0;
+      fitScreen(cinema.picture, cinema.hintW, cinema.hintH);
+    },
     spaceVideo() {
       return flight.spaceVideo || null;
     },
@@ -3270,6 +3307,9 @@ export function assembleInteriors() {
     cinemaSeats: hits(cinema.picks, "seat"),
     cinemaScreen: hits(cinema.picks, "screen"),
     cinemaSeatNoseZ: seatNose.z,
+    cinemaFaceZ: new THREE.Vector3(0, 0, 1).applyQuaternion(cinema.picture.getWorldQuaternion(new THREE.Quaternion())).z,
+    cinemaPictureScaleX: cinema.picture.scale.x,
+    cinemaPictureScaleY: cinema.picture.scale.y,
     invites,
     inviteMarked,
     inviteBad,

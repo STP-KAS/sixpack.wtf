@@ -12,6 +12,15 @@ test("the reel plays every Random film, then the desk films", () => {
   assert.equal(REELS.at(-2).src, "1984/cinema/mine.mp4");
   assert.equal(REELS.at(-1).src, "1984/cinema/harvard.mp4");
   assert.equal(REELS.at(-1).title, "Harvard");
+  const night = REELS.find((item) => item.id === "r19");
+  assert.equal(night.title, "Night");
+  assert.equal(night.w, 576);
+  assert.equal(night.h, 1024);
+  assert.equal(REELS.find((item) => item.id === "r12").h, 1280);
+  assert.equal(REELS.find((item) => item.id === "harvard").w, 854);
+  for (const item of REELS) {
+    assert.ok(item.w > 0 && item.h > 0, item.id);
+  }
   const ids = REELS.map((item) => item.id);
   assert.equal(new Set(ids).size, ids.length);
   assert.equal(reelStep(0, REELS.length, -1), REELS.length - 1);

@@ -50,11 +50,61 @@ const EXTRA = [
   ["harvard", "Harvard", "1984/cinema/harvard.mp4"],
 ];
 
-export const REELS = RANDOM.map(([id, title]) => ({
-  id,
-  title,
-  src: "random/" + id + ".mp4",
-})).concat(EXTRA.map(([id, title, src]) => ({ id, title, src })));
+/** Coded pixels of the file sixpack already serves. The glass uses this until the film reports its own size. */
+const SHAPE = {
+  r01: [848, 480],
+  r02: [1440, 1080],
+  r03: [576, 768],
+  r04: [576, 566],
+  r05: [1280, 720],
+  r06: [1080, 1080],
+  r07: [1276, 720],
+  r09: [1080, 1080],
+  r10: [720, 638],
+  r11: [1280, 578],
+  r12: [720, 1280],
+  r13: [1920, 1080],
+  r14: [1276, 720],
+  r15: [1280, 720],
+  r16: [1280, 720],
+  r17: [720, 1280],
+  r18: [1280, 720],
+  r19: [576, 1024],
+  r20: [720, 1280],
+  r21: [1280, 720],
+  r22: [848, 768],
+  r23: [480, 360],
+  r24: [786, 1288],
+  r25: [720, 720],
+  r26: [1280, 852],
+  r27: [1080, 1920],
+  r28: [1920, 1080],
+  r29: [720, 1280],
+  r30: [494, 786],
+  r31: [720, 962],
+  r32: [1280, 1706],
+  r33: [1558, 720],
+  r34: [720, 1280],
+  r35: [720, 1280],
+  r36: [720, 720],
+  r37: [1920, 1080],
+  r38: [1350, 1080],
+  desk: [1920, 1080],
+  clip: [1920, 886],
+  "phone-a": [1024, 576],
+  "phone-b": [1024, 576],
+  life: [854, 480],
+  mine: [854, 480],
+  harvard: [854, 480],
+};
+
+function reel(id, title, src) {
+  const shape = SHAPE[id];
+  return { id, title, src, w: shape[0], h: shape[1] };
+}
+
+export const REELS = RANDOM.map(([id, title]) => reel(id, title, "random/" + id + ".mp4"))
+  .concat(EXTRA.map(([id, title, src]) => reel(id, title, src)));
 
 /** Previous is −1. Next is +1. The ends wrap. */
 export function reelStep(index, length, dir) {
