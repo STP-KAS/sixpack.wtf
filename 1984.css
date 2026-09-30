@@ -234,7 +234,14 @@ body.page-1984 main.kw-stage {
 .flight-note { font-size: 0.78rem; color: #e7c27a; }
 #flight-offer[hidden],
 #flight-back[hidden],
-#flight-note[hidden] { display: none; }
+#flight-note[hidden],
+#flight-warn[hidden] { display: none; }
+.flight-warn {
+  margin: 0 0 0.55rem;
+  color: #f3e6c8;
+  font-weight: 700;
+  line-height: 1.35;
+}
 .flight-planets {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -336,20 +343,49 @@ body.page-1984 main.kw-stage {
   left: 112px;
   bottom: 10px;
   z-index: 4;
-  width: min(380px, 34vw);
-  height: 78px;
-  overflow: auto;
+  width: min(440px, calc(50vw - 150px));
+  height: 220px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background:
     linear-gradient(180deg, rgba(255,210,140,0.05), transparent 30%),
     #3a2414;
   border: 3px solid #1c120c;
   box-shadow: inset 0 0 0 2px #6b4a2a, 0 8px 18px rgba(0,0,0,0.4);
-  padding: 0.28rem 0.45rem;
+  padding: 0.4rem 0.55rem;
   font-family: Consolas, "Courier New", monospace;
-  font-size: 0.78rem;
+  font-size: 0.95rem;
+  line-height: 1.35;
 }
-.kw-chat p { margin: 0.08rem 0; color: #9dff8a; }
+.kw-chat p { margin: 0.16rem 0; color: #9dff8a; }
 .kw-chat p.bad { color: #ffb4a8; }
+.kw-chat p.sim {
+  color: #f2d48a;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.sim-big {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%);
+  z-index: 7;
+  width: min(760px, calc(100% - 28px));
+  margin: 0;
+  padding: 1.05rem 1.15rem;
+  background: rgba(12, 14, 18, 0.94);
+  border: 3px solid #e7c27a;
+  color: #f3e6c8;
+  font-size: clamp(1.45rem, 3.6vw, 2.35rem);
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+}
+.sim-big[hidden] { display: none; }
 .balances {
   position: sticky;
   top: 0;
@@ -923,11 +959,13 @@ a { color: #f2d48a; }
     bottom: auto;
     flex: 0 0 auto;
     width: auto;
-    height: 72px;
-    max-height: 72px;
+    height: 168px;
+    max-height: 32vh;
     margin: 0;
-    font-size: 0.92rem;
+    font-size: 1rem;
   }
+  .kw-chat p.sim { font-size: 1.2rem; }
+  .sim-big { top: auto; bottom: 12px; transform: translateX(-50%); font-size: 1.25rem; }
   .kw-you, .kw-panel {
     position: absolute;
     left: 8px;

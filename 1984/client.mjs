@@ -89,13 +89,40 @@ function esc(value) {
   return String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
 }
 
-function say(text, bad) {
+function say(text, bad, kind) {
   const line = document.createElement("p");
   line.textContent = text;
   if (bad) line.className = "bad";
+  else if (kind) line.className = kind;
   chat.append(line);
-  while (chat.children.length > 4) chat.removeChild(chat.firstChild);
+  while (chat.children.length > 40) chat.removeChild(chat.firstChild);
   chat.scrollTop = chat.scrollHeight;
+}
+
+function launchSound() {
+  const audio = document.getElementById("launch-sound");
+  if (!audio) return;
+  audio.volume = 0.9;
+  try { audio.currentTime = 0; } catch (err) { /* the file may still be opening */ }
+  const pending = audio.play();
+  if (pending && pending.catch) pending.catch(() => {});
+}
+
+function stopLaunchSound() {
+  const audio = document.getElementById("launch-sound");
+  if (!audio) return;
+  audio.pause();
+  try { audio.currentTime = 0; } catch (err) { /* already stopped */ }
+}
+
+let simTimer = 0;
+function showSimBig() {
+  const el = document.getElementById("sim-big");
+  if (!el) return;
+  el.hidden = false;
+  el.textContent = SIM_LINE;
+  window.clearTimeout(simTimer);
+  simTimer = window.setTimeout(() => { el.hidden = true; }, 14000);
 }
 
 function bases() {
@@ -217,6 +244,7 @@ function syncRide() {
 
 function startLaunch() {
   if (!canLaunch()) return;
+  launchSound();
   if (state.mode !== "world") {
     hidePanel();
     state.mode = "world";
@@ -263,6 +291,10 @@ function startLaunch() {
     planets.dataset.rail = "";
   }
   if (back) back.hidden = true;
+  const warn = document.getElementById("flight-warn");
+  if (warn) warn.hidden = true;
+  const big = document.getElementById("sim-big");
+  if (big) big.hidden = true;
   markFlight();
   syncRide();
 }
@@ -275,6 +307,7 @@ function endAllowed(now) {
 
 function endLaunch() {
   if (!endAllowed(performance.now())) return;
+  stopLaunchSound();
   state.flightDark = true;
   state.flightEndedAt = performance.now();
   state.flightBackShown = true;
@@ -296,6 +329,8 @@ function endLaunch() {
   if (offer) offer.hidden = false;
   const back = document.getElementById("flight-back");
   if (back) back.hidden = false;
+  const warn = document.getElementById("flight-warn");
+  if (warn) warn.hidden = false;
   const veil = document.getElementById("veil");
   if (veil) {
     veil.style.background = "#07080c";
@@ -331,7 +366,9 @@ function returnFromFlight() {
   syncRide();
   paintChrome();
   if (worldView.snap) worldView.snap();
-  say(SIM_LINE);
+  stopLaunchSound();
+  say(SIM_LINE, false, "sim");
+  showSimBig();
 }
 
 function paintPlanets() {
@@ -1430,7 +1467,7 @@ function paintGuide() {
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
     "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept swap, a KUSDT swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
-    "<li>The roadster parks on the lot in front of Pike's shop. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, rides a ship to orbit. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. From there you can pay for the Moon, Mars, Jupiter, or Saturn. On that hop the end popup waits ten seconds.</li>" +
+    "<li>The roadster parks on the lot in front of Pike's shop. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, rides a ship to orbit. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, or Saturn. On that hop the end popup waits ten seconds.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. One ticket plays every film, from a seat, and the next film starts when one ends. Snacks sit under the screen while it runs.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
@@ -2354,6 +2391,8 @@ const flightEnd = document.getElementById("flight-end");
 if (flightEnd) flightEnd.addEventListener("click", endLaunch);
 const flightBack = document.getElementById("flight-back");
 if (flightBack) flightBack.addEventListener("click", returnFromFlight);
+const simBig = document.getElementById("sim-big");
+if (simBig) simBig.addEventListener("click", () => { simBig.hidden = true; });
 const flightPlanets = document.getElementById("flight-planets");
 if (flightPlanets) flightPlanets.addEventListener("click", (ev) => {
   const btn = ev.target.closest("[data-trip]");
