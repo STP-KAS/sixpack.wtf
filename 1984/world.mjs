@@ -75,6 +75,7 @@ export const SHOPS = [
       { sku: "mars", name: "Mars", cents: 500 },
       { sku: "jupiter", name: "Jupiter", cents: 800 },
       { sku: "saturn", name: "Saturn", cents: 1200 },
+      { sku: "abyss", name: "Go into the abyss", cents: 1500 },
     ],
   },
 ];

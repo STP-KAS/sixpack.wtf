@@ -139,8 +139,8 @@ export function flightLine(beat) {
   if (beat === "light") return "Countdown.";
   if (beat === "liftoff") return "Liftoff.";
   if (beat === "climb") return "Climbing out.";
-  if (beat === "stage") return "The booster lets go.";
-  if (beat === "orbit") return "Orbit.";
+  if (beat === "stage") return "Hot stage.";
+  if (beat === "orbit") return "Ship ahead.";
   if (beat === "release") return "The roadster and KONI leave the ship.";
   return "You are in space. KONI keeps the Testnet 10 list.";
 }
@@ -180,10 +180,18 @@ export function cruiseOfferEnd(ms) {
 
 export function cruiseLine(progress, name) {
   const world = name || "that world";
-  if (progress < APPROACH_MS / CRUISE_MS) return "On the way to " + world + ". The orbit starts when you arrive.";
-  if (progress < 0.55) return "Orbiting " + world + ". A joke stays on the screen.";
-  if (progress < 1) return "Still orbiting " + world + ". The jokes stay up, then the next one.";
-  return "You are orbiting " + world + ". The bar is full. The jokes are still on the screen.";
+  const abyss = /abyss/i.test(world);
+  if (progress < APPROACH_MS / CRUISE_MS) {
+    if (abyss) return "On the way out. The roadster's engines are lit.";
+    return "On the way to " + world + ". The climb already pitched downrange.";
+  }
+  if (abyss) {
+    if (progress < 0.55) return "The old roadster is ahead. The engines stay lit.";
+    if (progress < 1) return "Side by side. They roll and trade the lead.";
+    return "They peel apart. Another world is on the card.";
+  }
+  if (progress < 1) return "At " + world + ". You can leave for another world, or go into the abyss.";
+  return "At " + world + ". The bar is full. Leave for another world, or go into the abyss.";
 }
 
 /** One joke holds the screen for this long, then the next one. */
@@ -194,50 +202,35 @@ const ORBIT_PERIOD = { moon: 18000, mars: 22000, jupiter: 32000, saturn: 26000 }
 
 const SPACE_JOKES = {
   moon: [
-    "Sent to the Moon: the neighbours left with the air.",
-    "Sent to the Moon: a node, and no one left to gossip.",
-    "Sent to the Moon: the dust files no objection.",
-    "Sent to the Moon: silence chairs the meeting.",
-    "Sent to the Moon: your lap did not survive launch.",
-    "Sent to the Moon: the cafe kept the chair. You did not.",
+    "The Moon. You can leave for another world, or go into the abyss.",
+    "The Moon holds this circle. The card is the next hop.",
+    "The Moon. Speed here is relative. Ten blocks a second.",
   ],
   mars: [
-    "Sent to Mars: red, like a closed sign.",
-    "Sent to Mars: the colony is dust with a rumour.",
-    "Sent to Mars: no fountain, no witness, no change.",
-    "Sent to Mars: the door agrees with the wind.",
-    "Sent to Mars: resilience, unsupervised.",
-    "Sent to Mars: the coin arrived colder than you.",
+    "Mars. You can leave for another world, or go into the abyss.",
+    "Mars. The hop is done. The card stays open.",
+    "Mars. The climb pitched downrange. This circle comes after.",
   ],
   jupiter: [
-    "Sent to Jupiter: too much weather, no clerk.",
-    "Sent to Jupiter: the storm does not redeem.",
-    "Sent to Jupiter: size is not a signature.",
-    "Sent to Jupiter: coffee was a ground hobby.",
-    "Sent to Jupiter: the books stayed in Ashfields.",
-    "Sent to Jupiter: a roundabout with no exit.",
+    "Jupiter. You can leave for another world, or go into the abyss.",
+    "Jupiter. The circle is wide. The card is the way on.",
+    "Jupiter. The climb pitched downrange. This is the far hop.",
   ],
   saturn: [
-    "Sent to Saturn: the ring is a toll with no booth.",
-    "Sent to Saturn: Get out is a very long step.",
-    "Sent to Saturn: pretty, and it settles nothing.",
-    "Sent to Saturn: the lane never finds the lot.",
-    "Sent to Saturn: jewellery. Not a ledger.",
-    "Sent to Saturn: you paid to go around again.",
+    "Saturn. You can leave for another world, or go into the abyss.",
+    "Saturn. The ring is the circle you paid for.",
+    "Saturn. The card can send you on.",
+  ],
+  abyss: [
+    "Engines lit. The old roadster is ahead.",
+    "Side by side. They trade the lead.",
+    "A roll. Then they peel apart.",
+    "Still out. Another world is on the card.",
   ],
   any: [
-    "Sent into space: the joke gets no receipt.",
-    "Sent into space: decentralised, and alone.",
-    "Sent into space: the fountain kept the town.",
-    "Sent into space: no return. The line knew.",
-    "Sent into space: a symbol. Cheaper than air.",
-    "Sent into space: the node blinks at vacuum.",
-    "Sent into space: your parking spot still believes.",
-    "Sent into space: Kaspa, worse view of the cafe.",
-    "Sent into space: KONI reads coins for nobody.",
-    "Sent into space: ten seconds, then another dark.",
-    "Sent into space: the booster called it a feature.",
-    "Sent into space: the square sold you the sky.",
+    "KONI keeps the Testnet 10 list.",
+    "Another world is on the card.",
+    "The abyss is past this circle.",
   ],
 };
 
@@ -294,7 +287,7 @@ function jokeBursts(ms, sku, fromMs) {
   if (joke.index < 0) return [];
   const age = (t - APPROACH_MS - joke.index * JOKE_MS) / 1000;
   if (age >= 10) return [];
-  const at = orbitPoint(t, sku, fromMs);
+  const at = sku === "abyss" ? abyssCar(t, fromMs) : orbitPoint(t, sku, fromMs);
   return [{
     index: joke.index,
     text: joke.text,
@@ -311,9 +304,22 @@ export function returnReady() {
 }
 
 /**
+ * A point on a group whose rotation.z is roll.
+ * Local +Y is the stack axis. roll = −lean sends that axis toward +X.
+ */
+function stackPoint(originX, originY, localX, localY, roll) {
+  return {
+    x: originX + localX * Math.cos(roll) - localY * Math.sin(roll),
+    y: originY + localX * Math.sin(roll) + localY * Math.cos(roll),
+  };
+}
+
+/**
  * Stack positions for one moment.
- * The booster and the ship share a climb until staging. The booster then drops.
- * The roadster stays on the ship's x until release, then slides out toward +X.
+ * Climb pitches the whole stack downrange, nose toward +X.
+ * Hot stage lights the ship, pulls it ahead on that lean, and flips the booster nose-back.
+ * Y of the stack stays on the old climb. X and roll are the split.
+ * The roadster stays in the bay until release, then slides out toward +X.
  * Its nose uses headingYaw(1, 0), the same −z front as the town car.
  */
 export function flightPose(ms) {
@@ -328,21 +334,42 @@ export function flightPose(ms) {
     boosterY = stackY * (1 - drop) + (stackY - 28) * drop;
     shipY = stackY + 11.2 + flightSmooth(t, FLIGHT_STAGE, FLIGHT_ORBIT) * 16;
   }
+  const lean = 0.42 * flightSmooth(t, FLIGHT_LIFTOFF + 2000, FLIGHT_STAGE) * (1 - flightSmooth(t, FLIGHT_ORBIT, FLIGHT_RELEASE));
+  const pull = 17 * flightSmooth(t, FLIGHT_STAGE, FLIGHT_STAGE + 2800) * (1 - flightSmooth(t, FLIGHT_ORBIT, FLIGHT_RELEASE));
+  const shipRoll = -lean;
+  const flip = t >= FLIGHT_STAGE ? flightSmooth(t, FLIGHT_STAGE + 400, FLIGHT_STAGE + 3900) * 0.85 * Math.PI : 0;
+  const boosterRoll = -lean - flip;
+  const shipX = Math.sin(lean) * (11.2 + pull);
+  const boosterX = t >= FLIGHT_STAGE ? -flightSmooth(t, FLIGHT_STAGE, FLIGHT_STAGE + 3500) * 8 : 0;
   let carX = 0;
   if (t >= FLIGHT_RELEASE) {
     carX = flightSmooth(t, FLIGHT_RELEASE, FLIGHT_SPACE) * 8;
     if (t > FLIGHT_SPACE) carX += ((t - FLIGHT_SPACE) / 1000) * 0.35;
   }
-  const plume = t < FLIGHT_LIFTOFF
-    ? flightSmooth(t, FLIGHT_LIFTOFF - 8000, FLIGHT_LIFTOFF)
-    : (t < FLIGHT_STAGE ? 1 : Math.max(0, 1 - flightSmooth(t, FLIGHT_STAGE, FLIGHT_STAGE + 1800)));
-  const shipPlume = t >= FLIGHT_STAGE && t < FLIGHT_ORBIT ? 1 : 0;
+  let plume;
+  if (t < FLIGHT_LIFTOFF) plume = flightSmooth(t, FLIGHT_LIFTOFF - 8000, FLIGHT_LIFTOFF);
+  else if (t < FLIGHT_STAGE) plume = 1;
+  else {
+    const since = t - FLIGHT_STAGE;
+    plume = since >= 900 && since <= 3400 ? Math.sin(((since - 900) / 2500) * Math.PI) : 0;
+  }
+  let shipPlume = 0;
+  if (t >= FLIGHT_STAGE - 700 && t < FLIGHT_ORBIT) {
+    shipPlume = t >= FLIGHT_STAGE ? 1 : flightSmooth(t, FLIGHT_STAGE - 700, FLIGHT_STAGE);
+  } else if (t >= FLIGHT_ORBIT && t < FLIGHT_ORBIT + 1500) {
+    shipPlume = 1 - flightSmooth(t, FLIGHT_ORBIT, FLIGHT_ORBIT + 1500);
+  }
   const sky = flightSmooth(t, FLIGHT_CLIMB, FLIGHT_ORBIT);
   return {
     beat,
     stackY,
     boosterY,
     shipY,
+    boosterX,
+    shipX,
+    lean,
+    shipRoll,
+    boosterRoll,
     carX,
     carY: shipY + 4.2,
     carZ: 0,
@@ -357,11 +384,84 @@ export function flightPose(ms) {
   };
 }
 
+/** The abyss leaves the release point. No world. The old roadster joins after 7.5s. */
+function abyssCar(ms, fromMs) {
+  const t = Math.max(0, ms);
+  const base = flightPose(Math.max(FLIGHT_SPACE, fromMs || FLIGHT_SPACE));
+  const run = t / 1000;
+  const rush = flightSmooth(t, 0, 3500);
+  return {
+    base,
+    t,
+    run,
+    rush,
+    carX: base.carX + rush * 28 + Math.max(0, run - 3) * 9,
+    carY: base.carY + 2 + Math.sin(run * 1.4) * 3.2,
+    carZ: Math.sin(run * 0.85) * 10,
+  };
+}
+
+function abyssPose(ms, fromMs) {
+  const at = abyssCar(ms, fromMs);
+  const t = at.t;
+  const run = at.run;
+  const trip = tripBySku("abyss");
+  const barrel = t > 15000 && t < 19000 ? ((t - 15000) / 4000) * Math.PI * 2 : 0;
+  let guestX = at.carX;
+  let guestZ = at.carZ;
+  if (t < 14000) {
+    const close = flightSmooth(t, 7500, 14000);
+    guestX = at.carX + 18 * (1 - close * 0.85);
+    guestZ = at.carZ + 4;
+  } else if (t < 24000) {
+    guestX = at.carX + Math.sin((t - 14000) / 2200) * 8;
+    guestZ = at.carZ + Math.sin((t - 14000) / 900) * 7;
+  } else {
+    const peel = flightSmooth(t, 24000, 32000);
+    guestX = at.carX + 6 + peel * 22;
+    guestZ = at.carZ - 4 - peel * 16;
+  }
+  return {
+    ...at.base,
+    beat: "cruise",
+    beatCruise: true,
+    dest: "abyss",
+    destName: trip ? trip.name : "Go into the abyss",
+    along: cruiseProgress(t),
+    theta: 0,
+    worldX: at.carX - 30,
+    worldY: at.carY,
+    worldZ: at.carZ,
+    orbitRadius: 30,
+    carX: at.carX,
+    carY: at.carY,
+    carZ: at.carZ,
+    carYaw: headingYaw(1, 0) + Math.sin(run * 0.8) * 0.7,
+    carRoll: Math.sin(run * 1.5) * 0.7 + barrel,
+    nod: Math.sin(run * 1.1) * 0.55,
+    spin: 0,
+    plume: 0,
+    shipPlume: 0,
+    sky: 1,
+    released: true,
+    separated: true,
+    thrust: 5 + at.rush * 3 + (t > 15000 && t < 19000 ? 2 : 0),
+    guestOn: t >= 7500,
+    guestX,
+    guestY: at.carY + Math.sin(run * 1.1 + 0.6) * 2.4,
+    guestZ,
+    guestYaw: headingYaw(1, 0) + Math.sin(run * 0.7) * 0.5,
+    guestRoll: Math.sin(run * 1.6) * 1.1,
+    jokes: jokeBursts(t, "abyss", fromMs),
+  };
+}
+
 /**
  * A hop is an orbit of the paid world. The nose follows the tangent from orbitPoint.
  * Roll is a bank into the turn, local Z. It is 0 at the first instant.
  */
 export function cruisePose(ms, sku, fromMs) {
+  if (sku === "abyss") return abyssPose(ms, fromMs);
   const t = Math.max(0, ms);
   const at = orbitPoint(t, sku, fromMs);
   const base = flightPose(Math.max(FLIGHT_SPACE, fromMs || FLIGHT_SPACE));
@@ -465,24 +565,26 @@ export function flightCamera(ms, yaw = 0, pitch = 1.05) {
       lz: 0,
     };
   }
-  if (pose.beat === "climb" || pose.beat === "stage") {
+  if (pose.beat === "climb" || pose.beat === "stage" || pose.beat === "orbit") {
+    const lx = pose.shipX || 0;
     return {
-      x: 2.2,
+      x: lx + 2.2,
       y: pose.shipY - 2,
       z: 16,
-      lx: 0,
+      lx,
       ly: pose.shipY + 6,
       lz: 0,
     };
   }
+  const bay = stackPoint(pose.shipX || 0, pose.shipY, pose.carX || 0, 4.2, pose.shipRoll || 0);
   const offset = orbitOffset(yaw, pitch);
   const dist = pose.beat === "space" ? 7.5 : 11;
   return {
-    x: pose.carX + offset.x * dist,
-    y: pose.carY + offset.y * dist,
+    x: bay.x + offset.x * dist,
+    y: bay.y + offset.y * dist,
     z: pose.carZ + offset.z * dist,
-    lx: pose.carX,
-    ly: pose.carY,
+    lx: bay.x,
+    ly: bay.y,
     lz: pose.carZ,
   };
 }
@@ -1204,9 +1306,9 @@ function addBuildings(parent, map, maps, pick, awnings) {
   }
 }
 
-function makeRoadster() {
+function makeRoadster(bodyColor = "#c0392b", hoodColor = "#922b21") {
   const car = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.28, 2.15), stone("#c0392b", 0.4));
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.28, 2.15), stone(bodyColor, 0.4));
   body.position.set(0, 0.36, 0.05);
   body.castShadow = true;
   const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.28, 0.85), stone("#1a1612", 0.45));
@@ -1216,7 +1318,7 @@ function makeRoadster() {
     new THREE.MeshStandardMaterial({ color: "#9fd4ee", roughness: 0.12, metalness: 0.25 }),
   );
   glass.position.set(0, 0.62, 0.22);
-  const hood = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.08, 0.42), stone("#922b21", 0.32));
+  const hood = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.08, 0.42), stone(hoodColor, 0.32));
   hood.position.set(CAR_NOSE.x, CAR_NOSE.y, CAR_NOSE.z);
   hood.name = "hood";
   const wheelGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.12, 10);
@@ -1382,6 +1484,15 @@ export function buildFlight() {
   car.add(pilot);
   car.scale.setScalar(0.42);
   root.add(car);
+  const starman = makeRoadster("#9b1b2e", "#6e1020");
+  const rider = figure("#e4e0d8");
+  rider.position.set(0, 0.22, 0.28);
+  rider.scale.setScalar(0.5);
+  starman.add(rider);
+  starman.scale.setScalar(0.42);
+  starman.visible = false;
+  starman.name = "starman";
+  root.add(starman);
 
   const earthMap = paintTex(128, (g, s) => {
     g.fillStyle = "#1d4e86";
@@ -1509,7 +1620,7 @@ export function buildFlight() {
     root.add(spaceSky);
     spaceVideo = skyEl;
   }
-  return { root, pad, tower, booster, ship, door, car, plume, plumeHot, shipPlume, burn, earth, stars, steam, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo };
+  return { root, pad, tower, booster, ship, door, car, starman, plume, plumeHot, shipPlume, burn, earth, stars, steam, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo };
 }
 
 function paintKoniCanvas(canvas, lines) {
@@ -1537,12 +1648,19 @@ export function paintKoni(flight, lines) {
 }
 
 export function placeFlight(flight, pose) {
-  flight.booster.position.y = pose.boosterY;
-  flight.ship.position.y = pose.shipY;
-  flight.car.position.set(pose.carX, pose.carY, pose.carZ);
-  flight.car.rotation.y = pose.carYaw;
-  flight.car.rotation.x = pose.nod || 0;
-  flight.car.rotation.z = pose.carRoll != null ? pose.carRoll : (pose.carPitch || 0);
+  const shipRoll = pose.shipRoll || 0;
+  flight.booster.position.set(pose.boosterX || 0, pose.boosterY, 0);
+  flight.booster.rotation.set(0, 0, pose.boosterRoll || 0);
+  flight.ship.position.set(pose.shipX || 0, pose.shipY, 0);
+  flight.ship.rotation.set(0, 0, shipRoll);
+  if (pose.beat === "cruise") {
+    flight.car.position.set(pose.carX, pose.carY, pose.carZ);
+    flight.car.rotation.set(pose.nod || 0, pose.carYaw, pose.carRoll || 0);
+  } else {
+    const bay = stackPoint(pose.shipX || 0, pose.shipY, pose.carX || 0, 4.2, shipRoll);
+    flight.car.position.set(bay.x, bay.y, pose.carZ);
+    flight.car.rotation.set(pose.nod || 0, pose.carYaw, shipRoll + (pose.carRoll || 0));
+  }
   const grow = Math.max(0.001, pose.plume * 14);
   flight.plume.visible = pose.plume > 0.02;
   flight.plume.scale.y = grow;
@@ -1553,13 +1671,29 @@ export function placeFlight(flight, pose) {
   flight.shipPlume.scale.y = pose.shipPlume > 0 ? 7 : 0.001;
   const open = pose.released ? Math.min(1, pose.carX / 6) : 0;
   flight.door.position.y = flight.door.userData.homeY + open * 1.5;
-  const length = thrustLength(pose.released);
+  const length = pose.thrust != null ? pose.thrust : thrustLength(pose.released);
   if (flight.car.userData.flames) {
     for (const flame of flight.car.userData.flames) {
       flame.visible = length > 0;
       flame.scale.y = length > 0 ? length * (flame.userData.hot ? 0.62 : 1) : 0.001;
     }
     flight.car.userData.thrustLight.intensity = length > 0 ? 6 : 0;
+  }
+  if (flight.starman) {
+    const on = !!pose.guestOn;
+    flight.starman.visible = on;
+    if (on) {
+      flight.starman.position.set(pose.guestX, pose.guestY, pose.guestZ);
+      flight.starman.rotation.set(0, pose.guestYaw || 0, pose.guestRoll || 0);
+      const guestLen = pose.thrust || 4;
+      if (flight.starman.userData.flames) {
+        for (const flame of flight.starman.userData.flames) {
+          flame.visible = true;
+          flame.scale.y = guestLen * (flame.userData.hot ? 0.62 : 1);
+        }
+        if (flight.starman.userData.thrustLight) flight.starman.userData.thrustLight.intensity = 8;
+      }
+    }
   }
   const cruising = pose.beat === "cruise";
   flight.ship.visible = !cruising;
@@ -1593,14 +1727,20 @@ export function placeFlight(flight, pose) {
   }
   if (flight.koni) {
     const spot = koniSpot(pose);
-    flight.koni.position.set(spot.x, spot.y, spot.z);
     flight.koni.visible = true;
+    if (!pose.released && pose.beat !== "cruise") {
+      const seat = stackPoint(pose.shipX || 0, pose.shipY, 0.4, 3.4, shipRoll);
+      flight.koni.position.set(seat.x, seat.y, spot.z);
+      flight.koni.rotation.set(0, 0, shipRoll);
+    } else {
+    flight.koni.position.set(spot.x, spot.y, spot.z);
     if (pose.worldX != null) {
       const ox = pose.carX - pose.worldX;
       const oz = pose.carZ - pose.worldZ;
       flight.koni.lookAt(spot.x + ox, spot.y, spot.z + oz);
     } else {
       flight.koni.rotation.set(0, 0, 0);
+    }
     }
   }
   const skyCenterY = pose.worldY != null ? pose.worldY : pose.shipY;
@@ -2957,6 +3097,9 @@ export function mountWorld(canvas, map, api) {
     if ((pose.released || pose.beat === "cruise") && flight.car.userData.wheels) {
       const spin = pose.beat === "cruise" ? 0.55 : 0.35;
       for (const hanger of flight.car.userData.wheels) hanger.rotation.x += spin;
+    }
+    if (pose.guestOn && flight.starman && flight.starman.userData.wheels) {
+      for (const hanger of flight.starman.userData.wheels) hanger.rotation.x += 0.7;
     }
     const flick = 0.86 + 0.14 * Math.abs(Math.sin(now / 36));
     if (pose.plume > 0.02) {
