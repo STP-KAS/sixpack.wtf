@@ -322,7 +322,8 @@ function stackPoint(originX, originY, localX, localY, roll) {
  * Stack positions for one moment.
  * Climb pitches the whole stack downrange, nose toward +X.
  * Through T+ 0:15 the ship base sits on the booster top. Same axis, no flip.
- * After that the booster slides back along that axis and flips nose-back.
+ * After that the ship pulls ahead on that axis. The booster slips back, peels
+ * off the axis toward the pad camera, and flips nose-back for the boostback burn.
  * The climb height stays the old stack. The roadster stays in the bay until release.
  * Its nose uses headingYaw(1, 0), the same −z front as the town car.
  */
@@ -334,18 +335,23 @@ export function flightPose(ms) {
   const letGo = FLIGHT_STAGE + 2500;
   const lean = 0.42 * flightSmooth(t, FLIGHT_LIFTOFF + 2000, FLIGHT_STAGE) * (1 - flightSmooth(t, FLIGHT_ORBIT, FLIGHT_RELEASE));
   const shipRoll = -lean;
-  const leave = flightSmooth(t, letGo, letGo + 2000);
-  const pull = 5 * leave * (1 - flightSmooth(t, FLIGHT_ORBIT, FLIGHT_RELEASE));
-  const slip = flightSmooth(t, letGo, letGo + 1600) * 14;
+  const coast = 1 - flightSmooth(t, FLIGHT_ORBIT, FLIGHT_RELEASE);
+  const pull = 8 * flightSmooth(t, letGo, letGo + 1600) * coast;
+  const slip = flightSmooth(t, letGo, letGo + 1200) * 16;
+  const aside = flightSmooth(t, letGo, letGo + 1400) * 4.5;
   const along = 11.2 + pull;
   const shipAt = stackPoint(0, stackY, 0, along, shipRoll);
-  const boostAt = stackPoint(0, stackY, 0, -slip, shipRoll);
-  const flip = flightSmooth(t, letGo, letGo + 2700) * 0.85 * Math.PI;
+  const boostAt = stackPoint(0, stackY, -aside, -slip, shipRoll);
+  const peel = flightSmooth(t, letGo, letGo + 1600);
+  const drop = flightSmooth(t, letGo + 800, letGo + 2200) * 6;
+  const flip = flightSmooth(t, letGo, letGo + 2000) * Math.PI;
   const boosterRoll = shipRoll - flip;
   const shipX = shipAt.x;
   const shipY = shipAt.y;
   const boosterX = boostAt.x;
-  const boosterY = boostAt.y;
+  const boosterY = boostAt.y - drop;
+  const boosterZ = peel * 6;
+  const boosterYaw = peel * 0.65;
   let carX = 0;
   if (t >= FLIGHT_RELEASE) {
     carX = flightSmooth(t, FLIGHT_RELEASE, FLIGHT_SPACE) * 8;
@@ -354,16 +360,16 @@ export function flightPose(ms) {
   let plume;
   if (t < FLIGHT_LIFTOFF) plume = flightSmooth(t, FLIGHT_LIFTOFF - 8000, FLIGHT_LIFTOFF);
   else if (t < FLIGHT_STAGE) plume = 1;
-  else {
-    const since = t - FLIGHT_STAGE;
-    plume = since >= 900 && since <= 3400 ? Math.sin(((since - 900) / 2500) * Math.PI) : 0;
-  }
+  else if (t < letGo + 500) plume = 0;
+  else if (t < FLIGHT_ORBIT) plume = 0.7 * (1 - flightSmooth(t, FLIGHT_ORBIT - 1200, FLIGHT_ORBIT));
+  else plume = 0;
   let shipPlume = 0;
   if (t >= FLIGHT_STAGE - 700 && t < FLIGHT_ORBIT) {
     shipPlume = t >= FLIGHT_STAGE ? 1 : flightSmooth(t, FLIGHT_STAGE - 700, FLIGHT_STAGE);
   } else if (t >= FLIGHT_ORBIT && t < FLIGHT_ORBIT + 1500) {
     shipPlume = 1 - flightSmooth(t, FLIGHT_ORBIT, FLIGHT_ORBIT + 1500);
   }
+  const hot = flightSmooth(t, FLIGHT_STAGE - 700, FLIGHT_STAGE) * (1 - flightSmooth(t, letGo, letGo + 1800));
   const sky = flightSmooth(t, FLIGHT_CLIMB, FLIGHT_ORBIT);
   return {
     beat,
@@ -372,9 +378,12 @@ export function flightPose(ms) {
     shipY,
     boosterX,
     shipX,
+    boosterZ,
+    boosterYaw,
     lean,
     shipRoll,
     boosterRoll,
+    hot,
     carX,
     carY: shipY + 4.2,
     carZ: 0,
@@ -1411,6 +1420,26 @@ function plumeCone(color, radius, length, opacity = 0.9, additive = false) {
   return mesh;
 }
 
+/** The film on the left of the tower. The right screen takes another clip. */
+export const PAD_LEAD = "1984/before.mp4";
+
+/**
+ * Left is the first clip. Right is one of the rest.
+ * roll 0 picks the first of the rest. A roll just under 1 picks the last.
+ */
+export function padPair(clips, roll) {
+  const list = Array.isArray(clips) ? clips.filter((src) => typeof src === "string" && src) : [];
+  const left = list[0] || PAD_LEAD;
+  const rest = list.slice(1).filter((src) => src !== left);
+  if (!rest.length) return { left, right: left };
+  const n = rest.length;
+  const unit = Number.isFinite(roll) ? roll : 0;
+  let i = Math.floor(unit * n);
+  if (i < 0) i = 0;
+  if (i >= n) i = n - 1;
+  return { left, right: rest[i] };
+}
+
 /** Stainless booster under a dark ship. The roadster rides in the bay, nose toward +X. */
 export function buildFlight() {
   const root = new THREE.Group();
@@ -1430,6 +1459,34 @@ export function buildFlight() {
   armR.position.x = 2.1;
   const tower = new THREE.Group();
   tower.add(towerL, towerR, armL, armR);
+  const padScreens = [];
+  const padVideos = [];
+  for (const side of [-1, 1]) {
+    const screen = new THREE.Mesh(
+      new THREE.PlaneGeometry(6.2, 3.5),
+      new THREE.MeshBasicMaterial({ color: "#14181e" }),
+    );
+    screen.name = side < 0 ? "pad-left" : "pad-right";
+    screen.position.set(side * 7.2, 7.6, 2);
+    tower.add(screen);
+    // Countdown camera stays at (0, 2.4, 28). PlaneGeometry faces local +Z, and lookAt points that +Z at the camera.
+    screen.lookAt(0, 2.4, 28);
+    padScreens.push(screen);
+    const film = document.createElement("video");
+    if (film && typeof film.play === "function") {
+      film.playsInline = true;
+      film.preload = "auto";
+      film.volume = 0.85;
+      film.setAttribute("playsinline", "");
+      film.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none";
+      if (document.body) document.body.appendChild(film);
+      const map = new THREE.VideoTexture(film);
+      map.colorSpace = THREE.SRGBColorSpace;
+      screen.material.map = map;
+      screen.material.needsUpdate = true;
+      padVideos.push(film);
+    }
+  }
   root.add(pad, tower);
 
   const booster = new THREE.Group();
@@ -1439,11 +1496,14 @@ export function buildFlight() {
   const band = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.35, 16), dark);
   band.position.y = 10.5;
   booster.add(band);
+  const fins = [];
   for (const side of [-1, 1]) {
     for (const z of [-1, 1]) {
       const fin = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.08, 0.7), dark);
+      fin.name = "grid-fin";
       fin.position.set(side * 1.35, 10.2, z * 0.2);
       booster.add(fin);
+      fins.push(fin);
     }
   }
   const engines = raptorBells(booster);
@@ -1508,6 +1568,9 @@ export function buildFlight() {
   const shipPlume = plumeCone("#ffb15a", 0.55, 1, 0.8, true);
   shipPlume.position.y = 0;
   shipPlume.renderOrder = 2;
+  const shipSkirt = plumeCone("#ff7a22", 1.65, 1, 0.42, true);
+  shipSkirt.position.y = 0.02;
+  shipSkirt.renderOrder = 1;
   const shipJets = [];
   for (const [x, z] of [[0, 0.22], [0.22, -0.12], [-0.22, -0.12]]) {
     const jet = plumeCone("#ffe7c2", 0.14, 1, 0.92, true);
@@ -1519,7 +1582,7 @@ export function buildFlight() {
   const hullLine = jokeSprite("");
   hullLine.position.set(0, 4.6, 0);
   hullLine.scale.set(3.4, 0.48, 1);
-  ship.add(shipPlume, hullLine);
+  ship.add(shipPlume, shipSkirt, hullLine);
   root.add(ship);
 
   const car = makeRoadster();
@@ -1680,7 +1743,7 @@ export function buildFlight() {
     root.add(spaceSky);
     spaceVideo = skyEl;
   }
-  return { root, pad, tower, booster, ship, door, car, starman, plume, plumeHot, plumeSkirt, jets, diamonds, shipPlume, shipJets, hullLine, burn, earth, stars, steam, splash, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo };
+  return { root, pad, tower, booster, ship, door, car, starman, plume, plumeHot, plumeSkirt, jets, diamonds, shipPlume, shipSkirt, shipJets, hullLine, fins, burn, earth, stars, steam, splash, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo, padScreens, padVideos };
 }
 
 function paintKoniCanvas(canvas, lines) {
@@ -1710,8 +1773,13 @@ export function paintKoni(flight, lines) {
 
 export function placeFlight(flight, pose) {
   const shipRoll = pose.shipRoll || 0;
-  flight.booster.position.set(pose.boosterX || 0, pose.boosterY, 0);
-  flight.booster.rotation.set(0, 0, pose.boosterRoll || 0);
+  flight.booster.position.set(pose.boosterX || 0, pose.boosterY, pose.boosterZ || 0);
+  flight.booster.rotation.set(0, pose.boosterYaw || 0, pose.boosterRoll || 0);
+  if (flight.fins) {
+    const kick = Math.max(0, -(pose.boosterRoll || 0) - Math.abs(pose.shipRoll || 0));
+    const bend = Math.min(0.55, kick * 0.15);
+    for (const fin of flight.fins) fin.rotation.x = bend * (fin.position.z < 0 ? -1 : 1);
+  }
   flight.ship.position.set(pose.shipX || 0, pose.shipY, 0);
   flight.ship.rotation.set(0, 0, shipRoll);
   if (pose.beat === "cruise") {
@@ -1746,7 +1814,13 @@ export function placeFlight(flight, pose) {
   }
   flight.burn.intensity = pose.plume * 18;
   flight.shipPlume.visible = pose.shipPlume > 0;
-  flight.shipPlume.scale.y = pose.shipPlume > 0 ? 7 : 0.001;
+  flight.shipPlume.scale.y = pose.shipPlume > 0 ? 7 + (pose.hot || 0) * 5 : 0.001;
+  if (flight.shipSkirt) {
+    const flare = pose.shipPlume > 0.02;
+    const wide = 1 + (pose.hot || 0) * 0.85;
+    flight.shipSkirt.visible = flare;
+    flight.shipSkirt.scale.set(wide, flare ? 2.4 + (pose.hot || 0) * 4 : 0.001, wide);
+  }
   if (flight.shipJets) {
     for (const jet of flight.shipJets) {
       jet.visible = pose.shipPlume > 0.02;
@@ -1790,6 +1864,10 @@ export function placeFlight(flight, pose) {
   flight.booster.visible = !cruising;
   flight.pad.visible = !cruising && pose.sky < 0.45;
   flight.tower.visible = !cruising && pose.sky < 0.45;
+  if (flight.padScreens) {
+    const show = pose.beat === "light";
+    for (const screen of flight.padScreens) screen.visible = show;
+  }
   flight.earth.visible = pose.sky >= 0.35;
   flight.earth.position.y = earthCenter(pose) - (cruising ? pose.along * 30 : 0);
   flight.earth.scale.setScalar(cruising ? 1 - pose.along * 0.35 : 1);
@@ -3690,6 +3768,9 @@ export function mountWorld(canvas, map, api) {
     },
     spaceVideo() {
       return flight.spaceVideo || null;
+    },
+    padVideos() {
+      return flight.padVideos || [];
     },
     showKoni(lines) {
       paintKoni(flight, lines);
