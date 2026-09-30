@@ -52,6 +52,20 @@ export const SHOPS = [
     ],
   },
   {
+    id: "cinema",
+    name: "Lux's Cinema",
+    keeper: "Lux",
+    line: "One ticket plays the whole reel. Snacks can be bought while it runs. They are toy tags on this square's ledger.",
+    items: [
+      { sku: "reel", name: "The reel", cents: 500 },
+      { sku: "popcorn", name: "Popcorn", cents: 150 },
+      { sku: "beer", name: "Beer", cents: 200 },
+      { sku: "vodka", name: "Vodka", cents: 350 },
+      { sku: "cocaine", name: "Cocaine, toy", cents: 600 },
+      { sku: "xanax", name: "Xanax, toy", cents: 400 },
+    ],
+  },
+  {
     id: "orbit",
     name: "Orbit",
     keeper: "SpaceX",
@@ -77,6 +91,7 @@ const BUILDINGS = [
   { id: "bank", shop: "bank", x: 2, y: 14, w: 10, h: 8, door: { x: 11, y: 18 }, npc: { x: 12, y: 18 }, roof: "#2f4d6a", sign: "Bank" },
   { id: "groceries", shop: "groceries", x: 30, y: 14, w: 10, h: 8, door: { x: 30, y: 18 }, npc: { x: 29, y: 18 }, roof: "#3d6b45", sign: "Market" },
   { id: "roadster", shop: "roadster", x: 14, y: 23, w: 14, h: 7, door: { x: 21, y: 23 }, npc: { x: 21, y: 22 }, roof: "#6e2430", sign: "Roadster" },
+  { id: "cinema", shop: "cinema", x: 2, y: 23, w: 10, h: 7, door: { x: 7, y: 23 }, npc: { x: 7, y: 22 }, roof: "#1c1916", sign: "Cinema" },
 ];
 
 const KEEPERS = {
@@ -85,6 +100,7 @@ const KEEPERS = {
   bank: { name: "Venn", color: "#9ecbff" },
   groceries: { name: "Mara", color: "#b7e38d" },
   roadster: { name: "Pike", color: "#f0a36a" },
+  cinema: { name: "Lux", color: "#d7c4f2" },
 };
 
 export function shopById(id) {
@@ -115,7 +131,7 @@ export const ROADSTER_PARK = PARKING_BAYS[1];
 
 /** Bank and shop panels are the indoor room. Rules, the bench, and the guide are not. */
 export function shopVisit(mode) {
-  return mode === "bank" || mode === "cafe" || mode === "restaurant" || mode === "groceries" || mode === "roadster";
+  return mode === "bank" || mode === "cafe" || mode === "restaurant" || mode === "groceries" || mode === "roadster" || mode === "cinema";
 }
 
 /** Which open card to redraw after a payment. An empty string means no card is open. */

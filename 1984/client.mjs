@@ -14,8 +14,9 @@ import {
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
-import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat } from "./view3d.mjs?v=16";
-import { ROADSTER_PARK, counterFace, destinationFor, findPath, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs";
+import { REELS } from "./reels.mjs";
+import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat } from "./view3d.mjs?v=17";
+import { ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 const map = world();
@@ -61,6 +62,9 @@ const state = {
   cruiseStart: 0,
   cruiseSku: "",
   cruiseFrom: 0,
+  watching: false,
+  showPaid: false,
+  reelAt: 0,
 };
 
 const SIM_LINE = "You are back on the square, in the roadster. You returned to a simulation of a simulation of a simulation, 255524 deep.";
@@ -151,6 +155,7 @@ function paintChrome() {
     ["groceries", "Market"],
     ["bank", "Bank"],
     ["roadster", "Roadster"],
+    ["cinema", "Cinema"],
     ["rules", "Rules"],
     ["bench", "Bench"],
     ["guide", "Guide"],
@@ -794,6 +799,7 @@ function veilRoom() {
 
 function enterVenue(shop) {
   if (!shopVisit(shop)) return;
+  if (shop !== "cinema") stopShow(true);
   const changed = state.venue !== shop || !state.inside;
   if (changed) veilRoom();
   state.path = [];
@@ -829,7 +835,153 @@ function closeCounter() {
   paintChrome();
 }
 
+function reelVideo() {
+  return worldView && worldView.cinemaVideo ? worldView.cinemaVideo() : null;
+}
+
+function markShow() {
+  const root = document.querySelector(".kw");
+  if (root) root.classList.toggle("watching", !!state.watching);
+  const card = document.getElementById("show");
+  if (card) card.hidden = !state.watching;
+}
+
+function paintShow() {
+  const now = document.getElementById("show-now");
+  const clip = REELS[state.reelAt] || REELS[0];
+  if (now && clip) now.textContent = state.reelAt + 1 + " of " + REELS.length + " · " + clip.title;
+  const box = document.getElementById("show-snacks");
+  if (!box || box.dataset.ready === "1") return;
+  const rail = state.shopRail === "kusdt" && !(state.account && state.account.kusdtFrozen) ? "kusdt" : "poc";
+  const names = { poc: "POCencept", kusdt: "KUSDT" };
+  const fromHome = ((state.home && state.home.shops) || []).find((item) => item.id === "cinema");
+  const shop = fromHome && fromHome.items && fromHome.items.some((item) => item.sku === "popcorn")
+    ? fromHome
+    : SHOPS.find((item) => item.id === "cinema");
+  const items = shop && shop.items ? shop.items.filter((item) => item.sku !== "reel") : [];
+  if (!items.length) return;
+  box.innerHTML = items
+    .map((item) => {
+      const price = formatCents(item.cents) + " " + names[rail];
+      return '<button type="button" data-snack="' + esc(item.sku) + '">' + esc(item.name) + " · " + esc(price) + "</button>";
+    })
+    .join("");
+  box.dataset.ready = "1";
+}
+
+function playReelAt(index) {
+  const video = reelVideo();
+  const clip = REELS[index];
+  if (!video || !clip) return;
+  state.reelAt = index;
+  paintShow();
+  if (video.getAttribute("src") !== clip.src) video.src = clip.src;
+  video.muted = false;
+  const play = document.getElementById("show-play");
+  if (play) play.hidden = true;
+  const pending = video.play();
+  if (pending && pending.catch) pending.catch(() => { if (play) play.hidden = false; });
+}
+
+function primeReel() {
+  const video = reelVideo();
+  const clip = REELS[0];
+  if (!video || !clip) return;
+  video.muted = true;
+  video.src = clip.src;
+  state.reelAt = 0;
+  const pending = video.play();
+  if (pending && pending.catch) pending.catch(() => {});
+}
+
+function beginShow(fromStart) {
+  if (isVisit(state.mode)) closeCounter();
+  state.seated = true;
+  if (fromStart) state.reelAt = 0;
+  state.watching = true;
+  const video = reelVideo();
+  if (fromStart && video) {
+    try { video.currentTime = 0; } catch (err) { /* the file may still be opening */ }
+  }
+  markShow();
+  playReelAt(state.reelAt || 0);
+}
+
+function stopShow(leave) {
+  const video = reelVideo();
+  const was = state.watching || state.showPaid;
+  state.watching = false;
+  if (video) video.pause();
+  if (leave) {
+    state.showPaid = false;
+    state.reelAt = 0;
+    if (video) {
+      video.removeAttribute("src");
+      video.load();
+    }
+  }
+  markShow();
+  return was;
+}
+
+function buyReel() {
+  const rail = state.shopRail === "kusdt" && !(state.account && state.account.kusdtFrozen) ? "kusdt" : "poc";
+  armOnOk = primeReel;
+  spend(rail, "cinema", "reel").finally(() => {
+    armOnOk = null;
+    if (!state.showPaid) stopShow(true);
+  });
+}
+
+function bindReel() {
+  const video = reelVideo();
+  if (!video || video.dataset.bound) return;
+  video.dataset.bound = "1";
+  let reelErrors = 0;
+  video.addEventListener("ended", () => {
+    if (!state.watching) return;
+    reelErrors = 0;
+    const next = (state.reelAt + 1) % REELS.length;
+    if (next === 0) say("The reel starts again.");
+    playReelAt(next);
+  });
+  video.addEventListener("error", () => {
+    if (!state.watching) return;
+    if (video.error && video.error.code === 1) return;
+    reelErrors += 1;
+    if (reelErrors >= REELS.length) {
+      say("This film did not start.", true);
+      const play = document.getElementById("show-play");
+      if (play) play.hidden = false;
+      return;
+    }
+    playReelAt((state.reelAt + 1) % REELS.length);
+  });
+  video.addEventListener("playing", () => {
+    reelErrors = 0;
+    const play = document.getElementById("show-play");
+    if (play) play.hidden = true;
+  });
+  const card = document.getElementById("show");
+  if (!card) return;
+  card.addEventListener("click", (ev) => {
+    const snack = ev.target.closest("[data-snack]");
+    if (snack) {
+      const sku = snack.getAttribute("data-snack");
+      const rail = state.shopRail === "kusdt" && !(state.account && state.account.kusdtFrozen) ? "kusdt" : "poc";
+      spend(rail, "cinema", sku);
+      return;
+    }
+    if (ev.target.closest("#show-play")) {
+      playReelAt(state.reelAt || 0);
+      return;
+    }
+    if (ev.target.closest("#show-leave")) stopShow(false);
+  });
+}
+
 function openMode(mode) {
+  if (mode !== "cinema") stopShow(true);
   const enteringBank = mode === "bank" && state.mode !== "bank";
   const enteringShop = isVisit(mode) && mode !== "bank" && state.mode !== mode;
   const wasInside = !!state.venue || state.inside;
@@ -1279,6 +1431,7 @@ function paintGuide() {
     "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept swap, a KUSDT swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>The roadster parks on the lot in front of Pike's shop. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, rides a ship to orbit. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. From there you can pay for the Moon, Mars, Jupiter, or Saturn. On that hop the end popup waits ten seconds.</li>" +
+    "<li>Lux's cinema is the dark building. Take a seat, then the screen. One ticket plays every film, from a seat, and the next film starts when one ends. Snacks sit under the screen while it runs.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +
@@ -1310,6 +1463,14 @@ function tookPayment(body, sku) {
     punch("nod");
     say(body.shop + " took the payment for " + body.item + ". " + FLIGHT_NOTE);
     paintFlightCard(performance.now());
+    return;
+  }
+  if (sku === "reel") {
+    state.showPaid = true;
+    showBanner("Paid.");
+    punch("nod");
+    say(body.shop + " took the payment for " + body.item + ". " + payKind("shop"));
+    beginShow(true);
     return;
   }
   showBanner(shopBanner(sku));
@@ -1428,12 +1589,17 @@ function rememberShopTxid(txid) {
 }
 
 function goodsName(shop, sku) {
-  const place = ((state.home && state.home.shops) || []).find((item) => item.id === shop);
-  const row = place && place.items.find((item) => item.sku === sku);
-  return row ? row.name : "this";
+  const lists = [state.home && state.home.shops, SHOPS];
+  for (const list of lists) {
+    const place = (list || []).find((item) => item.id === shop);
+    const row = place && place.items.find((item) => item.sku === sku);
+    if (row) return row.name;
+  }
+  return "this";
 }
 
 let askBusy = false;
+let armOnOk = null;
 
 function askOk(line) {
   const shade = document.getElementById("ask");
@@ -1454,7 +1620,10 @@ function askOk(line) {
       document.removeEventListener("keydown", onKey);
       resolve(yes);
     };
-    const onOk = () => finish(true);
+    const onOk = () => {
+      if (armOnOk) armOnOk();
+      finish(true);
+    };
     const onNo = () => finish(false);
     const onShade = (ev) => {
       if (ev.target === shade) finish(false);
@@ -1909,11 +2078,18 @@ const worldView = mountWorld(view, map, {
   room: () => state.inside,
   venue: () => state.venue,
   seated: () => state.seated,
+  watching: () => state.watching,
   clerk: () => state.bankClerk,
   use(hit, rail) {
-    if (state.flightStart) return;
+    if (state.flightStart || state.watching) return;
     if (!state.venue) return;
     const act = roomUse(state.venue, state.seated, hit);
+    if (act.play) {
+      state.seated = true;
+      if (state.showPaid) beginShow();
+      else buyReel();
+      return;
+    }
     if (act.sit) state.seated = true;
     if (act.open === "bank" && act.clerk === "books") {
       state.bankClerk = "books";
@@ -1987,6 +2163,7 @@ const worldView = mountWorld(view, map, {
     state.lapUntil = 0;
   },
 });
+bindReel();
 
 let bannerTimer = 0;
 function showBanner(text) {
@@ -2023,6 +2200,10 @@ window.addEventListener("keydown", (ev) => {
   if (key === "escape") {
     const ask = document.getElementById("ask");
     if (ask && !ask.hidden) return;
+    if (state.watching) {
+      stopShow(false);
+      return;
+    }
     const act = escapeRoom(isVisit(state.mode), !!state.venue);
     if (act === "counter") closeCounter();
     else openMode("world");
@@ -2050,6 +2231,7 @@ side.addEventListener("click", (ev) => {
   if (shopVisit(mode)) {
     const near = nearShop(map, state.player.x, state.player.y, mode);
     if (state.venue && state.venue !== mode) {
+      stopShow(true);
       if (!near) veilRoom();
       state.venue = "";
       state.inside = false;

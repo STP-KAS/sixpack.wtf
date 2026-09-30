@@ -1,0 +1,57 @@
+/** The cinema reel. Random-tab films first, then the desk films that were not already on that tab. */
+
+const RANDOM = [
+  ["r01", "Clock"],
+  ["r02", "No Kings"],
+  ["r03", "No Kings rally"],
+  ["r04", "2024"],
+  ["r05", "Epstein files"],
+  ["r06", "Wedding"],
+  ["r07", "Fire"],
+  ["r09", "I didn't vote for this"],
+  ["r10", "Never bet against Elon"],
+  ["r11", "I used to be an old man"],
+  ["r12", "Iranian regime"],
+  ["r13", "Embarrassment to humanity"],
+  ["r14", "Streets"],
+  ["r15", "I wanna be a billionaire"],
+  ["r16", "White House"],
+  ["r17", "Senate"],
+  ["r18", "Rally"],
+  ["r19", "Night"],
+  ["r20", "I don't even think I have a six pack"],
+  ["r21", "Better place"],
+  ["r22", "I voted for this"],
+  ["r23", "Eternity"],
+  ["r24", "Gym"],
+  ["r25", "I voted for this too"],
+  ["r26", "Alley"],
+  ["r27", "Synagogue"],
+  ["r28", "We are so back"],
+  ["r29", "MAGA hats"],
+  ["r30", "Crowd"],
+  ["r31", "I voted for this again"],
+  ["r32", "Car"],
+  ["r33", "Trump"],
+  ["r34", "I didn't vote for this either"],
+  ["r35", "Still didn't vote for this"],
+  ["r36", "I voted for this four"],
+  ["r37", "Silly Walks"],
+  ["r38", "Don't mention the war"],
+];
+
+const EXTRA = [
+  ["desk", "The desk", "1984/cinema/desk.mp4"],
+  ["clip", "A short reel", "1984/cinema/clip.mp4"],
+  ["phone-a", "Phone, one", "1984/cinema/phone-a.mp4"],
+  ["phone-b", "Phone, two", "1984/cinema/phone-b.mp4"],
+  ["life", "Our way of life", "1984/cinema/life.mp4"],
+  ["mine", "Mining the internet", "1984/cinema/mine.mp4"],
+  ["harvard", "Harvard", "1984/cinema/harvard.mp4"],
+];
+
+export const REELS = RANDOM.map(([id, title]) => ({
+  id,
+  title,
+  src: "random/" + id + ".mp4",
+})).concat(EXTRA.map(([id, title, src]) => ({ id, title, src })));

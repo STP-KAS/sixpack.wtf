@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { CAR_NOSE, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_RELEASE, FLIGHT_SPACE, FLIGHT_STAGE, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, buildingBoxes, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, drives, earthCenter, escapeRoom, flightBeat, flightCamera, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, menuLines, moveIntent, orbitOffset, placeFlight, returnReady, roomUse, seat, thrustCone, thrustLength } from "./view3d.mjs";
+import { CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_RELEASE, FLIGHT_SPACE, FLIGHT_STAGE, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, buildingBoxes, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, drives, earthCenter, escapeRoom, flightBeat, flightCamera, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, menuLines, moveIntent, orbitOffset, placeFlight, returnReady, roomUse, seat, thrustCone, thrustLength } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -193,6 +193,10 @@ test("the wall menu uses the shop prices", () => {
   assert.equal(menuLines("restaurant")[1], "Supper 14.00");
   assert.equal(menuLines("groceries")[0], "Square pebble 0.01");
   assert.equal(menuLines("roadster")[0], "The roadster 1.00");
+  assert.equal(menuLines("cinema")[0], "The reel 5.00");
+  assert.equal(menuLines("cinema")[1], "Popcorn 1.50");
+  assert.equal(menuLines("cinema")[4], "Cocaine, toy 6.00");
+  assert.equal(menuLines("cinema")[5], "Xanax, toy 4.00");
 });
 
 test("a room opens the card only from the counter, a clerk, or a seat", () => {
@@ -221,6 +225,15 @@ test("a room opens the card only from the counter, a clerk, or a seat", () => {
   assert.equal(roomUse("roadster", false, "keeper").open, "roadster");
   assert.equal(roomUse("roadster", false, "sign").open, "roadster");
   assert.equal(roomUse("roadster", false, "").say, "Click Pike or the sign.");
+  assert.equal(roomUse("cinema", false, "").say, "Take a seat. The screen starts the reel.");
+  assert.equal(roomUse("cinema", false, "seat").sit, true);
+  assert.equal(roomUse("cinema", false, "seat").open, "");
+  assert.equal(roomUse("cinema", false, "seat").play, undefined);
+  assert.equal(roomUse("cinema", false, "screen").play, true);
+  assert.equal(roomUse("cinema", false, "screen").sit, true);
+  assert.equal(roomUse("cinema", false, "counter").open, "cinema");
+  assert.equal(roomUse("cinema", false, "keeper").open, "cinema");
+  assert.equal(roomUse("cinema", true, "").say, "The screen starts the reel.");
   assert.equal(escapeRoom(true, true), "counter");
   assert.equal(escapeRoom(false, true), "leave");
   assert.equal(escapeRoom(false, false), "close");
@@ -232,6 +245,7 @@ test("the room glows only the next step", () => {
   assert.equal(ENTRY_HINT.restaurant, "Take a seat, or order at the counter.");
   assert.equal(ENTRY_HINT.groceries, "Click the counter.");
   assert.equal(ENTRY_HINT.roadster, "Click Pike or the sign.");
+  assert.equal(ENTRY_HINT.cinema, "Take a seat. The screen starts the reel.");
   assert.deepEqual(invite("bank", false), ["clerk"]);
   assert.deepEqual(invite("cafe", false), ["seat", "counter", "keeper"]);
   assert.deepEqual(invite("cafe", true), ["menu", "qr"]);
@@ -239,7 +253,11 @@ test("the room glows only the next step", () => {
   assert.deepEqual(invite("restaurant", true), ["menu", "qr"]);
   assert.deepEqual(invite("groceries", false), ["counter", "keeper"]);
   assert.deepEqual(invite("roadster", false), ["keeper", "sign"]);
+  assert.deepEqual(invite("cinema", false), ["seat", "screen", "counter", "keeper"]);
+  assert.deepEqual(invite("cinema", true), ["screen", "counter"]);
   assert.deepEqual(invite("", false), []);
+  assert.ok(CINEMA_LOOK.z < CINEMA_EYE.z, "the seat looks toward the screen");
+  assert.ok(CINEMA_EYE.y > 0.9 && CINEMA_EYE.y < 1.5);
 });
 
 test("the rooms contain clerks, seats, a menu, and a scan card", () => {
@@ -277,7 +295,10 @@ test("the rooms contain clerks, seats, a menu, and a scan card", () => {
   assert.ok(rooms.marketCounter >= 1);
   assert.ok(rooms.showroomSign >= 1);
   assert.ok(rooms.showroomKeeper >= 1);
-  assert.equal(rooms.invites, 25);
+  assert.equal(rooms.cinemaSeats, 8);
+  assert.equal(rooms.cinemaScreen, 1);
+  assert.ok(rooms.cinemaSeatNoseZ < -0.9, "seat nose " + rooms.cinemaSeatNoseZ);
+  assert.equal(rooms.invites, 37);
   assert.equal(rooms.inviteMarked, 0);
   assert.equal(rooms.inviteBad, 0);
   assert.ok(rooms.seatRingUp > 0.9, "seat ring " + rooms.seatRingUp);

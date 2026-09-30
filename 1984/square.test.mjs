@@ -13,7 +13,7 @@ import {
   publicAccount,
 } from "./ledger.mjs";
 import { RESERVE, centsForSompi, sompiForCents } from "./money.mjs";
-import { PARKING_BAYS, ROADSTER_PARK, counterFace, findPath, nearShop, shopVisit, standTile, walkable, world } from "./world.mjs";
+import { PARKING_BAYS, ROADSTER_PARK, SHOPS, counterFace, findPath, nearShop, shopVisit, standTile, walkable, world } from "./world.mjs";
 
 const USER = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 const USD = 0.05;
@@ -68,6 +68,36 @@ test("the roadster parks on the lot in front of Pike", () => {
   assert.equal(nearShop(map, shop.npc.x, shop.npc.y, "roadster"), true);
   const path = findPath(map.grid, map.spawn, ROADSTER_PARK);
   assert.ok(path && path.length > 1);
+});
+
+test("the cinema is a dark building west of the lot, and the fountain is still water", () => {
+  const map = world();
+  const cinema = map.buildings.find((item) => item.id === "cinema");
+  assert.ok(cinema);
+  assert.equal(map.grid[cinema.door.y][cinema.door.x], "d");
+  assert.equal(walkable(map.grid[cinema.npc.y][cinema.npc.x]), true);
+  assert.equal(nearShop(map, map.spawn.x, map.spawn.y, "cinema"), false);
+  const path = findPath(map.grid, map.spawn, cinema.npc);
+  assert.ok(path && path.length > 1);
+  assert.equal(path.at(-1).x, cinema.npc.x);
+  assert.equal(path.at(-1).y, cinema.npc.y);
+  for (let y = 15; y <= 17; y += 1) {
+    for (let x = 19; x <= 22; x += 1) assert.equal(map.grid[y][x], "w", x + "," + y);
+  }
+  for (const bay of PARKING_BAYS) assert.equal(map.grid[bay.y][bay.x], "c");
+  const shop = SHOPS.find((item) => item.id === "cinema");
+  const price = Object.fromEntries(shop.items.map((item) => [item.sku, item.cents]));
+  assert.deepEqual(price, {
+    reel: 500,
+    popcorn: 150,
+    beer: 200,
+    vodka: 350,
+    cocaine: 600,
+    xanax: 400,
+  });
+  assert.equal(SHOPS.find((item) => item.id === "cafe").items.find((item) => item.sku === "coffee").cents, 250);
+  assert.equal(SHOPS.find((item) => item.id === "restaurant").items.find((item) => item.sku === "supper").cents, 1400);
+  assert.equal(SHOPS.find((item) => item.id === "roadster").items.find((item) => item.sku === "keys").cents, 100);
 });
 
 test("every shop door can be walked from the fountain", () => {
@@ -226,6 +256,8 @@ test("a shop or the bank is the indoor room, and the rules are not", () => {
   assert.equal(shopVisit("groceries"), true);
   assert.equal(shopVisit("roadster"), true);
   assert.equal(shopVisit("bank"), true);
+  assert.equal(shopVisit("cinema"), true);
+  assert.equal(shopVisit("orbit"), false);
   assert.equal(shopVisit("world"), false);
   assert.equal(shopVisit("rules"), false);
   assert.equal(shopVisit("bench"), false);

@@ -42,6 +42,11 @@ export function headingYaw(dx, dz) {
   return Math.atan2(-dx, -dz);
 }
 
+/** Eye in the back-row seat at x −1.15, looking toward the screen on −z. */
+export const CINEMA_EYE = Object.freeze({ x: -1.15, y: 1.12, z: 1.62 });
+/** Screen center. The seat faces this, local −z, world −z. */
+export const CINEMA_LOOK = Object.freeze({ x: 0, y: 1.72, z: -4.05 });
+
 /** Hood marker. The roadster's nose is this local point, the same −z front as a figure. */
 export const CAR_NOSE = { x: 0, y: 0.5, z: -0.9 };
 /** ConeGeometry's tip is local +Y. This X turn sends that tip to local +Z, the rear. */
@@ -301,6 +306,7 @@ export const ENTRY_HINT = {
   restaurant: "Take a seat, or order at the counter.",
   groceries: "Click the counter.",
   roadster: "Click Pike or the sign.",
+  cinema: "Take a seat. The screen starts the reel.",
 };
 
 /** Hits that glow. A seat and the counter, or the menu once you sit. */
@@ -309,6 +315,7 @@ export function invite(venue, seated) {
   if (venue === "cafe" || venue === "restaurant") return seated ? ["menu", "qr"] : ["seat", "counter", "keeper"];
   if (venue === "groceries") return ["counter", "keeper"];
   if (venue === "roadster") return ["keeper", "sign"];
+  if (venue === "cinema") return seated ? ["screen", "counter"] : ["seat", "screen", "counter", "keeper"];
   return [];
 }
 
@@ -345,6 +352,12 @@ export function roomUse(venue, seated, hit) {
       return { open: "roadster", sit: false, say: "", clerk: "" };
     }
     return { ...none, say: "Click Pike or the sign." };
+  }
+  if (venue === "cinema") {
+    if (hit === "seat") return { open: "", sit: true, say: "You are seated. The screen starts the reel.", clerk: "" };
+    if (hit === "screen") return { open: "", sit: true, say: "", clerk: "", play: true };
+    if (hit === "counter" || hit === "keeper" || hit === "menu") return { open: "cinema", sit: false, say: "", clerk: "" };
+    return { ...none, say: seated ? "The screen starts the reel." : "Take a seat. The screen starts the reel." };
   }
   return none;
 }
@@ -1749,12 +1762,15 @@ function menuBoard(shopId, title, tint, foot, hit) {
     g.font = "700 52px Georgia, serif";
     g.textAlign = "center";
     g.fillText(title, s / 2, 86);
-    g.font = "600 34px Georgia, serif";
+    const many = lines.length > 4;
+    g.font = many ? "600 28px Georgia, serif" : "600 34px Georgia, serif";
+    const step = many ? 46 : 62;
+    const start = many ? 132 : 156;
     lines.forEach((line, i) => {
       const cut = line.lastIndexOf(" ");
       const name = cut > 0 ? line.slice(0, cut) : line;
       const price = cut > 0 ? line.slice(cut + 1) : "";
-      const y = 156 + i * 62;
+      const y = start + i * step;
       g.textAlign = "left";
       g.fillText(name, 48, y);
       g.textAlign = "right";
@@ -2049,6 +2065,137 @@ function buildStallRoom(maps) {
   return { room, keepers, goods, boards, lamp, runner, stalls: STALLS, dress, picks, guest };
 }
 
+/** A dark room, red seats, and one screen. The camera sits in a seat while the reel runs. */
+function buildCinemaRoom(maps) {
+  const room = new THREE.Group();
+  room.name = "cinema";
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 9), stone("#14110e", 0.92));
+  floor.position.y = -0.1;
+  floor.receiveShadow = true;
+  room.add(floor);
+  const wallMat = stone("#1a1614", 0.94);
+  wallMat.side = THREE.DoubleSide;
+  const back = new THREE.Mesh(new THREE.BoxGeometry(12, 3.6, 0.28), wallMat);
+  back.position.set(0, 1.7, -4.4);
+  const left = new THREE.Mesh(new THREE.BoxGeometry(0.28, 3.6, 9), wallMat);
+  left.position.set(-6, 1.7, 0);
+  const right = left.clone();
+  right.position.x = 6;
+  const frontL = new THREE.Mesh(new THREE.BoxGeometry(4.6, 3.6, 0.28), wallMat);
+  frontL.position.set(-3.7, 1.7, 4.4);
+  const frontR = frontL.clone();
+  frontR.position.x = 3.7;
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.85, 0.28), wallMat);
+  lintel.position.set(0, 3.05, 4.4);
+  room.add(back, left, right, frontL, frontR, lintel);
+  const carpet = new THREE.Mesh(
+    new THREE.BoxGeometry(8.4, 0.03, 5.2),
+    new THREE.MeshStandardMaterial({ color: "#3a1420", roughness: 0.9 }),
+  );
+  carpet.position.set(0, 0.02, 0.7);
+  room.add(carpet);
+  const poster = paintTex(512, (g, s) => {
+    g.fillStyle = "#100e12";
+    g.fillRect(0, 0, s, s);
+    g.strokeStyle = "#e7c27a";
+    g.lineWidth = 16;
+    g.strokeRect(18, 18, s - 36, s - 36);
+    g.fillStyle = "#f3e6c8";
+    g.textAlign = "center";
+    g.font = "700 64px Georgia, serif";
+    g.fillText("The reel", s / 2, 210);
+    g.font = "600 32px Georgia, serif";
+    g.fillText("Take a seat", s / 2, 280);
+    g.fillText("Then this screen", s / 2, 330);
+  });
+  poster.wrapS = THREE.ClampToEdgeWrapping;
+  poster.wrapT = THREE.ClampToEdgeWrapping;
+  poster.colorSpace = THREE.SRGBColorSpace;
+  const screenMat = new THREE.MeshStandardMaterial({
+    map: poster,
+    emissive: "#ffffff",
+    emissiveMap: poster,
+    emissiveIntensity: 0.32,
+    roughness: 0.45,
+  });
+  const screen = new THREE.Group();
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(7.4, 3.5, 0.08), screenMat);
+  glass.position.z = 0.04;
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(7.8, 3.9, 0.12), stone("#2a241c", 0.7));
+  screen.add(frame, glass);
+  screen.position.set(0, 1.85, -4.02);
+  tagHit(screen, "screen");
+  addInvite(screen, 2.4, "wall");
+  room.add(screen);
+  let video = null;
+  let videoMap = null;
+  if (typeof document !== "undefined" && document.createElement) {
+    const el = document.createElement("video");
+    if (el && typeof el.play === "function") {
+      el.playsInline = true;
+      el.muted = true;
+      el.setAttribute("playsinline", "");
+      el.setAttribute("webkit-playsinline", "");
+      el.setAttribute("muted", "");
+      el.preload = "auto";
+      el.setAttribute("aria-hidden", "true");
+      el.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none";
+      if (document.body) document.body.appendChild(el);
+      video = el;
+      videoMap = new THREE.VideoTexture(el);
+      videoMap.colorSpace = THREE.SRGBColorSpace;
+    }
+  }
+  const picks = [screen];
+  for (const z of [0.55, 1.85]) {
+    for (const x of [-2.3, -1.15, 1.15, 2.3]) {
+      const here = chair(maps, "#6e2430", headingYaw(0, -1));
+      here.position.set(x, 0, z);
+      room.add(here);
+      picks.push(here);
+    }
+  }
+  const counter = new THREE.Group();
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.9, 0.55), stone("#2a241c", 0.75, maps.wood));
+  bar.position.set(0, 0.45, 0);
+  const tub = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.14, 0.22, 10), stone("#e7c27a", 0.55));
+  tub.position.set(-0.28, 0.98, 0);
+  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.06, 0.16, 8), stone("#f4efe6", 0.4));
+  cup.position.set(0.22, 0.98, 0.04);
+  counter.add(bar, tub, cup);
+  counter.position.set(4.55, 0, 1.2);
+  counter.rotation.y = -Math.PI / 2;
+  tagHit(counter, "counter");
+  addInvite(counter, 0.7, "floor");
+  room.add(counter);
+  picks.push(counter);
+  const keeper = figure("#d7c4f2");
+  keeper.position.set(4.35, 0, -0.35);
+  keeper.rotation.y = headingYaw(-1, 0);
+  keeper.add(nameTag("Lux"));
+  tagHit(keeper, "keeper");
+  addInvite(keeper, 0.48, "person");
+  room.add(keeper);
+  picks.push(keeper);
+  const board = menuBoard("cinema", "Cinema", "#e7c27a", "Snacks too", "menu");
+  board.position.set(-5.55, 1.7, 0.4);
+  board.rotation.y = Math.PI / 2;
+  room.add(board);
+  picks.push(board);
+  const lamp = new THREE.PointLight("#ffd2a8", 0, 14, 1.8);
+  lamp.position.set(0, 2.8, 1.2);
+  room.add(lamp);
+  const glow = new THREE.PointLight("#f3e6c8", 0, 10, 1.4);
+  glow.position.set(0, 1.9, -3.2);
+  room.add(glow);
+  for (let i = -1; i <= 1; i++) {
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(11.4, 0.1, 0.14), stone("#2a241c", 0.8));
+    beam.position.set(0, 3.32, i * 1.5);
+    room.add(beam);
+  }
+  return { room, screen, screenMat, poster, video, videoMap, lamp, glow, keeper, picks };
+}
+
 export function mountWorld(canvas, map, api) {
   let renderer;
   try {
@@ -2127,8 +2274,11 @@ export function mountWorld(canvas, map, api) {
   scene.add(bank.room);
   const stall = buildStallRoom(maps);
   scene.add(stall.room);
+  const cinema = buildCinemaRoom(maps);
+  scene.add(cinema.room);
   bank.room.visible = false;
   stall.room.visible = false;
+  cinema.room.visible = false;
   const flight = buildFlight();
   scene.add(flight.root);
   let flightYaw = 0;
@@ -2342,13 +2492,17 @@ export function mountWorld(canvas, map, api) {
     frameDistance = indoors ? bankDistance : townDistance * (1 - 0.2 * talk);
     const spin = moveIntent(held).spin;
     if (spin) yaw += spin * dt * 1.5;
+    const watching = !!(api.watching && api.watching());
     const stallId = stall.stalls.some((item) => item.id === venue) ? venue : "";
     town.visible = !indoors;
     sky.visible = !indoors;
     bank.room.visible = indoors && venue === "bank";
     stall.room.visible = indoors && !!stallId;
+    cinema.room.visible = indoors && venue === "cinema";
     bank.lamp.intensity = bank.room.visible ? 7 : 0;
     stall.lamp.intensity = stall.room.visible ? 7 : 0;
+    cinema.lamp.intensity = cinema.room.visible ? 2.2 : 0;
+    cinema.glow.intensity = cinema.room.visible ? (watching ? 8 : 3) : 0;
     renderer.toneMappingExposure = indoors ? 1.05 : 0.94;
     for (const item of stall.stalls) {
       const on = stall.room.visible && item.id === stallId;
@@ -2360,7 +2514,7 @@ export function mountWorld(canvas, map, api) {
     }
     scene.fog.near = indoors ? 18 : 22;
     scene.fog.far = indoors ? 46 : 70;
-    const wash = bank.room.visible ? "#2a241c" : stall.room.visible ? stall.stalls.find((item) => item.id === stallId).wash : "#c47a52";
+    const wash = bank.room.visible ? "#2a241c" : stall.room.visible ? stall.stalls.find((item) => item.id === stallId).wash : cinema.room.visible ? "#07080c" : "#c47a52";
     scene.background.set(wash);
     const clerk = api.clerk ? api.clerk() : "";
     const panelBank = api.mode() === "bank";
@@ -2390,13 +2544,38 @@ export function mountWorld(canvas, map, api) {
       satVenue = venue;
       satMesh = null;
     }
-    if (indoors) {
+    if (indoors && watching) {
+      camera.position.set(CINEMA_EYE.x, CINEMA_EYE.y, CINEMA_EYE.z);
+      camera.up.set(0, 1, 0);
+      camera.lookAt(CINEMA_LOOK.x, CINEMA_LOOK.y, CINEMA_LOOK.z);
+      if (camera.fov !== 50) {
+        camera.fov = 50;
+        camera.updateProjectionMatrix();
+      }
+      if (cinema.videoMap && cinema.screenMat.map !== cinema.videoMap) {
+        cinema.screenMat.map = cinema.videoMap;
+        cinema.screenMat.emissiveMap = cinema.videoMap;
+        cinema.screenMat.emissiveIntensity = 0.9;
+        cinema.screenMat.needsUpdate = true;
+      }
+    } else if (indoors) {
+      if (camera.fov !== 42) {
+        camera.fov = 42;
+        camera.updateProjectionMatrix();
+      }
+      if (cinema.screenMat.map !== cinema.poster) {
+        cinema.screenMat.map = cinema.poster;
+        cinema.screenMat.emissiveMap = cinema.poster;
+        cinema.screenMat.emissiveIntensity = 0.32;
+        cinema.screenMat.needsUpdate = true;
+      }
       const sitting = !!(api.seated && api.seated()) && !!satMesh;
       roomLook.set(0, ROOM_LOOK_Y, ROOM_LOOK_Z);
       if (sitting) roomLook.set(satMesh.position.x * 0.4, 0.9, Math.min(1.1, satMesh.position.z * 0.35));
       placeCamera(roomLook, false);
       if (bank.room.visible) for (const person of bank.clerks) pose(person, now, false);
       if (stallId && stall.keepers[stallId].visible) pose(stall.keepers[stallId], now, false);
+      if (cinema.room.visible) pose(cinema.keeper, now, false);
       stall.guest.visible = sitting && (stallId === "cafe" || stallId === "restaurant");
       if (stall.guest.visible) {
         stall.guest.position.set(satMesh.position.x, 0, satMesh.position.z);
@@ -2516,6 +2695,7 @@ export function mountWorld(canvas, map, api) {
     const glow = indoors ? invite(venue, !!(api.seated && api.seated())) : [];
     showInvites(bank.room, venue === "bank" ? glow : []);
     showInvites(stall.room, stallId ? glow : []);
+    showInvites(cinema.room, venue === "cinema" && !watching ? glow : []);
     canvas.dataset.mode = indoors ? venue : "world";
     renderer.render(scene, camera);
   }
@@ -2548,7 +2728,7 @@ export function mountWorld(canvas, map, api) {
     ndc(ev);
     raycaster.setFromCamera(pointer, camera);
     const here = (api.venue && api.venue()) || "";
-    const list = here === "bank" ? bank.picks : (stall.picks[here] || []);
+    const list = here === "bank" ? bank.picks : here === "cinema" ? cinema.picks : (stall.picks[here] || []);
     canvas.style.cursor = markedHit(list) ? "pointer" : "grab";
   }
 
@@ -2567,6 +2747,11 @@ export function mountWorld(canvas, map, api) {
     const dy = ev.clientY - drag.y;
     if (Math.abs(dx) + Math.abs(dy) > 5) drag.moved = true;
     const flightMs = api.flight ? api.flight() : 0;
+    if (api.watching && api.watching()) {
+      drag.x = ev.clientX;
+      drag.y = ev.clientY;
+      return;
+    }
     if (flightMs !== 0) {
       if (drag.moved && drag.button === 0 && flightMs > 0) {
         const beat = flightBeat(flightMs);
@@ -2598,7 +2783,7 @@ export function mountWorld(canvas, map, api) {
     raycaster.setFromCamera(pointer, camera);
     if ((api.room && api.room()) || (api.venue && api.venue())) {
       const here = (api.venue && api.venue()) || "";
-      const list = here === "bank" ? bank.picks : (stall.picks[here] || []);
+      const list = here === "bank" ? bank.picks : here === "cinema" ? cinema.picks : (stall.picks[here] || []);
       const marked = markedHit(list);
       if (marked && marked.userData.hit === "seat") satMesh = marked;
       if (api.use) api.use(marked ? marked.userData.hit : "", marked ? marked.userData.rail || "" : "");
@@ -2674,7 +2859,16 @@ export function mountWorld(canvas, map, api) {
 
   resize();
   placeCamera(shown, true);
-  return { render, resize, hold, feel, snap };
+  return {
+    render,
+    resize,
+    hold,
+    feel,
+    snap,
+    cinemaVideo() {
+      return cinema.video;
+    },
+  };
 }
 
 /** Builds the rooms so a test can see the clerks, seats, menu, and card. */
@@ -2682,13 +2876,19 @@ export function assembleInteriors() {
   const maps = makeMaps();
   const bank = buildBankRoom(maps);
   const stall = buildStallRoom(maps);
+  const cinema = buildCinemaRoom(maps);
   const hits = (list, hit) => list.filter((item) => item.userData && item.userData.hit === hit).length;
   const wall = bank.room.children.find((child) => child.material && child.material.side === THREE.DoubleSide);
   const stallWall = stall.room.children.find((child) => child.material && child.material.side === THREE.DoubleSide);
   const nose = new THREE.Vector3(0, 0, -1).applyQuaternion(bank.clerks[0].quaternion);
   bank.room.updateMatrixWorld(true);
   stall.room.updateMatrixWorld(true);
-  const allowed = new Set(["clerk", "seat", "menu", "qr", "counter", "keeper", "sign"]);
+  cinema.room.updateMatrixWorld(true);
+  const seatPick = cinema.picks.find((item) => item.userData && item.userData.hit === "seat");
+  const seatNose = seatPick
+    ? new THREE.Vector3(0, 0, -1).applyQuaternion(seatPick.getWorldQuaternion(new THREE.Quaternion()))
+    : new THREE.Vector3();
+  const allowed = new Set(["clerk", "seat", "menu", "qr", "counter", "keeper", "sign", "screen"]);
   let invites = 0;
   let inviteMarked = 0;
   let inviteBad = 0;
@@ -2701,7 +2901,7 @@ export function assembleInteriors() {
     });
     return found;
   };
-  for (const root of [bank.room, stall.room]) {
+  for (const root of [bank.room, stall.room, cinema.room]) {
     root.traverse((node) => {
       if (node.name !== "invite") return;
       invites += 1;
@@ -2735,6 +2935,9 @@ export function assembleInteriors() {
     marketCounter: hits(stall.picks.groceries, "counter"),
     showroomSign: hits(stall.picks.roadster, "sign"),
     showroomKeeper: hits(stall.picks.roadster, "keeper"),
+    cinemaSeats: hits(cinema.picks, "seat"),
+    cinemaScreen: hits(cinema.picks, "screen"),
+    cinemaSeatNoseZ: seatNose.z,
     invites,
     inviteMarked,
     inviteBad,
