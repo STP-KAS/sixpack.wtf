@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { GUEST_KEY, SAVED_KEY, readIdentity, writeIdentity } from "./identity.mjs";
+import { GUEST_KEY, SAVED_KEY, clearIdentity, readIdentity, writeIdentity } from "./identity.mjs";
 
 function mem() {
   const local = new Map();
@@ -34,6 +34,10 @@ test("a test tab does not replace the saved Testnet wallet", () => {
   assert.equal(after.kind, "kasware");
   assert.equal(after.address, WALLET);
   assert.equal(after.token, undefined);
+  clearIdentity(storage);
+  assert.equal(readIdentity(storage).address, "");
+  assert.equal(storage.raw.local.get(SAVED_KEY), undefined);
+  assert.equal(storage.raw.session.get(GUEST_KEY), undefined);
 });
 
 test("an older saved wallet and test tab are read once under the new keys", () => {

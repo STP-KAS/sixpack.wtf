@@ -37,6 +37,7 @@
     { id: "r36", title: "I voted for this four", duration: 17, w: 720, h: 720 },
     { id: "r37", title: "Silly Walks", duration: 166, w: 1920, h: 1080 },
     { id: "r38", title: "Don't mention the war", duration: 263, w: 1350, h: 1080 },
+    { id: "r39", title: "Clip", duration: 58, w: 1280, h: 720 },
   ];
 
   const CAPTION = "this desk agrees";

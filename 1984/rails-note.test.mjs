@@ -14,8 +14,8 @@ test("every buy can pick tKAS, POCencept, or KUSDT", () => {
   assert.match(bar, /data-rail-pick="kas" class="on"/);
   assert.match(bar, /What are the rails\?/);
   assert.equal(RAIL_NAMES.kas, "tKAS");
-  assert.equal(RAIL_NAMES.poc, "POCencept");
-  assert.equal(RAIL_NAMES.kusdt, "KUSDT");
+  assert.equal(RAIL_NAMES.poc, "POCencept stable");
+  assert.equal(RAIL_NAMES.kusdt, "KUSDT stable");
 });
 
 test("the rails note is short and points at the public note", () => {

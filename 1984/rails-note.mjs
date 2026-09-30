@@ -1,8 +1,8 @@
 /** The three ways to pay, in the words the page shows. */
 
 export const RAIL_NAMES = Object.freeze({
-  poc: "POCencept",
-  kusdt: "KUSDT",
+  poc: "POCencept stable",
+  kusdt: "KUSDT stable",
   kas: "tKAS",
 });
 
@@ -15,7 +15,7 @@ export const RAILS_NOTE = Object.freeze({
   title: "Three ways to pay",
   lines: Object.freeze([
     "tKAS is the Testnet 10 coin. It is the one that moves. This tab can spend it at a counter, at the cinema, or on a hop. Kasware and Kastle sign only when you lock tKAS at the bank. That lock writes a toy tag.",
-    "POCencept is a toy tag in this village ledger. It is not a dollar. KUSDT is the other toy tag. It can be frozen. A freeze blocks only KUSDT.",
+    "POCencept stable is a tag in this village ledger. It is not a dollar. KUSDT stable is the other tag. It can be frozen. A freeze blocks only KUSDT stable.",
     "Pick one rail. The page asks, then OK. The same three are on every counter, the ticket, the snacks, a hop, and every row in Hunt Hall.",
     "Those rails are for a bill a stranger can take: a car, an AI service, a game purchase, and a rented service. This square is the classroom for that bill. A promise here does not buy the car, the service, the game, or the rental.",
   ]),

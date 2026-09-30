@@ -3,7 +3,10 @@ import test from "node:test";
 import { REELS, reelShuffle, reelStep } from "./reels.mjs";
 
 test("the reel plays every Random film, then the desk films", () => {
-  assert.equal(REELS.length, 44);
+  assert.equal(REELS.length, 45);
+  assert.equal(REELS.find((item) => item.id === "r39").src, "random/r39.mp4");
+  assert.equal(REELS.find((item) => item.id === "r39").w, 1280);
+  assert.equal(REELS.find((item) => item.id === "r39").h, 720);
   assert.equal(REELS[0].src, "random/r01.mp4");
   assert.equal(REELS.find((item) => item.id === "r08"), undefined);
   assert.equal(REELS.find((item) => item.id === "r38").title, "Don't mention the war");

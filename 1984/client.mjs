@@ -1,4 +1,4 @@
-import { readIdentity, writeIdentity } from "./identity.mjs";
+import { clearIdentity, readIdentity, writeIdentity } from "./identity.mjs";
 import { BENCH, REPOS } from "./links.mjs?v=3";
 import {
   GUEST_DISCLAIMER,
@@ -14,9 +14,9 @@ import {
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
-import { RAIL_NAMES, RAILS_NOTE, payRail, railBarHtml } from "./rails-note.mjs?v=3";
-import { REELS, reelShuffle, reelStep } from "./reels.mjs?v=2";
-import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_RIGHT, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=29";
+import { RAIL_NAMES, RAILS_NOTE, payRail, railBarHtml } from "./rails-note.mjs?v=4";
+import { REELS, reelShuffle, reelStep } from "./reels.mjs?v=3";
+import { DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_RIGHT, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=30";
 import { HUNTS, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=1";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -60,6 +60,7 @@ const state = {
   huntNeeds: {},
   huntBook: null,
   flightStart: 0,
+  padPhase: "",
   preRoll: false,
   hotOn: false,
   releaseFilmOn: false,
@@ -243,16 +244,8 @@ function padPath(el) {
 function bindPad(el) {
   if (!el || el.dataset.padBound) return;
   el.dataset.padBound = "1";
-  el.addEventListener("ended", () => {
-    const slots = padSlots();
-    if (el !== slots[0] || !state.preRoll) return;
-    beginCountdown();
-  });
-  el.addEventListener("error", () => {
-    const slots = padSlots();
-    if (el !== slots[0] || !state.preRoll) return;
-    beginCountdown();
-  });
+  el.addEventListener("ended", () => onPadEnded(el));
+  el.addEventListener("error", () => onPadEnded(el));
 }
 
 function cuePad(el, src) {
@@ -266,9 +259,17 @@ function cuePad(el, src) {
   try { el.currentTime = 0; } catch (err) { /* the file may still be opening */ }
 }
 
+function onPadEnded(el) {
+  const slots = padSlots();
+  if (!state.preRoll || state.flightStart) return;
+  if (el === slots[0] && state.padPhase === "left") startRightFilm();
+  else if (el === slots[1] && state.padPhase === "right") beginCountdown();
+}
+
 function startLeftFilm() {
   const slots = padSlots();
   state.padOn = true;
+  state.padPhase = "left";
   if (slots.length < 1) {
     beginCountdown();
     return;
@@ -276,21 +277,40 @@ function startLeftFilm() {
   cuePad(slots[0], PAD_LEFT);
   if (slots[1]) armMedia(slots[1]);
   const pending = slots[0].play();
+  if (pending && pending.catch) pending.catch(() => startRightFilm());
+}
+
+function startRightFilm() {
+  if (state.flightStart || !state.preRoll || state.padPhase === "right") return;
+  const slots = padSlots();
+  state.padPhase = "right";
+  if (slots.length < 2) {
+    beginCountdown();
+    return;
+  }
+  claimMedia(slots[1]);
+  cuePad(slots[1], PAD_RIGHT);
+  const pending = slots[1].play();
   if (pending && pending.catch) pending.catch(() => beginCountdown());
+  const line = document.getElementById("flight-line");
+  if (line) line.textContent = "Two short films, then the launch. Film on the right.";
 }
 
 function beginCountdown() {
   if (state.flightStart || !state.preRoll) return;
   state.preRoll = false;
+  state.padPhase = "";
   state.flightStart = performance.now();
-  const slots = padSlots();
-  if (slots[1]) {
-    claimMedia(slots[1]);
-    cuePad(slots[1], PAD_RIGHT);
-    const pending = slots[1].play();
-    if (pending && pending.catch) pending.catch(() => {});
-  }
+  stopPadFilms();
+  state.padOn = false;
   launchSound();
+  const barLabel = document.getElementById("flight-bar-label");
+  const bar = document.getElementById("flight-bar");
+  if (barLabel) {
+    barLabel.hidden = false;
+    barLabel.textContent = "Time before launch";
+  }
+  if (bar) bar.hidden = false;
   const clock = document.getElementById("flight-clock");
   if (clock) {
     clock.hidden = false;
@@ -358,9 +378,9 @@ function paintChrome() {
   const id = state.id;
   const label = id.label || short(id.address);
   const kas = !id.address ? "— tKAS" : state.kasSompi == null ? "… tKAS" : formatTkas(state.kasSompi) + " tKAS";
-  const poc = state.account ? formatCents(state.account.poc) + " POC" : "— POC";
-  const kusdt = state.account ? formatCents(state.account.kusdt) + " KUSDT" : "— KUSDT";
-  const frozen = state.account && state.account.kusdtFrozen ? " · KUSDT frozen" : "";
+  const poc = state.account ? formatCents(state.account.poc) + " POCencept stable" : "— POCencept stable";
+  const kusdt = state.account ? formatCents(state.account.kusdt) + " KUSDT stable" : "— KUSDT stable";
+  const frozen = state.account && state.account.kusdtFrozen ? " · KUSDT stable frozen" : "";
   const guestLine = id.kind === "guest" ? " · this tab only" : "";
   const driving = state.account && state.account.roadster ? (state.aboard ? " · driving" : " · roadster is yours") : "";
   bar.innerHTML =
@@ -393,6 +413,7 @@ function paintChrome() {
     '<p class="fine">Testnet 10 only. A mainnet wallet is refused.</p>' +
     '<div class="kw-row"><button type="button" id="use-kasware">Log in with Kasware</button><button type="button" id="use-kastle">Log in with Kastle</button></div>' +
     '<button type="button" id="use-guest">Test without a wallet</button>' +
+    '<button type="button" id="log-out">Log out</button>' +
     '<p class="warn">' + esc(GUEST_DISCLAIMER) + "</p>" +
     (guestOn
       ? '<p class="warn">You are on a test address for this tab only: ' + esc(short(id.address)) + ". Close the tab and it is gone. A saved Testnet-10 wallet on this browser keeps its history.</p>"
@@ -489,10 +510,12 @@ function startLaunch() {
   }
   if (line) {
     line.hidden = false;
-    line.textContent = "The film on the left.";
+    line.textContent = "Two short films, then the launch. Film on the left.";
   }
-  if (bar) bar.hidden = false;
+  if (bar) bar.hidden = true;
   if (fill) fill.style.width = "0%";
+  const barLabel = document.getElementById("flight-bar-label");
+  if (barLabel) barLabel.hidden = true;
   if (note) note.hidden = true;
   if (offer) offer.hidden = true;
   if (planets) {
@@ -624,16 +647,30 @@ function paintFlightCard(now) {
     if (clock) clock.hidden = true;
     if (line) {
       line.hidden = false;
-      line.textContent = "The film on the left.";
+      line.textContent = state.padPhase === "right"
+        ? "Two short films, then the launch. Film on the right."
+        : "Two short films, then the launch. Film on the left.";
     }
+    const label = document.getElementById("flight-bar-label");
+    const bar = document.getElementById("flight-bar");
+    if (label) label.hidden = true;
+    if (bar) bar.hidden = true;
     return;
   }
   const cruising = !!state.cruiseStart;
   const ms = cruising ? now - state.cruiseStart : now - state.flightStart;
   const progress = cruising ? cruiseProgress(ms) : flightProgress(ms);
   const offer = cruising ? cruiseOfferEnd(ms) : flightOfferEnd(ms);
+  const before = !cruising && ms < FLIGHT_LIFTOFF;
+  const label = document.getElementById("flight-bar-label");
+  const bar = document.getElementById("flight-bar");
+  if (label) {
+    label.hidden = !before;
+    label.textContent = "Time before launch";
+  }
+  if (bar) bar.hidden = false;
   const fill = document.getElementById("flight-fill");
-  if (fill) fill.style.width = Math.round(progress * 100) + "%";
+  if (fill) fill.style.width = Math.round((before ? ms / FLIGHT_LIFTOFF : progress) * 100) + "%";
   const clock = document.getElementById("flight-clock");
   if (clock) clock.textContent = flightClock(cruising ? ms : now - state.flightStart);
   const beat = cruising ? "cruise" : flightBeat(now - state.flightStart);
@@ -764,6 +801,28 @@ function forgetGuest(prev) {
     method: "POST",
     body: JSON.stringify({ token: prev.token, address: prev.address, life: PAGE_LIFE }),
   });
+}
+
+async function logOut() {
+  const prev = state.id;
+  if (prev && prev.kind === "guest") forgetGuest(prev);
+  try {
+    const kit = window.KaspaWallets;
+    if (kit && typeof kit.logout === "function" && prev && (prev.kind === "kasware" || prev.kind === "kastle")) {
+      await kit.logout();
+    }
+  } catch (_) {}
+  try {
+    clearIdentity(boxes());
+  } catch (_) {}
+  state.id = { address: "", label: "", kind: "" };
+  state.account = null;
+  state.kasSompi = null;
+  closeCounter();
+  const gateBox = document.getElementById("gate");
+  if (gateBox) gateBox.hidden = false;
+  paintChrome();
+  say("Logged out. The welcome gate is the landing.");
 }
 
 function setIdentity(next) {
@@ -1512,8 +1571,8 @@ function balanceSheet() {
   return (
     '<div class="balances">' +
     "<p><strong>tKAS</strong> " + esc(kas) + "</p>" +
-    "<p><strong>POCencept</strong> " + esc(formatCents(poc.have)) + " · locked " + esc(formatCents(poc.lock)) + " · purse " + esc(formatCents(poc.purse)) + "</p>" +
-    "<p><strong>KUSDT</strong> " + esc(formatCents(kusdt.have)) + " · locked " + esc(formatCents(kusdt.lock)) + " · purse " + esc(formatCents(kusdt.purse)) + esc(frozen) + "</p>" +
+    "<p><strong>POCencept stable</strong> " + esc(formatCents(poc.have)) + " · locked " + esc(formatCents(poc.lock)) + " · purse " + esc(formatCents(poc.purse)) + "</p>" +
+    "<p><strong>KUSDT stable</strong> " + esc(formatCents(kusdt.have)) + " · locked " + esc(formatCents(kusdt.lock)) + " · purse " + esc(formatCents(kusdt.purse)) + esc(frozen) + "</p>" +
     (lockedKas ? '<p class="fine">' + esc(lockedKas) + "</p>" : "") +
     "</div>"
   );
@@ -1633,10 +1692,7 @@ function paintShop(shopId) {
     .map((item) => {
       const sompi = quoteSompi(item.cents);
       const kas = sompi == null ? "quote down" : formatTkas(sompi) + " tKAS";
-      const ownedCar = item.sku === "keys" && state.account && state.account.roadster;
-      const button = ownedCar
-        ? '<button type="button" class="buy" disabled>Yours. Get in or get out.</button>'
-        : saleButton(rail, shop.id, item.sku, item.cents, item.name, false);
+      const button = saleButton(rail, shop.id, item.sku, item.cents, item.name, false);
       return (
         '<article class="good">' + goodsMark(item.sku) +
         "<div><strong>" + esc(item.name) + "</strong><span>" + esc(formatCents(item.cents)) +
@@ -2003,7 +2059,7 @@ async function promiseHunt(id) {
     say("KUSDT is frozen. POCencept and tKAS still spend.", true);
     return;
   }
-  const names = { kas: "tKAS", poc: "POCencept", kusdt: "KUSDT" };
+  const names = RAIL_NAMES;
   const agreed = await askOk("You want to promise " + row.name + " for " + formatCents(row.cents) + " " + names[rail] + " if others do?");
   if (!agreed) return;
   huntBusy = true;
@@ -2034,6 +2090,15 @@ async function promiseHunt(id) {
     if (snapped.account) state.account = snapped.account;
     if (snapped.hunts) state.huntBook = snapped.hunts;
     if (snapped.paid && snapped.banner === "Pack paid on this square.") {
+      const huntTx = (snapped.receipt && snapped.receipt.txid) || txid || "";
+      paySlip({
+        title: "Pack paid",
+        steps: ["Asking on this page", "Promising", "Paying the pack", "Done"],
+        place: "hunt",
+        tx: huntTx,
+        receipt: snapped.receipt && snapped.receipt.id,
+        kind: huntTx ? payKind("lock") : payKind("shop"),
+      });
       showBanner("Pack paid on this square.");
       punch("nod");
       const who = Array.isArray(snapped.who) ? snapped.who.map(short).join(", ") : "";
@@ -2095,11 +2160,11 @@ function paintGuide() {
     "<li>Need coins: New arrival gives this tab 50000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, take a seat and the menu blinks, or order at the blinking counter. The market opens at the counter. The showroom opens when you click Pike or the sign. Buy the roadster and it waits on the lot. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
-    "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept swap, a KUSDT swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
+    "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS. When a payment finishes, the steps and the transaction stay on the page. Open the transaction, or start a new purchase. Log out returns you to the welcome gate.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
-    "<li>The roadster parks on the lot in front of Pike's shop. If it is yours, Get in is the large gold button. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, plays the film on the left of the tower first, with the sound on. When that film ends, the film on the right starts and the countdown starts with it. They stop when the ship lifts. The ship lifts when the count reaches zero. When the booster lets go, that separation plays with its voice. When the roadster leaves, that release plays with its voice. A bar fills until the car leaves the ship. KONI, the Kaspa node, leaves with the roadster, and the climb keeps the comms going. Its screen shows the accepted block and the mining reward. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept, or KUSDT. The way there is ten seconds. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
-    "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept, or KUSDT. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends.</li>" +
-    "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept, or KUSDT. Promise is not Buy. The pack stays hidden until it pays.</li>" +
+    "<li>The roadster parks on the lot in front of Pike's shop. If it is yours, Get in is the large gold button. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, plays two short films on the tower first, with the sound on, for context. The left film plays, then the right film. The launch starts when the second film ends. The screens stop when the ship lifts. The ship lifts when the count reaches zero. When the booster lets go, that separation plays with its voice. When the roadster leaves, that release plays with its voice. A bar fills until the car leaves the ship. KONI, the Kaspa node, leaves with the roadster, and the climb keeps the comms going. Its screen shows the accepted block and the mining reward. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. The way there is ten seconds. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
+    "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends.</li>" +
+    "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
@@ -2324,7 +2389,8 @@ async function spend(rail, shop, sku) {
   if (!requireId()) return;
   spendBusy = true;
   try {
-    const names = { kas: "tKAS", poc: "POCencept", kusdt: "KUSDT" };
+    const names = RAIL_NAMES;
+    const paySteps = ["Asking on this page", "Paying", "Writing the receipt", "Done"];
     let price = names[rail] || "this";
     let txid = "";
     if (rail === "kas") {
@@ -2341,6 +2407,7 @@ async function spend(rail, shop, sku) {
     }
     const agreed = await askOk(buyAskLine(goodsName(shop, sku), price));
     if (!agreed) return;
+    paySlip({ title: "Payment", steps: paySteps, index: 1, place: shop, kind: "" });
     if (rail === "kas" && state.id.kind === "guest") {
       say("Paying from this tab's test address. Close the tab and it is gone.");
       const body = await post("/api/1984/guest/spend", { token: state.id.token, shop, sku, confirmed: true });
@@ -2350,6 +2417,15 @@ async function spend(rail, shop, sku) {
         return;
       }
       if (body.account) state.account = body.account;
+      const guestTx = body.receipt && body.receipt.txid ? body.receipt.txid : "";
+      paySlip({
+        title: "Paid",
+        steps: paySteps,
+        place: shop,
+        tx: guestTx,
+        receipt: body.receipt && body.receipt.id,
+        kind: guestTx ? payKind("lock") : payKind("shop"),
+      });
       tookPayment(body, sku);
       paintBooks();
       await refreshAccount();
@@ -2373,6 +2449,15 @@ async function spend(rail, shop, sku) {
     }
     if (rail === "kas") shopTxid = "";
     if (body.account) state.account = body.account;
+    const paidTx = (body.receipt && body.receipt.txid) || txid || "";
+    paySlip({
+      title: "Paid",
+      steps: paySteps,
+      place: shop,
+      tx: paidTx,
+      receipt: body.receipt && body.receipt.id,
+      kind: paidTx ? payKind("lock") : payKind("shop"),
+    });
     tookPayment(body, sku);
     paintBooks();
     await refreshAccount();
@@ -2385,7 +2470,50 @@ async function spend(rail, shop, sku) {
 }
 
 function tagName(rail) {
-  return rail === "poc" ? "POCencept" : "KUSDT";
+  return RAIL_NAMES[rail] || "stable";
+}
+
+let payPlace = "";
+
+function paySlip(info) {
+  const box = document.getElementById("pay-slip");
+  if (!box) return;
+  box.hidden = false;
+  const steps = info.steps || [];
+  const at = info.index == null ? steps.length : info.index;
+  const title = document.getElementById("pay-slip-title");
+  const list = document.getElementById("pay-slip-steps");
+  const tx = document.getElementById("pay-slip-tx");
+  const kind = document.getElementById("pay-slip-kind");
+  const open = document.getElementById("pay-slip-open");
+  if (title) title.textContent = info.title || "Payment";
+  if (list) {
+    list.innerHTML = steps.map((name, i) => {
+      const cls = i < at ? "done" : i === at ? "on" : "";
+      return '<li class="' + cls + '">' + esc(name) + "</li>";
+    }).join("");
+  }
+  const chain = String(info.tx || "").trim();
+  const receipt = info.receipt ? "Ledger receipt " + info.receipt + ". No Testnet 10 tx." : "";
+  if (tx) tx.textContent = chain ? "Tx " + chain : receipt;
+  if (kind) kind.textContent = info.kind || "";
+  if (open) {
+    if (chain) {
+      open.hidden = false;
+      open.href = "https://tn10.kaspa.stream/txs/" + encodeURIComponent(chain);
+    } else {
+      open.hidden = true;
+      open.removeAttribute("href");
+    }
+  }
+  if (info.place) payPlace = info.place;
+}
+
+function newPurchase() {
+  const box = document.getElementById("pay-slip");
+  if (box) box.hidden = true;
+  if (!payPlace) return;
+  openMode(payPlace);
 }
 
 function putRedeemAmount(amount) {
@@ -2479,6 +2607,14 @@ async function lock(rail) {
       return;
     }
     punch("nod");
+    paySlip({
+      title: "Swapped",
+      steps: ["Checking the amount", "Paying", "Adding the tag", "Done"],
+      place: "bank",
+      tx: lockTxid,
+      receipt: body.receipt && body.receipt.id,
+      kind: payKind("lock"),
+    });
     const paid = lockTxid;
     lockTxid = "";
     const got = body.cents == null || body.cents === "" ? "" : formatCents(body.cents);
@@ -2535,7 +2671,16 @@ async function redeem(rail) {
     }
     showSteps(steps, steps.length, "Done.");
     punch("nod");
-    const tx = body.txids && body.txids[0] ? " Tx " + String(body.txids[0]).slice(0, 10) + "…" : "";
+    const backTx = body.txids && body.txids[0] ? String(body.txids[0]) : "";
+    const tx = backTx ? " Tx " + backTx : "";
+    paySlip({
+      title: "Swapped",
+      steps: ["Checking the amount", "Taking the locked tag", "Sending tKAS back", "Done"],
+      place: "bank",
+      tx: backTx,
+      receipt: body.receipt && body.receipt.id,
+      kind: backTx ? payKind("lock") : payKind("shop"),
+    });
     swapNote("Swapped. " + amount + " " + name + " came back as tKAS." + tx + " " + payKind("lock"), "ok");
     await refreshAccount();
   } catch (err) {
@@ -2586,6 +2731,13 @@ async function exchange(from, to) {
     }
     showSteps(steps, steps.length, "Done.");
     punch("nod");
+    paySlip({
+      title: "Swapped",
+      steps: ["Checking the amount", "Moving the tag", "Done"],
+      place: "bank",
+      receipt: body.receipt && body.receipt.id,
+      kind: payKind("shop"),
+    });
     swapNote("Swapped. " + amount + " " + source + " is now " + dest + ". Locked stayed locked. The purse stayed a purse. " + payKind("shop"), "ok");
     await refreshAccount();
   } catch (err) {
@@ -2949,6 +3101,7 @@ side.addEventListener("click", (ev) => {
   openMode(mode);
 });
 you.addEventListener("click", (ev) => {
+  if (ev.target.id === "log-out") logOut().catch((err) => say(err.message, true));
   if (ev.target.id === "use-kasware") connectWallet("kasware").catch((err) => say(err.message, true));
   if (ev.target.id === "use-kastle") connectWallet("kastle").catch((err) => say(err.message, true));
   if (ev.target.id === "use-guest") {
@@ -3054,6 +3207,8 @@ const flightBack = document.getElementById("flight-back");
 if (flightBack) flightBack.addEventListener("click", returnFromFlight);
 const simBig = document.getElementById("sim-big");
 if (simBig) simBig.addEventListener("click", () => { simBig.hidden = true; });
+const payAgain = document.getElementById("pay-slip-again");
+if (payAgain) payAgain.addEventListener("click", newPurchase);
 const railsNote = document.getElementById("rails-note");
 if (railsNote) {
   railsNote.addEventListener("click", (ev) => {

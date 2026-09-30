@@ -1470,7 +1470,7 @@ export function buildFlight() {
     const tall = side < 0 ? 4.8 * (738 / 576) : 3.5;
     const screen = new THREE.Mesh(
       new THREE.PlaneGeometry(wide, tall),
-      new THREE.MeshBasicMaterial({ color: "#14181e" }),
+      new THREE.MeshBasicMaterial({ color: "#ffffff", toneMapped: false }),
     );
     screen.name = side < 0 ? "pad-left" : "pad-right";
     screen.position.set(side * 7.2, 7.6, 2);
@@ -1484,12 +1484,15 @@ export function buildFlight() {
       film.preload = "auto";
       film.volume = 0.85;
       film.setAttribute("playsinline", "");
-      film.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none";
+      film.style.cssText = "position:fixed;left:0;top:0;width:480px;height:360px;transform:translateX(-120vw);pointer-events:none;opacity:1";
       if (document.body) document.body.appendChild(film);
       const map = new THREE.VideoTexture(film);
       map.colorSpace = THREE.SRGBColorSpace;
+      screen.material.color.set("#ffffff");
       screen.material.map = map;
+      screen.material.toneMapped = false;
       screen.material.needsUpdate = true;
+      film._padMap = map;
       padVideos.push(film);
     }
   }
@@ -3328,6 +3331,9 @@ export function mountWorld(canvas, map, api) {
 
   function render(now) {
     resize();
+    for (const film of flight.padVideos || []) {
+      if (film._padMap && film.readyState >= 2) film._padMap.needsUpdate = true;
+    }
     const flightMs = api.flight ? api.flight() : 0;
     if (flightMs !== 0) {
       paintFlight(now, flightMs);

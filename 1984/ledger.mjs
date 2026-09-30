@@ -251,10 +251,6 @@ export function applySpend(state, input, now) {
   if (!item) throw new Error("That item is not on this counter.");
   if (!RAILS.includes(input.rail)) throw new Error("Pick tKAS, POCencept, or KUSDT.");
   const cents = BigInt(item.cents);
-  const held = state.accounts[address.toLowerCase()];
-  if (item.sku === "keys" && held && held.roadster) {
-    throw new Error("You already own this roadster.");
-  }
   const today = dayKey(now);
   const peek = ensure(clone(state), address);
   const gate = checkRules(peek, { shop: shop.id, rail: input.rail, cents, confirmed: !!input.confirmed }, today);

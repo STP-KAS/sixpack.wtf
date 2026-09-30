@@ -53,3 +53,10 @@ export function writeIdentity(storage, next) {
     JSON.stringify({ address: next.address, label: next.label || next.address, kind: next.kind || "address" })
   );
 }
+
+/** Log out. The welcome gate is the landing again. */
+export function clearIdentity(storage) {
+  migrateAll(storage);
+  storage.session.removeItem(GUEST_KEY);
+  storage.local.removeItem(SAVED_KEY);
+}

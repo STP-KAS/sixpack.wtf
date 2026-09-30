@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>sixpack.wtf — 1984</title>
-  <meta name="description" content="1984 is early development, not the benchmark that was envisioned. It is a Testnet-10 village. Pay a shop with tKAS, POCencept, or the KUSDT toy. Test without a wallet in this tab, or keep a Testnet wallet. Mainnet wallets are refused.">
+  <meta name="description" content="1984 is early development, not the benchmark that was envisioned. It is a Testnet-10 village. Pay a shop with tKAS, POCencept stable, or KUSDT stable. Test without a wallet in this tab, or keep a Testnet wallet. Mainnet wallets are refused.">
   <link rel="canonical" href="https://sixpack.wtf/1984.html">
   <link rel="stylesheet" href="site.css?v=27">
-  <link rel="stylesheet" href="1984.css?v=34">
+  <link rel="stylesheet" href="1984.css?v=35">
 </head>
 <body class="page-1984">
 <header class="top">
@@ -42,6 +42,7 @@
       <p id="flight-joke" class="flight-joke" hidden></p>
       <p id="flight-clock" class="flight-clock"></p>
       <p id="flight-line"></p>
+      <p id="flight-bar-label" class="flight-bar-label" hidden>Time before launch</p>
       <div id="flight-bar" class="flight-bar"><span id="flight-fill"></span></div>
       <p id="flight-note" class="flight-note" hidden>Space is broad. Speed and distance here are relative. Being among the stars in a vast space is hard, and with an average of 10 blocks per second it is possible. Enjoy the flight.</p>
       <div id="flight-offer" hidden>
@@ -70,6 +71,16 @@
     </div>
     <div id="bank-shade" class="bank-shade" hidden></div>
     <div id="panel" class="kw-panel" hidden></div>
+    <div id="pay-slip" class="pay-slip" hidden>
+      <p id="pay-slip-title"></p>
+      <ol id="pay-slip-steps" class="swap-steps"></ol>
+      <p id="pay-slip-tx" class="pay-slip-tx"></p>
+      <p id="pay-slip-kind" class="fine"></p>
+      <div class="ask-row">
+        <a id="pay-slip-open" target="_blank" rel="noopener" hidden>Open the tx</a>
+        <button type="button" id="pay-slip-again">New purchase</button>
+      </div>
+    </div>
     <div id="rails-note" class="ask-shade" hidden>
       <div class="ask-card rails-card" role="dialog" aria-modal="true" aria-labelledby="rails-title">
         <h2 id="rails-title">Three ways to pay</h2>
@@ -108,8 +119,8 @@
     </div>
   </div>
 </div>
-<script src="nav.js?v=49"></script>
+<script src="nav.js?v=50"></script>
 <script src="wallets/kaspa-wallets.js?v=5"></script>
-<script type="module" src="1984/client.mjs?v=55"></script>
+<script type="module" src="1984/client.mjs?v=56"></script>
 </body>
 </html>

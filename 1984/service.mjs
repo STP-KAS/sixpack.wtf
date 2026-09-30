@@ -99,7 +99,7 @@ export function create1984Service(deps) {
 
   async function waitPayment(address, txid, need) {
     let last = new Error("That transaction is not on Testnet 10 yet.");
-    const tries = deps.txTries || 8;
+    const tries = deps.txTries || 30;
     for (let i = 0; i < tries; i += 1) {
       try {
         return await payment(address, txid, need);
@@ -108,7 +108,7 @@ export function create1984Service(deps) {
         const msg = String((err && err.message) || "");
         if (!/not on Testnet 10 yet|not accepted yet/i.test(msg)) throw err;
         if (i === tries - 1) break;
-        await pause(1500);
+        await pause(400);
       }
     }
     if (/not on Testnet 10 yet/i.test(String((last && last.message) || ""))) {
