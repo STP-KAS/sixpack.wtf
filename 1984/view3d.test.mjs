@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_RELEASE, FLIGHT_SPACE, FLIGHT_STAGE, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, buildingBoxes, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, cruiseWatch, drives, earthCenter, escapeRoom, fitScreen, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
+import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_RELEASE, FLIGHT_SPACE, FLIGHT_STAGE, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_RIGHT, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, buildingBoxes, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, cruiseWatch, drives, earthCenter, escapeRoom, fitScreen, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -409,6 +409,12 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.equal(flightLine("stage", FLIGHT_LIFTOFF + 15000), "The booster is on the ship.");
   assert.equal(onShip.line, "The booster is on the ship.");
   assert.equal(flightLine("stage", FLIGHT_STAGE + 2501), "The booster lets go.");
+  assert.equal(flightLine("orbit", FLIGHT_ORBIT), "Stage sep.");
+  assert.equal(flightLine("release", FLIGHT_RELEASE), "Payload deploy. The roadster leaves the ship.");
+  assert.equal(flightLine("space", FLIGHT_SPACE), "The roadster is out.");
+  assert.equal(/KONI/.test(flightLine("orbit", FLIGHT_ORBIT)), false);
+  assert.equal(/KONI/.test(flightLine("release", FLIGHT_RELEASE)), false);
+  assert.equal(/KONI/.test(flightLine("space", FLIGHT_SPACE)), false);
   assert.ok(Math.abs(onShip.shipRoll - onShip.boosterRoll) < 1e-9);
   const topX = onShip.boosterX - 11.2 * Math.sin(onShip.shipRoll);
   const topY = onShip.boosterY + 11.2 * Math.cos(onShip.shipRoll);
@@ -428,6 +434,9 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.ok(later.plume > 0.2, "boostback " + later.plume);
   const pair0 = padPair([PAD_LEAD, "random/r01.mp4", "1984/cinema/harvard.mp4"], 0);
   const pairHi = padPair([PAD_LEAD, "random/r01.mp4", "1984/cinema/harvard.mp4"], 0.99);
+  assert.equal(PAD_LEFT, "1984/pad-left.mp4");
+  assert.equal(PAD_RIGHT, "1984/before.mp4");
+  assert.notEqual(PAD_LEFT, PAD_RIGHT);
   assert.equal(pair0.left, PAD_LEAD);
   assert.equal(pair0.right, "random/r01.mp4");
   assert.equal(pairHi.left, PAD_LEAD);
@@ -642,6 +651,7 @@ test("the roadster leaves the ship nose-first on +X", () => {
   assert.ok(near < 2, "joke " + near);
   const onOrbit = cruisePose(APPROACH_MS, "mars", FLIGHT_SPACE);
   placeFlight(flight, onOrbit);
+  assert.equal(flight.koni.visible, true);
   flight.root.updateMatrixWorld(true);
   const screen = flight.koni.getObjectByName("koni-screen");
   const screenNormal = new THREE.Vector3(0, 0, 1).applyQuaternion(screen.getWorldQuaternion(new THREE.Quaternion()));
@@ -667,6 +677,8 @@ test("the roadster leaves the ship nose-first on +X", () => {
   const padRight = flight.tower.getObjectByName("pad-right");
   assert.ok(padLeft && padRight);
   assert.ok(padLeft.position.x < -6 && padRight.position.x > 6);
+  assert.ok(padLeft.geometry.parameters.height / padLeft.geometry.parameters.width > 1.2);
+  assert.ok(padRight.geometry.parameters.width / padRight.geometry.parameters.height > 1.7);
   assert.equal(flight.padVideos.length, 0);
   flight.root.updateMatrixWorld(true);
   for (const screen of [padLeft, padRight]) {
@@ -676,6 +688,7 @@ test("the roadster leaves the ship nose-first on +X", () => {
     assert.ok(fwd.dot(toCam) > 0.9, "pad " + screen.name + " " + fwd.dot(toCam));
   }
   placeFlight(flight, flightPose(0));
+  assert.equal(flight.koni.visible, false);
   assert.equal(padLeft.visible, true);
   assert.equal(padRight.visible, true);
   placeFlight(flight, flightPose(FLIGHT_LIFTOFF));

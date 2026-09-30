@@ -137,6 +137,15 @@ body.page-1984 main.kw-stage {
   border: 2px solid #1c1916;
 }
 .kw-ride[hidden] { display: none; }
+.kw.owns:not(.driving) .kw-ride {
+  min-width: 18rem;
+  min-height: 6.2rem;
+  padding: 1.05rem 1.4rem;
+  font-size: 2.15rem;
+  line-height: 1.05;
+  border-width: 4px;
+  box-shadow: 0 10px 0 #6b5018, 0 16px 28px rgba(0, 0, 0, 0.35);
+}
 .kw.room .kw-ride,
 .kw.flight .kw-ride { display: none; }
 .kw.driving .kw-ride {
@@ -195,6 +204,18 @@ body.page-1984 main.kw-stage {
   box-shadow: 0 10px 0 #6b5018, 0 16px 28px rgba(0, 0, 0, 0.35);
 }
 .kw-launch[hidden] { display: none; }
+.flight-film {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  width: min(86vw, 1100px);
+  max-height: 68vh;
+  background: #000;
+  object-fit: contain;
+}
+.flight-film[hidden] { display: none; }
 .kw.room .kw-launch,
 .kw.flight .kw-launch { display: none; }
 .flight-card {
@@ -1018,6 +1039,20 @@ a { color: #f2d48a; }
     bottom: calc(64px + env(safe-area-inset-bottom));
     transform: none;
     min-width: 7.2rem;
+  }
+  .kw.owns:not(.driving) .kw-ride {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    min-width: 11rem;
+    min-height: 4.9rem;
+    padding: 0.75rem 0.9rem;
+    font-size: 1.45rem;
+    border-width: 4px;
+  }
+  .flight-film {
+    width: min(94vw, 1100px);
+    max-height: 52vh;
   }
   .kw.driving .kw-launch {
     left: auto;

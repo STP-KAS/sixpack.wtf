@@ -16,7 +16,7 @@ import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
 import { RAIL_NAMES, RAILS_NOTE, payRail, railBarHtml } from "./rails-note.mjs?v=2";
 import { REELS, reelShuffle, reelStep } from "./reels.mjs?v=2";
-import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, PAD_LEAD, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, padPair, roomUse, seat, spaceJoke } from "./view3d.mjs?v=28";
+import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_RIGHT, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=29";
 import { HUNTS, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -60,6 +60,9 @@ const state = {
   huntNeeds: {},
   huntBook: null,
   flightStart: 0,
+  preRoll: false,
+  hotOn: false,
+  releaseFilmOn: false,
   flightDark: false,
   flightEndedAt: 0,
   flightBackShown: false,
@@ -109,6 +112,8 @@ function say(text, bad, kind) {
 function launchSound() {
   const audio = document.getElementById("launch-sound");
   if (!audio) return;
+  claimMedia(audio);
+  audio.muted = false;
   audio.volume = 0.9;
   try { audio.currentTime = 0; } catch (err) { /* the file may still be opening */ }
   const pending = audio.play();
@@ -126,6 +131,8 @@ function commsSound() {
   const audio = document.getElementById("comms-sound");
   if (!audio || state.commsPlayed) return;
   state.commsPlayed = true;
+  claimMedia(audio);
+  audio.muted = false;
   const launch = document.getElementById("launch-sound");
   if (launch) launch.volume = 0.2;
   audio.volume = 0.9;
@@ -148,6 +155,77 @@ function stopReleaseSound() {
   try { audio.currentTime = 0; } catch (err) { /* already stopped */ }
 }
 
+function armMedia(el) {
+  if (!el) return;
+  const stamp = {};
+  el._arm = stamp;
+  el.muted = true;
+  const finish = () => {
+    if (el._arm !== stamp) return;
+    el._arm = null;
+    try { el.pause(); } catch (err) { /* already quiet */ }
+    try { el.currentTime = 0; } catch (err) { /* the file may still be opening */ }
+    el.muted = false;
+  };
+  const pending = el.play();
+  if (pending && pending.then) pending.then(finish).catch(() => { if (el._arm === stamp) el._arm = null; });
+  else finish();
+}
+
+function claimMedia(el) {
+  if (el) el._arm = null;
+}
+
+function flightFilm(id) {
+  return document.getElementById(id);
+}
+
+function hideFlightFilm(el) {
+  if (!el) return;
+  el.hidden = true;
+  try { el.pause(); } catch (err) { /* already quiet */ }
+}
+
+function stopFlightFilms() {
+  hideFlightFilm(flightFilm("hotstage-film"));
+  hideFlightFilm(flightFilm("release-film"));
+  state.hotOn = false;
+  state.releaseFilmOn = false;
+}
+
+function playFlightFilm(el) {
+  if (!el) return;
+  claimMedia(el);
+  el.hidden = false;
+  el.muted = false;
+  el.volume = 0.9;
+  const pending = el.play();
+  if (pending && pending.catch) pending.catch(() => {});
+}
+
+function syncFlightFilms(ms) {
+  const hot = flightFilm("hotstage-film");
+  const rel = flightFilm("release-film");
+  const comms = document.getElementById("comms-sound");
+  const letGo = FLIGHT_STAGE + 2500;
+  if (ms >= FLIGHT_RELEASE) {
+    hideFlightFilm(hot);
+    if (rel && !state.releaseFilmOn) {
+      state.releaseFilmOn = true;
+      if (comms) comms.volume = 0.12;
+      try { rel.currentTime = 0; } catch (err) { /* the file may still be opening */ }
+      playFlightFilm(rel);
+    }
+    return;
+  }
+  if (ms >= letGo && hot && !state.hotOn) {
+    state.hotOn = true;
+    if (comms) comms.volume = 0.12;
+    try { hot.currentTime = 0; } catch (err) { /* the file may still be opening */ }
+    playFlightFilm(hot);
+  }
+}
+
 function padSlots() {
   const slots = worldView.padVideos && worldView.padVideos();
   return Array.isArray(slots) ? slots.filter(Boolean) : [];
@@ -166,17 +244,14 @@ function bindPad(el) {
   if (!el || el.dataset.padBound) return;
   el.dataset.padBound = "1";
   el.addEventListener("ended", () => {
-    if (!state.padOn || !state.flightStart) return;
-    if (flightBeat(performance.now() - state.flightStart) !== "light") return;
     const slots = padSlots();
-    const index = slots.indexOf(el);
-    if (index < 0) return;
-    const pool = index === 0 ? [PAD_LEAD] : REELS.map((reel) => reel.src);
-    const next = index === 0 ? PAD_LEAD : pool[reelShuffle(pool.indexOf(padPath(el)), pool.length, Math.random())];
-    if (!next) return;
-    cuePad(el, next);
-    const pending = el.play();
-    if (pending && pending.catch) pending.catch(() => {});
+    if (el !== slots[0] || !state.preRoll) return;
+    beginCountdown();
+  });
+  el.addEventListener("error", () => {
+    const slots = padSlots();
+    if (el !== slots[0] || !state.preRoll) return;
+    beginCountdown();
   });
 }
 
@@ -191,16 +266,35 @@ function cuePad(el, src) {
   try { el.currentTime = 0; } catch (err) { /* the file may still be opening */ }
 }
 
-function startPadFilms() {
+function startLeftFilm() {
   const slots = padSlots();
-  if (slots.length < 2) return;
   state.padOn = true;
-  const pair = padPair([PAD_LEAD, ...REELS.map((reel) => reel.src)], Math.random());
-  cuePad(slots[0], pair.left);
-  cuePad(slots[1], pair.right);
-  for (const el of [slots[0], slots[1]]) {
-    const pending = el.play();
+  if (slots.length < 1) {
+    beginCountdown();
+    return;
+  }
+  cuePad(slots[0], PAD_LEFT);
+  if (slots[1]) armMedia(slots[1]);
+  const pending = slots[0].play();
+  if (pending && pending.catch) pending.catch(() => beginCountdown());
+}
+
+function beginCountdown() {
+  if (state.flightStart || !state.preRoll) return;
+  state.preRoll = false;
+  state.flightStart = performance.now();
+  const slots = padSlots();
+  if (slots[1]) {
+    claimMedia(slots[1]);
+    cuePad(slots[1], PAD_RIGHT);
+    const pending = slots[1].play();
     if (pending && pending.catch) pending.catch(() => {});
+  }
+  launchSound();
+  const clock = document.getElementById("flight-clock");
+  if (clock) {
+    clock.hidden = false;
+    clock.textContent = flightClock(0);
   }
 }
 
@@ -268,7 +362,7 @@ function paintChrome() {
   const kusdt = state.account ? formatCents(state.account.kusdt) + " KUSDT" : "— KUSDT";
   const frozen = state.account && state.account.kusdtFrozen ? " · KUSDT frozen" : "";
   const guestLine = id.kind === "guest" ? " · this tab only" : "";
-  const driving = state.account && state.account.roadster ? (state.aboard ? " · driving" : " · walking") : "";
+  const driving = state.account && state.account.roadster ? (state.aboard ? " · driving" : " · roadster is yours") : "";
   bar.innerHTML =
     "<strong>" + esc(label) + "</strong> · " + esc(kas) + " · " + esc(poc) + " · " + esc(kusdt) + frozen + esc(guestLine) + driving;
 
@@ -319,30 +413,29 @@ function groundTile() {
 function canLaunch() {
   const owns = !!(state.account && state.account.roadster);
   const outside = groundTile() !== "i" && !state.inside && !state.venue;
-  return owns && state.aboard && outside && !state.flightStart;
+  return owns && state.aboard && outside && !state.flightStart && !state.preRoll;
 }
 
 function syncRide() {
   const btn = document.getElementById("ride");
+  const owns = !!(state.account && state.account.roadster);
   if (btn) {
-    const owns = !!(state.account && state.account.roadster);
     btn.hidden = !owns;
-    btn.textContent = state.aboard ? "Get out" : "Get in";
+    btn.textContent = state.aboard ? "Get out" : "Yours. Get in";
   }
   const launch = document.getElementById("launch");
   if (launch) launch.hidden = !canLaunch();
   if (btn) btn.classList.toggle("out", !!state.aboard);
   const root = document.querySelector(".kw");
   if (root) {
-    const owns = !!(state.account && state.account.roadster);
-    const outside = groundTile() !== "i" && !state.inside && !state.venue && !state.flightStart;
+    const outside = groundTile() !== "i" && !state.inside && !state.venue && !state.flightStart && !state.preRoll;
     root.classList.toggle("driving", owns && state.aboard && outside);
+    root.classList.toggle("owns", owns);
   }
 }
 
 function startLaunch() {
   if (!canLaunch()) return;
-  launchSound();
   if (state.mode !== "world") {
     hidePanel();
     state.mode = "world";
@@ -351,7 +444,8 @@ function startLaunch() {
   state.path = [];
   state.arrived = null;
   state.lapUntil = 0;
-  state.flightStart = performance.now();
+  state.flightStart = 0;
+  state.preRoll = true;
   state.flightDark = false;
   state.flightEndedAt = 0;
   state.flightBackShown = false;
@@ -362,9 +456,14 @@ function startLaunch() {
   state.jokeSent = -1;
   state.releasePlayed = false;
   state.commsPlayed = false;
+  state.hotOn = false;
+  state.releaseFilmOn = false;
   state.koniAt = 0;
   state.padOn = false;
-  startPadFilms();
+  armMedia(document.getElementById("launch-sound"));
+  armMedia(document.getElementById("comms-sound"));
+  armMedia(flightFilm("hotstage-film"));
+  armMedia(flightFilm("release-film"));
   const space = worldView.spaceVideo && worldView.spaceVideo();
   if (space) {
     space.muted = true;
@@ -385,12 +484,12 @@ function startLaunch() {
   const back = document.getElementById("flight-back");
   const planets = document.getElementById("flight-planets");
   if (clock) {
-    clock.hidden = false;
-    clock.textContent = flightClock(0);
+    clock.hidden = true;
+    clock.textContent = "";
   }
   if (line) {
     line.hidden = false;
-    line.textContent = "";
+    line.textContent = "The film on the left.";
   }
   if (bar) bar.hidden = false;
   if (fill) fill.style.width = "0%";
@@ -412,6 +511,7 @@ function startLaunch() {
   if (big) big.hidden = true;
   markFlight();
   syncRide();
+  startLeftFilm();
 }
 
 function endAllowed(now) {
@@ -426,6 +526,8 @@ function endLaunch() {
   stopReleaseSound();
   stopCommsSound();
   stopPadFilms();
+  stopFlightFilms();
+  state.preRoll = false;
   state.flightDark = true;
   state.flightEndedAt = performance.now();
   state.flightBackShown = true;
@@ -460,6 +562,7 @@ function endLaunch() {
 function returnFromFlight() {
   if (!state.flightBackShown) return;
   state.flightStart = 0;
+  state.preRoll = false;
   state.flightDark = false;
   state.flightEndedAt = 0;
   state.flightBackShown = false;
@@ -491,6 +594,7 @@ function returnFromFlight() {
   stopReleaseSound();
   stopCommsSound();
   stopPadFilms();
+  stopFlightFilms();
   const space = worldView.spaceVideo && worldView.spaceVideo();
   if (space) space.pause();
   say(SIM_LINE, false, "sim");
@@ -514,6 +618,16 @@ function paintPlanets() {
 
 function paintFlightCard(now) {
   if (state.flightDark) return;
+  if (state.preRoll && !state.flightStart) {
+    const clock = document.getElementById("flight-clock");
+    const line = document.getElementById("flight-line");
+    if (clock) clock.hidden = true;
+    if (line) {
+      line.hidden = false;
+      line.textContent = "The film on the left.";
+    }
+    return;
+  }
   const cruising = !!state.cruiseStart;
   const ms = cruising ? now - state.cruiseStart : now - state.flightStart;
   const progress = cruising ? cruiseProgress(ms) : flightProgress(ms);
@@ -560,6 +674,7 @@ function paintFlightCard(now) {
   if (end) end.hidden = !offer;
   if (!cruising && flightBeat(now - state.flightStart) === "liftoff") commsSound();
   if (!cruising && flightBeat(now - state.flightStart) !== "light") stopPadFilms();
+  if (!cruising) syncFlightFilms(now - state.flightStart);
   if (state.flightStart && now - (state.koniAt || 0) > 8000) {
     state.koniAt = now;
     readKoni();
@@ -956,7 +1071,7 @@ function markRoom() {
 
 function markFlight() {
   const root = document.querySelector(".kw");
-  if (root) root.classList.toggle("flight", !!state.flightStart);
+  if (root) root.classList.toggle("flight", !!(state.flightStart || state.preRoll));
 }
 
 let keepClerk = false;
@@ -1985,7 +2100,7 @@ function paintGuide() {
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
     "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept swap, a KUSDT swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
-    "<li>The roadster parks on the lot in front of Pike's shop. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, starts the countdown. A film plays on each side of the tower, with the sound on, until the ship lifts. The ship lifts when the count reaches zero. A bar fills until the car leaves the ship. KONI, the Kaspa node, leaves with the roadster, and the climb keeps the comms going. Its screen shows the accepted block and the mining reward. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept, or KUSDT. The way there is ten seconds. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
+    "<li>The roadster parks on the lot in front of Pike's shop. If it is yours, Get in is the large gold button. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, plays the film on the left of the tower first, with the sound on. When that film ends, the film on the right starts and the countdown starts with it. They stop when the ship lifts. The ship lifts when the count reaches zero. When the booster lets go, that separation plays with its voice. When the roadster leaves, that release plays with its voice. A bar fills until the car leaves the ship. KONI, the Kaspa node, leaves with the roadster, and the climb keeps the comms going. Its screen shows the accepted block and the mining reward. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept, or KUSDT. The way there is ten seconds. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept, or KUSDT. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
@@ -2563,7 +2678,7 @@ function step(now) {
     state.bankShutter = now;
     if (state.mode === "bank") paintBank();
   }
-  if (state.flightStart) {
+  if (state.flightStart || state.preRoll) {
     paintFlightCard(now);
   }
   const ridingLap = !state.flightStart && state.lapUntil && now < state.lapUntil;
@@ -2613,9 +2728,11 @@ const worldView = mountWorld(view, map, {
   player: () => state.player,
   facing: () => state.facing,
   flight() {
-    if (!state.flightStart) return 0;
     if (state.flightDark) return -1;
-    return performance.now() - state.flightStart;
+    if (state.preRoll) return 1;
+    if (!state.flightStart) return 0;
+    const ms = performance.now() - state.flightStart;
+    return ms > 0 ? ms : 0.001;
   },
   cruise() {
     if (!state.cruiseStart || state.flightDark) return null;
@@ -2759,7 +2876,7 @@ window.addEventListener("keydown", (ev) => {
     }
   }
   ev.preventDefault();
-  if (state.flightStart) {
+  if (state.flightStart || state.preRoll) {
     if (key === "escape") {
       const ask = document.getElementById("ask");
       if (ask && !ask.hidden) return;
@@ -2798,7 +2915,7 @@ window.addEventListener("keydown", (ev) => {
 
 window.addEventListener("resize", () => worldView.resize());
 side.addEventListener("click", (ev) => {
-  if (state.flightStart) return;
+  if (state.flightStart || state.preRoll) return;
   const button = ev.target.closest("[data-go]");
   if (!button) return;
   const mode = button.getAttribute("data-go");

@@ -144,9 +144,9 @@ export function flightLine(beat, ms) {
     if (t <= FLIGHT_STAGE + 2500) return "The booster is on the ship.";
     return "The booster lets go.";
   }
-  if (beat === "orbit") return "Ship ahead.";
-  if (beat === "release") return "The roadster and KONI leave the ship.";
-  return "You are in space. KONI shows the accepted block and the mining reward.";
+  if (beat === "orbit") return "Stage sep.";
+  if (beat === "release") return "Payload deploy. The roadster leaves the ship.";
+  return "The roadster is out.";
 }
 
 export function flightClock(ms) {
@@ -1420,8 +1420,11 @@ function plumeCone(color, radius, length, opacity = 0.9, additive = false) {
   return mesh;
 }
 
-/** The film on the left of the tower. The right screen takes another clip. */
-export const PAD_LEAD = "1984/before.mp4";
+/** Left film, then the right film. The countdown starts when the left film ends. */
+export const PAD_LEFT = "1984/pad-left.mp4";
+export const PAD_RIGHT = "1984/before.mp4";
+/** First clip for the pair helper. The pad plays PAD_LEFT, then PAD_RIGHT. */
+export const PAD_LEAD = PAD_RIGHT;
 
 /**
  * Left is the first clip. Right is one of the rest.
@@ -1462,8 +1465,11 @@ export function buildFlight() {
   const padScreens = [];
   const padVideos = [];
   for (const side of [-1, 1]) {
+    // Left film is 576 by 738. Right film is 1920 by 1080. The plane matches that picture.
+    const wide = side < 0 ? 4.8 : 6.2;
+    const tall = side < 0 ? 4.8 * (738 / 576) : 3.5;
     const screen = new THREE.Mesh(
-      new THREE.PlaneGeometry(6.2, 3.5),
+      new THREE.PlaneGeometry(wide, tall),
       new THREE.MeshBasicMaterial({ color: "#14181e" }),
     );
     screen.name = side < 0 ? "pad-left" : "pad-right";
@@ -1895,7 +1901,7 @@ export function placeFlight(flight, pose) {
   }
   if (flight.koni) {
     const spot = koniSpot(pose);
-    flight.koni.visible = true;
+    flight.koni.visible = pose.beat === "cruise";
     if (!pose.released && pose.beat !== "cruise") {
       const seat = stackPoint(pose.shipX || 0, pose.shipY, 0.4, 3.4, shipRoll);
       flight.koni.position.set(seat.x, seat.y, spot.z);
