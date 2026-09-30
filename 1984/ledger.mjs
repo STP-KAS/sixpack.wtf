@@ -13,10 +13,10 @@ import {
   railName,
   sompiForCents,
 } from "./money.mjs";
-import { SHOPS, itemBySku, shopById } from "./world.mjs";
+import { SHOPS, huntById, itemBySku, shopById } from "./world.mjs";
 
 export function freshState() {
-  return { accounts: {}, txids: {}, receipts: [], redeemedSompi: "0", seq: "0" };
+  return { accounts: {}, txids: {}, receipts: [], redeemedSompi: "0", seq: "0", hunts: {} };
 }
 
 export function defaultRules() {
@@ -427,4 +427,352 @@ export function attachTxid(state, receiptId, txid) {
   const row = next.receipts.find((item) => item.id === String(receiptId));
   if (row) row.txid = String(txid || "");
   return next;
+}
+
+const PACK_BANNER = "Pack paid on this square.";
+const PILE_NOTE = "First snap took the pile.";
+const NO_SUBSET = "No subset clears.";
+
+function cloneHunts(state) {
+  const next = clone(state);
+  if (!next.hunts || typeof next.hunts !== "object" || Array.isArray(next.hunts)) next.hunts = {};
+  return next;
+}
+
+function huntHold(state, id) {
+  if (!state.hunts[id] || typeof state.hunts[id] !== "object") state.hunts[id] = { intendos: [], snaps: [] };
+  if (!Array.isArray(state.hunts[id].intendos)) state.hunts[id].intendos = [];
+  if (!Array.isArray(state.hunts[id].snaps)) state.hunts[id].snaps = [];
+  return state.hunts[id];
+}
+
+function readHold(state, id) {
+  const hunts = state && state.hunts && typeof state.hunts === "object" ? state.hunts : {};
+  const bag = hunts[id];
+  return {
+    intendos: bag && Array.isArray(bag.intendos) ? bag.intendos : [],
+    snaps: bag && Array.isArray(bag.snaps) ? bag.snaps : [],
+  };
+}
+
+function sameAddress(left, right) {
+  return String(left || "").toLowerCase() === String(right || "").toLowerCase();
+}
+
+function wholeNeed(value) {
+  const need = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : Number(value);
+  if (!Number.isInteger(need) || need < 2 || need > 20) return null;
+  return need;
+}
+
+/** Largest k whose k-th smallest threshold still fits inside those k promises. */
+function largestSubset(list) {
+  const sorted = [...list].sort((a, b) => a.need - b.need || a.at - b.at || String(a.address).localeCompare(String(b.address)));
+  for (let k = sorted.length; k >= 1; k -= 1) {
+    if (Number(sorted[k - 1].need) <= k) return sorted.slice(0, k);
+  }
+  return [];
+}
+
+function canCover(state, item, now, assumeAddress) {
+  const hunt = huntById(item.hunt);
+  if (hunt && hunt.id === "liquidity") return true;
+  if (item.rail === "kas") {
+    if (item.kas && item.kas.txid) return true;
+    return !!(assumeAddress && sameAddress(item.address, assumeAddress));
+  }
+  const account = state.accounts[String(item.address || "").toLowerCase()];
+  if (!account) return false;
+  if (item.rail === "kusdt" && account.kusdtFrozen) return false;
+  const rules = normalizeRules(account.rules);
+  if (rules.rails.length && !rules.rails.includes(item.rail)) return false;
+  const have = bi(item.rail === "kusdt" ? account.kusdt : account.poc);
+  if (have < BigInt(item.cents)) return false;
+  if (rules.dailyCapCents > 0) {
+    const today = dayKey(now);
+    const spent = account.spentDay === today ? bi(account.spentCents) : 0n;
+    if (spent + BigInt(item.cents) > BigInt(rules.dailyCapCents)) return false;
+  }
+  return true;
+}
+
+function choosePack(state, hunt, rail, now, assumeAddress) {
+  let pool = readHold(state, hunt.id).intendos.filter((item) => item.rail === rail);
+  for (let n = 0; n < 24 && pool.length; n += 1) {
+    const picked = largestSubset(pool);
+    if (!picked.length) return [];
+    const broke = picked.filter((item) => !canCover(state, item, now, assumeAddress));
+    if (!broke.length) return picked;
+    const drop = new Set(broke.map((item) => String(item.address).toLowerCase()));
+    pool = pool.filter((item) => !drop.has(String(item.address).toLowerCase()));
+  }
+  return [];
+}
+
+function latestSnap(snaps, address) {
+  for (let i = snaps.length - 1; i >= 0; i -= 1) {
+    const row = snaps[i];
+    if (row && Array.isArray(row.members) && row.members.some((item) => sameAddress(item.address, address))) return row;
+  }
+  return null;
+}
+
+/** Catalog plus this address only. Open promises are not counted. */
+export function publicHunts(state, address) {
+  const clean = address ? assertTestnet(address) : "";
+  const ids = ["model", "cars", "dish", "stream", "music", "basket", "liquidity"];
+  return {
+    ok: true,
+    hunts: ids.map((id) => {
+      const row = huntById(id);
+      const bag = readHold(state, id);
+      const out = { id: row.id, name: row.name, cents: row.cents, need: row.need, rails: row.rails.slice() };
+      if (!clean) return out;
+      const mine = bag.intendos.find((item) => sameAddress(item.address, clean));
+      if (mine) out.promise = { rail: mine.rail, cents: mine.cents, need: mine.need, at: mine.at };
+      const snap = latestSnap(bag.snaps, clean);
+      if (snap) {
+        out.paid = {
+          count: snap.members.length,
+          who: snap.members.map((item) => item.address),
+          banner: PACK_BANNER,
+        };
+      }
+      return out;
+    }),
+  };
+}
+
+function promiseGate(account, rail, cents, confirmed) {
+  const rules = normalizeRules(account.rules);
+  if (rules.rails.length && !rules.rails.includes(rail)) {
+    throw new Error("Your spending rule blocks the " + railName(rail) + " rail.");
+  }
+  if (rules.confirmOverCents > 0 && BigInt(cents) > BigInt(rules.confirmOverCents) && !confirmed) {
+    return { needsConfirm: true };
+  }
+  return { needsConfirm: false };
+}
+
+export function applyPromise(state, input, now) {
+  const address = assertTestnet(input.address);
+  const hunt = huntById(input.hunt);
+  if (!hunt) throw new Error("That hunt is not on the board.");
+  if (!hunt.rails.includes(input.rail)) throw new Error("That rail is not on this row.");
+  const need = wholeNeed(input.need);
+  if (need == null) throw new Error("Threshold is from 2 to 20.");
+  const peek = ensure(clone(state), address);
+  if (input.rail === "kusdt" && peek.kusdtFrozen) {
+    throw new Error("KUSDT is frozen on this address. POCencept and tKAS are not.");
+  }
+  const gate = promiseGate(peek, input.rail, hunt.cents, !!input.confirmed);
+  if (gate.needsConfirm) {
+    return {
+      state,
+      result: {
+        ok: false,
+        needsConfirm: true,
+        cents: hunt.cents,
+        error: "This is over your confirm line. Confirm it to pay.",
+      },
+    };
+  }
+  const next = cloneHunts(state);
+  const account = ensure(next, address);
+  const bag = huntHold(next, hunt.id);
+  bag.intendos = bag.intendos.filter((item) => !sameAddress(item.address, address));
+  bag.intendos.push({
+    hunt: hunt.id,
+    address: account.address,
+    rail: input.rail,
+    cents: hunt.cents,
+    need,
+    at: now,
+  });
+  const receipt = pushReceipt(next, account, {
+    at: now,
+    kind: "promise",
+    shop: "hunt",
+    sku: hunt.id,
+    rail: input.rail,
+    cents: BigInt(hunt.cents),
+    note: hunt.name,
+  });
+  return {
+    state: next,
+    result: { ok: true, receipt, hunts: publicHunts(next, address), account: publicAccount(next, address) },
+  };
+}
+
+export function applyWithdrawPromise(state, input, now) {
+  const address = assertTestnet(input.address);
+  const hunt = huntById(input.hunt);
+  if (!hunt) throw new Error("That hunt is not on the board.");
+  const next = cloneHunts(state);
+  const bag = huntHold(next, hunt.id);
+  const mine = bag.intendos.find((item) => sameAddress(item.address, address));
+  if (!mine) throw new Error("There is no promise on that row.");
+  bag.intendos = bag.intendos.filter((item) => !sameAddress(item.address, address));
+  const account = ensure(next, address);
+  const receipt = pushReceipt(next, account, {
+    at: now,
+    kind: "withdraw",
+    shop: "hunt",
+    sku: hunt.id,
+    rail: mine.rail,
+    cents: BigInt(mine.cents),
+    note: hunt.name,
+  });
+  return {
+    state: next,
+    result: { ok: true, receipt, hunts: publicHunts(next, address), account: publicAccount(next, address) },
+  };
+}
+
+/** A kas promise can join a pack only if this caller is the one who still has to pay. */
+export function planSnap(state, input, now) {
+  const address = assertTestnet(input.address);
+  const hunt = huntById(input.hunt);
+  if (!hunt) throw new Error("That hunt is not on the board.");
+  const mine = readHold(state, hunt.id).intendos.find((item) => sameAddress(item.address, address));
+  if (!mine) return { ready: false, rail: "", cents: 0 };
+  if (mine.rail !== "kas" || (mine.kas && mine.kas.txid)) return { ready: false, rail: mine.rail, cents: mine.cents };
+  const real = choosePack(state, hunt, mine.rail, now, "");
+  if (real.length) return { ready: false, rail: "kas", cents: mine.cents };
+  const assumed = choosePack(state, hunt, mine.rail, now, address);
+  const ready = assumed.some((item) => sameAddress(item.address, address));
+  return { ready, rail: "kas", cents: mine.cents };
+}
+
+function unwindPile(next, payer, rail, huntId, now) {
+  if (rail === "kas") return;
+  const account = next.accounts[String(payer).toLowerCase()];
+  if (!account) return;
+  const have = bi(rail === "kusdt" ? account.kusdt : account.poc);
+  for (const [otherId, bag] of Object.entries(next.hunts)) {
+    if (otherId === huntId || !bag || !Array.isArray(bag.intendos)) continue;
+    const kept = [];
+    for (const row of bag.intendos) {
+      if (!sameAddress(row.address, payer) || row.rail !== rail || have >= BigInt(row.cents)) {
+        kept.push(row);
+        continue;
+      }
+      pushReceipt(next, account, {
+        at: now,
+        kind: "unwound",
+        shop: "hunt",
+        sku: otherId,
+        rail: row.rail,
+        cents: BigInt(row.cents),
+        note: PILE_NOTE,
+      });
+    }
+    bag.intendos = kept;
+  }
+}
+
+export function applySnap(state, input, now) {
+  const address = assertTestnet(input.address);
+  const hunt = huntById(input.hunt);
+  if (!hunt) throw new Error("That hunt is not on the board.");
+  const prior = readHold(state, hunt.id);
+  const mine = prior.intendos.find((item) => sameAddress(item.address, address));
+  if (!mine) {
+    const snap = latestSnap(prior.snaps, address);
+    if (snap) {
+      return {
+        state,
+        result: {
+          ok: true,
+          paid: true,
+          banner: PACK_BANNER,
+          count: snap.members.length,
+          who: snap.members.map((item) => item.address),
+          hunts: publicHunts(state, address),
+          account: publicAccount(state, address),
+        },
+      };
+    }
+    return { state, result: { ok: true, paid: false, error: NO_SUBSET } };
+  }
+  const next = cloneHunts(state);
+  const bag = huntHold(next, hunt.id);
+  const live = bag.intendos.find((item) => sameAddress(item.address, address));
+  if (input.payment && live.rail === "kas") {
+    const need = sompiForCents(BigInt(live.cents), input.usdPerKas);
+    if (!input.payment.txid || bi(input.payment.paid) < need) throw new Error("The payment is smaller than the quote.");
+    const seen = next.txids[input.payment.txid];
+    if (seen && !(seen.kind === "snap-hold" && sameAddress(seen.address, address))) {
+      throw new Error("That transaction was already used.");
+    }
+    next.txids[input.payment.txid] = { address, kind: "snap-hold" };
+    live.kas = { txid: input.payment.txid, sompi: String(input.payment.paid) };
+  }
+  const chosen = choosePack(next, hunt, live.rail, now, "");
+  if (!chosen.length) {
+    if (live.rail === "kas" && !(live.kas && live.kas.txid)) {
+      const assumed = choosePack(state, hunt, live.rail, now, address);
+      if (assumed.some((item) => sameAddress(item.address, address))) {
+        return { state, result: { ok: false, ready: true, paid: false, cents: live.cents } };
+      }
+    }
+    const held = !!(live.kas && live.kas.txid && input.payment);
+    return {
+      state: held ? next : state,
+      result: { ok: true, paid: false, error: NO_SUBSET, hunts: publicHunts(held ? next : state, address) },
+    };
+  }
+  const today = dayKey(now);
+  const members = [];
+  for (const item of chosen) {
+    const account = ensure(next, item.address);
+    let sompi = 0n;
+    let txid = "";
+    if (hunt.id !== "liquidity") {
+      if (item.rail === "kas") {
+        sompi = bi(item.kas.sompi);
+        txid = item.kas.txid;
+        const seen = next.txids[txid];
+        if (seen && !(seen.kind === "snap-hold" && sameAddress(seen.address, item.address))) {
+          throw new Error("That transaction was already used.");
+        }
+        next.txids[txid] = { address: item.address, kind: "snap" };
+      } else {
+        takeToken(account, item.rail, BigInt(item.cents));
+      }
+      bumpSpent(account, today, BigInt(item.cents));
+    }
+    if (hunt.id === "cars") account.roadster = true;
+    pushReceipt(next, account, {
+      at: now,
+      kind: "snap",
+      shop: "hunt",
+      sku: hunt.id,
+      rail: item.rail,
+      cents: hunt.id === "liquidity" ? 0n : BigInt(item.cents),
+      sompi,
+      txid,
+      note: PACK_BANNER,
+    });
+    members.push({ address: account.address, rail: item.rail, cents: item.cents });
+  }
+  const charged = new Set(chosen.map((item) => String(item.address).toLowerCase()));
+  bag.intendos = bag.intendos.filter((item) => !charged.has(String(item.address).toLowerCase()));
+  if (hunt.id !== "liquidity") {
+    for (const item of chosen) unwindPile(next, item.address, item.rail, hunt.id, now);
+  }
+  bag.snaps.push({ at: now, members, banner: PACK_BANNER });
+  const callerIn = chosen.some((item) => sameAddress(item.address, address));
+  const result = {
+    ok: true,
+    paid: callerIn,
+    hunts: publicHunts(next, address),
+    account: publicAccount(next, address),
+  };
+  if (callerIn) {
+    result.banner = PACK_BANNER;
+    result.count = members.length;
+    result.who = members.map((item) => item.address);
+  }
+  return { state: next, result };
 }

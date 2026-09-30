@@ -568,6 +568,7 @@ body.page-1984 main.kw-stage {
 .good strong { display: block; color: #f3e6c8; }
 .good span { display: block; margin-top: 0.12rem; color: #b7a88a; font-size: 0.75rem; }
 .good .buy { grid-column: 1 / -1; margin-top: 0.15rem; }
+.hunt-need { width: 5rem; }
 .good-mark { display: block; width: 52px; height: 52px; }
 .stall-head { display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.35rem; }
 .stall-head h2 { margin: 0; }

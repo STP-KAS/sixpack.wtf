@@ -16,8 +16,8 @@ import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
 import { RAIL_NAMES, RAILS_NOTE, payRail, railBarHtml } from "./rails-note.mjs?v=1";
 import { REELS, reelShuffle, reelStep } from "./reels.mjs?v=2";
-import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=21";
-import { ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs";
+import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=22";
+import { HUNTS, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 const map = world();
@@ -55,6 +55,10 @@ const state = {
   inside: false,
   venue: "",
   seated: false,
+  huntSpoke: false,
+  huntRails: {},
+  huntNeeds: {},
+  huntBook: null,
   flightStart: 0,
   flightDark: false,
   flightEndedAt: 0,
@@ -209,6 +213,7 @@ function paintChrome() {
     ["cafe", "Cafe"],
     ["restaurant", "Table"],
     ["groceries", "Market"],
+    ["hunt", "Hunt"],
     ["bank", "Bank"],
     ["roadster", "Roadster"],
     ["cinema", "Cinema"],
@@ -553,6 +558,7 @@ function paintBooks() {
   paintChrome();
   const face = counterFace(state.mode);
   if (face === "bank") paintBank();
+  else if (face === "hunt") paintHunt();
   else if (face === "shop") paintShop(state.mode);
 }
 
@@ -922,7 +928,10 @@ function enterVenue(shop) {
   if (changed) veilRoom();
   state.path = [];
   state.arrived = null;
-  if (state.venue !== shop) state.seated = false;
+  if (state.venue !== shop) {
+    state.seated = false;
+    state.huntSpoke = false;
+  }
   state.venue = shop;
   state.inside = true;
   if (state.mode !== "world" && state.mode !== shop) {
@@ -1220,6 +1229,7 @@ function openMode(mode) {
     state.venue = "";
     state.inside = false;
     state.seated = false;
+    state.huntSpoke = false;
   } else if (isVisit(mode)) {
     state.venue = mode;
     state.inside = true;
@@ -1227,6 +1237,7 @@ function openMode(mode) {
     state.venue = "";
     state.inside = false;
     state.seated = false;
+    state.huntSpoke = false;
     if (state.mode !== "world") state.arrived = null;
   }
   state.mode = mode;
@@ -1253,12 +1264,15 @@ function openMode(mode) {
   else if (mode === "bench") paintBench();
   else if (mode === "guide") paintGuide();
   else {
-    if (enteringShop) {
+    if (enteringShop && mode !== "hunt") {
       const shop = (state.home && state.home.shops ? state.home.shops : []).find((item) => item.id === mode);
       const keeper = shop ? shop.keeper : (map.npcs.find((npc) => npc.shop === mode) || {}).name;
       say((keeper || "The keeper") + " is at the counter.");
     }
-    paintShop(mode);
+    if (mode === "hunt") {
+      paintHunt();
+      refreshHuntBook();
+    } else paintShop(mode);
   }
 }
 
@@ -1313,7 +1327,7 @@ function saleButton(rail, shop, sku, cents, name, withName) {
 function setShopRail(rail) {
   if (rail !== "kas" && rail !== "poc" && rail !== "kusdt") return;
   state.shopRail = payRail(rail);
-  if (isVisit(state.mode)) paintShop(state.mode);
+  if (isVisit(state.mode) && state.mode !== "hunt") paintShop(state.mode);
   paintShow();
   if (state.flightStart && !state.cruiseStart) {
     const box = document.getElementById("flight-planets");
@@ -1678,6 +1692,168 @@ function setSwapBusy(on) {
   }
 }
 
+function rememberHuntFields() {
+  panel.querySelectorAll("[data-need]").forEach((el) => {
+    state.huntNeeds[el.getAttribute("data-need")] = el.value;
+  });
+}
+
+function huntRowState(id) {
+  const list = state.huntBook && state.huntBook.hunts;
+  if (!list) return null;
+  return list.find((item) => item.id === id) || null;
+}
+
+async function refreshHuntBook() {
+  if (!state.id.address || state.mode !== "hunt") return;
+  const body = await api("/api/1984/hunts?address=" + encodeURIComponent(state.id.address));
+  if (state.mode !== "hunt" || !body || !body.ok) return;
+  state.huntBook = body;
+  paintHunt();
+}
+
+function paintHunt() {
+  rememberHuntFields();
+  const names = { poc: "POCencept", kusdt: "KUSDT", kas: "tKAS" };
+  const rows = HUNTS.map((row) => {
+    const picked = state.huntRails[row.id];
+    const rail = picked && row.rails.includes(picked) ? picked : (row.rails.includes("poc") ? "poc" : row.rails[0]);
+    state.huntRails[row.id] = rail;
+    const typed = state.huntNeeds[row.id];
+    const need = typed != null && typed !== "" ? typed : String(row.need);
+    const picks = row.rails
+      .map((id) => {
+        const on = id === rail ? ' class="on"' : "";
+        return '<button type="button" data-hunt="' + row.id + '" data-hunt-rail="' + id + '"' + on + ">" + esc(names[id]) + "</button>";
+      })
+      .join(" ");
+    const mine = huntRowState(row.id);
+    let status = "";
+    if (mine && mine.paid) {
+      const who = Array.isArray(mine.paid.who) ? mine.paid.who.map(short).join(", ") : "";
+      status = "<p>" + esc(mine.paid.banner || "Pack paid on this square.") + (who ? " " + esc(who) + "." : "") + "</p>";
+    } else if (mine && mine.promise) status = "<p>Your promise is on the ledger.</p>";
+    const button = walletShopKas(rail)
+      ? '<button type="button" class="buy short" data-short="The wallet stays closed for a shop. Pick POCencept or KUSDT. Swapping tKAS at the bank asks the wallet to sign.">Shop takes a toy</button>'
+      : '<button type="button" class="buy" data-promise="' + row.id + '">Promise</button>';
+    const drop = mine && mine.promise ? '<button type="button" class="buy short" data-drop="' + row.id + '">Drop promise</button>' : "";
+    return (
+      '<article class="good"><div><strong>' + esc(row.name) + "</strong><span>" + esc(formatCents(row.cents)) +
+      " toy dollars</span></div><p>" + picks + "</p>" +
+      '<label>Threshold is yours. <input class="hunt-need" data-need="' + row.id + '" type="number" min="2" max="20" value="' + esc(need) + '"></label>' +
+      button + drop + status +
+      "<p class=\"fine\">Hidden pack. Pays if enough promises clear. This square's ledger. Not that company.</p></article>"
+    );
+  }).join("");
+  const showKas = HUNTS.some((row) => state.huntRails[row.id] === "kas");
+  const txid = showKas
+    ? '<details class="paid-already"><summary>Already sent tKAS? Paste the txid</summary><textarea id="hunt-txid" rows="2">' + esc(shopTxid) + "</textarea></details>"
+    : "";
+  panel.innerHTML =
+    '<div class="stall"><div class="stall-head"><div><p class="stall-keeper">Reed</p><h2>Hunt Hall</h2></div>' +
+    '<button type="button" id="stall-close">Close</button></div>' +
+    "<p>Classroom pack desk. Tags on this ledger. Not Tether. Not a company till. Hidden until it pays.</p>" +
+    balanceSheet() + rows + txid +
+    "<p class=\"fine\">A promise asks on this page, then OK. The pack stays hidden. The wallet opens only when you swap tKAS at the bank.</p></div>";
+  const close = document.getElementById("stall-close");
+  if (close) close.onclick = () => closeCounter();
+  const pasted = document.getElementById("hunt-txid");
+  if (pasted) pasted.addEventListener("input", () => {
+    shopTxid = pasted.value.trim();
+  });
+}
+
+let huntBusy = false;
+
+async function dropPromise(id) {
+  if (huntBusy || !requireId()) return;
+  huntBusy = true;
+  try {
+    const body = await post("/api/1984/hunt/withdraw", { hunt: id });
+    if (!body.ok) {
+      punch("shake");
+      say(body.error || "The promise stayed.", true);
+      return;
+    }
+    if (body.account) state.account = body.account;
+    if (body.hunts) state.huntBook = body.hunts;
+    say("The promise is off the ledger.");
+    paintHunt();
+  } catch (err) {
+    punch("shake");
+    say(err && err.message ? err.message : "The promise stayed.", true);
+  } finally {
+    huntBusy = false;
+  }
+}
+
+async function promiseHunt(id) {
+  if (huntBusy || !requireId()) return;
+  const row = huntById(id);
+  if (!row) return;
+  rememberHuntFields();
+  const rail = state.huntRails[id] && row.rails.includes(state.huntRails[id]) ? state.huntRails[id] : row.rails[0];
+  const raw = Number(state.huntNeeds[id] != null && state.huntNeeds[id] !== "" ? state.huntNeeds[id] : row.need);
+  if (!Number.isInteger(raw) || raw < 2 || raw > 20) {
+    punch("shake");
+    say("Threshold is from 2 to 20.", true);
+    return;
+  }
+  if (walletShopKas(rail)) {
+    punch("shake");
+    say("The wallet stays closed for a shop. Pick POCencept or KUSDT. Swapping tKAS at the bank asks the wallet to sign.", true);
+    return;
+  }
+  const names = { kas: "tKAS", poc: "POCencept", kusdt: "KUSDT" };
+  const agreed = await askOk("You want to promise " + row.name + " for " + formatCents(row.cents) + " " + names[rail] + " if others do?");
+  if (!agreed) return;
+  huntBusy = true;
+  try {
+    const guest = state.id.kind === "guest";
+    const extra = guest ? { token: state.id.token } : {};
+    let txid = "";
+    if (rail === "kas" && !guest) {
+      const typed = panel.querySelector("#hunt-txid");
+      txid = typed ? typed.value.trim() : shopTxid;
+      if (!txid) {
+        say("Paste the Testnet 10 txid. The wallet stays closed on this row.", true);
+        return;
+      }
+    }
+    const promisePath = rail === "kas" && guest ? "/api/1984/guest/hunt/promise" : "/api/1984/hunt/promise";
+    const promised = await post(promisePath, { ...extra, hunt: id, rail, need: raw, confirmed: true });
+    if (!promised.ok) {
+      punch("shake");
+      say(promised.error || "The desk refused the promise.", true);
+      return;
+    }
+    if (promised.hunts) state.huntBook = promised.hunts;
+    if (promised.account) state.account = promised.account;
+    const snapPath = rail === "kas" && guest ? "/api/1984/guest/hunt/snap" : "/api/1984/hunt/snap";
+    const snapped = await post(snapPath, { ...extra, hunt: id, txid });
+    if (snapped.account) state.account = snapped.account;
+    if (snapped.hunts) state.huntBook = snapped.hunts;
+    if (snapped.paid && snapped.banner === "Pack paid on this square.") {
+      showBanner("Pack paid on this square.");
+      punch("nod");
+      const who = Array.isArray(snapped.who) ? snapped.who.map(short).join(", ") : "";
+      say("Pack paid on this square." + (who ? " " + who + "." : ""));
+    } else if (snapped.ready) {
+      say("Paste the Testnet 10 txid. The wallet stays closed on this row.", true);
+    } else if (snapped.error) {
+      say(snapped.error);
+    } else say("Your promise is still on the ledger.");
+    paintHunt();
+    paintChrome();
+    await refreshAccount();
+  } catch (err) {
+    punch("shake");
+    say(err && err.message ? err.message : "The desk refused the promise.", true);
+  } finally {
+    huntBusy = false;
+  }
+}
+
 function paintRules() {
   const rules = (state.account && state.account.rules) || { dailyCapCents: 0, shops: [], rails: [], confirmOverCents: 0 };
   const shops = ["cafe", "restaurant", "groceries", "roadster"]
@@ -1723,6 +1899,7 @@ function paintGuide() {
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>The roadster parks on the lot in front of Pike's shop. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, starts the countdown. The ship lifts when the count reaches zero. A bar fills until the car leaves the ship. KONI, the Kaspa node, leaves with the roadster, and the climb keeps the comms going. Its screen lists Testnet 10 transactions. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, or Saturn with tKAS, POCencept, or KUSDT. The way there is ten seconds, then the roadster orbits farther out. Jokes stay on the screen for ten seconds. On that hop the end popup waits ten seconds.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept, or KUSDT. What are the rails? opens the short note. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The next film starts when one ends.</li>" +
+    "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +
@@ -2370,11 +2547,19 @@ const worldView = mountWorld(view, map, {
   room: () => state.inside,
   venue: () => state.venue,
   seated: () => state.seated,
+  huntSpoke: () => state.huntSpoke,
   watching: () => state.watching,
   clerk: () => state.bankClerk,
   use(hit, rail) {
     if (state.flightStart || state.watching) return;
     if (!state.venue) return;
+    if (state.venue === "hunt") {
+      const hall = roomUse("hunt", state.huntSpoke, hit);
+      if (hall.spoke) state.huntSpoke = true;
+      if (hall.say) say(hall.say);
+      if (hall.open === "hunt") openMode("hunt");
+      return;
+    }
     const act = roomUse(state.venue, state.seated, hit);
     if (act.play) {
       state.seated = true;
@@ -2536,6 +2721,7 @@ side.addEventListener("click", (ev) => {
       state.venue = "";
       state.inside = false;
       state.seated = false;
+      state.huntSpoke = false;
       if (state.mode !== "world") hidePanel();
       state.mode = "world";
       markRoom();
@@ -2715,6 +2901,23 @@ if (bankShade) bankShade.addEventListener("click", () => {
 panel.addEventListener("click", (ev) => {
   if (ev.target.closest("[data-rails]")) {
     openRailsNote();
+    return;
+  }
+  const huntRail = ev.target.closest("[data-hunt-rail]");
+  if (huntRail) {
+    rememberHuntFields();
+    state.huntRails[huntRail.getAttribute("data-hunt")] = huntRail.getAttribute("data-hunt-rail");
+    if (state.mode === "hunt") paintHunt();
+    return;
+  }
+  const drop = ev.target.closest("[data-drop]");
+  if (drop) {
+    dropPromise(drop.getAttribute("data-drop"));
+    return;
+  }
+  const promised = ev.target.closest("[data-promise]");
+  if (promised) {
+    promiseHunt(promised.getAttribute("data-promise"));
     return;
   }
   const pick = ev.target.closest("[data-rail-pick]");

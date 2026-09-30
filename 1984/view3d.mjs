@@ -1,7 +1,7 @@
 /** Ashfields in 3D. Original meshes. The camera turns around the player through a full circle. */
 
 import * as THREE from "./vendor/three.module.js";
-import { PARKING_BAYS, ROADSTER_PARK, SHOPS, standTile, tripBySku } from "./world.mjs";
+import { HUNTS, PARKING_BAYS, ROADSTER_PARK, SHOPS, standTile, tripBySku } from "./world.mjs";
 
 const TILE = 1.15;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -507,6 +507,7 @@ export const ENTRY_HINT = {
   groceries: "Click the counter.",
   roadster: "Click Pike or the sign.",
   cinema: "Take a seat. The screen starts the reel.",
+  hunt: "Click Reed. Then the board.",
 };
 
 /** Hits that glow. A seat and the counter, or the menu once you sit. */
@@ -516,6 +517,7 @@ export function invite(venue, seated) {
   if (venue === "groceries") return ["counter", "keeper"];
   if (venue === "roadster") return ["keeper", "sign"];
   if (venue === "cinema") return seated ? ["screen", "counter"] : ["seat", "screen", "counter", "keeper"];
+  if (venue === "hunt") return seated ? ["board"] : ["keeper"];
   return [];
 }
 
@@ -558,6 +560,20 @@ export function roomUse(venue, seated, hit) {
     if (hit === "screen") return { open: "", sit: true, say: "", clerk: "", play: true };
     if (hit === "counter" || hit === "keeper" || hit === "menu") return { open: "cinema", sit: false, say: "", clerk: "" };
     return { ...none, say: seated ? "The screen starts the reel." : "Take a seat. The screen starts the reel." };
+  }
+  if (venue === "hunt") {
+    if (hit === "keeper") {
+      return {
+        open: "",
+        sit: false,
+        say: "Promise a month if others do. I will not tell you how many already did.",
+        clerk: "",
+        spoke: true,
+      };
+    }
+    if (hit === "board" && seated) return { open: "hunt", sit: false, say: "", clerk: "", spoke: true };
+    if (hit === "board") return { ...none, say: "Click Reed." };
+    return { ...none, say: "Click Reed." };
   }
   return none;
 }
@@ -2548,6 +2564,92 @@ function buildCinemaRoom(maps) {
   return { room, screen, picture: glass, screenMat, poster, video, videoMap, lamp, glow, keeper, picks, hintW: 0, hintH: 0 };
 }
 
+/** Timber hall. A board, Reed at a high desk, and a bench. No car. */
+function buildHuntRoom(maps) {
+  const room = new THREE.Group();
+  room.name = "hunt";
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 9), stone("#3a2a1c", 0.9, maps.wood));
+  floor.position.y = -0.1;
+  floor.receiveShadow = true;
+  room.add(floor);
+  const wallMat = stone("#4a3a28", 0.92);
+  wallMat.side = THREE.DoubleSide;
+  const back = new THREE.Mesh(new THREE.BoxGeometry(12, 3.6, 0.28), wallMat);
+  back.position.set(0, 1.7, -4.4);
+  const left = new THREE.Mesh(new THREE.BoxGeometry(0.28, 3.6, 9), wallMat);
+  left.position.set(-6, 1.7, 0);
+  const right = left.clone();
+  right.position.x = 6;
+  const frontL = new THREE.Mesh(new THREE.BoxGeometry(4.6, 3.6, 0.28), wallMat);
+  frontL.position.set(-3.7, 1.7, 4.4);
+  const frontR = frontL.clone();
+  frontR.position.x = 3.7;
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.85, 0.28), wallMat);
+  lintel.position.set(0, 3.05, 4.4);
+  room.add(back, left, right, frontL, frontR, lintel);
+  const lines = HUNTS.map((row) => row.name + " " + (row.cents / 100).toFixed(2));
+  const sheet = paintTex(512, (g, s) => {
+    g.fillStyle = "#241910";
+    g.fillRect(0, 0, s, s);
+    g.strokeStyle = "#c4a574";
+    g.lineWidth = 16;
+    g.strokeRect(16, 16, s - 32, s - 32);
+    g.fillStyle = "#f3e6c8";
+    g.textAlign = "center";
+    g.font = "700 42px Georgia, serif";
+    g.fillText("Hunt", s / 2, 72);
+    g.font = "600 22px Georgia, serif";
+    lines.forEach((line, i) => {
+      const cut = line.lastIndexOf(" ");
+      const name = cut > 0 ? line.slice(0, cut) : line;
+      const price = cut > 0 ? line.slice(cut + 1) : "";
+      const y = 118 + i * 46;
+      g.textAlign = "left";
+      g.fillText(name, 36, y);
+      g.textAlign = "right";
+      g.fillText(price, s - 36, y);
+    });
+    g.textAlign = "center";
+    g.fillStyle = "#e7c27a";
+    g.font = "600 22px Georgia, serif";
+    g.fillText("Hidden pack", s / 2, s - 36);
+  });
+  sheet.wrapS = THREE.ClampToEdgeWrapping;
+  sheet.wrapT = THREE.ClampToEdgeWrapping;
+  const board = new THREE.Group();
+  const slab = new THREE.Mesh(
+    new THREE.BoxGeometry(3.4, 2.4, 0.08),
+    new THREE.MeshStandardMaterial({ map: sheet, roughness: 0.55 }),
+  );
+  board.add(slab, pickPad(3.6, 2.6, 0.24));
+  board.position.set(0, 1.9, -4.05);
+  tagHit(board, "board");
+  addInvite(board, 1.5, "wall");
+  room.add(board);
+  const desk = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.15, 0.7), stone("#4a3a28", 0.7, maps.wood));
+  desk.position.set(-3.1, 0.58, -0.55);
+  room.add(desk);
+  const keeper = figure("#c4a574");
+  keeper.position.set(-3.1, 0, -1.7);
+  keeper.rotation.y = headingYaw(0, 1);
+  keeper.add(nameTag("Reed"));
+  tagHit(keeper, "keeper");
+  addInvite(keeper, 0.48, "person");
+  room.add(keeper);
+  const bench = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.42, 0.48), stone("#6b5038", 0.75, maps.wood));
+  bench.position.set(1.6, 0.28, 2.4);
+  room.add(bench);
+  const lamp = new THREE.PointLight("#ffd2a8", 0, 14, 1.8);
+  lamp.position.set(0, 2.8, 0.4);
+  room.add(lamp);
+  for (let i = -1; i <= 1; i += 1) {
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(11.4, 0.1, 0.14), stone("#4a3a28", 0.8));
+    beam.position.set(0, 3.32, i * 1.5);
+    room.add(beam);
+  }
+  return { room, keeper, lamp, picks: [board, keeper] };
+}
+
 export function mountWorld(canvas, map, api) {
   let renderer;
   try {
@@ -2630,9 +2732,12 @@ export function mountWorld(canvas, map, api) {
   if (cinema.poster) cinema.poster.anisotropy = aniso;
   if (cinema.videoMap) cinema.videoMap.anisotropy = aniso;
   scene.add(cinema.room);
+  const hunt = buildHuntRoom(maps);
+  scene.add(hunt.room);
   bank.room.visible = false;
   stall.room.visible = false;
   cinema.room.visible = false;
+  hunt.room.visible = false;
   const flight = buildFlight();
   scene.add(flight.root);
   let flightYaw = 0;
@@ -2743,6 +2848,8 @@ export function mountWorld(canvas, map, api) {
     sky.visible = false;
     bank.room.visible = false;
     stall.room.visible = false;
+    cinema.room.visible = false;
+    hunt.room.visible = false;
     if (ms < 0) {
       flight.root.visible = false;
       scene.background.set("#07080c");
@@ -2861,9 +2968,11 @@ export function mountWorld(canvas, map, api) {
     bank.room.visible = indoors && venue === "bank";
     stall.room.visible = indoors && !!stallId;
     cinema.room.visible = indoors && venue === "cinema";
+    hunt.room.visible = indoors && venue === "hunt";
     bank.lamp.intensity = bank.room.visible ? 7 : 0;
     stall.lamp.intensity = stall.room.visible ? 7 : 0;
     cinema.lamp.intensity = cinema.room.visible ? 2.2 : 0;
+    hunt.lamp.intensity = hunt.room.visible ? 6 : 0;
     cinema.glow.intensity = cinema.room.visible ? (watching ? 8 : 3) : 0;
     renderer.toneMappingExposure = indoors ? 1.05 : 0.94;
     for (const item of stall.stalls) {
@@ -2876,7 +2985,7 @@ export function mountWorld(canvas, map, api) {
     }
     scene.fog.near = indoors ? 18 : 22;
     scene.fog.far = indoors ? 46 : 70;
-    const wash = bank.room.visible ? "#2a241c" : stall.room.visible ? stall.stalls.find((item) => item.id === stallId).wash : cinema.room.visible ? "#07080c" : "#c47a52";
+    const wash = bank.room.visible ? "#2a241c" : stall.room.visible ? stall.stalls.find((item) => item.id === stallId).wash : cinema.room.visible ? "#07080c" : hunt.room.visible ? "#2a2018" : "#c47a52";
     scene.background.set(wash);
     const clerk = api.clerk ? api.clerk() : "";
     const panelBank = api.mode() === "bank";
@@ -2936,6 +3045,7 @@ export function mountWorld(canvas, map, api) {
       if (bank.room.visible) for (const person of bank.clerks) pose(person, now, false);
       if (stallId && stall.keepers[stallId].visible) pose(stall.keepers[stallId], now, false);
       if (cinema.room.visible) pose(cinema.keeper, now, false);
+      if (hunt.room.visible) pose(hunt.keeper, now, false);
       stall.guest.visible = sitting && (stallId === "cafe" || stallId === "restaurant");
       if (stall.guest.visible) {
         stall.guest.position.set(satMesh.position.x, 0, satMesh.position.z);
@@ -3052,10 +3162,12 @@ export function mountWorld(canvas, map, api) {
       for (const actor of actors) pose(actor, now, actor === player && moving && !riding);
     }
     if (inviteMat) inviteMat.opacity = Math.sin(now / 140) > 0 ? 0.95 : 0.18;
-    const glow = indoors ? invite(venue, !!(api.seated && api.seated())) : [];
+    const spoke = venue === "hunt" ? !!(api.huntSpoke && api.huntSpoke()) : !!(api.seated && api.seated());
+    const glow = indoors ? invite(venue, spoke) : [];
     showInvites(bank.room, venue === "bank" ? glow : []);
     showInvites(stall.room, stallId ? glow : []);
     showInvites(cinema.room, venue === "cinema" && !watching ? glow : []);
+    showInvites(hunt.room, venue === "hunt" ? glow : []);
     canvas.dataset.mode = indoors ? venue : "world";
     renderer.render(scene, camera);
   }
@@ -3079,6 +3191,13 @@ export function mountWorld(canvas, map, api) {
     return marked;
   }
 
+  function roomPicks(here) {
+    if (here === "bank") return bank.picks;
+    if (here === "cinema") return cinema.picks;
+    if (here === "hunt") return hunt.picks;
+    return stall.picks[here] || [];
+  }
+
   function hoverCursor(ev) {
     const indoorsNow = (api.room && api.room()) || (api.venue && api.venue());
     if (!indoorsNow) {
@@ -3088,7 +3207,7 @@ export function mountWorld(canvas, map, api) {
     ndc(ev);
     raycaster.setFromCamera(pointer, camera);
     const here = (api.venue && api.venue()) || "";
-    const list = here === "bank" ? bank.picks : here === "cinema" ? cinema.picks : (stall.picks[here] || []);
+    const list = roomPicks(here);
     canvas.style.cursor = markedHit(list) ? "pointer" : "grab";
   }
 
@@ -3143,7 +3262,7 @@ export function mountWorld(canvas, map, api) {
     raycaster.setFromCamera(pointer, camera);
     if ((api.room && api.room()) || (api.venue && api.venue())) {
       const here = (api.venue && api.venue()) || "";
-      const list = here === "bank" ? bank.picks : here === "cinema" ? cinema.picks : (stall.picks[here] || []);
+      const list = roomPicks(here);
       const marked = markedHit(list);
       if (marked && marked.userData.hit === "seat") satMesh = marked;
       if (api.use) api.use(marked ? marked.userData.hit : "", marked ? marked.userData.rail || "" : "");
@@ -3248,6 +3367,7 @@ export function assembleInteriors() {
   const bank = buildBankRoom(maps);
   const stall = buildStallRoom(maps);
   const cinema = buildCinemaRoom(maps);
+  const hunt = buildHuntRoom(maps);
   const hits = (list, hit) => list.filter((item) => item.userData && item.userData.hit === hit).length;
   const wall = bank.room.children.find((child) => child.material && child.material.side === THREE.DoubleSide);
   const stallWall = stall.room.children.find((child) => child.material && child.material.side === THREE.DoubleSide);
@@ -3255,11 +3375,12 @@ export function assembleInteriors() {
   bank.room.updateMatrixWorld(true);
   stall.room.updateMatrixWorld(true);
   cinema.room.updateMatrixWorld(true);
+  hunt.room.updateMatrixWorld(true);
   const seatPick = cinema.picks.find((item) => item.userData && item.userData.hit === "seat");
   const seatNose = seatPick
     ? new THREE.Vector3(0, 0, -1).applyQuaternion(seatPick.getWorldQuaternion(new THREE.Quaternion()))
     : new THREE.Vector3();
-  const allowed = new Set(["clerk", "seat", "menu", "qr", "counter", "keeper", "sign", "screen"]);
+  const allowed = new Set(["clerk", "seat", "menu", "qr", "counter", "keeper", "sign", "screen", "board"]);
   let invites = 0;
   let inviteMarked = 0;
   let inviteBad = 0;
@@ -3272,7 +3393,7 @@ export function assembleInteriors() {
     });
     return found;
   };
-  for (const root of [bank.room, stall.room, cinema.room]) {
+  for (const root of [bank.room, stall.room, cinema.room, hunt.room]) {
     root.traverse((node) => {
       if (node.name !== "invite") return;
       invites += 1;
@@ -3319,7 +3440,20 @@ export function assembleInteriors() {
     clerkRingForward: clerkAxis.z,
     menuRingForward: menuAxis.z,
     railLabels: countRailLabels(bank.room),
+    huntKeeper: hits(hunt.picks, "keeper"),
+    huntBoard: hits(hunt.picks, "board"),
+    huntNoseZ: noseOffset(hunt.keeper).z,
   };
+}
+
+function noseOffset(group) {
+  group.updateWorldMatrix(true, true);
+  const nose = group.getObjectByName("nose");
+  const tip = new THREE.Vector3();
+  const origin = new THREE.Vector3();
+  if (nose) nose.getWorldPosition(tip);
+  group.getWorldPosition(origin);
+  return tip.sub(origin);
 }
 
 function countRailLabels(root) {

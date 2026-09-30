@@ -11,13 +11,18 @@ import {
   applyExchange,
   applyFreeze,
   applyPractice,
+  applyPromise,
   applyRedeem,
   applyRules,
+  applySnap,
   applySpend,
+  applyWithdrawPromise,
   attachTxid,
   checkRules,
   freshState,
+  planSnap,
   publicAccount,
+  publicHunts,
 } from "./ledger.mjs";
 import { BENCH, POST, REPOS } from "./links.mjs";
 import {
@@ -30,7 +35,7 @@ import {
   parseTkas,
   sompiForCents,
 } from "./money.mjs";
-import { SHOPS, itemBySku, shopById } from "./world.mjs";
+import { HUNTS, SHOPS, itemBySku, shopById } from "./world.mjs";
 
 const DISCLAIMER =
   "Testnet-10 toys. Not dollars. Not Tether. Not a SEPA rail. Mainnet wallets are refused. Miner fee is always tKAS.";
@@ -183,6 +188,40 @@ export function create1984Service(deps) {
         return { status: 200, body: out.result };
       });
     }
+    if (pathname === "/api/1984/guest/hunt/promise") {
+      await guests.keep({ token: body.token, address, life: body.life });
+      return queue(async () => {
+        const out = applyPromise(
+          state,
+          { address, hunt: body.hunt, rail: body.rail, need: body.need, confirmed: !!body.confirmed },
+          deps.now()
+        );
+        if (out.result && out.result.needsConfirm) return { status: 409, body: out.result };
+        state = out.state;
+        deps.save(state);
+        return { status: 200, body: out.result };
+      });
+    }
+    if (pathname === "/api/1984/guest/hunt/snap") {
+      await guests.keep({ token: body.token, address, life: body.life });
+      const now = deps.now();
+      const plan = await queue(async () => planSnap(state, { address, hunt: body.hunt }, now));
+      let payment = null;
+      let usd = 0;
+      if (plan.ready) {
+        usd = await price();
+        const need = sompiForCents(plan.cents, usd);
+        const paid = await guests.pay({ token: body.token, address, sompi: need });
+        payment = await waitPayment(address, paid.txid, need);
+      }
+      return queue(async () => {
+        const out = applySnap(state, { address, hunt: body.hunt, payment, usdPerKas: usd }, now);
+        if (out.result && out.result.needsConfirm) return { status: 409, body: out.result };
+        state = out.state;
+        deps.save(state);
+        return { status: 200, body: out.result };
+      });
+    }
     if (pathname === "/api/1984/guest/convert") {
       const usd = await price();
       const sompi = parseTkas(body.amount);
@@ -213,6 +252,7 @@ export function create1984Service(deps) {
         network: "testnet-10",
         reserve: RESERVE,
         shops: SHOPS,
+        hunts: HUNTS.map((row) => ({ id: row.id, name: row.name, cents: row.cents, need: row.need, rails: row.rails })),
         oracle: usd,
         oracleError,
         bench: BENCH,
@@ -280,6 +320,11 @@ export function create1984Service(deps) {
           }
         }
         if (method === "GET" && pathname === "/api/1984/account") return await accountOf(query.get("address"));
+        if (method === "GET" && pathname === "/api/1984/hunts") {
+          const raw = query.get("address") || "";
+          const who = raw ? assertTestnet(raw) : "";
+          return { status: 200, body: publicHunts(state, who) };
+        }
         if (method === "GET" && pathname === "/api/1984/resolve") {
           const found = await resolveName(query.get("name") || "", deps.fetch);
           return { status: 200, body: { ok: true, found } };
@@ -344,6 +389,55 @@ export function create1984Service(deps) {
         if (pathname === "/api/1984/freeze") {
           return await queue(async () => {
             const out = applyFreeze(state, { address, frozen: body.frozen }, now);
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: out.result };
+          });
+        }
+        if (pathname === "/api/1984/hunt/promise") {
+          return await queue(async () => {
+            const out = applyPromise(
+              state,
+              { address, hunt: body.hunt, rail: body.rail, need: body.need, confirmed: !!body.confirmed },
+              now
+            );
+            if (out.result && out.result.needsConfirm) return { status: 409, body: out.result };
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: out.result };
+          });
+        }
+        if (pathname === "/api/1984/hunt/withdraw") {
+          return await queue(async () => {
+            const out = applyWithdrawPromise(state, { address, hunt: body.hunt }, now);
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: out.result };
+          });
+        }
+        if (pathname === "/api/1984/hunt/snap") {
+          const plan = await queue(async () => planSnap(state, { address, hunt: body.hunt }, now));
+          let payment = null;
+          let usd = 0;
+          const pasted = String((body && body.txid) || "").trim();
+          if (plan.rail === "kas" && plan.cents > 0 && (plan.ready || pasted)) {
+            usd = await price();
+            if (plan.ready && !pasted) {
+              return {
+                status: 200,
+                body: {
+                  ok: false,
+                  ready: true,
+                  paid: false,
+                  cents: plan.cents,
+                  sompi: sompiForCents(plan.cents, usd).toString(),
+                },
+              };
+            }
+            if (pasted) payment = await waitPayment(address, pasted, sompiForCents(plan.cents, usd));
+          }
+          return await queue(async () => {
+            const out = applySnap(state, { address, hunt: body.hunt, payment, usdPerKas: usd }, now);
             state = out.state;
             deps.save(state);
             return { status: 200, body: out.result };
@@ -462,7 +556,10 @@ const ledgerFile = path.join(dir, "ledger.json");
 
 function loadFile() {
   try {
-    return JSON.parse(fs.readFileSync(ledgerFile, "utf8"));
+    const parsed = JSON.parse(fs.readFileSync(ledgerFile, "utf8"));
+    if (!parsed || typeof parsed !== "object") return freshState();
+    if (!parsed.hunts || typeof parsed.hunts !== "object" || Array.isArray(parsed.hunts)) parsed.hunts = {};
+    return parsed;
   } catch {
     return freshState();
   }

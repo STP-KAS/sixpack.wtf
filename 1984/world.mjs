@@ -85,6 +85,21 @@ export function tripBySku(sku) {
   return shop.items.find((item) => item.sku === sku) || null;
 }
 
+/** Classroom shapes. Not shops, and not a company catalog. */
+export const HUNTS = [
+  { id: "model", name: "A month of a model desk", cents: 500, need: 3, rails: ["poc", "kusdt", "kas"] },
+  { id: "cars", name: "N roadsters as one order", cents: 100, need: 3, rails: ["poc", "kusdt"] },
+  { id: "dish", name: "Dish + first month", cents: 1200, need: 3, rails: ["poc", "kusdt", "kas"] },
+  { id: "stream", name: "A video month", cents: 500, need: 5, rails: ["poc", "kusdt"] },
+  { id: "music", name: "A music month", cents: 500, need: 5, rails: ["poc", "kusdt"] },
+  { id: "basket", name: "A week of food", cents: 1400, need: 3, rails: ["poc", "kas"] },
+  { id: "liquidity", name: "Deepen the toy dollar", cents: 2000, need: 2, rails: ["poc"] },
+];
+
+export function huntById(id) {
+  return HUNTS.find((row) => row.id === id) || null;
+}
+
 const BUILDINGS = [
   { id: "cafe", shop: "cafe", x: 2, y: 2, w: 12, h: 8, door: { x: 8, y: 9 }, npc: { x: 8, y: 10 }, roof: "#8d3b2f", sign: "Cafe" },
   { id: "restaurant", shop: "restaurant", x: 28, y: 2, w: 12, h: 8, door: { x: 34, y: 9 }, npc: { x: 34, y: 10 }, roof: "#8a5a2a", sign: "Table" },
@@ -92,6 +107,7 @@ const BUILDINGS = [
   { id: "groceries", shop: "groceries", x: 30, y: 14, w: 10, h: 8, door: { x: 30, y: 18 }, npc: { x: 29, y: 18 }, roof: "#3d6b45", sign: "Market" },
   { id: "roadster", shop: "roadster", x: 14, y: 23, w: 14, h: 7, door: { x: 21, y: 23 }, npc: { x: 21, y: 22 }, roof: "#6e2430", sign: "Roadster" },
   { id: "cinema", shop: "cinema", x: 2, y: 23, w: 10, h: 7, door: { x: 7, y: 23 }, npc: { x: 7, y: 22 }, roof: "#1c1916", sign: "Cinema" },
+  { id: "hunt", shop: "hunt", x: 30, y: 23, w: 10, h: 7, door: { x: 30, y: 26 }, npc: { x: 29, y: 26 }, roof: "#4a3a28", sign: "Hunt" },
 ];
 
 const KEEPERS = {
@@ -101,6 +117,7 @@ const KEEPERS = {
   groceries: { name: "Mara", color: "#b7e38d" },
   roadster: { name: "Pike", color: "#f0a36a" },
   cinema: { name: "Lux", color: "#d7c4f2" },
+  hunt: { name: "Reed", color: "#c4a574" },
 };
 
 export function shopById(id) {
@@ -131,13 +148,15 @@ export const ROADSTER_PARK = PARKING_BAYS[1];
 
 /** Bank and shop panels are the indoor room. Rules, the bench, and the guide are not. */
 export function shopVisit(mode) {
-  return mode === "bank" || mode === "cafe" || mode === "restaurant" || mode === "groceries" || mode === "roadster" || mode === "cinema";
+  return mode === "bank" || mode === "cafe" || mode === "restaurant" || mode === "groceries" || mode === "roadster" || mode === "cinema" || mode === "hunt";
 }
 
 /** Which open card to redraw after a payment. An empty string means no card is open. */
 export function counterFace(mode) {
   if (!shopVisit(mode)) return "";
-  return mode === "bank" ? "bank" : "shop";
+  if (mode === "bank") return "bank";
+  if (mode === "hunt") return "hunt";
+  return "shop";
 }
 
 /** A tile the roadster can stop on. Indoors is for feet, so the car waits outside. */
@@ -210,6 +229,8 @@ function build() {
     [12, 18, 14, 18],
     [29, 18, 27, 18],
     [21, 22, 21, 21],
+    [27, 21, 29, 21],
+    [29, 21, 29, 26],
   ];
   for (const [x0, y0, x1, y1] of paths) {
     const dx = Math.sign(x1 - x0);
@@ -230,7 +251,7 @@ function build() {
     [5, 12],
     [36, 12],
     [6, 26],
-    [36, 26],
+    [39, 12],
   ];
   for (const [x, y] of trees) {
     if (grid[y][x] === "g") paint(grid, x, y, "t");
@@ -258,7 +279,12 @@ function build() {
     color: KEEPERS[b.shop].color,
     x: b.npc.x,
     y: b.npc.y,
-    line: b.shop === "bank" ? "Push a clerk. Each window swaps into the other two." : shopById(b.shop).line,
+    line:
+      b.shop === "bank"
+        ? "Push a clerk. Each window swaps into the other two."
+        : b.shop === "hunt"
+          ? "Promise a month if others do. I will not tell you how many already did."
+          : shopById(b.shop).line,
   }));
 
   return {

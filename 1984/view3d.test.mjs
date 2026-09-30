@@ -234,6 +234,12 @@ test("a room opens the card only from the counter, a clerk, or a seat", () => {
   assert.equal(roomUse("cinema", false, "counter").open, "cinema");
   assert.equal(roomUse("cinema", false, "keeper").open, "cinema");
   assert.equal(roomUse("cinema", true, "").say, "The screen starts the reel.");
+  assert.equal(roomUse("hunt", false, "keeper").open, "");
+  assert.equal(roomUse("hunt", false, "keeper").spoke, true);
+  assert.equal(roomUse("hunt", false, "keeper").say, "Promise a month if others do. I will not tell you how many already did.");
+  assert.equal(roomUse("hunt", false, "board").open, "");
+  assert.equal(roomUse("hunt", false, "board").say, "Click Reed.");
+  assert.equal(roomUse("hunt", true, "board").open, "hunt");
   assert.equal(escapeRoom(true, true), "counter");
   assert.equal(escapeRoom(false, true), "leave");
   assert.equal(escapeRoom(false, false), "close");
@@ -246,6 +252,7 @@ test("the room glows only the next step", () => {
   assert.equal(ENTRY_HINT.groceries, "Click the counter.");
   assert.equal(ENTRY_HINT.roadster, "Click Pike or the sign.");
   assert.equal(ENTRY_HINT.cinema, "Take a seat. The screen starts the reel.");
+  assert.equal(ENTRY_HINT.hunt, "Click Reed. Then the board.");
   assert.deepEqual(invite("bank", false), ["clerk"]);
   assert.deepEqual(invite("cafe", false), ["seat", "counter", "keeper"]);
   assert.deepEqual(invite("cafe", true), ["menu", "qr"]);
@@ -255,6 +262,8 @@ test("the room glows only the next step", () => {
   assert.deepEqual(invite("roadster", false), ["keeper", "sign"]);
   assert.deepEqual(invite("cinema", false), ["seat", "screen", "counter", "keeper"]);
   assert.deepEqual(invite("cinema", true), ["screen", "counter"]);
+  assert.deepEqual(invite("hunt", false), ["keeper"]);
+  assert.deepEqual(invite("hunt", true), ["board"]);
   assert.deepEqual(invite("", false), []);
   assert.ok(CINEMA_LOOK.z < CINEMA_EYE.z, "the seat looks toward the screen");
   assert.ok(CINEMA_EYE.y > 0.9 && CINEMA_EYE.y < 1.5);
@@ -301,7 +310,10 @@ test("the rooms contain clerks, seats, a menu, and a scan card", () => {
   assert.ok(rooms.cinemaFaceZ > 0.9, "picture faces the seats " + rooms.cinemaFaceZ);
   assert.equal(rooms.cinemaPictureScaleX, 1);
   assert.equal(rooms.cinemaPictureScaleY, 1);
-  assert.equal(rooms.invites, 37);
+  assert.equal(rooms.invites, 39);
+  assert.equal(rooms.huntKeeper, 1);
+  assert.equal(rooms.huntBoard, 1);
+  assert.ok(rooms.huntNoseZ > 0.05, "Reed faces into the hall " + rooms.huntNoseZ);
   assert.equal(rooms.inviteMarked, 0);
   assert.equal(rooms.inviteBad, 0);
   assert.ok(rooms.seatRingUp > 0.9, "seat ring " + rooms.seatRingUp);
