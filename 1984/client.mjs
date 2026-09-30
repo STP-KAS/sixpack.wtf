@@ -340,20 +340,121 @@ async function connectWallet(kind) {
   else say(name + " is logged in on Testnet 10. This login stays on this browser.");
 }
 
-async function startGuest() {
+const GUEST_STEPS = [
+  "Checking today's test wallets",
+  "Making a Testnet-10 address",
+  "Connecting to Testnet-10",
+  "Gathering coins",
+  "Putting the coins together",
+  "Signing the send",
+  "Broadcasting",
+];
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function paintGuestWait(step, detail) {
+  const el = document.getElementById("gate-status");
+  if (!el) return;
+  const at = GUEST_STEPS.indexOf(step);
+  el.className = "gate-status";
+  el.replaceChildren();
+  const line = document.createElement("span");
+  line.className = "gate-wait";
+  line.textContent = at < 0 && step ? step : "Opening a test wallet for this tab.";
+  el.append(line);
+  const list = document.createElement("ol");
+  list.className = "gate-steps";
+  for (let i = 0; i < GUEST_STEPS.length; i++) {
+    const item = document.createElement("li");
+    if (at >= 0 && i < at) item.className = "done";
+    else if (i === at) item.className = "on";
+    item.textContent = GUEST_STEPS[i];
+    list.append(item);
+  }
+  el.append(list);
+  const note = document.createElement("span");
+  note.className = "gate-wait-note";
+  note.textContent = detail
+    ? detail + ". Leave this tab open."
+    : "Leave this tab open. This wallet shows up when Testnet 10 takes the coins.";
+  el.append(note);
+}
+
+async function postGuest() {
+  let last = "The village ledger is offline. Walking still works.";
+  for (const base of bases()) {
+    try {
+      const res = await fetch(base + "/api/1984/guest", {
+        method: "POST",
+        headers: { accept: "application/json", "content-type": "application/json" },
+        body: JSON.stringify({ network: "testnet-10", life: PAGE_LIFE, progress: true }),
+        signal: AbortSignal.timeout(20000),
+      });
+      const text = await res.text();
+      if (!text || text[0] === "<" || res.status === 404 || res.status === 405) continue;
+      const body = JSON.parse(text);
+      body.status = res.status;
+      return { base, body };
+    } catch (err) {
+      last = err.message || last;
+    }
+  }
+  return { base: "", body: { ok: false, error: last } };
+}
+
+async function pollGuest(base, job, onStep) {
+  const deadline = Date.now() + 720000;
+  let last = "The test wallet is still opening. Leave this tab open and try New arrival again if this stays.";
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(base + "/api/1984/guest?job=" + encodeURIComponent(job), {
+        headers: { accept: "application/json" },
+        signal: AbortSignal.timeout(12000),
+      });
+      const text = await res.text();
+      if (!text || text[0] === "<") throw new Error("The village ledger is offline. Walking still works.");
+      const body = JSON.parse(text);
+      if (body.step && onStep) onStep(body.step, body.detail || "");
+      if (body.pending) {
+        await wait(900);
+        continue;
+      }
+      return body;
+    } catch (err) {
+      last = err.message || last;
+      await wait(1500);
+    }
+  }
+  return { ok: false, error: last };
+}
+
+async function startGuest(onStep) {
   if (guestBusy) return;
   guestBusy = true;
   try {
     say("Making a Testnet-10 address for this tab and putting tKAS on it. " + GUEST_DISCLAIMER);
-    const body = await api("/api/1984/guest", {
-      method: "POST",
-      body: JSON.stringify({ network: "testnet-10", life: PAGE_LIFE }),
-    });
-    if (!body.ok || !body.address || !body.token || body.key || body.privateKey) {
-      return { ok: false, error: body.error || "No test wallet. Use your own Testnet-10 wallet if you want the history kept." };
+    const posted = await postGuest();
+    let body = posted.body;
+    if (body && body.step && onStep) onStep(body.step, body.detail || "");
+    if (body && body.pending && body.job && posted.base) body = await pollGuest(posted.base, body.job, onStep);
+    if (!body || !body.ok || !body.address || !body.token || body.key || body.privateKey) {
+      return { ok: false, error: (body && body.error) || "No test wallet. Use your own Testnet-10 wallet if you want the history kept." };
     }
     setIdentity({ address: body.address, label: "test tab", kind: "guest", token: body.token });
+    if (state.id.kind !== "guest" || state.id.token !== body.token) {
+      return { ok: false, error: "The test wallet opened, but this tab could not keep it. Use Returning, or Who pays." };
+    }
     say("This tab has " + formatTkas(body.sompi) + " tKAS. The balance can take a moment to show. Close the tab and this address is gone.");
+    const address = body.address;
+    const later = (ms) => {
+      setTimeout(() => {
+        if (state.id.kind === "guest" && state.id.address === address && state.kasSompi == null) refreshAccount();
+      }, ms);
+    };
+    later(2500);
+    later(8000);
     return { ok: true };
   } finally {
     guestBusy = false;
@@ -1707,11 +1808,25 @@ you.addEventListener("click", (ev) => {
   if (ev.target.id === "use-kasware") connectWallet("kasware").catch((err) => say(err.message, true));
   if (ev.target.id === "use-kastle") connectWallet("kastle").catch((err) => say(err.message, true));
   if (ev.target.id === "use-guest") {
-    startGuest()
+    let last = "";
+    let showed = false;
+    const timer = setTimeout(() => {
+      showed = true;
+    }, 700);
+    startGuest((step, detail) => {
+      const line = detail ? step + " (" + detail + ")" : step;
+      if (!line || line === last) return;
+      last = line;
+      const gateEl = document.getElementById("gate");
+      if (gateEl && !gateEl.hidden) {
+        if (showed) paintGuestWait(step, detail);
+      } else if (showed) say(line);
+    })
       .then((result) => {
         if (result && result.error) say(result.error, true);
       })
-      .catch((err) => say(err.message, true));
+      .catch((err) => say(err.message, true))
+      .finally(() => clearTimeout(timer));
   }
   if (ev.target.id === "use-addr") useAddress();
   if (ev.target.id === "use-name") useName();
@@ -1725,7 +1840,18 @@ document.getElementById("gate-new").addEventListener("click", () => {
   const button = document.getElementById("gate-new");
   if (button) button.disabled = true;
   gateStatus("Opening a test wallet for this tab…");
-  startGuest()
+  let latest = "Waiting for the till";
+  let latestDetail = "";
+  let showed = false;
+  const timer = setTimeout(() => {
+    showed = true;
+    paintGuestWait(latest, latestDetail);
+  }, 700);
+  startGuest((step, detail) => {
+    if (step) latest = step;
+    latestDetail = detail || "";
+    if (showed) paintGuestWait(latest, latestDetail);
+  })
     .then((result) => {
       if (state.id.kind === "guest") {
         hideGate();
@@ -1746,6 +1872,7 @@ document.getElementById("gate-new").addEventListener("click", () => {
       say(err.message, true);
     })
     .finally(() => {
+      clearTimeout(timer);
       if (button) button.disabled = false;
     });
 });

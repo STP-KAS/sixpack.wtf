@@ -189,6 +189,94 @@ test("a test login answer has no key", async () => {
   assert.match(out.body.disclaimer, /Close the tab/);
 });
 
+test("a progress login returns a job the page can poll", async () => {
+  const seen = [];
+  const { svc } = harness(async () => ({ txids: ["ab"] }), {
+    guests: {
+      start({ ip, life }) {
+        seen.push(ip + ":" + life);
+        return { ok: false, pending: true, job: "abc123", step: "Waiting for the till" };
+      },
+      job(id) {
+        if (id !== "abc123") return null;
+        return {
+          ok: true,
+          pending: false,
+          job: id,
+          step: "Broadcasting",
+          address: USER,
+          token: "tab",
+          sompi: "5000000000000",
+          disclaimer: "Close the tab and it is gone.",
+        };
+      },
+    },
+  });
+  const started = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/guest",
+    query: new URLSearchParams(),
+    body: { network: "testnet-10", life: "page-a", progress: true },
+    ip: "203.0.113.8",
+  });
+  assert.equal(started.status, 202);
+  assert.equal(started.body.pending, true);
+  assert.equal(started.body.job, "abc123");
+  assert.equal(started.body.token, undefined);
+  assert.equal(seen[0], "203.0.113.8:page-a");
+  const polled = await svc.handle({
+    method: "GET",
+    pathname: "/api/1984/guest",
+    query: new URLSearchParams("job=abc123"),
+    body: {},
+    ip: "203.0.113.8",
+  });
+  assert.equal(polled.status, 200);
+  assert.equal(polled.body.ok, true);
+  assert.equal(polled.body.token, "tab");
+  assert.equal(JSON.stringify(polled.body).includes("private"), false);
+  const missing = await svc.handle({
+    method: "GET",
+    pathname: "/api/1984/guest",
+    query: new URLSearchParams("job=nope"),
+    body: {},
+    ip: "203.0.113.8",
+  });
+  assert.equal(missing.status, 404);
+  assert.match(missing.body.error, /Try New arrival again/);
+});
+
+test("a guest job that carries a key is not returned", async () => {
+  const { svc } = harness(async () => ({ txids: ["ab"] }), {
+    guests: {
+      start() {
+        return { ok: false, pending: true, job: "abc", key: "secret-key" };
+      },
+      job() {
+        return { ok: true, pending: false, job: "x", key: "secret-key", token: "tab" };
+      },
+    },
+  });
+  const started = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/guest",
+    query: new URLSearchParams(),
+    body: { progress: true, network: "testnet-10" },
+    ip: "203.0.113.8",
+  });
+  assert.equal(started.body.ok, false);
+  assert.equal(JSON.stringify(started.body).includes("secret-key"), false);
+  const polled = await svc.handle({
+    method: "GET",
+    pathname: "/api/1984/guest",
+    query: new URLSearchParams("job=x"),
+    body: {},
+    ip: "203.0.113.8",
+  });
+  assert.equal(polled.status, 404);
+  assert.equal(JSON.stringify(polled.body).includes("secret-key"), false);
+});
+
 test("a test login that returns a key is refused", async () => {
   const { svc } = harness(async () => ({ txids: ["ab"] }), {
     guests: {

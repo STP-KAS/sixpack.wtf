@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { payFromKey } from "../faucet/pay.mjs";
+import { payFromKey, selectCovering } from "../faucet/pay.mjs";
 import {
   GUEST_BYE_MS,
   GUEST_DISCLAIMER,
@@ -23,6 +23,8 @@ function harness(seed) {
   let n = 0;
   let lastKey = "";
   let failFund = null;
+  let holdFund = null;
+  let failSweep = null;
   const funded = [];
   const swept = [];
   const paid = [];
@@ -39,7 +41,9 @@ function harness(seed) {
       lastKey = (n % 2 === 0 ? "ab" : "cd").repeat(32);
       return { address: addr(n), key: lastKey };
     },
-    async fund(address, sompi) {
+    async fund(address, sompi, onStep) {
+      if (onStep) onStep("Gathering coins");
+      if (holdFund) await holdFund;
       if (failFund) throw failFund();
       funded.push(sompi.toString());
       return { txids: ["11".repeat(32)], sompi: sompi.toString() };
@@ -50,6 +54,7 @@ function harness(seed) {
       return { txid: "22".repeat(32), sompi: input.sompi.toString() };
     },
     async sweep(input) {
+      if (failSweep) throw failSweep();
       swept.push(input.from);
       return { sompi: "1", ok: true };
     },
@@ -70,8 +75,27 @@ function harness(seed) {
     fail(fn) {
       failFund = fn;
     },
+    hold(promise) {
+      holdFund = promise;
+    },
+    failSweep(fn) {
+      failSweep = fn;
+    },
   };
 }
+
+test("fifty thousand tKAS needs more than one batch when the coins are small", () => {
+  const one = selectCovering([60000n * 100_000_000n], 50000n * 100_000_000n, 50_000_000n, 80);
+  assert.equal(one.ok, true);
+  assert.equal(one.count, 1);
+  const small = Array.from({ length: 200 }, () => 300n * 100_000_000n);
+  const many = selectCovering(small, 50000n * 100_000_000n, 50_000_000n, 80);
+  assert.equal(many.ok, true);
+  assert.equal(many.count > 80, true);
+  const dust = Array.from({ length: 10 }, () => 1n);
+  const short = selectCovering(dust, 50000n * 100_000_000n, 50_000_000n, 80);
+  assert.equal(short.ok, false);
+});
 
 test("payFromKey refuses mainnet and a self payment before it talks to a node", async () => {
   await assert.rejects(
@@ -179,6 +203,86 @@ test("closing the tab sweeps the test wallet after the grace, and a refresh canc
   h.setNow(h.now() + GUEST_STALE_MS);
   await h.desk.reapNow();
   assert.equal(h.swept.at(-1), third.address);
+});
+
+test("a slow opening shows each step, then the wallet, and the answer has no key", async () => {
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const h = harness();
+  h.hold(gate);
+  const started = h.desk.start({ ip: "203.0.113.4", life: "page-a" });
+  assert.equal(started.pending, true);
+  assert.equal(started.ok, false);
+  assert.equal(started.step, "Waiting for the till");
+  assert.equal(started.token, undefined);
+  assert.equal(h.desk.job("missing"), null);
+  let mid;
+  for (let i = 0; i < 50; i++) {
+    mid = h.desk.job(started.job);
+    if (mid && mid.step === "Gathering coins") break;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  assert.equal(mid.step, "Gathering coins");
+  assert.equal(mid.pending, true);
+  assert.equal(mid.token, undefined);
+  release();
+  let done;
+  for (let i = 0; i < 50; i++) {
+    done = h.desk.job(started.job);
+    if (done && !done.pending) break;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  assert.equal(done.ok, true);
+  assert.equal(done.pending, false);
+  assert.equal(done.step, "Broadcasting");
+  assert.equal(done.sompi, GUEST_FUND_SOMPI.toString());
+  assert.equal(JSON.stringify(done).includes(h.key()), false);
+  assert.equal(done.key, undefined);
+  assert.equal(h.book().sessions[done.token].key, h.key());
+});
+
+test("a failed opening ends the wait and keeps no key", async () => {
+  const h = harness();
+  h.fail(() => new Error("node down " + h.key()));
+  const started = h.desk.start({ ip: "203.0.113.4", life: "page-a" });
+  let done;
+  for (let i = 0; i < 50; i++) {
+    done = h.desk.job(started.job);
+    if (done && !done.pending) break;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  assert.equal(done.ok, false);
+  assert.equal(done.pending, false);
+  assert.equal(done.step, "Stopped");
+  assert.match(done.error, /node down/);
+  assert.equal(String(done.error).includes(h.key()), false);
+  assert.equal(done.token, undefined);
+  assert.equal(Object.keys(h.book().sessions).length, 0);
+  assert.equal(h.book().days["2026-09-29"].n, 0);
+});
+
+test("a failed opening keeps the test wallet when the coins cannot be swept back", async () => {
+  const h = harness();
+  h.fail(() => new Error("node down"));
+  h.failSweep(() => new Error("sweep " + h.key()));
+  const started = h.desk.start({ ip: "203.0.113.4", life: "page-a" });
+  let done;
+  for (let i = 0; i < 50; i++) {
+    done = h.desk.job(started.job);
+    if (done && !done.pending) break;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  assert.equal(done.ok, false);
+  assert.equal(done.step, "Stopped");
+  assert.match(done.error, /node down/);
+  assert.equal(String(done.error).includes(h.key()), false);
+  assert.equal(Object.keys(h.book().sessions).length, 1);
+  assert.equal(h.book().days["2026-09-29"].n, 1);
+  const row = Object.values(h.book().sessions)[0];
+  assert.equal(row.key, h.key());
+  assert.equal(row.sweepAfter > 0, true);
 });
 
 test("a wrong token cannot spend the test wallet", async () => {

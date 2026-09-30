@@ -136,6 +136,27 @@ function loadKey() {
 const TESTNET_ADDRESS = /^kaspatest:[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{50,80}$/i;
 const FEE_RESERVE = 50_000_000n;
 
+/**
+ * How many of the largest coins cover `want` plus one fee reserve per batch.
+ * The count can be higher than one transaction. The caller joins those coins.
+ */
+export function selectCovering(amounts, want, feeReserve, maxInputs) {
+  const piles = [...amounts].map((amount) => BigInt(amount)).sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
+  const picked = [];
+  let sum = 0n;
+  const cap = maxInputs * 400;
+  const need = BigInt(want);
+  const fee = BigInt(feeReserve);
+  for (const pile of piles) {
+    picked.push(pile);
+    sum += pile;
+    const batches = BigInt(Math.max(1, Math.ceil(picked.length / maxInputs)));
+    if (sum >= need + fee * batches) return { count: picked.length, sum, ok: true };
+    if (picked.length >= cap) break;
+  }
+  return { count: picked.length, sum, ok: false };
+}
+
 async function feeRateFor(rpc) {
   try {
     const quoted = await withTimeout(rpc.getFeeEstimate({}), 8000, "Reading the Testnet 10 fee took too long.");
@@ -187,9 +208,24 @@ export async function mintTestnetAddress() {
  * Send tKAS from a hex key the caller already holds.
  * drain sends the mature balance back, leaving a small fee remainder.
  */
+let spendLock = Promise.resolve();
+
+function withSpendLock(fn) {
+  const run = spendLock.then(fn, fn);
+  spendLock = run.then(
+    () => {},
+    () => {}
+  );
+  return run;
+}
+
 export async function payFromKey({ privHex, fromAddr, toAddr, sompi, drain, onStep }) {
-  const step = (name) => {
-    if (onStep) onStep(name);
+  return withSpendLock(() => payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep }));
+}
+
+async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep }) {
+  const step = (name, extra) => {
+    if (onStep) onStep(name, extra);
   };
   const from = assertPayAddress(fromAddr);
   const to = assertPayAddress(toAddr);
@@ -255,6 +291,41 @@ export async function payFromKey({ privHex, fromAddr, toAddr, sompi, drain, onSt
     const scaled = BigInt(Math.ceil(rate)) * 250_000n;
     const feeReserve = scaled > FEE_RESERVE ? scaled : FEE_RESERVE;
     if (want <= 0n) throw new Error("Type a tKAS amount above zero.");
+    const plan = selectCovering(
+      entries.map((entry) => entry.amount),
+      want,
+      feeReserve,
+      MAX_INPUTS
+    );
+    if (!plan.ok) throw new Error("No mature UTXOs large enough. Miner is still stacking dust.");
+    if (plan.count > MAX_INPUTS) {
+      step("Putting the coins together", { detail: "Joining the small coins" });
+      const { transactions } = await kaspa.createTransactions({
+        entries: entries.slice(0, plan.count),
+        outputs: [{ address: to, amount: want }],
+        priorityFee: 0n,
+        feeRate: rate,
+        changeAddress: from,
+        networkId: net,
+      });
+      const batch = transactions || [];
+      if (!batch.length) throw new Error("The send did not cover the amount.");
+      for (let i = 0; i < batch.length; i++) {
+        const pending = batch[i];
+        const outputs = [...pending.transaction.outputs];
+        const pays = outputs.some((output) => BigInt(output.value) === want);
+        const detail = `${i + 1} of ${batch.length}`;
+        if (pays) step("Signing the send", { detail });
+        else step("Putting the coins together", { detail });
+        await pending.sign([privateKey]);
+        if (pays) step("Broadcasting", { detail });
+        const txid = await withTimeout(pending.submit(rpc), 20000, "The Testnet-10 node did not take the send.");
+        txids.push(String(txid));
+        if (pays) sent += want;
+      }
+      if (sent < want) throw new Error("The send did not cover the amount.");
+      return { ok: true, from, to, sompi: sent.toString(), txids };
+    }
     let cursor = 0;
     let guard = 0;
     while (sent < want && cursor < entries.length && guard < 160) {

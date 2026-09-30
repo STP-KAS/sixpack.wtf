@@ -577,6 +577,8 @@ a { color: #f2d48a; }
 .kw-gate[hidden] { display: none; }
 .kw-gate-card {
   width: min(460px, calc(100% - 1.5rem));
+  max-height: calc(100% - 1.5rem);
+  overflow: auto;
   text-align: center;
   color: #f3e6c8;
   background:
@@ -607,6 +609,36 @@ a { color: #f2d48a; }
 .kw-wallets button { font-weight: 700; }
 .gate-status { min-height: 1.25em; margin: 0.15rem 0 0.35rem; color: #f2d48a; font-size: 0.88rem; }
 .gate-status.bad { color: #ffb4a8; }
+.gate-wait { display: block; }
+.gate-steps {
+  list-style: none;
+  margin: 0.45rem auto 0.15rem;
+  padding: 0;
+  text-align: left;
+  width: min(16.5rem, 100%);
+}
+.gate-steps li {
+  position: relative;
+  margin: 0;
+  padding: 0.14rem 0 0.14rem 1.15rem;
+  color: #8d8478;
+  font-size: 0.84rem;
+}
+.gate-steps li.on { color: #f2d48a; font-weight: 650; }
+.gate-steps li.done { color: #8fd0b0; }
+.gate-steps li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.45rem;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: #3d4945;
+}
+.gate-steps li.on::before { background: #f2d48a; }
+.gate-steps li.done::before { background: #8fd0b0; }
+.gate-wait-note { display: block; margin-top: 0.35rem; color: #cbbd9a; font-size: 0.8rem; }
 .kw-gate-row button { flex: 1; text-align: center; font-weight: 700; padding: 0.55rem 0.4rem; }
 
 @media (max-width: 980px) {

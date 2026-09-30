@@ -34,7 +34,35 @@ export function createGuestDesk(deps) {
   if (!book.days || typeof book.days !== "object") book.days = {};
   let lock = Promise.resolve();
   const pendingBye = new Map();
+  const jobs = new Map();
   const desk = { onGone: null };
+
+  function publicJob(job) {
+    if (!job) return null;
+    const out = {
+      ok: job.ok === true,
+      pending: job.pending === true,
+      job: job.id,
+      step: job.step || "",
+    };
+    if (job.detail) out.detail = job.detail;
+    if (job.error) out.error = job.error;
+    if (job.ok && job.result) {
+      out.address = job.result.address;
+      out.token = job.result.token;
+      out.sompi = job.result.sompi;
+      out.txid = job.result.txid;
+      out.disclaimer = job.result.disclaimer;
+    }
+    return out;
+  }
+
+  function pruneJobs() {
+    const cutoff = deps.now() - 30 * 60 * 1000;
+    for (const [key, value] of jobs) {
+      if (!value.pending && value.at < cutoff) jobs.delete(key);
+    }
+  }
 
   function queue(fn) {
     const run = lock.then(fn, fn);
@@ -106,73 +134,141 @@ export function createGuestDesk(deps) {
     for (const token of due.slice(0, REAP_BATCH)) await drop(token);
   }
 
-  desk.open = ({ ip, life }) =>
-    queue(async () => {
-      const pageLife = String(life || "");
-      const now = deps.now();
-      await reap(now);
-      const dayName = dayKey(now);
-      if (!book.days[dayName]) book.days[dayName] = { n: 0, ips: {} };
-      const day = book.days[dayName];
-      const who = String(ip || "unknown");
-      const used = Number(day.ips[who] || 0);
-      if (used >= GUEST_PER_IP) {
-        throw new Error(
-          "This network has used today's test wallets. Use Kasware, Kastle, or your own kaspatest address. Those keep their history."
-        );
-      }
-      if (Number(day.n) >= GUEST_PER_DAY) {
-        throw new Error("Today's test wallets are used up. Use your own Testnet-10 wallet. That one keeps its history.");
-      }
-      let minted;
-      try {
-        minted = await deps.mint();
-      } catch (err) {
-        throw scrub(err, minted && minted.key);
-      }
-      const address = assertTestnet(minted.address);
-      if (address.toLowerCase() === RESERVE.toLowerCase()) throw new Error("Test wallet collided with the reserve.");
-      const key = String(minted.key || "").trim().toLowerCase();
-      if (!/^[0-9a-f]{64}$/.test(key)) throw new Error("Test wallet was not created.");
-      const token = crypto.randomBytes(24).toString("hex");
-      day.n += 1;
-      day.ips[who] = used + 1;
-      book.sessions[token] = {
-        address,
-        key,
-        ip: who,
-        life: pageLife,
-        created: now,
-        touched: now,
-        funded: GUEST_FUND_SOMPI.toString(),
-        byeAt: 0,
-        byeLife: "",
-      };
+  async function openInside({ ip, life, onStep }) {
+    const step = (name, extra) => {
+      if (onStep) onStep(name, extra);
+    };
+    const pageLife = String(life || "");
+    const now = deps.now();
+    step("Checking today's test wallets");
+    await reap(now);
+    const dayName = dayKey(now);
+    if (!book.days[dayName]) book.days[dayName] = { n: 0, ips: {} };
+    const day = book.days[dayName];
+    const who = String(ip || "unknown");
+    const used = Number(day.ips[who] || 0);
+    if (used >= GUEST_PER_IP) {
+      throw new Error(
+        "This network has used today's test wallets. Use Kasware, Kastle, or your own kaspatest address. Those keep their history."
+      );
+    }
+    if (Number(day.n) >= GUEST_PER_DAY) {
+      throw new Error("Today's test wallets are used up. Use your own Testnet-10 wallet. That one keeps its history.");
+    }
+    step("Making a Testnet-10 address");
+    let minted;
+    try {
+      minted = await deps.mint();
+    } catch (err) {
+      throw scrub(err, minted && minted.key);
+    }
+    const address = assertTestnet(minted.address);
+    if (address.toLowerCase() === RESERVE.toLowerCase()) throw new Error("Test wallet collided with the reserve.");
+    const key = String(minted.key || "").trim().toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(key)) throw new Error("Test wallet was not created.");
+    const token = crypto.randomBytes(24).toString("hex");
+    day.n += 1;
+    day.ips[who] = used + 1;
+    book.sessions[token] = {
+      address,
+      key,
+      ip: who,
+      life: pageLife,
+      created: now,
+      touched: now,
+      funded: GUEST_FUND_SOMPI.toString(),
+      byeAt: 0,
+      byeLife: "",
+    };
+    persist();
+    try {
+      const paid = await deps.fund(address, GUEST_FUND_SOMPI, step);
+      const txid = paid && paid.txids && paid.txids[0];
+      const got = BigInt(paid && paid.sompi != null ? paid.sompi : 0);
+      if (!txid || got < GUEST_FUND_SOMPI) throw new Error("The test wallet was not funded.");
+      book.sessions[token].fundTxid = String(txid);
       persist();
+    } catch (err) {
+      let swept = false;
       try {
-        const paid = await deps.fund(address, GUEST_FUND_SOMPI);
-        const txid = paid && paid.txids && paid.txids[0];
-        const got = BigInt(paid && paid.sompi != null ? paid.sompi : 0);
-        if (!txid || got < GUEST_FUND_SOMPI) throw new Error("The test wallet was not funded.");
-        book.sessions[token].fundTxid = String(txid);
+        await deps.sweep({ key, from: address });
+        swept = true;
+      } catch {
+        if (book.sessions[token]) book.sessions[token].sweepAfter = deps.now() + RETRY_MS;
         persist();
-      } catch (err) {
+      }
+      if (swept) {
         delete book.sessions[token];
         day.n -= 1;
         day.ips[who] = used;
         persist();
-        throw scrub(err, key);
       }
-      const row = book.sessions[token];
-      return {
-        ok: true,
-        address: row.address,
-        token,
-        sompi: row.funded,
-        txid: row.fundTxid,
-        disclaimer: GUEST_DISCLAIMER,
-      };
+      throw scrub(err, key);
+    }
+    const row = book.sessions[token];
+    return {
+      ok: true,
+      address: row.address,
+      token,
+      sompi: row.funded,
+      txid: row.fundTxid,
+      disclaimer: GUEST_DISCLAIMER,
+    };
+  }
+
+  desk.open = ({ ip, life }) => queue(() => openInside({ ip, life }));
+
+  desk.job = (id) => {
+    pruneJobs();
+    const job = jobs.get(String(id || ""));
+    if (!job) return null;
+    return publicJob(job);
+  };
+
+  desk.start = ({ ip, life }) => {
+    pruneJobs();
+    const id = crypto.randomBytes(8).toString("hex");
+    const job = {
+      id,
+      at: deps.now(),
+      ok: false,
+      pending: true,
+      step: "Waiting for the till",
+      error: "",
+      result: null,
+    };
+    jobs.set(id, job);
+    queue(async () => {
+      try {
+        const opened = await openInside({
+          ip,
+          life,
+          onStep: (name, extra) => {
+            job.step = String(name || job.step);
+            job.detail = extra && extra.detail ? String(extra.detail).slice(0, 80) : "";
+          },
+        });
+        job.ok = true;
+        job.pending = false;
+        job.step = "Broadcasting";
+        job.error = "";
+        job.result = opened;
+      } catch (err) {
+        job.ok = false;
+        job.pending = false;
+        job.step = "Stopped";
+        job.error = (err && err.message) || "The test wallet failed.";
+        job.result = null;
+      }
+    }).catch((err) => {
+      job.ok = false;
+      job.pending = false;
+      job.step = "Stopped";
+      job.error = (err && err.message) || "The test wallet failed.";
+      job.result = null;
     });
+    return publicJob(job);
+  };
 
   desk.pay = ({ token, address, sompi }) =>
     queue(async () => {
@@ -278,9 +374,9 @@ export function guestDesk() {
       const { mintTestnetAddress } = await import("../faucet/pay.mjs");
       return mintTestnetAddress();
     },
-    async fund(address, sompi) {
+    async fund(address, sompi, onStep) {
       const { payTn10 } = await import("../faucet/pay.mjs");
-      return payTn10(address, sompi);
+      return payTn10(address, sompi, onStep);
     },
     async pay({ key, from, sompi }) {
       const { payFromKey } = await import("../faucet/pay.mjs");

@@ -123,6 +123,11 @@ export function create1984Service(deps) {
     assertNotMainnetNetwork(body && body.network);
     const guests = guestApi();
     if (pathname === "/api/1984/guest") {
+      if (body && body.progress === true && typeof guests.start === "function") {
+        const started = guests.start({ ip, life: body.life });
+        if (!started || started.key || started.privateKey) throw new Error("Test login refused to start.");
+        return { status: 202, body: started };
+      }
       const opened = await guests.open({ ip, life: body.life });
       if (!opened || opened.key || opened.privateKey) throw new Error("Test login refused to start.");
       return { status: 200, body: opened };
@@ -271,6 +276,17 @@ export function create1984Service(deps) {
         if (method === "GET" && pathname === "/api/1984/resolve") {
           const found = await resolveName(query.get("name") || "", deps.fetch);
           return { status: 200, body: { ok: true, found } };
+        }
+        if (method === "GET" && pathname === "/api/1984/guest") {
+          const guests = guestApi();
+          const found = typeof guests.job === "function" ? guests.job(query.get("job") || "") : null;
+          if (!found || found.key || found.privateKey) {
+            return {
+              status: 404,
+              body: { ok: false, pending: false, error: "That opening expired. Try New arrival again." },
+            };
+          }
+          return { status: 200, body: found };
         }
         if (method === "GET" && pathname === "/api/1984/fee") {
           let rate = 200;
