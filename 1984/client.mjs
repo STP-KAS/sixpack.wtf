@@ -13,7 +13,7 @@ import {
   sompiForCents,
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
-import { kasSpendAction, lockSigner, shopBanner, txidFromWallet } from "./kas-spend.mjs";
+import { buyAskLine, lockSigner, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
 import { DRIVE_MS, WALK_MS, mountWorld, seat } from "./view3d.mjs?v=10";
 import { ROADSTER_PARK, destinationFor, findPath, nearShop, shopVisit, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
@@ -587,10 +587,13 @@ function paintShop(shopId) {
       const price = rail === "kas" ? kas : formatCents(item.cents) + " " + names[rail];
       const frozenRail = rail === "kusdt" && state.account && state.account.kusdtFrozen;
       const ownedCar = item.sku === "keys" && state.account && state.account.roadster;
+      const walletKas = rail === "kas" && state.id && (state.id.kind === "kasware" || state.id.kind === "kastle");
       const afford = frozenRail ? false : canPay(rail, item.cents);
       const short = frozenRail ? "KUSDT is frozen. POCencept and tKAS still spend." : "Not enough " + names[rail] + " for " + item.name + ".";
       const button = ownedCar
         ? '<button type="button" class="buy" disabled>Yours. Get in or get out.</button>'
+        : walletKas
+        ? '<button type="button" class="buy short" data-short="The wallet stays closed for a shop. Pick POCencept or KUSDT. Swapping tKAS at the bank asks the wallet to sign.">Shop takes a toy</button>'
         : afford === false
         ? '<button type="button" class="buy short" data-short="' + esc(short) + '">' + esc(frozenRail ? "KUSDT is frozen" : "Not enough " + names[rail]) + "</button>"
         : '<button type="button" class="buy" data-pay="' + rail + '" data-shop="' + shop.id + '" data-sku="' + item.sku + '">Buy · ' + esc(price) + "</button>";
@@ -614,7 +617,7 @@ function paintShop(shopId) {
     balanceSheet() +
     '<div class="booth-tabs">' + picks + "</div>" +
     rows + txid +
-    "<p class=\"fine\">One rail for the whole menu. POCencept and KUSDT are toys. tKAS asks the wallet. The miner fee is twice the standard Testnet 10 rate, and it is extra.</p></div>";
+    "<p class=\"fine\">One rail for the whole menu. A buy asks on this page, then OK. The wallet opens only when you swap tKAS at the bank. The miner fee on that swap is twice the standard Testnet 10 rate, and it is extra.</p></div>";
   document.getElementById("stall-close").onclick = () => openMode("world");
   const pasted = document.getElementById("txid");
   if (pasted) pasted.addEventListener("input", () => {
@@ -878,13 +881,13 @@ function paintGuide() {
     "<ol>" +
     "<li class=\"only-desk\">Click Kasware or Kastle and approve the login. This page asks the wallet to open on Testnet 10. If the window is black, close it, click the wallet icon, unlock, and try again. A mainnet address is still refused. That login stays on this browser.</li>" +
     "<li class=\"only-phone\">On a phone, set Testnet 10 inside Kasware or Kastle before you log in. This page cannot switch the phone wallet. Or open this page in the Kastle browser. If the window is black, close it, unlock the wallet, and try again. A mainnet address is still refused. That login stays on this browser.</li>" +
-    "<li>Or choose New arrival on the welcome gate. That is the same as Test without a wallet. This tab gets 10000 tKAS from Grok's Testnet-10 wallet. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. Returning leaves the gate and uses a wallet that stays on this browser. One thousand of these test wallets can be opened in a day.</li>" +
+    "<li>Or choose New arrival on the welcome gate. That is the same as Test without a wallet. This tab gets 50000 tKAS from Grok's Testnet-10 wallet. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. Returning leaves the gate and uses a wallet that stays on this browser. One thousand of these test wallets can be opened in a day.</li>" +
     "<li>Or paste a kaspatest address. Or type a .kas name that already resolves on TN10. That choice stays until you change it.</li>" +
-    "<li>Need coins: New arrival gives this tab 10000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
+    "<li>Need coins: New arrival gives this tab 50000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to go in. The counter is a popup. Buy the roadster and you drive it. W A S D move the way you look. The arrow keys do too. G gets in or out. Esc closes. Pick one rail, then Buy.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Step moves you. Left and Right turn you. Tap a building you are next to and you go in. Get in drives. Get out walks. Square closes a shop. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
-    "<li>tKAS asks the wallet to sign a real Testnet-10 transaction. The miner fee is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
-    "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While Kasware is opening, the steps stay on that clerk.</li>" +
+    "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept swap, a KUSDT swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
+    "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>The roadster parks in front of Pike's shop. Click it to get in. Thrusters show while it moves. Get out to walk. Inside a shop you are on foot. The car does not leave town.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
@@ -924,8 +927,8 @@ function tookPayment(body, sku) {
 }
 
 function payingLine() {
-  if (state.id.kind === "kasware") return "Paying as Kasware.";
-  if (state.id.kind === "kastle") return "Paying as Kastle.";
+  if (state.id.kind === "kasware") return "Paying as Kasware. The wallet signs a tKAS swap.";
+  if (state.id.kind === "kastle") return "Paying as Kastle. The wallet signs a tKAS swap.";
   if (state.id.kind === "guest") return "Paying as this tab's test address.";
   if (state.id.kind === "name") return "Paying as " + (state.id.label || "a .kas name") + ".";
   if (state.id.address) return "Paying as a pasted address. Lock uses Kasware or Kastle when that wallet is this same address.";
@@ -1014,94 +1017,92 @@ function rememberShopTxid(txid) {
   if (details) details.open = true;
 }
 
-async function spend(rail, shop, sku, confirmed) {
+function goodsName(shop, sku) {
+  const place = ((state.home && state.home.shops) || []).find((item) => item.id === shop);
+  const row = place && place.items.find((item) => item.sku === sku);
+  return row ? row.name : "this";
+}
+
+let askBusy = false;
+
+function askOk(line) {
+  const shade = document.getElementById("ask");
+  const text = document.getElementById("ask-line");
+  const ok = document.getElementById("ask-ok");
+  const no = document.getElementById("ask-no");
+  if (askBusy || !shade || !text || !ok || !no) return Promise.resolve(false);
+  askBusy = true;
+  text.textContent = line;
+  shade.hidden = false;
+  return new Promise((resolve) => {
+    const finish = (yes) => {
+      askBusy = false;
+      shade.hidden = true;
+      ok.removeEventListener("click", onOk);
+      no.removeEventListener("click", onNo);
+      shade.removeEventListener("click", onShade);
+      document.removeEventListener("keydown", onKey);
+      resolve(yes);
+    };
+    const onOk = () => finish(true);
+    const onNo = () => finish(false);
+    const onShade = (ev) => {
+      if (ev.target === shade) finish(false);
+    };
+    const onKey = (ev) => {
+      if (ev.key === "Escape") finish(false);
+    };
+    ok.addEventListener("click", onOk);
+    no.addEventListener("click", onNo);
+    shade.addEventListener("click", onShade);
+    document.addEventListener("keydown", onKey);
+    ok.focus();
+  });
+}
+
+async function spend(rail, shop, sku) {
   if (spendBusy) return;
   if (!requireId()) return;
   spendBusy = true;
   try {
+    const names = { kas: "tKAS", poc: "POCencept", kusdt: "KUSDT" };
+    let price = names[rail] || "this";
     let txid = "";
-    let yes = !!confirmed;
     if (rail === "kas") {
       const quote = await api("/api/1984/quote?shop=" + encodeURIComponent(shop) + "&sku=" + encodeURIComponent(sku));
       if (!quote.ok) {
         say(quote.error || "No quote.", true);
         return;
       }
-      if (state.id.kind === "guest") {
-        say("Paying from this tab's test address. Close the tab and it is gone.");
-        let body = await post("/api/1984/guest/spend", { token: state.id.token, shop, sku, confirmed: yes });
-        if (body.needsConfirm) {
-          const agreed = window.confirm("This is over your confirm line. Pay it?");
-          if (!agreed) return;
-          body = await post("/api/1984/guest/spend", { token: state.id.token, shop, sku, confirmed: true });
-        }
-        if (!body.ok) {
-          punch("shake");
-          say(body.error || "The shop refused the payment.", true);
-          return;
-        }
-        tookPayment(body, sku);
-        await refreshAccount();
+      price = formatTkas(quote.sompi) + " tKAS";
+    } else {
+      const place = ((state.home && state.home.shops) || []).find((item) => item.id === shop);
+      const row = place && place.items.find((item) => item.sku === sku);
+      if (row) price = formatCents(row.cents) + " " + (names[rail] || "");
+    }
+    const agreed = await askOk(buyAskLine(goodsName(shop, sku), price));
+    if (!agreed) return;
+    if (rail === "kas" && state.id.kind === "guest") {
+      say("Paying from this tab's test address. Close the tab and it is gone.");
+      const body = await post("/api/1984/guest/spend", { token: state.id.token, shop, sku, confirmed: true });
+      if (!body.ok) {
+        punch("shake");
+        say(body.error || "The shop refused the payment.", true);
         return;
       }
+      tookPayment(body, sku);
+      await refreshAccount();
+      return;
+    }
+    if (rail === "kas") {
       const typed = panel.querySelector("#txid");
       txid = typed ? typed.value.trim() : shopTxid;
       if (!txid) {
-        const plan = await signerForSpend();
-        if (plan !== "kit" && plan !== "kasware" && plan !== "kastle") {
-          punch("shake");
-          const why = plan === "mainnet"
-            ? "The wallet is on mainnet. This square takes Testnet 10 only."
-            : plan === "mismatch"
-              ? "The wallet is open on a different address than this page. Click Log in with Kasware."
-              : plan === "absent"
-                ? "This page is logged in with the wallet, and the extension is not in this tab."
-                : "Connect Kasware or Kastle on Testnet 10.";
-          say(why + " Or paste the txid after you pay " + formatTkas(quote.sompi) + " tKAS to the reserve.", true);
-          return;
-        }
-        let gate = await post("/api/1984/spend", { shop, sku, rail, txid: "", confirmed: yes });
-        let action = kasSpendAction({
-          kind: state.id.kind,
-          txid: "",
-          needsConfirm: !!gate.needsConfirm,
-          ready: !!gate.ready,
-        });
-        if (action === "ask") {
-          const agreed = window.confirm("This is over your confirm line. Pay it?");
-          if (!agreed) return;
-          yes = true;
-          gate = await post("/api/1984/spend", { shop, sku, rail, txid: "", confirmed: true });
-          action = kasSpendAction({
-            kind: state.id.kind,
-            txid: "",
-            needsConfirm: !!gate.needsConfirm,
-            ready: !!gate.ready,
-          });
-        }
-        if (action !== "sign") {
-          punch("shake");
-          say(gate.error || "The shop refused the payment.", true);
-          return;
-        }
-        say("Approve " + formatTkas(quote.sompi) + " tKAS in the wallet. The miner fee is twice the standard rate, and it is extra.");
-        rememberWalletKind(plan);
-        txid = await sendFromWallet(plan, quote.sompi);
-        rememberShopTxid(txid);
-        if (!shopTxid) {
-          say("The wallet did not return a transaction. Nothing was claimed.", true);
-          return;
-        }
-        txid = shopTxid;
+        say("The wallet stays closed for a shop. Pick POCencept or KUSDT, then OK. Swapping tKAS at the bank asks the wallet to sign.", true);
+        return;
       }
     }
-    let body = await post("/api/1984/spend", { shop, sku, rail, txid, confirmed: yes });
-    if (body.needsConfirm) {
-      const agreed = window.confirm("This is over your confirm line. Pay it?");
-      if (!agreed) return;
-      yes = true;
-      body = await post("/api/1984/spend", { shop, sku, rail, txid, confirmed: true });
-    }
+    const body = await post("/api/1984/spend", { shop, sku, rail, txid, confirmed: true });
     if (!body.ok) {
       punch("shake");
       const kept = rail === "kas" && txid ? " The txid stays in the paste box. Buy again claims it and does not send a second time." : "";
@@ -1248,6 +1249,11 @@ async function redeem(rail) {
     swapNote("Not swapped. " + err.message, "bad");
     return;
   }
+  const agreed = await askOk(swapAskLine(amount, name, "tKAS"));
+  if (!agreed) {
+    swapNote("Not swapped. Nothing moved.", "");
+    return;
+  }
   const steps = ["Checking the amount", "Taking the locked tag", "Sending tKAS back", "Done"];
   setSwapBusy(true);
   showSteps(steps, 1, "Taking the locked tag.");
@@ -1294,6 +1300,11 @@ async function exchange(from, to) {
   } catch (err) {
     punch("shake");
     swapNote("Not swapped. " + err.message, "bad");
+    return;
+  }
+  const agreed = await askOk(swapAskLine(amount, source, dest));
+  if (!agreed) {
+    swapNote("Not swapped. Nothing moved.", "");
     return;
   }
   const steps = ["Checking the amount", "Moving the tag", "Done"];

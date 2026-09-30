@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { GUEST_DISCLAIMER, RESERVE, assertTestnet, dayKey } from "./money.mjs";
 
 export { GUEST_DISCLAIMER };
-export const GUEST_FUND_SOMPI = 10000n * 100_000_000n;
+export const GUEST_FUND_SOMPI = 50000n * 100_000_000n;
 export const GUEST_PER_IP = 1000;
 export const GUEST_PER_DAY = 1000;
 export const GUEST_BYE_MS = 25_000;

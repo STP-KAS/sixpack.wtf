@@ -350,6 +350,40 @@ body.page-1984 main.kw-stage {
   background: rgba(10, 8, 6, 0.5);
 }
 .bank-shade[hidden] { display: none; }
+.ask-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(10, 8, 6, 0.62);
+}
+.ask-shade[hidden] { display: none; }
+.ask-card {
+  width: min(420px, 100%);
+  background: #2a1c14;
+  border: 3px solid #e7c27a;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  padding: 1rem 1rem 0.85rem;
+}
+.ask-card p {
+  margin: 0 0 0.85rem;
+  color: #f3e6c8;
+  font-size: 1.05rem;
+}
+.ask-row { display: flex; gap: 0.5rem; }
+.ask-row button {
+  flex: 1;
+  text-align: center;
+  font-weight: 700;
+  padding: 0.55rem 0.4rem;
+}
+#ask-ok {
+  background: linear-gradient(#e6c98a, #a07838);
+  color: #1a1612;
+}
 .juice-banner {
   position: absolute;
   left: 50%;

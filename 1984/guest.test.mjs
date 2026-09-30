@@ -100,7 +100,7 @@ test("a new test wallet is funded and the answer has no key", async () => {
   assert.equal(JSON.stringify(paid).includes(h.key()), false);
   await assert.rejects(
     () => h.desk.pay({ token: opened.token, address: opened.address, sompi: GUEST_FUND_SOMPI + 1n }),
-    /10000 tKAS/
+    /50000 tKAS/
   );
 });
 

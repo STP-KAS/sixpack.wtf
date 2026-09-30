@@ -5,7 +5,22 @@ export function shopBanner(sku) {
   return "Paid.";
 }
 
-/** Next step for a shop tKAS buy. A wallet signs only after the till says ready. */
+/** The page asks before a shop buy. The wallet is not this question. */
+export function buyAskLine(name, price) {
+  const item = String(name || "this").trim() || "this";
+  const cost = String(price || "").trim() || "this";
+  return "You want to buy " + item + " for " + cost + "?";
+}
+
+/** The page asks before a POCencept or KUSDT swap. A tKAS swap asks the wallet instead. */
+export function swapAskLine(amount, source, dest) {
+  const sum = String(amount || "").trim() || "that";
+  const from = String(source || "this").trim() || "this";
+  const to = String(dest || "that").trim() || "that";
+  return "You want to swap " + sum + " " + from + " for " + to + "?";
+}
+
+/** Next step after the till allows a tKAS shop payment. The page does not open Kasware or Kastle for a buy. A tKAS swap at the bank is what asks the wallet. */
 export function kasSpendAction({ kind, txid, needsConfirm, ready }) {
   if (kind === "guest") return "guest";
   if (txid) return "credit";

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { kasSpendAction, lockSigner, shopBanner, txidFromWallet } from "./kas-spend.mjs";
+import { buyAskLine, kasSpendAction, lockSigner, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
 
 test("a guest shop payment stays on the server, which asks before the key signs", () => {
   assert.equal(kasSpendAction({ kind: "guest", txid: "", needsConfirm: true, ready: false }), "guest");
@@ -43,6 +43,13 @@ test("a bank lock signs with Kasware when that wallet is the page address", () =
   }), "mainnet");
   assert.equal(txidFromWallet('{"txid":"ab"}'), "ab");
   assert.equal(txidFromWallet({ id: "cd" }), "cd");
+});
+
+test("a shop buy and a toy swap ask on the page", () => {
+  assert.equal(buyAskLine("Coffee", "2.50 POCencept"), "You want to buy Coffee for 2.50 POCencept?");
+  assert.equal(swapAskLine("1.00", "POCencept", "KUSDT"), "You want to swap 1.00 POCencept for KUSDT?");
+  assert.equal(swapAskLine("1.00", "KUSDT", "tKAS"), "You want to swap 1.00 KUSDT for tKAS?");
+  assert.equal(buyAskLine("", ""), "You want to buy this for this?");
 });
 
 test("a wallet shop payment asks before it signs, then signs, and a pasted txid is only claimed", () => {
