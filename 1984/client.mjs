@@ -14,7 +14,7 @@ import {
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
-import { DRIVE_MS, ENTRY_HINT, WALK_MS, escapeRoom, mountWorld, roomUse, seat } from "./view3d.mjs?v=13";
+import { DRIVE_MS, ENTRY_HINT, WALK_MS, escapeRoom, flightBeat, flightClock, flightLine, mountWorld, returnReady, roomUse, seat } from "./view3d.mjs?v=14";
 import { ROADSTER_PARK, counterFace, destinationFor, findPath, nearShop, shopVisit, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -53,6 +53,11 @@ const state = {
   inside: false,
   venue: "",
   seated: false,
+  flightStart: 0,
+  flightDark: false,
+  flightEndedAt: 0,
+  flightBackShown: false,
+  flightBeat: "",
 };
 
 const PRIVACY =
@@ -176,12 +181,129 @@ function groundTile() {
   return map.grid[state.player.y] && map.grid[state.player.y][state.player.x];
 }
 
+function canLaunch() {
+  const owns = !!(state.account && state.account.roadster);
+  const outside = groundTile() !== "i" && !state.inside && !state.venue;
+  return owns && state.aboard && outside && !state.flightStart;
+}
+
 function syncRide() {
   const btn = document.getElementById("ride");
-  if (!btn) return;
-  const owns = !!(state.account && state.account.roadster);
-  btn.hidden = !owns;
-  btn.textContent = state.aboard ? "Get out" : "Get in";
+  if (btn) {
+    const owns = !!(state.account && state.account.roadster);
+    btn.hidden = !owns;
+    btn.textContent = state.aboard ? "Get out" : "Get in";
+  }
+  const launch = document.getElementById("launch");
+  if (launch) launch.hidden = !canLaunch();
+}
+
+function startLaunch() {
+  if (!canLaunch()) return;
+  if (state.mode !== "world") {
+    hidePanel();
+    state.mode = "world";
+    markRoom();
+  }
+  state.path = [];
+  state.arrived = null;
+  state.lapUntil = 0;
+  state.flightStart = performance.now();
+  state.flightDark = false;
+  state.flightEndedAt = 0;
+  state.flightBackShown = false;
+  state.flightBeat = "";
+  const card = document.getElementById("flight");
+  if (card) {
+    card.hidden = false;
+    card.classList.remove("ended");
+  }
+  const clock = document.getElementById("flight-clock");
+  const line = document.getElementById("flight-line");
+  const end = document.getElementById("flight-end");
+  const bye = document.getElementById("flight-bye");
+  const back = document.getElementById("flight-back");
+  if (clock) {
+    clock.hidden = false;
+    clock.textContent = flightClock(0);
+  }
+  if (line) {
+    line.hidden = false;
+    line.textContent = "";
+  }
+  if (end) end.hidden = false;
+  if (bye) bye.hidden = true;
+  if (back) back.hidden = true;
+  markFlight();
+  syncRide();
+}
+
+function endLaunch() {
+  if (!state.flightStart || state.flightDark) return;
+  state.flightDark = true;
+  state.flightEndedAt = performance.now();
+  const card = document.getElementById("flight");
+  if (card) card.classList.add("ended");
+  const clock = document.getElementById("flight-clock");
+  const line = document.getElementById("flight-line");
+  const end = document.getElementById("flight-end");
+  if (clock) clock.hidden = true;
+  if (line) line.hidden = true;
+  if (end) end.hidden = true;
+  const bye = document.getElementById("flight-bye");
+  if (bye) bye.hidden = false;
+  const veil = document.getElementById("veil");
+  if (veil) {
+    veil.style.background = "#07080c";
+    veil.style.transition = "opacity 0.45s ease";
+    veil.style.opacity = "1";
+  }
+}
+
+function returnFromFlight() {
+  if (!state.flightBackShown) return;
+  state.flightStart = 0;
+  state.flightDark = false;
+  state.flightEndedAt = 0;
+  state.flightBackShown = false;
+  state.flightBeat = "";
+  state.aboard = true;
+  state.path = [];
+  state.arrived = null;
+  state.lapUntil = 0;
+  if (state.venue || state.inside || isVisit(state.mode)) openMode("world");
+  state.player = { x: ROADSTER_PARK.x, y: ROADSTER_PARK.y };
+  state.facing = { x: 0, y: -1 };
+  const card = document.getElementById("flight");
+  if (card) {
+    card.hidden = true;
+    card.classList.remove("ended");
+  }
+  markFlight();
+  veilRoom();
+  syncRide();
+  paintChrome();
+  if (worldView.snap) worldView.snap();
+  say("You are back on the square. You are in the roadster.");
+}
+
+function paintFlightCard(now) {
+  if (!state.flightDark) {
+    const ms = now - state.flightStart;
+    const beat = flightBeat(ms);
+    if (beat !== state.flightBeat) {
+      state.flightBeat = beat;
+      const line = document.getElementById("flight-line");
+      if (line) line.textContent = flightLine(beat);
+    }
+    const clock = document.getElementById("flight-clock");
+    if (clock) clock.textContent = flightClock(ms);
+  }
+  if (state.flightEndedAt && !state.flightBackShown && returnReady(state.flightEndedAt, now)) {
+    state.flightBackShown = true;
+    const back = document.getElementById("flight-back");
+    if (back) back.hidden = false;
+  }
 }
 
 function toggleRide() {
@@ -537,6 +659,11 @@ function markRoom() {
   if (root) root.classList.toggle("room", state.mode !== "world" || !!state.venue);
 }
 
+function markFlight() {
+  const root = document.querySelector(".kw");
+  if (root) root.classList.toggle("flight", !!state.flightStart);
+}
+
 let keepClerk = false;
 
 function chooseRail(rail) {
@@ -572,6 +699,7 @@ function hidePanel() {
 function veilRoom() {
   const veil = document.getElementById("veil");
   if (!veil) return;
+  veil.style.background = "";
   veil.style.transition = "none";
   veil.style.opacity = "1";
   void veil.offsetWidth;
@@ -1063,7 +1191,7 @@ function paintGuide() {
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
     "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept swap, a KUSDT swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
-    "<li>The roadster parks in front of Pike's shop. Click it to get in. Thrusters show while it moves. Get out to walk. Inside a shop you are on foot. The car does not leave town.</li>" +
+    "<li>The roadster parks in front of Pike's shop. Click it to get in. Thrusters show while it moves. Get out to walk. Inside a shop you are on foot. Launch, while you are in the car and outside, rides a ship to orbit. The car then leaves the ship. End the flight and, after a short wait, Simulation theory puts you back on the square in the car.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +
@@ -1599,8 +1727,11 @@ function step(now) {
     state.bankShutter = now;
     if (state.mode === "bank") paintBank();
   }
-  const ridingLap = state.lapUntil && now < state.lapUntil;
-  if (!ridingLap) {
+  if (state.flightStart) {
+    paintFlightCard(now);
+  }
+  const ridingLap = !state.flightStart && state.lapUntil && now < state.lapUntil;
+  if (!state.flightStart && !ridingLap) {
     if (state.lapUntil) state.lapUntil = 0;
     const ground = map.grid[state.player.y] && map.grid[state.player.y][state.player.x];
     const pace = state.inside ? WALK_MS : seat(!!(state.account && state.account.roadster), state.aboard, ground) === "drive" ? DRIVE_MS : WALK_MS;
@@ -1645,7 +1776,13 @@ const worldView = mountWorld(view, map, {
   rail: () => state.bankRail,
   player: () => state.player,
   facing: () => state.facing,
+  flight() {
+    if (!state.flightStart) return 0;
+    if (state.flightDark) return -1;
+    return performance.now() - state.flightStart;
+  },
   walk(x, y) {
+    if (state.flightStart) return;
     const npc = map.npcs.find((item) => item.x === x && item.y === y);
     walkTo(x, y, npc ? () => arriveVisit(npc.shop) : null);
   },
@@ -1653,6 +1790,7 @@ const worldView = mountWorld(view, map, {
     return nearShop(map, state.player.x, state.player.y, shop);
   },
   enter(shop) {
+    if (state.flightStart) return;
     enterVisit(shop);
   },
   room: () => state.inside,
@@ -1660,6 +1798,7 @@ const worldView = mountWorld(view, map, {
   seated: () => state.seated,
   clerk: () => state.bankClerk,
   use(hit, rail) {
+    if (state.flightStart) return;
     if (!state.venue) return;
     const act = roomUse(state.venue, state.seated, hit);
     if (act.sit) state.seated = true;
@@ -1681,6 +1820,7 @@ const worldView = mountWorld(view, map, {
     if (act.open) openMode(act.open);
   },
   step(dx, dy) {
+    if (state.flightStart) return;
     if (!dx && !dy) return;
     state.path = [];
     state.arrived = null;
@@ -1700,6 +1840,7 @@ const worldView = mountWorld(view, map, {
     chooseRail(rail);
   },
   car() {
+    if (state.flightStart) return;
     const owns = !!(state.account && state.account.roadster);
     if (!owns) {
       if (nearShop(map, state.player.x, state.player.y, "roadster")) enterVisit("roadster");
@@ -1726,6 +1867,7 @@ const worldView = mountWorld(view, map, {
     return seat(!!(state.account && state.account.roadster), state.aboard, ground) === "drive";
   },
   place(x, y) {
+    if (state.flightStart) return;
     state.path = [];
     state.arrived = null;
     state.player = { x, y };
@@ -1753,6 +1895,14 @@ window.addEventListener("keydown", (ev) => {
   if (key !== "e" && key !== "escape" && key !== "g") return;
   if (ev.target && (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA")) return;
   ev.preventDefault();
+  if (state.flightStart) {
+    if (key === "escape") {
+      const ask = document.getElementById("ask");
+      if (ask && !ask.hidden) return;
+      if (!state.flightDark) endLaunch();
+    }
+    return;
+  }
   if (key === "g") {
     toggleRide();
     return;
@@ -1780,6 +1930,7 @@ window.addEventListener("keydown", (ev) => {
 
 window.addEventListener("resize", () => worldView.resize());
 side.addEventListener("click", (ev) => {
+  if (state.flightStart) return;
   const button = ev.target.closest("[data-go]");
   if (!button) return;
   const mode = button.getAttribute("data-go");
@@ -1902,6 +2053,12 @@ for (const button of document.querySelectorAll("[data-turn]")) {
 }
 const rideButton = document.getElementById("ride");
 if (rideButton) rideButton.addEventListener("click", toggleRide);
+const launchButton = document.getElementById("launch");
+if (launchButton) launchButton.addEventListener("click", startLaunch);
+const flightEnd = document.getElementById("flight-end");
+if (flightEnd) flightEnd.addEventListener("click", endLaunch);
+const flightBack = document.getElementById("flight-back");
+if (flightBack) flightBack.addEventListener("click", returnFromFlight);
 document.getElementById("gate-back").addEventListener("click", () => {
   hideGate();
   setPayOpen(false);

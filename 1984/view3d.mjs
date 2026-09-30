@@ -61,6 +61,147 @@ export function thrustCone() {
 export const WALK_MS = 140;
 export const DRIVE_MS = 75;
 
+/** A ship ride. Times are from the moment Launch is pressed. Up is +Y. */
+export const FLIGHT_LIFTOFF = 3000;
+export const FLIGHT_CLIMB = 9000;
+export const FLIGHT_STAGE = 16000;
+export const FLIGHT_ORBIT = 22000;
+export const FLIGHT_RELEASE = 28000;
+export const FLIGHT_SPACE = 36000;
+/** The return button waits this long after the flight is ended. */
+export const FLIGHT_RETURN_MS = 5000;
+/** Cone tip is local +Y. A half turn sends the plume down, toward −Y. */
+export const FLIGHT_PLUME_PITCH = Math.PI;
+
+function flightSmooth(ms, from, to) {
+  if (ms <= from) return 0;
+  if (ms >= to) return 1;
+  const t = (ms - from) / (to - from);
+  return t * t * (3 - 2 * t);
+}
+
+/** light, liftoff, climb, stage, orbit, release, then space. */
+export function flightBeat(ms) {
+  const t = Math.max(0, ms);
+  if (t < FLIGHT_LIFTOFF) return "light";
+  if (t < FLIGHT_CLIMB) return "liftoff";
+  if (t < FLIGHT_STAGE) return "climb";
+  if (t < FLIGHT_ORBIT) return "stage";
+  if (t < FLIGHT_RELEASE) return "orbit";
+  if (t < FLIGHT_SPACE) return "release";
+  return "space";
+}
+
+export function flightLine(beat) {
+  if (beat === "light") return "Engines lit.";
+  if (beat === "liftoff") return "Liftoff.";
+  if (beat === "climb") return "Climbing out.";
+  if (beat === "stage") return "The booster lets go.";
+  if (beat === "orbit") return "Orbit.";
+  if (beat === "release") return "The roadster leaves the ship.";
+  return "You are in space.";
+}
+
+export function flightClock(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return "T+ " + m + ":" + String(r).padStart(2, "0");
+}
+
+export function returnReady(endedAt, now) {
+  return now - endedAt >= FLIGHT_RETURN_MS;
+}
+
+/**
+ * Stack positions for one moment.
+ * The booster and the ship share a climb until staging. The booster then drops.
+ * The roadster stays on the ship's x until release, then slides out toward +X.
+ * Its nose uses headingYaw(1, 0), the same −z front as the town car.
+ */
+export function flightPose(ms) {
+  const t = Math.max(0, ms);
+  const beat = flightBeat(t);
+  const up = flightSmooth(t, FLIGHT_LIFTOFF, FLIGHT_ORBIT);
+  const stackY = up * 48;
+  let boosterY = stackY;
+  let shipY = stackY + 11.2;
+  if (t >= FLIGHT_STAGE) {
+    const drop = flightSmooth(t, FLIGHT_STAGE, FLIGHT_STAGE + 5000);
+    boosterY = stackY * (1 - drop) + (stackY - 28) * drop;
+    shipY = stackY + 11.2 + flightSmooth(t, FLIGHT_STAGE, FLIGHT_ORBIT) * 16;
+  }
+  let carX = 0;
+  if (t >= FLIGHT_RELEASE) {
+    carX = flightSmooth(t, FLIGHT_RELEASE, FLIGHT_SPACE) * 8;
+    if (t > FLIGHT_SPACE) carX += ((t - FLIGHT_SPACE) / 1000) * 0.35;
+  }
+  const plume = t < FLIGHT_LIFTOFF
+    ? flightSmooth(t, 400, FLIGHT_LIFTOFF)
+    : (t < FLIGHT_STAGE ? 1 : Math.max(0, 1 - flightSmooth(t, FLIGHT_STAGE, FLIGHT_STAGE + 1800)));
+  const shipPlume = t >= FLIGHT_STAGE && t < FLIGHT_ORBIT ? 1 : 0;
+  const sky = flightSmooth(t, FLIGHT_CLIMB, FLIGHT_ORBIT);
+  return {
+    beat,
+    stackY,
+    boosterY,
+    shipY,
+    carX,
+    carY: shipY + 4.2,
+    carZ: 0,
+    carYaw: headingYaw(1, 0),
+    carPitch: t > FLIGHT_SPACE ? Math.sin((t - FLIGHT_SPACE) / 1800) * 0.35 : 0,
+    plume,
+    shipPlume,
+    sky,
+    separated: t >= FLIGHT_STAGE,
+    released: carX > 0.2,
+  };
+}
+
+/** Center of the clouded planet, below the ship. */
+export function earthCenter(pose) {
+  return pose.shipY - 55;
+}
+
+/**
+ * Pad and climb cameras sit on +Z, outside the stack, looking toward x=0.
+ * Once the car is leaving, the camera uses orbitOffset around the car.
+ */
+export function flightCamera(ms, yaw = 0, pitch = 1.05) {
+  const pose = flightPose(ms);
+  if (pose.beat === "light" || pose.beat === "liftoff") {
+    return {
+      x: 0,
+      y: 2.4 + pose.stackY * 0.25,
+      z: 28,
+      lx: 0,
+      ly: 9 + pose.stackY * 0.85,
+      lz: 0,
+    };
+  }
+  if (pose.beat === "climb" || pose.beat === "stage") {
+    return {
+      x: 2.2,
+      y: pose.shipY - 2,
+      z: 16,
+      lx: 0,
+      ly: pose.shipY + 6,
+      lz: 0,
+    };
+  }
+  const offset = orbitOffset(yaw, pitch);
+  const dist = pose.beat === "space" ? 7.5 : 11;
+  return {
+    x: pose.carX + offset.x * dist,
+    y: pose.carY + offset.y * dist,
+    z: pose.carZ + offset.z * dist,
+    lx: pose.carX,
+    ly: pose.carY,
+    lz: pose.carZ,
+  };
+}
+
 /** Outdoors with the keys, the car is the body. A shop interior is on foot. */
 export function drives(owns, tile) {
   return !!owns && tile !== "i";
@@ -718,6 +859,266 @@ function addBuildings(parent, map, maps, pick, awnings) {
   }
 }
 
+function makeRoadster() {
+  const car = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.28, 2.15), stone("#c0392b", 0.4));
+  body.position.set(0, 0.36, 0.05);
+  body.castShadow = true;
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.28, 0.85), stone("#1a1612", 0.45));
+  cabin.position.set(0, 0.58, 0.28);
+  const glass = new THREE.Mesh(
+    new THREE.BoxGeometry(0.84, 0.2, 0.7),
+    new THREE.MeshStandardMaterial({ color: "#9fd4ee", roughness: 0.12, metalness: 0.25 }),
+  );
+  glass.position.set(0, 0.62, 0.22);
+  const hood = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.08, 0.42), stone("#922b21", 0.32));
+  hood.position.set(CAR_NOSE.x, CAR_NOSE.y, CAR_NOSE.z);
+  hood.name = "hood";
+  const wheelGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.12, 10);
+  const wheels = [];
+  for (const [wx, wz] of [[-0.5, -0.62], [0.5, -0.62], [-0.5, 0.72], [0.5, 0.72]]) {
+    const hanger = new THREE.Group();
+    hanger.position.set(wx, 0.18, wz);
+    const wheel = new THREE.Mesh(wheelGeo, stone("#1a1612", 0.7));
+    wheel.rotation.z = Math.PI / 2;
+    hanger.add(wheel);
+    car.add(hanger);
+    wheels.push(hanger);
+  }
+  const flames = [];
+  const flameGeo = thrustCone();
+  for (const fx of [-0.28, 0.28]) {
+    for (const [color, hot] of [["#ff6a1a", false], ["#ffe14a", true]]) {
+      const flame = new THREE.Mesh(
+        flameGeo,
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: hot ? 0.95 : 0.88, depthWrite: false }),
+      );
+      flame.rotation.x = THRUST_PITCH;
+      flame.position.set(fx, 0.42, 1.18);
+      flame.visible = false;
+      flame.scale.y = 0.001;
+      flame.userData.hot = hot;
+      car.add(flame);
+      flames.push(flame);
+    }
+  }
+  const thrustLight = new THREE.PointLight("#ff7a2a", 0, 7, 2);
+  thrustLight.position.set(0, 0.42, 1.35);
+  for (const hx of [-0.34, 0.34]) {
+    const lamp = new THREE.Mesh(
+      new THREE.SphereGeometry(0.055, 8, 6),
+      new THREE.MeshStandardMaterial({ color: "#fff6d8", emissive: "#ffe7a0", emissiveIntensity: 0.9, roughness: 0.25 }),
+    );
+    lamp.position.set(hx, 0.4, -1.05);
+    car.add(lamp);
+  }
+  car.add(body, cabin, glass, hood, thrustLight);
+  car.userData.wheels = wheels;
+  car.userData.flames = flames;
+  car.userData.thrustLight = thrustLight;
+  car.userData.lastPos = new THREE.Vector3();
+  return car;
+}
+
+function raptorBells(parent) {
+  const geo = new THREE.CylinderGeometry(0.07, 0.11, 0.32, 6);
+  const mat = new THREE.MeshStandardMaterial({ color: "#2c3136", metalness: 0.62, roughness: 0.38 });
+  let n = 0;
+  const ring = (count, radius) => {
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2;
+      const bell = new THREE.Mesh(geo, mat);
+      bell.name = "raptor";
+      bell.position.set(Math.cos(a) * radius, -0.16, Math.sin(a) * radius);
+      parent.add(bell);
+      n += 1;
+    }
+  };
+  const center = new THREE.Mesh(geo, mat);
+  center.name = "raptor";
+  center.position.y = -0.16;
+  parent.add(center);
+  n += 1;
+  ring(10, 0.38);
+  ring(22, 0.74);
+  return n;
+}
+
+function plumeCone(color, radius, length) {
+  const geo = new THREE.ConeGeometry(radius, length, 12);
+  geo.translate(0, length * 0.5, 0);
+  const mesh = new THREE.Mesh(
+    geo,
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false }),
+  );
+  mesh.rotation.x = FLIGHT_PLUME_PITCH;
+  mesh.visible = false;
+  mesh.scale.y = 0.001;
+  return mesh;
+}
+
+/** Stainless booster under a dark ship. The roadster rides in the bay, nose toward +X. */
+export function buildFlight() {
+  const root = new THREE.Group();
+  root.name = "flight";
+  root.visible = false;
+  const steel = new THREE.MeshStandardMaterial({ color: "#e4e7ec", metalness: 0.72, roughness: 0.28 });
+  const dark = new THREE.MeshStandardMaterial({ color: "#1c1f24", metalness: 0.55, roughness: 0.4 });
+  const pad = new THREE.Mesh(new THREE.CylinderGeometry(8, 8.4, 0.35, 8), stone("#6e6256", 0.9));
+  pad.position.y = -0.15;
+  const towerL = new THREE.Mesh(new THREE.BoxGeometry(0.35, 16, 0.35), steel);
+  towerL.position.set(-3.2, 8, 0);
+  const towerR = towerL.clone();
+  towerR.position.x = 3.2;
+  const armL = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.22, 0.22), steel);
+  armL.position.set(-2.1, 14.2, 0);
+  const armR = armL.clone();
+  armR.position.x = 2.1;
+  const tower = new THREE.Group();
+  tower.add(towerL, towerR, armL, armR);
+  root.add(pad, tower);
+
+  const booster = new THREE.Group();
+  const boosterBody = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.08, 11, 16), steel);
+  boosterBody.position.y = 5.5;
+  booster.add(boosterBody);
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.35, 16), dark);
+  band.position.y = 10.5;
+  booster.add(band);
+  for (const side of [-1, 1]) {
+    for (const z of [-1, 1]) {
+      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.08, 0.7), dark);
+      fin.position.set(side * 1.35, 10.2, z * 0.2);
+      booster.add(fin);
+    }
+  }
+  const engines = raptorBells(booster);
+  const plume = plumeCone("#ff6a1a", 1.5, 1);
+  plume.position.y = -0.05;
+  const plumeHot = plumeCone("#ffe14a", 0.7, 1);
+  plumeHot.position.y = -0.05;
+  booster.add(plume, plumeHot);
+  const burn = new THREE.PointLight("#ff7a2a", 0, 28, 1.6);
+  burn.position.y = -0.4;
+  booster.add(burn);
+  root.add(booster);
+
+  const ship = new THREE.Group();
+  const shipBody = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.02, 6.2, 16), steel);
+  shipBody.position.y = 3.1;
+  const belly = new THREE.Mesh(new THREE.CylinderGeometry(0.97, 1.04, 2.2, 16), dark);
+  belly.position.y = 1.3;
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.95, 2.4, 16), dark);
+  nose.position.y = 7.4;
+  ship.add(shipBody, belly, nose);
+  const flapMat = dark;
+  for (const side of [-1, 1]) {
+    const fwd = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.08, 0.85), flapMat);
+    fwd.position.set(side * 1.25, 5.6, 0);
+    fwd.rotation.z = side * -0.5;
+    const aft = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.08, 0.7), flapMat);
+    aft.position.set(side * 1.2, 1.1, 0);
+    aft.rotation.z = side * 0.35;
+    ship.add(fwd, aft);
+  }
+  const door = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.5, 1.1), new THREE.MeshStandardMaterial({ color: "#2a2e33", metalness: 0.4, roughness: 0.45 }));
+  door.position.set(1.02, 4.2, 0);
+  door.userData.homeY = 4.2;
+  ship.add(door);
+  const shipPlume = plumeCone("#ffb15a", 0.55, 1);
+  shipPlume.position.y = 0.05;
+  ship.add(shipPlume);
+  root.add(ship);
+
+  const car = makeRoadster();
+  const pilot = figure("#f2d16b");
+  pilot.position.set(0, 0.22, 0.28);
+  pilot.scale.setScalar(0.5);
+  car.add(pilot);
+  car.scale.setScalar(0.42);
+  root.add(car);
+
+  const earthMap = paintTex(128, (g, s) => {
+    g.fillStyle = "#1d4e86";
+    g.fillRect(0, 0, s, s);
+    g.fillStyle = "rgba(244,248,252,0.92)";
+    for (let i = 0; i < 18; i++) {
+      g.beginPath();
+      g.ellipse((i * 37) % s, (i * 53) % s, 10 + (i % 5) * 4, 6 + (i % 3) * 3, i, 0, Math.PI * 2);
+      g.fill();
+    }
+  });
+  const earth = new THREE.Mesh(
+    new THREE.SphereGeometry(36, 28, 18),
+    new THREE.MeshStandardMaterial({ map: earthMap, color: "#ffffff", roughness: 0.85 }),
+  );
+  earth.visible = false;
+  root.add(earth);
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = new Float32Array(360 * 3);
+  for (let i = 0; i < 360; i++) {
+    const y = 1 - (i / 360) * 2;
+    const ring = Math.sqrt(Math.max(0, 1 - y * y));
+    const a = i * 2.399;
+    starPos[i * 3] = Math.cos(a) * ring * 150;
+    starPos[i * 3 + 1] = y * 150;
+    starPos[i * 3 + 2] = Math.sin(a) * ring * 150;
+  }
+  starGeo.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
+  const stars = new THREE.Points(
+    starGeo,
+    new THREE.PointsMaterial({ color: "#f7f1e4", size: 1.4, sizeAttenuation: false }),
+  );
+  stars.visible = false;
+  root.add(stars);
+  const steam = [];
+  for (let i = 0; i < 5; i++) {
+    const puff = new THREE.Mesh(
+      new THREE.SphereGeometry(0.7 + i * 0.15, 8, 6),
+      new THREE.MeshBasicMaterial({ color: "#f4f7fb", transparent: true, opacity: 0, depthWrite: false }),
+    );
+    puff.position.set((i - 2) * 0.8, 0.6, 1.4);
+    root.add(puff);
+    steam.push(puff);
+  }
+  return { root, pad, tower, booster, ship, door, car, plume, plumeHot, shipPlume, burn, earth, stars, steam, engines };
+}
+
+export function placeFlight(flight, pose) {
+  flight.booster.position.y = pose.boosterY;
+  flight.ship.position.y = pose.shipY;
+  flight.car.position.set(pose.carX, pose.carY, pose.carZ);
+  flight.car.rotation.y = pose.carYaw;
+  flight.car.rotation.z = pose.carPitch;
+  const grow = Math.max(0.001, pose.plume * 14);
+  flight.plume.visible = pose.plume > 0.02;
+  flight.plume.scale.y = grow;
+  flight.plumeHot.visible = pose.plume > 0.02;
+  flight.plumeHot.scale.y = grow * 0.55;
+  flight.burn.intensity = pose.plume * 18;
+  flight.shipPlume.visible = pose.shipPlume > 0;
+  flight.shipPlume.scale.y = pose.shipPlume > 0 ? 7 : 0.001;
+  const open = pose.released ? Math.min(1, pose.carX / 6) : 0;
+  flight.door.position.y = flight.door.userData.homeY + open * 1.5;
+  const length = thrustLength(pose.released);
+  if (flight.car.userData.flames) {
+    for (const flame of flight.car.userData.flames) {
+      flame.visible = length > 0;
+      flame.scale.y = length > 0 ? length * (flame.userData.hot ? 0.62 : 1) : 0.001;
+    }
+    flight.car.userData.thrustLight.intensity = length > 0 ? 6 : 0;
+  }
+  flight.pad.visible = pose.sky < 0.45;
+  flight.tower.visible = pose.sky < 0.45;
+  flight.earth.visible = pose.sky >= 0.35;
+  flight.earth.position.y = earthCenter(pose);
+  flight.stars.visible = pose.sky >= 0.45;
+  flight.stars.position.set(0, pose.shipY, 0);
+  for (const puff of flight.steam) {
+    puff.material.opacity = pose.beat === "light" ? 0.28 : 0;
+  }
+}
+
 function addDressing(parent, map, maps) {
   const wallGeo = new THREE.BoxGeometry(TILE * 0.98, 2.4, TILE * 0.98);
   const edges = [];
@@ -810,63 +1211,8 @@ function addDressing(parent, map, maps) {
     parent.add(pole);
   }
   const carAt = worldOf(map, ROADSTER_PARK.x + 0.5, ROADSTER_PARK.y + 0.5, 0);
-  const car = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.28, 2.15), stone("#c0392b", 0.4));
-  body.position.set(0, 0.36, 0.05);
-  body.castShadow = true;
-  const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.28, 0.85), stone("#1a1612", 0.45));
-  cabin.position.set(0, 0.58, 0.28);
-  const glass = new THREE.Mesh(
-    new THREE.BoxGeometry(0.84, 0.2, 0.7),
-    new THREE.MeshStandardMaterial({ color: "#9fd4ee", roughness: 0.12, metalness: 0.25 }),
-  );
-  glass.position.set(0, 0.62, 0.22);
-  const hood = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.08, 0.42), stone("#922b21", 0.32));
-  hood.position.set(CAR_NOSE.x, CAR_NOSE.y, CAR_NOSE.z);
-  hood.name = "hood";
-  const wheelGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.12, 10);
-  const wheels = [];
-  for (const [wx, wz] of [[-0.5, -0.62], [0.5, -0.62], [-0.5, 0.72], [0.5, 0.72]]) {
-    const hanger = new THREE.Group();
-    hanger.position.set(wx, 0.18, wz);
-    const wheel = new THREE.Mesh(wheelGeo, stone("#1a1612", 0.7));
-    wheel.rotation.z = Math.PI / 2;
-    hanger.add(wheel);
-    car.add(hanger);
-    wheels.push(hanger);
-  }
-  const flames = [];
-  const flameGeo = thrustCone();
-  for (const fx of [-0.28, 0.28]) {
-    for (const [color, hot] of [["#ff6a1a", false], ["#ffe14a", true]]) {
-      const flame = new THREE.Mesh(
-        flameGeo,
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: hot ? 0.95 : 0.88, depthWrite: false }),
-      );
-      flame.rotation.x = THRUST_PITCH;
-      flame.position.set(fx, 0.42, 1.18);
-      flame.visible = false;
-      flame.scale.y = 0.001;
-      flame.userData.hot = hot;
-      car.add(flame);
-      flames.push(flame);
-    }
-  }
-  const thrustLight = new THREE.PointLight("#ff7a2a", 0, 7, 2);
-  thrustLight.position.set(0, 0.42, 1.35);
-  for (const hx of [-0.34, 0.34]) {
-    const lamp = new THREE.Mesh(
-      new THREE.SphereGeometry(0.055, 8, 6),
-      new THREE.MeshStandardMaterial({ color: "#fff6d8", emissive: "#ffe7a0", emissiveIntensity: 0.9, roughness: 0.25 }),
-    );
-    lamp.position.set(hx, 0.4, -1.05);
-    car.add(lamp);
-  }
-  car.add(body, cabin, glass, hood, thrustLight);
+  const car = makeRoadster();
   car.position.set(carAt.x, 0, carAt.z);
-  car.userData.wheels = wheels;
-  car.userData.flames = flames;
-  car.userData.thrustLight = thrustLight;
   car.userData.lastPos = car.position.clone();
   car.name = "roadster-car";
   car.userData.park = car.position.clone();
@@ -1562,7 +1908,7 @@ export function mountWorld(canvas, map, api) {
     console.error(err);
     canvas.dataset.gl = "fail";
     canvas.dataset.err = String(err && err.message ? err.message : err);
-    return { render() {}, resize() {}, hold() {}, feel() {} };
+    return { render() {}, resize() {}, hold() {}, feel() {}, snap() {} };
   }
   canvas.dataset.gl = "ok";
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -1634,6 +1980,11 @@ export function mountWorld(canvas, map, api) {
   scene.add(stall.room);
   bank.room.visible = false;
   stall.room.visible = false;
+  const flight = buildFlight();
+  scene.add(flight.root);
+  let flightYaw = 0;
+  let flightPitch = 1.05;
+  let flightWas = 0;
 
   const marker = new THREE.Mesh(
     new THREE.RingGeometry(0.28, 0.46, 24),
@@ -1734,8 +2085,84 @@ export function mountWorld(canvas, map, api) {
     return groundStep(fwd.x, fwd.z, right.x, right.z, intent.forward, intent.strafe);
   }
 
+  function paintFlight(now, ms) {
+    town.visible = false;
+    sky.visible = false;
+    bank.room.visible = false;
+    stall.room.visible = false;
+    if (ms < 0) {
+      flight.root.visible = false;
+      scene.background.set("#07080c");
+      scene.fog.color.set("#07080c");
+      scene.fog.near = 1;
+      scene.fog.far = 4;
+      canvas.dataset.mode = "flight";
+      return;
+    }
+    if (flightWas <= 0) {
+      flightYaw = 0;
+      flightPitch = 1.05;
+      held.clear();
+    }
+    flightWas = ms;
+    flight.root.visible = true;
+    const pose = flightPose(ms);
+    placeFlight(flight, pose);
+    if (pose.released && flight.car.userData.wheels) {
+      for (const hanger of flight.car.userData.wheels) hanger.rotation.x += 0.35;
+    }
+    const flick = 0.86 + 0.14 * Math.abs(Math.sin(now / 36));
+    if (pose.plume > 0.02) {
+      flight.plume.scale.y *= flick;
+      flight.plumeHot.scale.y *= flick;
+    }
+    const cam = flightCamera(ms, flightYaw, flightPitch);
+    const kick = pose.plume > 0.4 ? 1 : 0;
+    camera.position.set(cam.x + Math.sin(now / 28) * 0.15 * kick, cam.y + Math.cos(now / 24) * 0.1 * kick, cam.z);
+    camera.up.copy(UP);
+    camera.lookAt(cam.lx, cam.ly, cam.lz);
+    if (camera.far !== 400) {
+      camera.far = 400;
+      camera.updateProjectionMatrix();
+    }
+    const day = new THREE.Color("#9ec4e0");
+    const night = new THREE.Color("#020308");
+    scene.background.copy(day).lerp(night, pose.sky);
+    scene.fog.color.copy(scene.background);
+    scene.fog.near = 80;
+    scene.fog.far = 260;
+    renderer.toneMappingExposure = 0.94 + pose.plume * 0.3;
+    canvas.dataset.mode = "flight";
+  }
+
+  function snap() {
+    const who = api.player();
+    const goal = worldOf(map, who.x + 0.5, who.y + 0.5, 1.15);
+    shown.copy(goal);
+    lastStep.copy(shown);
+    camFocus.copy(goal);
+    const parked = town.getObjectByName("roadster-car");
+    if (parked && api.driving && api.driving()) {
+      parked.position.set(goal.x, 0, goal.z);
+      const face = api.facing();
+      if (face && (face.x || face.y)) parked.rotation.y = headingYaw(face.x, face.y);
+    }
+  }
+
   function render(now) {
     resize();
+    const flightMs = api.flight ? api.flight() : 0;
+    if (flightMs !== 0) {
+      paintFlight(now, flightMs);
+      renderer.render(scene, camera);
+      return;
+    }
+    if (flightWas !== 0) lapLeft = 0;
+    flightWas = 0;
+    if (camera.far !== 240) {
+      camera.far = 240;
+      camera.updateProjectionMatrix();
+    }
     const venue = (api.venue && api.venue()) || "";
     const indoors = !!(api.room && api.room()) || !!venue;
     if (indoors !== wasInside) {
@@ -1986,6 +2413,19 @@ export function mountWorld(canvas, map, api) {
     const dx = ev.clientX - drag.x;
     const dy = ev.clientY - drag.y;
     if (Math.abs(dx) + Math.abs(dy) > 5) drag.moved = true;
+    const flightMs = api.flight ? api.flight() : 0;
+    if (flightMs !== 0) {
+      if (drag.moved && drag.button === 0 && flightMs > 0) {
+        const beat = flightBeat(flightMs);
+        if (beat === "release" || beat === "space") {
+          flightYaw -= dx * LOOK_YAW;
+          flightPitch = Math.min(1.35, Math.max(0.35, flightPitch + dy * LOOK_PITCH));
+        }
+      }
+      drag.x = ev.clientX;
+      drag.y = ev.clientY;
+      return;
+    }
     if (!drag.moved || drag.button !== 0) return;
     yaw -= dx * LOOK_YAW;
     pitch = Math.min(PITCH_MAX, Math.max(PITCH_MIN, pitch + dy * LOOK_PITCH));
@@ -1995,6 +2435,10 @@ export function mountWorld(canvas, map, api) {
   canvas.addEventListener("pointerup", (ev) => {
     const was = drag;
     drag = null;
+    if (api.flight && api.flight() !== 0) {
+      canvas.style.cursor = "grab";
+      return;
+    }
     hoverCursor(ev);
     if (!was || was.moved || was.button !== 0) return;
     ndc(ev);
@@ -2045,6 +2489,7 @@ export function mountWorld(canvas, map, api) {
   canvas.addEventListener("contextmenu", (ev) => ev.preventDefault());
   canvas.addEventListener("wheel", (ev) => {
     ev.preventDefault();
+    if (api.flight && api.flight() !== 0) return;
     if ((api.room && api.room()) || (api.venue && api.venue())) {
       bankDistance = Math.min(ROOM_DISTANCE_MAX, Math.max(ROOM_DISTANCE_MIN, bankDistance + Math.sign(ev.deltaY) * 0.35));
     }
@@ -2058,6 +2503,7 @@ export function mountWorld(canvas, map, api) {
   window.addEventListener("keydown", (ev) => {
     if (typing(ev) || !codes.has(ev.code)) return;
     ev.preventDefault();
+    if (api.flight && api.flight() !== 0) return;
     if (!ev.repeat) nextStep = 0;
     held.add(ev.code);
   });
@@ -2075,7 +2521,7 @@ export function mountWorld(canvas, map, api) {
 
   resize();
   placeCamera(shown, true);
-  return { render, resize, hold, feel };
+  return { render, resize, hold, feel, snap };
 }
 
 /** Builds the rooms so a test can see the clerks, seats, menu, and card. */

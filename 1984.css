@@ -151,6 +151,66 @@ body.page-1984 main.kw-stage {
 }
 .kw.room .kw-pay-toggle,
 .kw.room .kw-turns { display: none; }
+.kw-launch {
+  position: absolute;
+  left: 50%;
+  bottom: 64px;
+  transform: translateX(-50%);
+  z-index: 4;
+  min-width: 8.4rem;
+  text-align: center;
+  font-weight: 700;
+  color: #1a1612;
+  background: linear-gradient(#f0d7a0, #c49a45);
+  border: 2px solid #1c1916;
+}
+.kw-launch[hidden] { display: none; }
+.kw.room .kw-launch,
+.kw.flight .kw-launch { display: none; }
+.flight-card {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 6;
+  width: min(440px, calc(100% - 24px));
+  padding: 0.7rem 0.8rem 0.75rem;
+  background: rgba(12, 14, 18, 0.88);
+  border: 2px solid #e7c27a;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.flight-card[hidden] { display: none; }
+.flight-card.ended {
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+}
+.flight-clock {
+  margin: 0 0 0.15rem;
+  color: #e7c27a;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+.flight-card p { margin: 0 0 0.55rem; color: #f3e6c8; }
+.flight-card button {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-weight: 700;
+  padding: 0.55rem 0.4rem;
+}
+#flight-back {
+  background: linear-gradient(#f0d7a0, #c49a45);
+  color: #1a1612;
+}
+.kw.flight .kw-hint,
+.kw.flight .kw-turns,
+.kw.flight .kw-mini,
+.kw.flight .kw-chat,
+.kw.flight .kw-side,
+.kw.flight .kw-pay-toggle,
+.kw.flight .kw-bar { display: none; }
 .kw-you {
   position: absolute;
   right: 10px;
@@ -687,7 +747,7 @@ a { color: #f2d48a; }
     gap: 0.45rem;
     padding: 0.4rem;
   }
-  .kw-side button, .kw-panel button, .kw-you button, .kw-gate-row button, .kw-turn, .kw-pay-toggle {
+  .kw-side button, .kw-panel button, .kw-you button, .kw-gate-row button, .kw-turn, .kw-pay-toggle, .kw-launch, .flight-card button {
     white-space: nowrap;
     min-height: 44px;
     font-size: 1rem;
@@ -733,6 +793,8 @@ a { color: #f2d48a; }
     gap: 6px;
   }
   .kw-turn { flex: 1 1 0; min-width: 0; min-height: 48px; font-size: 1rem; }
+  .kw-launch { bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .flight-card { bottom: max(12px, env(safe-area-inset-bottom)); }
   .kw-gate {
     display: flex;
     align-items: flex-start;

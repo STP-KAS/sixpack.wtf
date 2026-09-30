@@ -7,7 +7,7 @@
   <meta name="description" content="1984 is a Testnet-10 village. Pay a shop with tKAS, POCencept, or the KUSDT toy. Test without a wallet in this tab, or keep a Testnet wallet. Mainnet wallets are refused.">
   <link rel="canonical" href="https://sixpack.wtf/1984.html">
   <link rel="stylesheet" href="site.css?v=27">
-  <link rel="stylesheet" href="1984.css?v=21">
+  <link rel="stylesheet" href="1984.css?v=22">
 </head>
 <body class="page-1984">
 <header class="top">
@@ -30,6 +30,14 @@
       <button type="button" class="kw-turn kw-step" data-turn="forward">Step</button>
       <button type="button" id="ride" class="kw-turn kw-ride" hidden>Get in</button>
       <button type="button" class="kw-turn" data-turn="right">Right</button>
+    </div>
+    <button type="button" id="launch" class="kw-launch" hidden>Launch</button>
+    <div id="flight" class="flight-card" hidden>
+      <p id="flight-clock" class="flight-clock"></p>
+      <p id="flight-line"></p>
+      <button type="button" id="flight-end">End the flight</button>
+      <p id="flight-bye" hidden>No return policy. You remain in the dark. Enjoy space. Thanks for using SpaceX services.</p>
+      <button type="button" id="flight-back" hidden>Simulation theory</button>
     </div>
     <div id="bank-shade" class="bank-shade" hidden></div>
     <div id="panel" class="kw-panel" hidden></div>
@@ -66,6 +74,6 @@
 </div>
 <script src="nav.js?v=49"></script>
 <script src="wallets/kaspa-wallets.js?v=5"></script>
-<script type="module" src="1984/client.mjs?v=34"></script>
+<script type="module" src="1984/client.mjs?v=35"></script>
 </body>
 </html>

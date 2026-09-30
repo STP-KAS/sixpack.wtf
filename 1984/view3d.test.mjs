@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { CAR_NOSE, DRIVE_MS, ENTRY_HINT, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, THRUST_PITCH, WALK_MS, assembleInteriors, buildingBoxes, clearCamera, drives, escapeRoom, groundStep, headingYaw, invite, menuLines, moveIntent, orbitOffset, roomUse, seat, thrustCone, thrustLength } from "./view3d.mjs";
+import { CAR_NOSE, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_RELEASE, FLIGHT_SPACE, FLIGHT_STAGE, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, buildingBoxes, clearCamera, drives, earthCenter, escapeRoom, flightBeat, flightCamera, flightPose, groundStep, headingYaw, invite, menuLines, moveIntent, orbitOffset, placeFlight, returnReady, roomUse, seat, thrustCone, thrustLength } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -281,4 +281,84 @@ test("the rooms contain clerks, seats, a menu, and a scan card", () => {
   assert.ok(rooms.clerkRingForward > 0.9, "clerk ring " + rooms.clerkRingForward);
   assert.ok(rooms.menuRingForward > 0.9, "menu ring " + rooms.menuRingForward);
   assert.deepEqual(rooms.railLabels, { tKAS: 1, POCencept: 1, KUSDT: 1 });
+});
+
+test("the ship climbs, drops the booster, then lets the roadster out toward +X", () => {
+  assert.equal(flightBeat(0), "light");
+  assert.equal(flightBeat(FLIGHT_LIFTOFF - 1), "light");
+  assert.equal(flightBeat(FLIGHT_LIFTOFF), "liftoff");
+  assert.equal(flightBeat(FLIGHT_CLIMB), "climb");
+  assert.equal(flightBeat(FLIGHT_STAGE), "stage");
+  assert.equal(flightBeat(FLIGHT_ORBIT), "orbit");
+  assert.equal(flightBeat(FLIGHT_RELEASE), "release");
+  assert.equal(flightBeat(FLIGHT_SPACE), "space");
+  const pad = flightPose(FLIGHT_LIFTOFF);
+  const high = flightPose(FLIGHT_ORBIT);
+  assert.ok(high.stackY > pad.stackY + 40);
+  assert.ok(high.shipY > pad.shipY);
+  const at = flightPose(FLIGHT_STAGE);
+  const later = flightPose(FLIGHT_STAGE + 4000);
+  assert.ok(later.boosterY < at.boosterY);
+  assert.ok(later.boosterY < later.shipY - 8);
+  const before = flightPose(FLIGHT_RELEASE - 1);
+  const space = flightPose(FLIGHT_SPACE);
+  assert.ok(before.carX < 0.05);
+  assert.ok(space.carX > 6);
+  assert.equal(returnReady(1000, 5999), false);
+  assert.equal(returnReady(1000, 6000), true);
+  assert.ok(earthCenter(high) < high.shipY);
+  const lift = flightCamera(FLIGHT_LIFTOFF);
+  assert.ok(Math.hypot(lift.x, lift.z) > 8);
+  assert.ok(lift.z > 20);
+  assert.ok(lift.ly > lift.y);
+  const cam = flightCamera(FLIGHT_SPACE);
+  const dist = Math.hypot(cam.x - space.carX, cam.y - space.carY, cam.z - space.carZ);
+  assert.ok(dist > 4 && dist < 16);
+  assert.equal(cam.lx, space.carX);
+  assert.equal(cam.ly, space.carY);
+  assert.equal(cam.lz, space.carZ);
+  const plume = new THREE.Vector3(0, 1, 0).applyAxisAngle(new THREE.Vector3(1, 0, 0), FLIGHT_PLUME_PITCH);
+  assert.ok(plume.y < -0.99);
+});
+
+test("the roadster leaves the ship nose-first on +X", () => {
+  const ctx = new Proxy({}, {
+    get(_target, key) {
+      if (key === "canvas") return { width: 128, height: 128 };
+      if (key === "createLinearGradient" || key === "createRadialGradient") return () => ({ addColorStop() {} });
+      return () => {};
+    },
+    set() {
+      return true;
+    },
+  });
+  const previous = globalThis.document;
+  globalThis.document = {
+    createElement() {
+      return { width: 128, height: 128, getContext: () => ctx };
+    },
+  };
+  let flight;
+  try {
+    flight = buildFlight();
+  } finally {
+    globalThis.document = previous;
+  }
+  assert.equal(flight.engines, 33);
+  let bells = 0;
+  flight.booster.traverse((node) => {
+    if (node.name === "raptor") bells += 1;
+  });
+  assert.equal(bells, 33);
+  placeFlight(flight, flightPose(FLIGHT_SPACE));
+  assert.equal(flight.ship.position.x, 0);
+  assert.ok(flight.car.position.x > 6);
+  flight.root.updateMatrixWorld(true);
+  const hood = flight.car.getObjectByName("hood");
+  const hoodAt = new THREE.Vector3();
+  const mid = new THREE.Vector3();
+  hood.getWorldPosition(hoodAt);
+  flight.car.getWorldPosition(mid);
+  const cue = hoodAt.sub(mid).setY(0).normalize();
+  assert.ok(cue.dot(new THREE.Vector3(1, 0, 0)) > 0.9, "hood " + cue.x + "," + cue.z);
 });
