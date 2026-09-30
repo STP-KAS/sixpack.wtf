@@ -429,6 +429,7 @@ function nameTag(text) {
   const sprite = new THREE.Sprite(material);
   sprite.scale.set(1.8, 0.45, 1);
   sprite.position.y = 1.85;
+  sprite.userData.label = text;
   return sprite;
 }
 
@@ -1097,8 +1098,6 @@ function buildBankRoom(maps) {
       }
       room.add(chain);
     }
-    const tag = nameTag(rail.label);
-    tag.position.set(rail.x, 2.55, -3.65);
     const postL = new THREE.Mesh(
       new THREE.CylinderGeometry(0.05, 0.05, 0.95, 8),
       new THREE.MeshStandardMaterial({ color: "#e8c56b", metalness: 0.62, roughness: 0.28 }),
@@ -1106,7 +1105,7 @@ function buildBankRoom(maps) {
     postL.position.set(rail.x - 0.42, 0.48, -2.15);
     const postR = postL.clone();
     postR.position.x = rail.x + 0.42;
-    room.add(frame, glass, opening, shutter, tag, postL, postR);
+    room.add(frame, glass, opening, shutter, postL, postR);
     booths.push({ id: rail.id, opening, shutter, postL, postR, chain });
   }
   const rope = new THREE.Mesh(
@@ -2143,5 +2142,15 @@ export function assembleInteriors() {
     seatRingUp: seatAxis.y,
     clerkRingForward: clerkAxis.z,
     menuRingForward: menuAxis.z,
+    railLabels: countRailLabels(bank.room),
   };
+}
+
+function countRailLabels(root) {
+  const counts = { tKAS: 0, POCencept: 0, KUSDT: 0 };
+  root.traverse((node) => {
+    const label = node.userData && node.userData.label;
+    if (label && Object.prototype.hasOwnProperty.call(counts, label)) counts[label] += 1;
+  });
+  return counts;
 }

@@ -14,7 +14,7 @@ import {
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
-import { DRIVE_MS, ENTRY_HINT, WALK_MS, escapeRoom, mountWorld, roomUse, seat } from "./view3d.mjs?v=12";
+import { DRIVE_MS, ENTRY_HINT, WALK_MS, escapeRoom, mountWorld, roomUse, seat } from "./view3d.mjs?v=13";
 import { ROADSTER_PARK, counterFace, destinationFor, findPath, nearShop, shopVisit, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);

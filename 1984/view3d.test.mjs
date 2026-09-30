@@ -280,4 +280,5 @@ test("the rooms contain clerks, seats, a menu, and a scan card", () => {
   assert.ok(rooms.seatRingUp > 0.9, "seat ring " + rooms.seatRingUp);
   assert.ok(rooms.clerkRingForward > 0.9, "clerk ring " + rooms.clerkRingForward);
   assert.ok(rooms.menuRingForward > 0.9, "menu ring " + rooms.menuRingForward);
+  assert.deepEqual(rooms.railLabels, { tKAS: 1, POCencept: 1, KUSDT: 1 });
 });
