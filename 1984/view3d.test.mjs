@@ -619,6 +619,9 @@ test("the roadster leaves the ship nose-first on +X", () => {
   const screenNormal = new THREE.Vector3(0, 0, 1).applyQuaternion(screen.getWorldQuaternion(new THREE.Quaternion()));
   const outward = new THREE.Vector3(onOrbit.carX - onOrbit.worldX, 0, onOrbit.carZ - onOrbit.worldZ).normalize();
   assert.ok(screenNormal.dot(outward) > 0.9, "koni screen " + screenNormal.dot(outward));
+  assert.equal(screen.geometry.parameters.width, 2.4);
+  assert.equal(screen.geometry.parameters.height, 1.5);
+  assert.ok(screen.position.z > 0.2);
   const bay = koniSpot(flightPose(FLIGHT_RELEASE - 1));
   assert.equal(bay.x, 0.4);
   const beside = koniSpot(onOrbit);

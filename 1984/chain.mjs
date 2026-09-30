@@ -86,21 +86,47 @@ export async function fetchBalance(address, fetchImpl) {
   return parseBalance(await res.json());
 }
 
+function koniTxId(tx) {
+  return String((tx && tx.verboseData && tx.verboseData.transactionId) || "").toLowerCase();
+}
+
+function koniSompi(tx) {
+  let sompi = 0n;
+  for (const out of (tx && tx.outputs) || []) {
+    const raw = out && (out.amount != null ? out.amount : out.value);
+    try { sompi += BigInt(raw || 0); } catch { /* skip a bad output */ }
+  }
+  return sompi;
+}
+
+function koniCoinbase(tx) {
+  const sub = String((tx && (tx.subnetworkId || tx.subnetwork_id)) || "").toLowerCase().replace(/^0x/, "");
+  return sub === COINBASE;
+}
+
 export function parseKoniTip(dag, block) {
   const blue = String((dag && (dag.virtualDaaScore || dag.blueScore)) || "");
+  const verbose = block && block.verboseData;
+  const header = block && block.header;
+  const hash = String(
+    (verbose && verbose.hash) || (header && header.hash) || (dag && dag.sink) || ""
+  ).toLowerCase();
+  const accepted = /^[0-9a-f]{64}$/.test(hash) ? { id: hash, blue } : null;
   const txs = [];
+  let reward = null;
   const list = block && Array.isArray(block.transactions) ? block.transactions : [];
   for (const tx of list) {
-    const id = String((tx && tx.verboseData && tx.verboseData.transactionId) || "");
+    const id = koniTxId(tx);
     if (!/^[0-9a-f]{64}$/.test(id)) continue;
-    let sompi = 0n;
-    for (const out of tx.outputs || []) {
-      try { sompi += BigInt(out.amount || 0); } catch { /* skip a bad output */ }
+    const sompi = koniSompi(tx).toString();
+    if (koniCoinbase(tx)) {
+      if (!reward) reward = { id, sompi };
+      continue;
     }
-    txs.push({ id, sompi: sompi.toString() });
+    txs.push({ id, sompi });
     if (txs.length >= 4) break;
   }
-  return { blue, txs };
+  return { blue, txs, accepted, reward };
 }
 
 export async function fetchKoni(fetchImpl) {

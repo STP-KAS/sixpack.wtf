@@ -316,7 +316,7 @@ export function create1984Service(deps) {
           try {
             return { status: 200, body: await fetchKoni(deps.fetch) };
           } catch {
-            return { status: 200, body: { ok: false, network: "testnet-10", blue: "", txs: [] } };
+            return { status: 200, body: { ok: false, network: "testnet-10", blue: "", txs: [], accepted: null, reward: null } };
           }
         }
         if (method === "GET" && pathname === "/api/1984/account") return await accountOf(query.get("address"));

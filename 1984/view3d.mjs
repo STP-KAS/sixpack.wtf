@@ -146,7 +146,7 @@ export function flightLine(beat, ms) {
   }
   if (beat === "orbit") return "Ship ahead.";
   if (beat === "release") return "The roadster and KONI leave the ship.";
-  return "You are in space. KONI keeps the Testnet 10 list.";
+  return "You are in space. KONI shows the accepted block and the mining reward.";
 }
 
 export function flightClock(ms) {
@@ -232,7 +232,7 @@ const SPACE_JOKES = {
     "Still out. Another world is on the card.",
   ],
   any: [
-    "KONI keeps the Testnet 10 list.",
+    "KONI shows the accepted block and the mining reward.",
     "Another world is on the card.",
     "The abyss is past this circle.",
   ],
@@ -1637,27 +1637,27 @@ export function buildFlight() {
   const koni = new THREE.Group();
   koni.name = "koni";
   const koniBody = new THREE.Mesh(
-    new THREE.BoxGeometry(0.46, 0.38, 0.46),
+    new THREE.BoxGeometry(2.62, 1.68, 0.42),
     new THREE.MeshStandardMaterial({ color: "#1a1e24", metalness: 0.45, roughness: 0.4 }),
   );
   const panelMat = new THREE.MeshStandardMaterial({ color: "#14181c", metalness: 0.2, roughness: 0.55 });
-  const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.04, 0.28), panelMat);
-  wingL.position.set(-0.58, 0, 0);
+  const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.06, 0.4), panelMat);
+  wingL.position.set(-1.62, 0, 0);
   const wingR = wingL.clone();
-  wingR.position.x = 0.58;
+  wingR.position.x = 1.62;
   const antenna = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.02, 0.02, 0.55, 6),
+    new THREE.CylinderGeometry(0.035, 0.035, 0.7, 6),
     new THREE.MeshStandardMaterial({ color: "#e7c27a", metalness: 0.6, roughness: 0.35 }),
   );
-  antenna.position.y = 0.42;
+  antenna.position.y = 1.16;
   const screenCanvas = document.createElement("canvas");
-  screenCanvas.width = 256;
-  screenCanvas.height = 144;
-  paintKoniCanvas(screenCanvas, ["KONI", "TN10", "waiting"]);
+  screenCanvas.width = 1280;
+  screenCanvas.height = 800;
+  paintKoniCanvas(screenCanvas, ["KONI", "TN10", "accepted block", "waiting", "mining reward", "waiting"]);
   const screenMap = new THREE.CanvasTexture(screenCanvas);
   screenMap.colorSpace = THREE.SRGBColorSpace;
   const koniScreen = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.34, 0.2),
+    new THREE.PlaneGeometry(2.4, 1.5),
     new THREE.MeshBasicMaterial({ map: screenMap }),
   );
   koniScreen.name = "koni-screen";
@@ -1698,17 +1698,18 @@ function paintKoniCanvas(canvas, lines) {
   g.fillStyle = "#07080c";
   g.fillRect(0, 0, canvas.width, canvas.height);
   g.strokeStyle = "#e7c27a";
-  g.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
+  g.lineWidth = 8;
+  g.strokeRect(12, 12, canvas.width - 24, canvas.height - 24);
   g.fillStyle = "#f2d48a";
-  g.font = "700 18px Consolas, monospace";
+  g.font = "700 64px Consolas, monospace";
   g.textAlign = "left";
-  const rows = lines && lines.length ? lines : ["KONI", "TN10", "waiting"];
-  rows.slice(0, 6).forEach((line, i) => {
-    g.fillText(String(line).slice(0, 22), 12, 28 + i * 20);
+  const rows = lines && lines.length ? lines : ["KONI", "TN10", "accepted block", "waiting", "mining reward", "waiting"];
+  rows.slice(0, 8).forEach((line, i) => {
+    g.fillText(String(line).slice(0, 28), 48, 110 + i * 88);
   });
 }
 
-/** The little KONI screen. lines are short public Testnet 10 notes. */
+/** KONI's screen. lines name the accepted block and the mining reward. */
 export function paintKoni(flight, lines) {
   const screen = flight && flight.koniScreen;
   if (!screen || !screen.material || !screen.material.map) return;
