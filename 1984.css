@@ -257,6 +257,17 @@ body.page-1984 main.kw-stage {
   gap: 0.35rem;
   margin-top: 0.45rem;
 }
+.flight-planets .rail-bar { grid-column: 1 / -1; }
+.flight-card .booth-tabs button,
+.show-card .booth-tabs button { width: auto; flex: 1 1 0; }
+.rails-open {
+  margin: 0.2rem 0 0.45rem;
+  background: transparent;
+  color: #f2d48a;
+  border: 1px solid #e7c27a;
+  font-weight: 700;
+}
+.flight-card .rails-open { width: 100%; }
 .flight-planets[hidden] { display: none; }
 .flight-card button {
   display: block;
@@ -294,6 +305,11 @@ body.page-1984 main.kw-stage {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 .show-card[hidden] { display: none; }
+.show-reel[hidden],
+.show-label[hidden],
+#show-snacks[hidden],
+#show-pay[hidden] { display: none; }
+#show-pay p { margin: 0.15rem 0 0.35rem; color: #f3e6c8; }
 .show-now {
   margin: 0 0 0.3rem;
   color: #e7c27a;
@@ -597,6 +613,17 @@ body.page-1984 main.kw-stage {
   background: rgba(10, 8, 6, 0.62);
 }
 .ask-shade[hidden] { display: none; }
+#rails-note.ask-shade { z-index: 9; }
+.rails-card h2 { margin: 0 0 0.45rem; color: #f2d48a; font-size: 1.2rem; }
+.rails-card p { font-size: 0.95rem; line-height: 1.4; }
+.rails-card a { color: #f2d48a; }
+#rails-close {
+  width: 100%;
+  margin-top: 0.15rem;
+  background: linear-gradient(#e6c98a, #a07838);
+  color: #1a1612;
+  font-weight: 700;
+}
 .ask-card {
   width: min(420px, 100%);
   background: #2a1c14;

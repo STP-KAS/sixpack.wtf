@@ -7,7 +7,7 @@
   <meta name="description" content="1984 is a Testnet-10 village. Pay a shop with tKAS, POCencept, or the KUSDT toy. Test without a wallet in this tab, or keep a Testnet wallet. Mainnet wallets are refused.">
   <link rel="canonical" href="https://sixpack.wtf/1984.html">
   <link rel="stylesheet" href="site.css?v=27">
-  <link rel="stylesheet" href="1984.css?v=28">
+  <link rel="stylesheet" href="1984.css?v=29">
 </head>
 <body class="page-1984">
 <header class="top">
@@ -58,6 +58,8 @@
         <button type="button" id="show-over">Overview</button>
       </div>
       <div id="show-list" class="show-list" hidden></div>
+      <div id="show-rails"></div>
+      <div id="show-pay" hidden></div>
       <p class="show-label">Snacks</p>
       <div id="show-snacks" class="show-snacks"></div>
       <button type="button" id="show-play" hidden>Play</button>
@@ -65,6 +67,13 @@
     </div>
     <div id="bank-shade" class="bank-shade" hidden></div>
     <div id="panel" class="kw-panel" hidden></div>
+    <div id="rails-note" class="ask-shade" hidden>
+      <div class="ask-card rails-card" role="dialog" aria-modal="true" aria-labelledby="rails-title">
+        <h2 id="rails-title">Three ways to pay</h2>
+        <div id="rails-body"></div>
+        <button type="button" id="rails-close">Close</button>
+      </div>
+    </div>
     <div id="ask" class="ask-shade" hidden>
       <div class="ask-card" role="dialog" aria-modal="true" aria-labelledby="ask-line">
         <p id="ask-line"></p>
@@ -98,6 +107,6 @@
 </div>
 <script src="nav.js?v=49"></script>
 <script src="wallets/kaspa-wallets.js?v=5"></script>
-<script type="module" src="1984/client.mjs?v=43"></script>
+<script type="module" src="1984/client.mjs?v=44"></script>
 </body>
 </html>

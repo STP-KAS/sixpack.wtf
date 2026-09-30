@@ -14,6 +14,7 @@ import {
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
+import { RAIL_NAMES, RAILS_NOTE, payRail, railBarHtml } from "./rails-note.mjs?v=1";
 import { REELS, reelShuffle, reelStep } from "./reels.mjs?v=2";
 import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=20";
 import { ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs";
@@ -65,6 +66,7 @@ const state = {
   jokeSent: -1,
   watching: false,
   showPaid: false,
+  ticketAsk: false,
   reelAt: 0,
 };
 
@@ -419,22 +421,16 @@ function paintPlanets() {
     return;
   }
   box.hidden = false;
-  const rail = state.shopRail === "kusdt" && !(state.account && state.account.kusdtFrozen) ? "kusdt" : "poc";
-  const names = { poc: "POCencept", kusdt: "KUSDT" };
+  const rail = payRail(state.shopRail);
   const shop = ((state.home && state.home.shops) || []).find((item) => item.id === "orbit");
   const items = shop && shop.items ? shop.items : [];
   if (!items.length) return;
-  if (box.dataset.rail !== rail) {
-    box.dataset.rail = rail;
-    box.innerHTML = items.map((trip) => {
-      const price = formatCents(trip.cents) + " " + names[rail];
-      return '<button type="button" data-trip="' + esc(trip.sku) + '">' + esc(trip.name) + " · " + esc(price) + "</button>";
-    }).join("");
+  const sig = rail + ":" + (state.oracle || "") + ":" + (state.kasSompi || "") + ":" + (state.account && state.account.kusdtFrozen ? "f" : "");
+  if (box.dataset.sig !== sig) {
+    box.dataset.sig = sig;
+    box.innerHTML = railBarHtml(rail) + items.map((trip) => saleButton(rail, "orbit", trip.sku, trip.cents, trip.name, true)).join("");
   }
-  for (const btn of box.querySelectorAll("[data-trip]")) {
-    const trip = items.find((item) => item.sku === btn.getAttribute("data-trip"));
-    btn.disabled = !!(trip && canPay(rail, trip.cents) === false);
-  }
+  maybeTeachRails();
 }
 
 function paintFlightCard(now) {
@@ -954,31 +950,48 @@ function markShow() {
   const root = document.querySelector(".kw");
   if (root) root.classList.toggle("watching", !!state.watching);
   const card = document.getElementById("show");
-  if (card) card.hidden = !state.watching;
+  if (card) card.hidden = !state.watching && !state.ticketAsk;
+  const pay = document.getElementById("show-pay");
+  if (pay) pay.hidden = !state.ticketAsk;
+  const reel = card && card.querySelector(".show-reel");
+  if (reel) reel.hidden = !state.watching;
+  const label = card && card.querySelector(".show-label");
+  if (label) label.hidden = !state.watching;
+  const snacks = document.getElementById("show-snacks");
+  if (snacks) snacks.hidden = !state.watching;
+  const list = document.getElementById("show-list");
+  if (list && !state.watching) list.hidden = true;
+}
+
+function cinemaShop() {
+  const fromHome = ((state.home && state.home.shops) || []).find((item) => item.id === "cinema");
+  if (fromHome && fromHome.items && fromHome.items.some((item) => item.sku === "reel")) return fromHome;
+  return SHOPS.find((item) => item.id === "cinema");
 }
 
 function paintShow() {
   const now = document.getElementById("show-now");
   const clip = REELS[state.reelAt] || REELS[0];
-  if (now && clip) now.textContent = state.reelAt + 1 + " of " + REELS.length + " · " + clip.title;
+  if (now) {
+    now.textContent = state.watching && clip
+      ? state.reelAt + 1 + " of " + REELS.length + " · " + clip.title
+      : "Ticket";
+  }
   paintReelList();
+  const rail = payRail(state.shopRail);
+  const rails = document.getElementById("show-rails");
+  if (rails) rails.innerHTML = railBarHtml(rail);
+  const shop = cinemaShop();
+  const ticket = shop && shop.items ? shop.items.find((item) => item.sku === "reel") : null;
+  const pay = document.getElementById("show-pay");
+  if (pay && ticket) {
+    pay.innerHTML = "<p>The ticket is " + esc(formatCents(ticket.cents)) + " toy dollars.</p>" + saleButton(rail, "cinema", "reel", ticket.cents, ticket.name, false);
+  }
   const box = document.getElementById("show-snacks");
-  if (!box || box.dataset.ready === "1") return;
-  const rail = state.shopRail === "kusdt" && !(state.account && state.account.kusdtFrozen) ? "kusdt" : "poc";
-  const names = { poc: "POCencept", kusdt: "KUSDT" };
-  const fromHome = ((state.home && state.home.shops) || []).find((item) => item.id === "cinema");
-  const shop = fromHome && fromHome.items && fromHome.items.some((item) => item.sku === "popcorn")
-    ? fromHome
-    : SHOPS.find((item) => item.id === "cinema");
-  const items = shop && shop.items ? shop.items.filter((item) => item.sku !== "reel") : [];
-  if (!items.length) return;
-  box.innerHTML = items
-    .map((item) => {
-      const price = formatCents(item.cents) + " " + names[rail];
-      return '<button type="button" data-snack="' + esc(item.sku) + '">' + esc(item.name) + " · " + esc(price) + "</button>";
-    })
-    .join("");
-  box.dataset.ready = "1";
+  if (!box || !shop) return;
+  const items = shop.items.filter((item) => item.sku !== "reel");
+  box.innerHTML = items.map((item) => saleButton(rail, "cinema", item.sku, item.cents, item.name, true)).join("");
+  if (state.ticketAsk || state.watching) maybeTeachRails();
 }
 
 function paintReelList() {
@@ -1035,6 +1048,7 @@ function primeReel() {
 function beginShow(fromStart) {
   if (isVisit(state.mode)) closeCounter();
   state.seated = true;
+  state.ticketAsk = false;
   if (fromStart) state.reelAt = 0;
   state.watching = true;
   const video = reelVideo();
@@ -1047,8 +1061,9 @@ function beginShow(fromStart) {
 
 function stopShow(leave) {
   const video = reelVideo();
-  const was = state.watching || state.showPaid;
+  const was = state.watching || state.showPaid || state.ticketAsk;
   state.watching = false;
+  state.ticketAsk = false;
   if (video) video.pause();
   if (leave) {
     state.showPaid = false;
@@ -1062,12 +1077,23 @@ function stopShow(leave) {
   return was;
 }
 
+function offerTicket() {
+  state.seated = true;
+  state.ticketAsk = true;
+  state.watching = false;
+  markShow();
+  paintShow();
+}
+
 function buyReel() {
-  const rail = state.shopRail === "kusdt" && !(state.account && state.account.kusdtFrozen) ? "kusdt" : "poc";
   armOnOk = primeReel;
-  spend(rail, "cinema", "reel").finally(() => {
+  spend(payRail(state.shopRail), "cinema", "reel").finally(() => {
     armOnOk = null;
-    if (!state.showPaid) stopShow(true);
+    if (!state.showPaid) {
+      state.ticketAsk = true;
+      markShow();
+      paintShow();
+    }
   });
 }
 
@@ -1109,10 +1135,29 @@ function bindReel() {
   if (!card) return;
   card.addEventListener("click", (ev) => {
     const snack = ev.target.closest("[data-snack]");
+    const pick = ev.target.closest("[data-rail-pick]");
+    if (pick) {
+      setShopRail(pick.getAttribute("data-rail-pick"));
+      return;
+    }
+    if (ev.target.closest("[data-rails]")) {
+      openRailsNote();
+      return;
+    }
+    const blocked = ev.target.closest("[data-short]");
+    if (blocked) {
+      punch("shake");
+      say(blocked.getAttribute("data-short"), true);
+      return;
+    }
+    const pay = ev.target.closest("[data-pay]");
+    if (pay) {
+      if (pay.getAttribute("data-sku") === "reel") buyReel();
+      else spend(pay.getAttribute("data-pay"), pay.getAttribute("data-shop"), pay.getAttribute("data-sku"));
+      return;
+    }
     if (snack) {
-      const sku = snack.getAttribute("data-snack");
-      const rail = state.shopRail === "kusdt" && !(state.account && state.account.kusdtFrozen) ? "kusdt" : "poc";
-      spend(rail, "cinema", sku);
+      spend(payRail(state.shopRail), "cinema", snack.getAttribute("data-snack"));
       return;
     }
     if (ev.target.closest("#show-play")) {
@@ -1229,6 +1274,83 @@ function balanceSheet() {
   );
 }
 
+function walletShopKas(rail) {
+  return rail === "kas" && state.id && (state.id.kind === "kasware" || state.id.kind === "kastle");
+}
+
+function saleButton(rail, shop, sku, cents, name, withName) {
+  const names = RAIL_NAMES;
+  const sompi = quoteSompi(cents);
+  const kas = sompi == null ? "quote down" : formatTkas(sompi) + " tKAS";
+  const price = rail === "kas" ? kas : formatCents(cents) + " " + names[rail];
+  const label = (text) => withName ? name + " · " + text : text;
+  const blocked = (text, short) =>
+    '<button type="button" class="buy short" data-short="' + esc(short) + '">' + esc(label(text)) + "</button>";
+  if (walletShopKas(rail)) {
+    return blocked("Shop takes a toy", "The wallet stays closed for a shop. Pick POCencept or KUSDT. Swapping tKAS at the bank asks the wallet to sign.");
+  }
+  if (rail === "kusdt" && state.account && state.account.kusdtFrozen) {
+    return blocked("KUSDT is frozen", "KUSDT is frozen. POCencept and tKAS still spend.");
+  }
+  if (canPay(rail, cents) === false) {
+    return blocked("Not enough " + names[rail], "Not enough " + names[rail] + " for " + name + ".");
+  }
+  const caption = withName ? name + " · " + price : "Buy · " + price;
+  return '<button type="button" class="buy" data-pay="' + rail + '" data-shop="' + shop + '" data-sku="' + sku + '">' + esc(caption) + "</button>";
+}
+
+function setShopRail(rail) {
+  if (rail !== "kas" && rail !== "poc" && rail !== "kusdt") return;
+  state.shopRail = payRail(rail);
+  if (isVisit(state.mode)) paintShop(state.mode);
+  paintShow();
+  if (state.flightStart && !state.cruiseStart) {
+    const box = document.getElementById("flight-planets");
+    if (box) box.dataset.sig = "";
+    paintPlanets();
+  }
+}
+
+let taughtRails = false;
+
+function fillRailsNote() {
+  const title = document.getElementById("rails-title");
+  const body = document.getElementById("rails-body");
+  if (title) title.textContent = RAILS_NOTE.title;
+  if (!body || body.dataset.ready === "1") return;
+  const links = RAILS_NOTE.links
+    .map(([label, href]) => '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(label) + "</a>")
+    .join(" · ");
+  body.innerHTML = RAILS_NOTE.lines.map((line) => "<p>" + esc(line) + "</p>").join("") + "<p>" + links + "</p>";
+  body.dataset.ready = "1";
+}
+
+function openRailsNote() {
+  fillRailsNote();
+  const note = document.getElementById("rails-note");
+  if (note) note.hidden = false;
+  const close = document.getElementById("rails-close");
+  if (close) close.focus();
+}
+
+function closeRailsNote() {
+  const note = document.getElementById("rails-note");
+  if (note) note.hidden = true;
+}
+
+function maybeTeachRails() {
+  if (taughtRails) return;
+  try {
+    if (sessionStorage.getItem("1984-rails-seen") === "1") {
+      taughtRails = true;
+      return;
+    }
+    sessionStorage.setItem("1984-rails-seen", "1");
+  } catch (err) { /* this page load still shows the note once */ }
+  taughtRails = true;
+  openRailsNote();
+}
+
 function canPay(rail, cents) {
   if (rail === "kas") {
     const sompi = quoteSompi(cents);
@@ -1282,29 +1404,16 @@ function paintShop(shopId) {
     document.getElementById("stall-close").onclick = () => closeCounter();
     return;
   }
-  const rail = state.shopRail === "kas" || state.shopRail === "kusdt" ? state.shopRail : "poc";
-  const names = { kas: "tKAS", poc: "POCencept", kusdt: "KUSDT" };
-  const picks = ["poc", "kusdt", "kas"]
-    .map((id) => '<button type="button" data-rail-pick="' + id + '"' + (id === rail ? ' class="on"' : "") + ">" + names[id] + "</button>")
-    .join("");
+  const rail = payRail(state.shopRail);
   const face = STALL_FACE[shop.id] || { tint: "#8a7040", letter: "S" };
   const rows = shop.items
     .map((item) => {
       const sompi = quoteSompi(item.cents);
       const kas = sompi == null ? "quote down" : formatTkas(sompi) + " tKAS";
-      const price = rail === "kas" ? kas : formatCents(item.cents) + " " + names[rail];
-      const frozenRail = rail === "kusdt" && state.account && state.account.kusdtFrozen;
       const ownedCar = item.sku === "keys" && state.account && state.account.roadster;
-      const walletKas = rail === "kas" && state.id && (state.id.kind === "kasware" || state.id.kind === "kastle");
-      const afford = frozenRail ? false : canPay(rail, item.cents);
-      const short = frozenRail ? "KUSDT is frozen. POCencept and tKAS still spend." : "Not enough " + names[rail] + " for " + item.name + ".";
       const button = ownedCar
         ? '<button type="button" class="buy" disabled>Yours. Get in or get out.</button>'
-        : walletKas
-        ? '<button type="button" class="buy short" data-short="The wallet stays closed for a shop. Pick POCencept or KUSDT. Swapping tKAS at the bank asks the wallet to sign.">Shop takes a toy</button>'
-        : afford === false
-        ? '<button type="button" class="buy short" data-short="' + esc(short) + '">' + esc(frozenRail ? "KUSDT is frozen" : "Not enough " + names[rail]) + "</button>"
-        : '<button type="button" class="buy" data-pay="' + rail + '" data-shop="' + shop.id + '" data-sku="' + item.sku + '">Buy · ' + esc(price) + "</button>";
+        : saleButton(rail, shop.id, item.sku, item.cents, item.name, false);
       return (
         '<article class="good">' + goodsMark(item.sku) +
         "<div><strong>" + esc(item.name) + "</strong><span>" + esc(formatCents(item.cents)) +
@@ -1323,10 +1432,11 @@ function paintShop(shopId) {
     '<button type="button" id="stall-close">Close</button></div>' +
     "<p>" + esc(shop.line) + "</p>" +
     balanceSheet() +
-    '<div class="booth-tabs">' + picks + "</div>" +
+    railBarHtml(rail) +
     rows + txid +
     "<p class=\"fine\">" + esc(payKind("shop")) + "</p>" +
-    "<p class=\"fine\">One rail for the whole menu. A buy asks on this page, then OK. The wallet opens only when you swap tKAS at the bank. The miner fee on that swap is twice the standard Testnet 10 rate, and it is extra.</p></div>";
+    "<p class=\"fine\">One rail for this buy. A buy asks on this page, then OK. The wallet opens only when you swap tKAS at the bank. The miner fee on that swap is twice the standard Testnet 10 rate, and it is extra.</p></div>";
+  maybeTeachRails();
   document.getElementById("stall-close").onclick = () => closeCounter();
   const pasted = document.getElementById("txid");
   if (pasted) pasted.addEventListener("input", () => {
@@ -1464,6 +1574,7 @@ function paintBank() {
       '<div class="swap-head"><h2>Venn\'s bank</h2>' + close + "</div>" +
       '<p class="clerk-ask">Push a clerk.</p>' +
       '<div class="clerk-picks">' + push("kas", "tKAS") + push("poc", "POCencept") + push("kusdt", "KUSDT") + "</div>" +
+      '<button type="button" class="rails-open" data-rails>What are the rails?</button>' +
       '<button type="button" class="clerk-books" data-clerk="books">The books</button>' +
       statusLine() + bankFine();
   } else if (clerk === "books") {
@@ -1515,6 +1626,7 @@ function paintBank() {
       swapLoadHtml() + statusLine() + bankFine();
   }
   panel.innerHTML = '<div class="swap">' + body + "</div>";
+  if (!clerk) maybeTeachRails();
   if (clerk === "kas") {
     paintLockPreview();
     document.getElementById("lock-amt").addEventListener("input", () => {
@@ -1598,8 +1710,8 @@ function paintGuide() {
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
     "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept swap, a KUSDT swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
-    "<li>The roadster parks on the lot in front of Pike's shop. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, rides a ship to orbit. A bar fills until the car leaves the ship. KONI, the Kaspa node, leaves with the roadster, and the release plays the liftoff comms. Its screen lists Testnet 10 transactions. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, or Saturn. The way there is ten seconds, then the roadster orbits farther out. Jokes stay on the screen for ten seconds. On that hop the end popup waits ten seconds.</li>" +
-    "<li>Lux's cinema is the dark building. Take a seat, then the screen. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The next film starts when one ends. Snacks sit under the screen while it runs.</li>" +
+    "<li>The roadster parks on the lot in front of Pike's shop. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, rides a ship to orbit. A bar fills until the car leaves the ship. KONI, the Kaspa node, leaves with the roadster, and the release plays the liftoff comms. Its screen lists Testnet 10 transactions. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, or Saturn with tKAS, POCencept, or KUSDT. The way there is ten seconds, then the roadster orbits farther out. Jokes stay on the screen for ten seconds. On that hop the end popup waits ten seconds.</li>" +
+    "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept, or KUSDT. What are the rails? opens the short note. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The next film starts when one ends.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +
@@ -2256,7 +2368,7 @@ const worldView = mountWorld(view, map, {
     if (act.play) {
       state.seated = true;
       if (state.showPaid) beginShow();
-      else buyReel();
+      else offerTicket();
       return;
     }
     if (act.sit) state.seated = true;
@@ -2353,6 +2465,14 @@ window.addEventListener("keydown", (ev) => {
   const key = ev.key.toLowerCase();
   if (key !== "e" && key !== "escape" && key !== "g") return;
   if (ev.target && (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA")) return;
+  if (key === "escape") {
+    const rails = document.getElementById("rails-note");
+    if (rails && !rails.hidden) {
+      ev.preventDefault();
+      closeRailsNote();
+      return;
+    }
+  }
   ev.preventDefault();
   if (state.flightStart) {
     if (key === "escape") {
@@ -2369,7 +2489,7 @@ window.addEventListener("keydown", (ev) => {
   if (key === "escape") {
     const ask = document.getElementById("ask");
     if (ask && !ask.hidden) return;
-    if (state.watching) {
+    if (state.watching || state.ticketAsk) {
       stopShow(false);
       return;
     }
@@ -2525,12 +2645,32 @@ const flightBack = document.getElementById("flight-back");
 if (flightBack) flightBack.addEventListener("click", returnFromFlight);
 const simBig = document.getElementById("sim-big");
 if (simBig) simBig.addEventListener("click", () => { simBig.hidden = true; });
+const railsNote = document.getElementById("rails-note");
+if (railsNote) {
+  railsNote.addEventListener("click", (ev) => {
+    if (ev.target === railsNote || ev.target.closest("#rails-close")) closeRailsNote();
+  });
+}
 const flightPlanets = document.getElementById("flight-planets");
 if (flightPlanets) flightPlanets.addEventListener("click", (ev) => {
-  const btn = ev.target.closest("[data-trip]");
+  const pick = ev.target.closest("[data-rail-pick]");
+  if (pick) {
+    setShopRail(pick.getAttribute("data-rail-pick"));
+    return;
+  }
+  if (ev.target.closest("[data-rails]")) {
+    openRailsNote();
+    return;
+  }
+  const blocked = ev.target.closest("[data-short]");
+  if (blocked) {
+    punch("shake");
+    say(blocked.getAttribute("data-short"), true);
+    return;
+  }
+  const btn = ev.target.closest("[data-pay]");
   if (!btn || btn.disabled) return;
-  const rail = state.shopRail === "kusdt" && !(state.account && state.account.kusdtFrozen) ? "kusdt" : "poc";
-  spend(rail, "orbit", btn.getAttribute("data-trip"));
+  spend(btn.getAttribute("data-pay"), "orbit", btn.getAttribute("data-sku"));
 });
 document.getElementById("gate-back").addEventListener("click", () => {
   hideGate();
@@ -2562,13 +2702,13 @@ if (bankShade) bankShade.addEventListener("click", () => {
   else openMode("world");
 });
 panel.addEventListener("click", (ev) => {
+  if (ev.target.closest("[data-rails]")) {
+    openRailsNote();
+    return;
+  }
   const pick = ev.target.closest("[data-rail-pick]");
   if (pick) {
-    const rail = pick.getAttribute("data-rail-pick");
-    if (rail === "kas" || rail === "poc" || rail === "kusdt") {
-      state.shopRail = rail;
-      paintShop(state.mode);
-    }
+    setShopRail(pick.getAttribute("data-rail-pick"));
     return;
   }
   const short = ev.target.closest("[data-short]");

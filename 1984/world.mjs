@@ -55,7 +55,7 @@ export const SHOPS = [
     id: "cinema",
     name: "Lux's Cinema",
     keeper: "Lux",
-    line: "One ticket plays the whole reel. Snacks can be bought while it runs. They are toy tags on this square's ledger.",
+    line: "One ticket plays the whole reel. The ticket and the snacks take tKAS, POCencept, or KUSDT.",
     items: [
       { sku: "reel", name: "The reel", cents: 500 },
       { sku: "popcorn", name: "Popcorn", cents: 150 },
@@ -69,7 +69,7 @@ export const SHOPS = [
     id: "orbit",
     name: "Orbit",
     keeper: "SpaceX",
-    line: "The launch is free. A hop to another world is toy dollars. Speed and distance on that hop are relative.",
+    line: "The launch is free. A hop takes tKAS, POCencept, or KUSDT. Speed and distance on that hop are relative.",
     items: [
       { sku: "moon", name: "The Moon", cents: 200 },
       { sku: "mars", name: "Mars", cents: 500 },
