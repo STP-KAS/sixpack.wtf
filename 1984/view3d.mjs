@@ -3312,6 +3312,10 @@ export function mountWorld(canvas, map, api) {
     const cruise = api.cruise ? api.cruise() : null;
     const pose = cruise ? cruisePose(cruise.ms, cruise.sku, cruise.from) : flightPose(ms);
     placeFlight(flight, pose);
+    // The corner card shows this line.
+    if (flight.jokes) {
+      for (const sprite of flight.jokes) sprite.visible = false;
+    }
     if ((pose.released || pose.beat === "cruise") && flight.car.userData.wheels) {
       const spin = pose.beat === "cruise" ? 0.55 : 0.35;
       for (const hanger of flight.car.userData.wheels) hanger.rotation.x += spin;
