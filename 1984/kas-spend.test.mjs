@@ -7,7 +7,7 @@ test("a guest shop payment stays on the server, which asks before the key signs"
 });
 
 test("a shop purchase shows a banner, including an ordinary item", () => {
-  assert.equal(shopBanner("keys"), "You drive.");
+  assert.equal(shopBanner("keys"), "Parked.");
   assert.equal(shopBanner("lap"), "One lap.");
   assert.equal(shopBanner("coffee"), "Paid.");
   assert.equal(shopBanner("water"), "Paid.");

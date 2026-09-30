@@ -14,7 +14,7 @@ import {
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
-import { DRIVE_MS, ENTRY_HINT, WALK_MS, escapeRoom, flightBeat, flightClock, flightLine, mountWorld, returnReady, roomUse, seat } from "./view3d.mjs?v=14";
+import { DRIVE_MS, ENTRY_HINT, WALK_MS, escapeRoom, flightBeat, flightClock, flightLine, mountWorld, returnReady, roomUse, seat } from "./view3d.mjs?v=15";
 import { ROADSTER_PARK, counterFace, destinationFor, findPath, nearShop, shopVisit, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -196,6 +196,13 @@ function syncRide() {
   }
   const launch = document.getElementById("launch");
   if (launch) launch.hidden = !canLaunch();
+  if (btn) btn.classList.toggle("out", !!state.aboard);
+  const root = document.querySelector(".kw");
+  if (root) {
+    const owns = !!(state.account && state.account.roadster);
+    const outside = groundTile() !== "i" && !state.inside && !state.venue && !state.flightStart;
+    root.classList.toggle("driving", owns && state.aboard && outside);
+  }
 }
 
 function startLaunch() {
@@ -313,10 +320,10 @@ function toggleRide() {
     showBanner("You drive.");
     say(groundTile() === "i"
       ? "You will drive when you step outside. Inside, you walk."
-      : "You are in the roadster. Get out when you want to walk.");
+      : "You are in the roadster. Get out is the gold button.");
   } else {
     showBanner("You walk.");
-    say("You got out. The roadster is parked in front of Pike's shop. Click it to get back in.");
+    say("You got out. The roadster is back on the lot. Click it, or Get in, to drive.");
   }
   paintChrome();
 }
@@ -1187,11 +1194,11 @@ function paintGuide() {
     "<li>Or choose New arrival on the welcome gate. That is the same as Test without a wallet. This tab gets 50000 tKAS from Grok's Testnet-10 wallet. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. Returning leaves the gate and uses a wallet that stays on this browser. One thousand of these test wallets can be opened in a day.</li>" +
     "<li>Or paste a kaspatest address. Or type a .kas name that already resolves on TN10. That choice stays until you change it.</li>" +
     "<li>Need coins: New arrival gives this tab 50000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
-    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, sit, then click the menu or the card on the table. The market opens at the counter. The showroom opens when you click Pike or the sign. Buy the roadster and you drive it. W A S D move the way you look. The arrow keys do too. G gets in or out. Esc closes the card, then leaves the room. Square leaves too.</li>" +
+    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, sit, then click the menu or the card on the table. The market opens at the counter. The showroom opens when you click Pike or the sign. Buy the roadster and it waits on the lot. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
     "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept swap, a KUSDT swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
-    "<li>The roadster parks in front of Pike's shop. Click it to get in. Thrusters show while it moves. Get out to walk. Inside a shop you are on foot. Launch, while you are in the car and outside, rides a ship to orbit. The car then leaves the ship. End the flight and, after a short wait, Simulation theory puts you back on the square in the car.</li>" +
+    "<li>The roadster parks on the lot in front of Pike's shop. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. Launch, while you are in the car and outside, rides a ship to orbit. The car then leaves the ship. End the flight and, after a short wait, Simulation theory puts you back on the square in the car.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +
@@ -1215,10 +1222,18 @@ async function post(path, body) {
 function tookPayment(body, sku) {
   showBanner(shopBanner(sku));
   if (sku === "keys") {
-    state.aboard = true;
+    state.aboard = false;
+    state.path = [];
+    state.arrived = null;
+    state.lapUntil = 0;
+    if (state.venue || state.inside || isVisit(state.mode)) openMode("world");
+    state.player = { x: ROADSTER_PARK.x, y: ROADSTER_PARK.y + 1 };
+    state.facing = { x: 0, y: -1 };
     punch("nod");
-    say("The roadster is yours. You are in it. Get out to walk. Inside a shop you are on foot. Get in when you want to drive.");
+    say("The roadster is parked on the lot. Click it, or Get in, to drive. Get out is the gold button.");
     syncRide();
+    paintChrome();
+    if (worldView.snap) worldView.snap();
   } else if (sku === "lap") {
     punch("lap");
     if (state.account && state.account.roadster) state.lapUntil = performance.now() + 6000;
@@ -1854,7 +1869,7 @@ const worldView = mountWorld(view, map, {
       state.aboard = true;
       if (state.venue || state.inside || isVisit(state.mode)) openMode("world");
       showBanner("You drive.");
-      say("You are in the roadster. Get out when you want to walk.");
+      say("You are in the roadster. Get out is the gold button.");
       syncRide();
     };
     const dist = Math.max(Math.abs(state.player.x - ROADSTER_PARK.x), Math.abs(state.player.y - ROADSTER_PARK.y));

@@ -13,7 +13,7 @@ import {
   publicAccount,
 } from "./ledger.mjs";
 import { RESERVE, centsForSompi, sompiForCents } from "./money.mjs";
-import { ROADSTER_PARK, counterFace, findPath, nearShop, shopVisit, standTile, walkable, world } from "./world.mjs";
+import { PARKING_BAYS, ROADSTER_PARK, counterFace, findPath, nearShop, shopVisit, standTile, walkable, world } from "./world.mjs";
 
 const USER = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 const USD = 0.05;
@@ -47,14 +47,23 @@ test("a building opens when you stand at the door, and the fountain is outside t
   assert.equal(nearShop(map, 20, 20, "missing"), false);
 });
 
-test("the roadster parks on open ground in front of Pike", () => {
+test("the roadster parks on the lot in front of Pike", () => {
   const map = world();
-  const tile = map.grid[ROADSTER_PARK.y][ROADSTER_PARK.x];
   const shop = map.buildings.find((item) => item.id === "roadster");
-  assert.equal(walkable(tile), true);
-  assert.notEqual(tile, "i");
-  assert.ok(ROADSTER_PARK.y < shop.y);
+  assert.equal(PARKING_BAYS.length, 3);
+  assert.deepEqual(ROADSTER_PARK, PARKING_BAYS[1]);
+  for (const bay of PARKING_BAYS) {
+    const tile = map.grid[bay.y][bay.x];
+    assert.equal(walkable(tile), true);
+    assert.notEqual(tile, "i");
+    assert.notEqual(tile, "w");
+    assert.ok(bay.y < shop.y);
+    assert.notEqual(bay.x, shop.door.x);
+  }
   assert.ok(ROADSTER_PARK.x < shop.npc.x);
+  const beside = map.grid[ROADSTER_PARK.y + 1][ROADSTER_PARK.x];
+  assert.equal(walkable(beside), true);
+  assert.notEqual(beside, "i");
   assert.equal(nearShop(map, shop.door.x, shop.door.y, "roadster"), true);
   assert.equal(nearShop(map, shop.npc.x, shop.npc.y, "roadster"), true);
   const path = findPath(map.grid, map.spawn, ROADSTER_PARK);

@@ -43,7 +43,7 @@ export const SHOPS = [
     id: "roadster",
     name: "Pike's Roadster",
     keeper: "Pike",
-    line: "The roadster is 1.00 toy dollar. It parks in front of this shop. Click it to get in. Get out to walk. It does not leave town. A lap is one paid circuit.",
+    line: "The roadster is 1.00 toy dollar. It parks on the lot in front of this shop. Click it, or Get in, to drive. Get out is the gold button. A lap is one paid circuit.",
     items: [
       { sku: "keys", name: "The roadster", cents: 100 },
       { sku: "postcard", name: "Postcard of the car", cents: 100 },
@@ -87,8 +87,13 @@ export function walkable(tile) {
   return tile === "g" || tile === "c" || tile === "p" || tile === "d" || tile === "i" || tile === "f";
 }
 
-/** Nose-north, on the grass in front of Pike's door. Tile +y is south. */
-export const ROADSTER_PARK = { x: 19, y: 22 };
+/** Three stalls on the cobble in front of Pike. The car uses the middle one, nose north. */
+export const PARKING_BAYS = [
+  { x: 16, y: 21 },
+  { x: 18, y: 21 },
+  { x: 20, y: 21 },
+];
+export const ROADSTER_PARK = PARKING_BAYS[1];
 
 /** Bank and shop panels are the indoor room. Rules, the bench, and the guide are not. */
 export function shopVisit(mode) {

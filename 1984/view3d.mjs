@@ -1,7 +1,7 @@
 /** Ashfields in 3D. Original meshes. The camera turns around the player through a full circle. */
 
 import * as THREE from "./vendor/three.module.js";
-import { ROADSTER_PARK, SHOPS, standTile } from "./world.mjs";
+import { PARKING_BAYS, ROADSTER_PARK, SHOPS, standTile } from "./world.mjs";
 
 const TILE = 1.15;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -1119,6 +1119,36 @@ export function placeFlight(flight, pose) {
   }
 }
 
+/** Three dark stalls with white lines. The middle bay is where the owned car waits. */
+function addParkingLot(parent, map) {
+  const asphalt = stone("#2c2a28", 0.94);
+  const paint = new THREE.MeshBasicMaterial({ color: "#f4f0e6" });
+  const padGeo = new THREE.BoxGeometry(TILE * 0.92, 0.04, TILE * 2.05);
+  const endGeo = new THREE.BoxGeometry(TILE * 0.92, 0.02, 0.05);
+  const sideGeo = new THREE.BoxGeometry(0.05, 0.02, TILE * 2.05);
+  for (const bay of PARKING_BAYS) {
+    const at = worldOf(map, bay.x + 0.5, bay.y + 0.5, 0.025);
+    const pad = new THREE.Mesh(padGeo, asphalt);
+    pad.position.copy(at);
+    pad.receiveShadow = true;
+    parent.add(pad);
+    for (const dz of [-1.0, 1.0]) {
+      const line = new THREE.Mesh(endGeo, paint);
+      line.position.set(at.x, 0.05, at.z + dz * TILE);
+      parent.add(line);
+    }
+    for (const dx of [-0.44, 0.44]) {
+      const line = new THREE.Mesh(sideGeo, paint);
+      line.position.set(at.x + dx * TILE, 0.05, at.z);
+      parent.add(line);
+    }
+  }
+  const sign = nameTag("Lot");
+  const signAt = worldOf(map, PARKING_BAYS[0].x - 0.15, ROADSTER_PARK.y + 1.2, 0);
+  sign.position.set(signAt.x, 1.2, signAt.z);
+  parent.add(sign);
+}
+
 function addDressing(parent, map, maps) {
   const wallGeo = new THREE.BoxGeometry(TILE * 0.98, 2.4, TILE * 0.98);
   const edges = [];
@@ -1210,6 +1240,7 @@ function addDressing(parent, map, maps) {
     pole.position.set(fountain.x + lx, 0.85, fountain.z + lz);
     parent.add(pole);
   }
+  addParkingLot(parent, map);
   const carAt = worldOf(map, ROADSTER_PARK.x + 0.5, ROADSTER_PARK.y + 0.5, 0);
   const car = makeRoadster();
   car.position.set(carAt.x, 0, carAt.z);

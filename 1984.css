@@ -122,7 +122,31 @@ body.page-1984 main.kw-stage {
 }
 .hint-phone, .only-phone { display: none; }
 .kw-step { display: none; }
+.kw-ride {
+  position: absolute;
+  left: 50%;
+  bottom: 64px;
+  transform: translateX(-50%);
+  z-index: 4;
+  min-width: 9.5rem;
+  min-height: 44px;
+  text-align: center;
+  font-weight: 700;
+  color: #1a1612;
+  background: linear-gradient(#f0d7a0, #c49a45);
+  border: 2px solid #1c1916;
+}
 .kw-ride[hidden] { display: none; }
+.kw.room .kw-ride,
+.kw.flight .kw-ride { display: none; }
+.kw.driving .kw-ride {
+  left: calc(50% - 10.4rem);
+  transform: none;
+}
+.kw.driving .kw-launch {
+  left: calc(50% + 0.45rem);
+  transform: none;
+}
 .kw-pay-toggle {
   position: absolute;
   top: 8px;
@@ -747,7 +771,7 @@ a { color: #f2d48a; }
     gap: 0.45rem;
     padding: 0.4rem;
   }
-  .kw-side button, .kw-panel button, .kw-you button, .kw-gate-row button, .kw-turn, .kw-pay-toggle, .kw-launch, .flight-card button {
+  .kw-side button, .kw-panel button, .kw-you button, .kw-gate-row button, .kw-turn, .kw-pay-toggle, .kw-launch, .kw-ride, .flight-card button {
     white-space: nowrap;
     min-height: 44px;
     font-size: 1rem;
@@ -794,6 +818,19 @@ a { color: #f2d48a; }
   }
   .kw-turn { flex: 1 1 0; min-width: 0; min-height: 48px; font-size: 1rem; }
   .kw-launch { bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .kw-ride,
+  .kw.driving .kw-ride {
+    left: 8px;
+    right: auto;
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    transform: none;
+    min-width: 7.2rem;
+  }
+  .kw.driving .kw-launch {
+    left: auto;
+    right: 8px;
+    transform: none;
+  }
   .flight-card { bottom: max(12px, env(safe-area-inset-bottom)); }
   .kw-gate {
     display: flex;
