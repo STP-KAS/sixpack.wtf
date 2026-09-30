@@ -4,7 +4,7 @@ export const BENCH = [
   {
     id: "ceiling",
     title: "The ceiling",
-    text: "A peer-to-peer chain is for a settlement between two people, including while almost nobody takes the coin. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process. This square is the classroom, not that product.",
+    text: "A peer-to-peer chain is for a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process. This square is the classroom, not that product.",
     hrefs: [
       ["The ceiling", "https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md"],
       ["stable-staghunt-theory", "https://github.com/STP-KAS/stable-staghunt-theory"],

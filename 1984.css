@@ -290,12 +290,14 @@ body.page-1984 main.kw-stage {
 .kw.flight .kw-bar { display: none; }
 .show-card {
   position: absolute;
-  left: 50%;
+  left: 12px;
+  right: auto;
+  top: 12px;
   bottom: 12px;
-  transform: translateX(-50%);
+  transform: none;
   z-index: 6;
-  width: min(680px, calc(100% - 24px));
-  max-height: min(78vh, calc(100% - 16px));
+  width: min(360px, 34vw);
+  max-height: calc(100% - 24px);
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -1003,7 +1005,13 @@ a { color: #f2d48a; }
     transform: none;
   }
   .flight-card, .show-card { bottom: max(12px, env(safe-area-inset-bottom)); }
-  .show-card { max-height: min(78dvh, calc(100% - 12px)); }
+  .show-card {
+    left: 8px;
+    right: auto;
+    top: auto;
+    width: min(280px, 46vw);
+    max-height: min(70dvh, calc(100% - 12px));
+  }
   .show-list button { white-space: normal; text-align: left; }
   .kw-gate {
     display: flex;

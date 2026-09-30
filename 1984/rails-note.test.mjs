@@ -20,13 +20,17 @@ test("every buy can pick tKAS, POCencept, or KUSDT", () => {
 
 test("the rails note is short and points at the public note", () => {
   assert.equal(RAILS_NOTE.title, "Three ways to pay");
-  assert.equal(RAILS_NOTE.lines.length, 3);
+  assert.equal(RAILS_NOTE.lines.length, 4);
   assert.match(RAILS_NOTE.lines[0], /tKAS/);
   assert.match(RAILS_NOTE.lines[1], /POCencept/);
   assert.match(RAILS_NOTE.lines[1], /KUSDT/);
   assert.match(RAILS_NOTE.lines[2], /ticket/);
   assert.match(RAILS_NOTE.lines[2], /snacks/);
   assert.match(RAILS_NOTE.lines[2], /hop/);
+  assert.match(RAILS_NOTE.lines[3], /car/);
+  assert.match(RAILS_NOTE.lines[3], /AI service/);
+  assert.match(RAILS_NOTE.lines[3], /game purchase/);
+  assert.match(RAILS_NOTE.lines[3], /rented service/);
   const hrefs = RAILS_NOTE.links.map((pair) => pair[1]);
   assert.ok(hrefs.includes("https://github.com/STP-KAS/1984-why-what-how"));
   assert.ok(hrefs.includes("https://github.com/STP-KAS/1984-rails"));

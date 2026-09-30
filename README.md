@@ -19,7 +19,7 @@ http://127.0.0.1:4020/
 | Path | What |
 | --- | --- |
 | `/` | Home. Popup. Pointer to rails. Shared links. |
-| `/rails.html` | Three rails explained. Kaspa · PoC KUSD · Tether-like. |
+| `/rails.html` | Three rails explained. Kaspa · PoC KUSD · Tether-like. The bill is a car, an AI service, a game purchase, or a rented service. |
 | `/farce.html` | Yonatan’s Binance letter. This desk agrees. |
 | `/eulogy.html` | Proof of work, a eulogy. 15s satire + still. |
 | `/random.html` | Pile of clips. Shuffle / prev / next. |

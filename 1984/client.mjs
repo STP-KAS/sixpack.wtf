@@ -1,5 +1,5 @@
 import { readIdentity, writeIdentity } from "./identity.mjs";
-import { BENCH, REPOS } from "./links.mjs?v=2";
+import { BENCH, REPOS } from "./links.mjs?v=3";
 import {
   GUEST_DISCLAIMER,
   RESERVE,
@@ -14,9 +14,9 @@ import {
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
-import { RAIL_NAMES, RAILS_NOTE, payRail, railBarHtml } from "./rails-note.mjs?v=1";
+import { RAIL_NAMES, RAILS_NOTE, payRail, railBarHtml } from "./rails-note.mjs?v=2";
 import { REELS, reelShuffle, reelStep } from "./reels.mjs?v=2";
-import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=22";
+import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=23";
 import { HUNTS, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -1037,32 +1037,53 @@ function fitReel(video, clip) {
 }
 
 function playReelAt(index) {
-  const video = reelVideo();
   const clip = REELS[index];
-  if (!video || !clip) return;
+  if (!clip) return;
   state.reelAt = index;
   paintShow();
-  const changed = video.getAttribute("src") !== clip.src;
-  if (changed) video.src = clip.src;
-  fitReel(changed ? null : video, clip);
-  video.muted = false;
   const play = document.getElementById("show-play");
   if (play) play.hidden = true;
-  const pending = video.play();
-  if (pending && pending.catch) pending.catch(() => { if (play) play.hidden = false; });
+  const start = (video) => {
+    if (state.reelAt !== index) return;
+    if (!video) {
+      if (play) play.hidden = false;
+      return;
+    }
+    fitReel(video, clip);
+    video.muted = false;
+    bindReel();
+    const pending = video.play();
+    if (pending && pending.catch) pending.catch(() => { if (play) play.hidden = false; });
+  };
+  if (worldView && worldView.cueCinema) {
+    worldView.cueCinema(clip.src).then(start);
+    return;
+  }
+  const video = reelVideo();
+  if (!video) return;
+  if (video.getAttribute("src") !== clip.src) video.src = clip.src;
+  start(video);
 }
 
 function primeReel() {
-  const video = reelVideo();
   const clip = REELS[0];
-  if (!video || !clip) return;
-  video.muted = true;
-  const changed = video.getAttribute("src") !== clip.src;
-  video.src = clip.src;
-  fitReel(changed ? null : video, clip);
+  if (!clip) return;
   state.reelAt = 0;
-  const pending = video.play();
-  if (pending && pending.catch) pending.catch(() => {});
+  const arm = (video) => {
+    if (!video) return;
+    video.muted = true;
+    fitReel(video, clip);
+    const pending = video.play();
+    if (pending && pending.catch) pending.catch(() => {});
+  };
+  if (worldView && worldView.cueCinema) {
+    worldView.cueCinema(clip.src).then(arm);
+    return;
+  }
+  const video = reelVideo();
+  if (!video) return;
+  if (video.getAttribute("src") !== clip.src) video.src = clip.src;
+  arm(video);
 }
 
 function beginShow(fromStart) {
@@ -1080,18 +1101,22 @@ function beginShow(fromStart) {
 }
 
 function stopShow(leave) {
-  const video = reelVideo();
   const was = state.watching || state.showPaid || state.ticketAsk;
   state.watching = false;
   state.ticketAsk = false;
-  if (video) video.pause();
-  if (leave) {
-    state.showPaid = false;
-    state.reelAt = 0;
-    if (video) {
+  if (leave && worldView && worldView.clearCinema) worldView.clearCinema();
+  else if (worldView && worldView.pauseCinema) worldView.pauseCinema();
+  else {
+    const video = reelVideo();
+    if (video) video.pause();
+    if (leave && video) {
       video.removeAttribute("src");
       video.load();
     }
+  }
+  if (leave) {
+    state.showPaid = false;
+    state.reelAt = 0;
   }
   markShow();
   return was;
@@ -1898,9 +1923,9 @@ function paintGuide() {
     "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept swap, a KUSDT swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>The roadster parks on the lot in front of Pike's shop. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, starts the countdown. The ship lifts when the count reaches zero. A bar fills until the car leaves the ship. KONI, the Kaspa node, leaves with the roadster, and the climb keeps the comms going. Its screen lists Testnet 10 transactions. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, or Saturn with tKAS, POCencept, or KUSDT. The way there is ten seconds, then the roadster orbits farther out. Jokes stay on the screen for ten seconds. On that hop the end popup waits ten seconds.</li>" +
-    "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept, or KUSDT. What are the rails? opens the short note. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The next film starts when one ends.</li>" +
+    "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept, or KUSDT. What are the rails? opens the short note. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Promise is not Buy. The pack stays hidden until it pays.</li>" +
-    "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
+    "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +

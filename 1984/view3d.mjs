@@ -2495,11 +2495,18 @@ function buildCinemaRoom(maps) {
   tagHit(screen, "screen");
   addInvite(screen, 2.4, "wall");
   room.add(screen);
-  let video = null;
-  let videoMap = null;
+  const reel = {
+    video: null,
+    videoMap: null,
+    reelMaps: [],
+    cue: () => Promise.resolve(null),
+    pauseReels: () => {},
+    clearReels: () => {},
+  };
   if (typeof document !== "undefined" && document.createElement) {
-    const el = document.createElement("video");
-    if (el && typeof el.play === "function") {
+    const slots = [0, 1].map(() => {
+      const el = document.createElement("video");
+      if (!el || typeof el.play !== "function") return null;
       el.playsInline = true;
       el.muted = true;
       el.setAttribute("playsinline", "");
@@ -2509,9 +2516,68 @@ function buildCinemaRoom(maps) {
       el.setAttribute("aria-hidden", "true");
       el.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none";
       if (document.body) document.body.appendChild(el);
-      video = el;
-      videoMap = new THREE.VideoTexture(el);
-      videoMap.colorSpace = THREE.SRGBColorSpace;
+      const map = new THREE.VideoTexture(el);
+      map.colorSpace = THREE.SRGBColorSpace;
+      return { el, map };
+    }).filter(Boolean);
+    if (slots.length) {
+      let active = 0;
+      let generation = 0;
+      reel.reelMaps = slots.map((slot) => slot.map);
+      reel.video = slots[0].el;
+      reel.videoMap = slots[0].map;
+      const use = (index) => {
+        active = index;
+        reel.video = slots[index].el;
+        reel.videoMap = slots[index].map;
+      };
+      reel.pauseReels = () => {
+        for (const slot of slots) slot.el.pause();
+      };
+      reel.clearReels = () => {
+        generation += 1;
+        for (const slot of slots) {
+          slot.el.onloadeddata = null;
+          slot.el.onerror = null;
+          slot.el.pause();
+          slot.el.removeAttribute("src");
+          try { slot.el.load(); } catch (err) { /* the element is already empty */ }
+        }
+        use(0);
+      };
+      reel.cue = (src) => {
+        const gen = ++generation;
+        if (!src) return Promise.resolve(null);
+        const current = slots[active];
+        if (current.el.getAttribute("src") === src && current.el.readyState >= 2) {
+          return Promise.resolve(current.el);
+        }
+        const idle = slots.length > 1 ? 1 - active : 0;
+        const next = slots[idle];
+        const finish = () => {
+          if (gen !== generation) return null;
+          if (slots[active] !== next) slots[active].el.pause();
+          use(idle);
+          next.map.needsUpdate = true;
+          return next.el;
+        };
+        if (next.el.getAttribute("src") === src && next.el.readyState >= 2) {
+          return Promise.resolve(finish());
+        }
+        return new Promise((resolve) => {
+          const done = (ok) => {
+            if (next.el.onloadeddata !== null) next.el.onloadeddata = null;
+            next.el.onerror = null;
+            resolve(ok ? finish() : null);
+          };
+          next.el.onloadeddata = () => done(true);
+          next.el.onerror = () => done(false);
+          next.el.muted = true;
+          if (next.el.getAttribute("src") !== src) next.el.src = src;
+          const pending = next.el.play();
+          if (pending && pending.catch) pending.catch(() => {});
+        });
+      };
     }
   }
   const picks = [screen];
@@ -2561,7 +2627,25 @@ function buildCinemaRoom(maps) {
     beam.position.set(0, 3.32, i * 1.5);
     room.add(beam);
   }
-  return { room, screen, picture: glass, screenMat, poster, video, videoMap, lamp, glow, keeper, picks, hintW: 0, hintH: 0 };
+  return {
+    room,
+    screen,
+    picture: glass,
+    screenMat,
+    poster,
+    get video() { return reel.video; },
+    get videoMap() { return reel.videoMap; },
+    reelMaps: reel.reelMaps,
+    cue: (src) => reel.cue(src),
+    pauseReels: () => reel.pauseReels(),
+    clearReels: () => reel.clearReels(),
+    lamp,
+    glow,
+    keeper,
+    picks,
+    hintW: 0,
+    hintH: 0,
+  };
 }
 
 /** Timber hall. A board, Reed at a high desk, and a bench. No car. */
@@ -2730,7 +2814,8 @@ export function mountWorld(canvas, map, api) {
   scene.add(stall.room);
   const cinema = buildCinemaRoom(maps);
   if (cinema.poster) cinema.poster.anisotropy = aniso;
-  if (cinema.videoMap) cinema.videoMap.anisotropy = aniso;
+  for (const map of cinema.reelMaps || []) map.anisotropy = aniso;
+  if (cinema.videoMap && !(cinema.reelMaps || []).includes(cinema.videoMap)) cinema.videoMap.anisotropy = aniso;
   scene.add(cinema.room);
   const hunt = buildHuntRoom(maps);
   scene.add(hunt.room);
@@ -3346,6 +3431,15 @@ export function mountWorld(canvas, map, api) {
     snap,
     cinemaVideo() {
       return cinema.video;
+    },
+    cueCinema(src) {
+      return cinema.cue ? cinema.cue(src) : Promise.resolve(null);
+    },
+    pauseCinema() {
+      if (cinema.pauseReels) cinema.pauseReels();
+    },
+    clearCinema() {
+      if (cinema.clearReels) cinema.clearReels();
     },
     fitCinema(w, h) {
       cinema.hintW = Number(w) || 0;
