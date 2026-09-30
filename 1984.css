@@ -275,6 +275,10 @@ body.page-1984 main.kw-stage {
   transform: translateX(-50%);
   z-index: 6;
   width: min(680px, calc(100% - 24px));
+  max-height: min(78vh, calc(100% - 16px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 0.55rem 0.7rem 0.65rem;
   background: rgba(12, 14, 18, 0.9);
   border: 2px solid #e7c27a;
@@ -286,6 +290,32 @@ body.page-1984 main.kw-stage {
   color: #e7c27a;
   font-family: Consolas, "Courier New", monospace;
   font-size: 0.82rem;
+}
+.show-reel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+.show-list {
+  max-height: 28vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.4rem;
+}
+.show-list[hidden] { display: none; }
+.show-list button {
+  white-space: normal;
+  text-align: left;
+}
+.show-list button.on {
+  background: #1a1612;
+  color: #f2d48a;
+  border-color: #e7c27a;
 }
 .show-label { margin: 0 0 0.3rem; color: #f3e6c8; font-size: 0.78rem; }
 .show-snacks {
@@ -936,6 +966,8 @@ a { color: #f2d48a; }
     transform: none;
   }
   .flight-card, .show-card { bottom: max(12px, env(safe-area-inset-bottom)); }
+  .show-card { max-height: min(78dvh, calc(100% - 12px)); }
+  .show-list button { white-space: normal; text-align: left; }
   .kw-gate {
     display: flex;
     align-items: flex-start;

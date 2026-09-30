@@ -14,7 +14,7 @@ import {
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
-import { REELS } from "./reels.mjs";
+import { REELS, reelShuffle, reelStep } from "./reels.mjs";
 import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=18";
 import { ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
@@ -895,6 +895,7 @@ function paintShow() {
   const now = document.getElementById("show-now");
   const clip = REELS[state.reelAt] || REELS[0];
   if (now && clip) now.textContent = state.reelAt + 1 + " of " + REELS.length + " · " + clip.title;
+  paintReelList();
   const box = document.getElementById("show-snacks");
   if (!box || box.dataset.ready === "1") return;
   const rail = state.shopRail === "kusdt" && !(state.account && state.account.kusdtFrozen) ? "kusdt" : "poc";
@@ -912,6 +913,22 @@ function paintShow() {
     })
     .join("");
   box.dataset.ready = "1";
+}
+
+function paintReelList() {
+  const list = document.getElementById("show-list");
+  if (!list) return;
+  if (list.dataset.ready !== "1") {
+    list.innerHTML = REELS.map((clip, i) => {
+      return '<button type="button" data-reel="' + i + '">' + esc((i + 1) + ". " + clip.title) + "</button>";
+    }).join("");
+    list.dataset.ready = "1";
+  }
+  for (const btn of list.querySelectorAll("[data-reel]")) {
+    btn.classList.toggle("on", Number(btn.getAttribute("data-reel")) === state.reelAt);
+  }
+  const on = list.querySelector(".on");
+  if (on && !list.hidden && on.scrollIntoView) on.scrollIntoView({ block: "nearest" });
 }
 
 function playReelAt(index) {
@@ -986,7 +1003,7 @@ function bindReel() {
   video.addEventListener("ended", () => {
     if (!state.watching) return;
     reelErrors = 0;
-    const next = (state.reelAt + 1) % REELS.length;
+    const next = reelStep(state.reelAt, REELS.length, 1);
     if (next === 0) say("The reel starts again.");
     playReelAt(next);
   });
@@ -1000,7 +1017,7 @@ function bindReel() {
       if (play) play.hidden = false;
       return;
     }
-    playReelAt((state.reelAt + 1) % REELS.length);
+    playReelAt(reelStep(state.reelAt, REELS.length, 1));
   });
   video.addEventListener("playing", () => {
     reelErrors = 0;
@@ -1019,6 +1036,31 @@ function bindReel() {
     }
     if (ev.target.closest("#show-play")) {
       playReelAt(state.reelAt || 0);
+      return;
+    }
+    if (ev.target.closest("#show-prev")) {
+      playReelAt(reelStep(state.reelAt, REELS.length, -1));
+      return;
+    }
+    if (ev.target.closest("#show-next")) {
+      playReelAt(reelStep(state.reelAt, REELS.length, 1));
+      return;
+    }
+    if (ev.target.closest("#show-shuffle")) {
+      playReelAt(reelShuffle(state.reelAt, REELS.length, Math.random()));
+      return;
+    }
+    const picked = ev.target.closest("[data-reel]");
+    if (picked) {
+      playReelAt(Number(picked.getAttribute("data-reel")));
+      return;
+    }
+    if (ev.target.closest("#show-over")) {
+      const list = document.getElementById("show-list");
+      if (list) {
+        list.hidden = !list.hidden;
+        paintReelList();
+      }
       return;
     }
     if (ev.target.closest("#show-leave")) stopShow(false);
@@ -1476,7 +1518,7 @@ function paintGuide() {
     "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept swap, a KUSDT swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>The roadster parks on the lot in front of Pike's shop. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, rides a ship to orbit. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, or Saturn. The roadster orbits that world, and jokes go out into space. On that hop the end popup waits ten seconds.</li>" +
-    "<li>Lux's cinema is the dark building. Take a seat, then the screen. One ticket plays every film, from a seat, and the next film starts when one ends. Snacks sit under the screen while it runs.</li>" +
+    "<li>Lux's cinema is the dark building. Take a seat, then the screen. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The next film starts when one ends. Snacks sit under the screen while it runs.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +

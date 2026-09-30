@@ -55,3 +55,23 @@ export const REELS = RANDOM.map(([id, title]) => ({
   title,
   src: "random/" + id + ".mp4",
 })).concat(EXTRA.map(([id, title, src]) => ({ id, title, src })));
+
+/** Previous is −1. Next is +1. The ends wrap. */
+export function reelStep(index, length, dir) {
+  const n = length > 0 ? length : 1;
+  const at = Number.isFinite(index) ? index : 0;
+  const by = dir < 0 ? -1 : 1;
+  return ((at + by) % n + n) % n;
+}
+
+/** A different film. roll is from 0 up to, but not including, 1. */
+export function reelShuffle(index, length, roll) {
+  const n = length > 0 ? length : 1;
+  if (n === 1) return 0;
+  const unit = Number.isFinite(roll) ? roll : 0;
+  let next = Math.floor(unit * n);
+  if (next < 0) next = 0;
+  if (next >= n) next = n - 1;
+  if (next === index) next = (next + 1) % n;
+  return next;
+}

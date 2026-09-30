@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { REELS } from "./reels.mjs";
+import { REELS, reelShuffle, reelStep } from "./reels.mjs";
 
 test("the reel plays every Random film, then the desk films", () => {
   assert.equal(REELS.length, 44);
@@ -14,4 +14,11 @@ test("the reel plays every Random film, then the desk films", () => {
   assert.equal(REELS.at(-1).title, "Harvard");
   const ids = REELS.map((item) => item.id);
   assert.equal(new Set(ids).size, ids.length);
+  assert.equal(reelStep(0, REELS.length, -1), REELS.length - 1);
+  assert.equal(reelStep(REELS.length - 1, REELS.length, 1), 0);
+  assert.equal(reelStep(3, REELS.length, 1), 4);
+  assert.equal(reelShuffle(0, 1, 0.9), 0);
+  assert.notEqual(reelShuffle(2, REELS.length, 2 / REELS.length), 2);
+  assert.equal(reelShuffle(0, REELS.length, 0), 1);
+  assert.equal(reelShuffle(2, REELS.length, 0), 0);
 });
