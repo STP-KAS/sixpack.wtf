@@ -97,13 +97,13 @@ export function thrustCone() {
 export const WALK_MS = 140;
 export const DRIVE_MS = 75;
 
-/** A ship ride. Times are from the moment Launch is pressed. Up is +Y. */
-export const FLIGHT_LIFTOFF = 3000;
-export const FLIGHT_CLIMB = 9000;
-export const FLIGHT_STAGE = 16000;
-export const FLIGHT_ORBIT = 22000;
-export const FLIGHT_RELEASE = 28000;
-export const FLIGHT_SPACE = 36000;
+/** A ship ride. Times are from the moment Launch is pressed. Up is +Y. The count on the pad runs to zero before the ship leaves. */
+export const FLIGHT_LIFTOFF = 15000;
+export const FLIGHT_CLIMB = 21000;
+export const FLIGHT_STAGE = 28000;
+export const FLIGHT_ORBIT = 34000;
+export const FLIGHT_RELEASE = 40000;
+export const FLIGHT_SPACE = 48000;
 /** A paid hop. The end popup waits this long after the hop starts. The bar uses CRUISE_MS. */
 export const CRUISE_END_MS = 10000;
 export const CRUISE_MS = 40000;
@@ -136,7 +136,7 @@ export function flightBeat(ms) {
 }
 
 export function flightLine(beat) {
-  if (beat === "light") return "Engines lit.";
+  if (beat === "light") return "Countdown.";
   if (beat === "liftoff") return "Liftoff.";
   if (beat === "climb") return "Climbing out.";
   if (beat === "stage") return "The booster lets go.";
@@ -146,7 +146,9 @@ export function flightLine(beat) {
 }
 
 export function flightClock(ms) {
-  const s = Math.max(0, Math.floor(ms / 1000));
+  const t = Math.max(0, ms);
+  if (t < FLIGHT_LIFTOFF) return "T- " + Math.floor((FLIGHT_LIFTOFF - t) / 1000);
+  const s = Math.floor((t - FLIGHT_LIFTOFF) / 1000);
   const m = Math.floor(s / 60);
   const r = s % 60;
   return "T+ " + m + ":" + String(r).padStart(2, "0");
@@ -332,7 +334,7 @@ export function flightPose(ms) {
     if (t > FLIGHT_SPACE) carX += ((t - FLIGHT_SPACE) / 1000) * 0.35;
   }
   const plume = t < FLIGHT_LIFTOFF
-    ? flightSmooth(t, 400, FLIGHT_LIFTOFF)
+    ? flightSmooth(t, FLIGHT_LIFTOFF - 8000, FLIGHT_LIFTOFF)
     : (t < FLIGHT_STAGE ? 1 : Math.max(0, 1 - flightSmooth(t, FLIGHT_STAGE, FLIGHT_STAGE + 1800)));
   const shipPlume = t >= FLIGHT_STAGE && t < FLIGHT_ORBIT ? 1 : 0;
   const sky = flightSmooth(t, FLIGHT_CLIMB, FLIGHT_ORBIT);
