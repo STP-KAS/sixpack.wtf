@@ -15,7 +15,7 @@ import {
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
 import { REELS, reelShuffle, reelStep } from "./reels.mjs";
-import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=18";
+import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=19";
 import { ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -111,6 +111,25 @@ function launchSound() {
 
 function stopLaunchSound() {
   const audio = document.getElementById("launch-sound");
+  if (!audio) return;
+  audio.pause();
+  try { audio.currentTime = 0; } catch (err) { /* already stopped */ }
+}
+
+function releaseSound() {
+  const audio = document.getElementById("release-sound");
+  if (!audio || state.releasePlayed) return;
+  state.releasePlayed = true;
+  const launch = document.getElementById("launch-sound");
+  if (launch) launch.volume = 0.2;
+  audio.volume = 0.9;
+  try { audio.currentTime = 28; } catch (err) { /* the file may still be opening */ }
+  const pending = audio.play();
+  if (pending && pending.catch) pending.catch(() => {});
+}
+
+function stopReleaseSound() {
+  const audio = document.getElementById("release-sound");
   if (!audio) return;
   audio.pause();
   try { audio.currentTime = 0; } catch (err) { /* already stopped */ }
@@ -263,6 +282,14 @@ function startLaunch() {
   state.cruiseSku = "";
   state.cruiseFrom = 0;
   state.jokeSent = -1;
+  state.releasePlayed = false;
+  state.koniAt = 0;
+  const space = worldView.spaceVideo && worldView.spaceVideo();
+  if (space) {
+    space.muted = true;
+    const pending = space.play();
+    if (pending && pending.catch) pending.catch(() => {});
+  }
   const card = document.getElementById("flight");
   if (card) {
     card.hidden = false;
@@ -293,6 +320,11 @@ function startLaunch() {
     planets.dataset.rail = "";
   }
   if (back) back.hidden = true;
+  const jokeLine = document.getElementById("flight-joke");
+  if (jokeLine) {
+    jokeLine.hidden = true;
+    jokeLine.textContent = "";
+  }
   const warn = document.getElementById("flight-warn");
   if (warn) warn.hidden = true;
   const big = document.getElementById("sim-big");
@@ -310,6 +342,7 @@ function endAllowed(now) {
 function endLaunch() {
   if (!endAllowed(performance.now())) return;
   stopLaunchSound();
+  stopReleaseSound();
   state.flightDark = true;
   state.flightEndedAt = performance.now();
   state.flightBackShown = true;
@@ -352,6 +385,7 @@ function returnFromFlight() {
   state.cruiseSku = "";
   state.cruiseFrom = 0;
   state.jokeSent = -1;
+  state.releasePlayed = false;
   state.aboard = true;
   state.path = [];
   state.arrived = null;
@@ -370,6 +404,9 @@ function returnFromFlight() {
   paintChrome();
   if (worldView.snap) worldView.snap();
   stopLaunchSound();
+  stopReleaseSound();
+  const space = worldView.spaceVideo && worldView.spaceVideo();
+  if (space) space.pause();
   say(SIM_LINE, false, "sim");
   showSimBig();
 }
@@ -419,12 +456,19 @@ function paintFlightCard(now) {
         const trip = tripBySku(state.cruiseSku);
         line.textContent = cruiseLine(progress, trip ? trip.name : "that world");
         const joke = spaceJoke(ms, state.cruiseSku);
+        const shown = document.getElementById("flight-joke");
         if (joke.index !== state.jokeSent) {
           state.jokeSent = joke.index;
-          say(joke.text);
+          if (joke.text) say(joke.text);
+        }
+        if (shown) {
+          shown.hidden = !joke.text;
+          shown.textContent = joke.text;
         }
       } else {
         line.textContent = flightLine(beat);
+        const shown = document.getElementById("flight-joke");
+        if (shown) shown.hidden = true;
       }
     }
   }
@@ -434,11 +478,33 @@ function paintFlightCard(now) {
   if (panel) panel.hidden = !offer;
   const end = document.getElementById("flight-end");
   if (end) end.hidden = !offer;
+  if (!cruising && flightBeat(now - state.flightStart) === "release") releaseSound();
+  if (state.flightStart && now - (state.koniAt || 0) > 8000) {
+    state.koniAt = now;
+    readKoni();
+  }
   if (offer && !cruising) paintPlanets();
   else {
     const planets = document.getElementById("flight-planets");
     if (planets) planets.hidden = true;
   }
+}
+
+async function readKoni() {
+  const body = await api("/api/1984/koni");
+  const lines = ["KONI", "TN10"];
+  if (body && body.ok && Array.isArray(body.txs) && body.txs.length) {
+    if (body.blue) lines.push("score " + String(body.blue).slice(-8));
+    for (const tx of body.txs.slice(0, 3)) {
+      const id = String(tx.id || "").slice(0, 8);
+      const sompi = BigInt(tx.sompi || 0);
+      const whole = sompi / 100000000n;
+      lines.push(id + "  " + whole.toString() + " tKAS");
+    }
+  } else {
+    lines.push("waiting");
+  }
+  if (worldView.showKoni) worldView.showKoni(lines);
 }
 
 function toggleRide() {
@@ -1517,7 +1583,7 @@ function paintGuide() {
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
     "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept swap, a KUSDT swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
-    "<li>The roadster parks on the lot in front of Pike's shop. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, rides a ship to orbit. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, or Saturn. The roadster orbits that world, and jokes go out into space. On that hop the end popup waits ten seconds.</li>" +
+    "<li>The roadster parks on the lot in front of Pike's shop. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, rides a ship to orbit. A bar fills until the car leaves the ship. KONI, the Kaspa node, leaves with the roadster, and the release plays the liftoff comms. Its screen lists Testnet 10 transactions. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, or Saturn. The way there is ten seconds, then the roadster orbits farther out. Jokes stay on the screen for ten seconds. On that hop the end popup waits ten seconds.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The next film starts when one ends. Snacks sit under the screen while it runs.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +

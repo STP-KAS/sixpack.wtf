@@ -76,6 +76,10 @@ export const FLIGHT_SPACE = 36000;
 /** A paid hop. The end popup waits this long after the hop starts. The bar uses CRUISE_MS. */
 export const CRUISE_END_MS = 10000;
 export const CRUISE_MS = 40000;
+/** The car flies toward the world, then the circle starts. */
+export const APPROACH_MS = 10000;
+/** How far ahead of the release point the orbit sits. */
+export const APPROACH_FAR = 48;
 /** Speed and distance on the hop are not miles. Ten blocks a second is the Kaspa rate. */
 export const FLIGHT_NOTE = "Space is broad. Speed and distance here are relative. Being among the stars in a vast space is hard, and with an average of 10 blocks per second it is possible. Enjoy the flight.";
 /** Cone tip is local +Y. A half turn sends the plume down, toward −Y. */
@@ -106,8 +110,8 @@ export function flightLine(beat) {
   if (beat === "climb") return "Climbing out.";
   if (beat === "stage") return "The booster lets go.";
   if (beat === "orbit") return "Orbit.";
-  if (beat === "release") return "The roadster leaves the ship.";
-  return "You are in space.";
+  if (beat === "release") return "The roadster and KONI leave the ship.";
+  return "You are in space. KONI keeps the Testnet 10 list.";
 }
 
 export function flightClock(ms) {
@@ -143,43 +147,64 @@ export function cruiseOfferEnd(ms) {
 
 export function cruiseLine(progress, name) {
   const world = name || "that world";
-  if (progress < 0.25) return "Orbiting " + world + ". A joke goes out into space.";
-  if (progress < 0.7) return "Still orbiting " + world + ". The jokes keep going. These are not real miles.";
-  if (progress < 1) return "Another loop around " + world + ". The jokes do not come back.";
-  return "You are orbiting " + world + ". The bar is full. The jokes are still out there.";
+  if (progress < APPROACH_MS / CRUISE_MS) return "On the way to " + world + ". The orbit starts when you arrive.";
+  if (progress < 0.55) return "Orbiting " + world + ". A joke stays on the screen.";
+  if (progress < 1) return "Still orbiting " + world + ". The jokes stay up, then the next one.";
+  return "You are orbiting " + world + ". The bar is full. The jokes are still on the screen.";
 }
 
-/** How often a new joke leaves the car. */
-export const JOKE_MS = 6500;
+/** One joke holds the screen for this long, then the next one. */
+export const JOKE_MS = 10000;
 
-const ORBIT_RADIUS = { moon: 8.2, mars: 9.6, jupiter: 14.8, saturn: 12.6 };
+const ORBIT_RADIUS = { moon: 18, mars: 22, jupiter: 34, saturn: 28 };
 const ORBIT_PERIOD = { moon: 18000, mars: 22000, jupiter: 32000, saturn: 26000 };
 
 const SPACE_JOKES = {
   moon: [
-    "Sent to the Moon: the bays are dust.",
-    "Sent to the Moon: no cafe up here.",
-    "Sent to the Moon: the door stays shut.",
+    "Sent to the Moon: the neighbours left with the air.",
+    "Sent to the Moon: a node, and no one left to gossip.",
+    "Sent to the Moon: the dust files no objection.",
+    "Sent to the Moon: silence chairs the meeting.",
+    "Sent to the Moon: your lap did not survive launch.",
+    "Sent to the Moon: the cafe kept the chair. You did not.",
   ],
   mars: [
-    "Sent to Mars: red was not extra.",
-    "Sent to Mars: no fountain on this lap.",
-    "Sent to Mars: the dust does not wave.",
+    "Sent to Mars: red, like a closed sign.",
+    "Sent to Mars: the colony is dust with a rumour.",
+    "Sent to Mars: no fountain, no witness, no change.",
+    "Sent to Mars: the door agrees with the wind.",
+    "Sent to Mars: resilience, unsupervised.",
+    "Sent to Mars: the coin arrived colder than you.",
   ],
   jupiter: [
-    "Sent to Jupiter: still not real miles.",
-    "Sent to Jupiter: the planet stays quiet.",
-    "Sent to Jupiter: coffee stayed home.",
+    "Sent to Jupiter: too much weather, no clerk.",
+    "Sent to Jupiter: the storm does not redeem.",
+    "Sent to Jupiter: size is not a signature.",
+    "Sent to Jupiter: coffee was a ground hobby.",
+    "Sent to Jupiter: the books stayed in Ashfields.",
+    "Sent to Jupiter: a roundabout with no exit.",
   ],
   saturn: [
-    "Sent to Saturn: the rings are a roundabout.",
-    "Sent to Saturn: the lane is the orbit.",
-    "Sent to Saturn: get out is a long step.",
+    "Sent to Saturn: the ring is a toll with no booth.",
+    "Sent to Saturn: Get out is a very long step.",
+    "Sent to Saturn: pretty, and it settles nothing.",
+    "Sent to Saturn: the lane never finds the lot.",
+    "Sent to Saturn: jewellery. Not a ledger.",
+    "Sent to Saturn: you paid to go around again.",
   ],
   any: [
-    "Sent into space: this joke does not come back.",
-    "Sent into space: the joke is already ahead.",
-    "Sent into space: the fountain stayed home.",
+    "Sent into space: the joke gets no receipt.",
+    "Sent into space: decentralised, and alone.",
+    "Sent into space: the fountain kept the town.",
+    "Sent into space: no return. The line knew.",
+    "Sent into space: a symbol. Cheaper than air.",
+    "Sent into space: the node blinks at vacuum.",
+    "Sent into space: your parking spot still believes.",
+    "Sent into space: Kaspa, worse view of the cafe.",
+    "Sent into space: KONI reads coins for nobody.",
+    "Sent into space: ten seconds, then another dark.",
+    "Sent into space: the booster called it a feature.",
+    "Sent into space: the square sold you the sky.",
   ],
 };
 
@@ -191,9 +216,11 @@ export function orbitPeriod(sku) {
   return ORBIT_PERIOD[sku] || ORBIT_PERIOD.mars;
 }
 
-/** One joke for this moment of a hop. The index steps every JOKE_MS. */
+/** One joke for this moment of a hop. The first one starts when the orbit does. */
 export function spaceJoke(ms, sku) {
-  const index = Math.floor(Math.max(0, ms) / JOKE_MS);
+  const orbitMs = Math.max(0, ms) - APPROACH_MS;
+  if (orbitMs < 0) return { index: -1, text: "" };
+  const index = Math.floor(orbitMs / JOKE_MS);
   const own = SPACE_JOKES[sku] || [];
   const list = own.concat(SPACE_JOKES.any);
   return { index, text: list[index % list.length] };
@@ -208,10 +235,11 @@ export function spaceJoke(ms, sku) {
 export function orbitPoint(ms, sku, fromMs) {
   const base = flightPose(Math.max(FLIGHT_SPACE, fromMs || FLIGHT_SPACE));
   const radius = orbitRadius(sku);
-  const worldX = base.carX;
+  const worldX = base.carX + APPROACH_FAR;
   const worldY = base.carY;
   const worldZ = base.carZ - radius;
-  const theta = (Math.max(0, ms) / orbitPeriod(sku)) * Math.PI * 2;
+  const orbitMs = Math.max(0, Math.max(0, ms) - APPROACH_MS);
+  const theta = (orbitMs / orbitPeriod(sku)) * Math.PI * 2;
   return {
     worldX,
     worldY,
@@ -219,32 +247,29 @@ export function orbitPoint(ms, sku, fromMs) {
     radius,
     theta,
     carX: worldX + radius * Math.sin(theta),
-    carY: worldY + Math.sin(Math.max(0, ms) / 900) * 0.28,
+    carY: worldY + Math.sin(orbitMs / 900) * 0.28,
     carZ: worldZ + radius * Math.cos(theta),
     tx: Math.cos(theta),
     tz: -Math.sin(theta),
   };
 }
 
+/** The joke stays above the car for ten seconds. It does not race out of the picture. */
 function jokeBursts(ms, sku, fromMs) {
   const t = Math.max(0, ms);
-  const index = Math.floor(t / JOKE_MS);
-  const bursts = [];
-  for (let i = Math.max(0, index - 4); i <= index; i++) {
-    const sent = i * JOKE_MS;
-    const at = orbitPoint(sent, sku, fromMs);
-    const age = (t - sent) / 1000;
-    const travel = 1.8 + age * 8;
-    bursts.push({
-      index: i,
-      text: spaceJoke(sent, sku).text,
-      x: at.carX + at.tx * travel,
-      y: at.carY + 0.7 + age * 1.1,
-      z: at.carZ + at.tz * travel,
-      fade: Math.max(0, 1 - age / 16),
-    });
-  }
-  return bursts;
+  const joke = spaceJoke(t, sku);
+  if (joke.index < 0) return [];
+  const age = (t - APPROACH_MS - joke.index * JOKE_MS) / 1000;
+  if (age >= 10) return [];
+  const at = orbitPoint(t, sku, fromMs);
+  return [{
+    index: joke.index,
+    text: joke.text,
+    x: at.carX,
+    y: at.carY + 1.45,
+    z: at.carZ,
+    fade: age < 9.2 ? 1 : Math.max(0, 1 - (age - 9.2) / 0.8),
+  }];
 }
 
 /** Simulation theory is not on a clock. It shows after the rider ends the flight. */
@@ -308,6 +333,13 @@ export function cruisePose(ms, sku, fromMs) {
   const at = orbitPoint(t, sku, fromMs);
   const base = flightPose(Math.max(FLIGHT_SPACE, fromMs || FLIGHT_SPACE));
   const trip = tripBySku(sku);
+  const arriving = t < APPROACH_MS;
+  const u = arriving ? flightSmooth(t, 0, APPROACH_MS) : 1;
+  const insert = orbitPoint(APPROACH_MS, sku, fromMs);
+  const carX = arriving ? base.carX + (insert.carX - base.carX) * u : at.carX;
+  const carY = arriving ? base.carY + (insert.carY - base.carY) * u : at.carY;
+  const carZ = arriving ? base.carZ + (insert.carZ - base.carZ) * u : at.carZ;
+  const yaw = arriving ? headingYaw(1, 0) : headingYaw(at.tx, at.tz);
   return {
     ...base,
     beat: "cruise",
@@ -315,18 +347,18 @@ export function cruisePose(ms, sku, fromMs) {
     dest: sku || "",
     destName: trip ? trip.name : "that world",
     along: cruiseProgress(t),
-    theta: at.theta,
+    theta: arriving ? 0 : at.theta,
     worldX: at.worldX,
     worldY: at.worldY,
     worldZ: at.worldZ,
     orbitRadius: at.radius,
-    carX: at.carX,
-    carY: at.carY,
-    carZ: at.carZ,
-    carYaw: headingYaw(at.tx, at.tz),
-    carRoll: t > 0 ? -Math.min(1, t / 700) * 0.72 : 0,
-    nod: Math.sin(t / 800) * 0.08,
-    spin: t * 0.00008,
+    carX,
+    carY,
+    carZ,
+    carYaw: yaw,
+    carRoll: arriving ? 0 : (t > APPROACH_MS ? -Math.min(1, (t - APPROACH_MS) / 700) * 0.72 : 0),
+    nod: arriving ? 0 : Math.sin((t - APPROACH_MS) / 800) * 0.08,
+    spin: arriving ? 0 : (t - APPROACH_MS) * 0.00008,
     plume: 0,
     shipPlume: 0,
     sky: 1,
@@ -336,12 +368,20 @@ export function cruisePose(ms, sku, fromMs) {
   };
 }
 
+/** KONI rides in the bay, then sits beside the roadster once both are out. */
+export function koniSpot(pose) {
+  if (!pose.released && pose.beat !== "cruise") {
+    return { x: 0.4, y: pose.shipY + 3.4, z: 0.5 };
+  }
+  return { x: pose.carX + 0.15, y: pose.carY + 0.95, z: pose.carZ + 0.35 };
+}
+
 /**
  * Outside the orbit, on the radial from the world through the car.
  * yaw 0 and pitch = π/2 sits the camera further out than the car, looking at the car,
  * so the world stays in view past the nose's side. The yaw walks on that same radial's right.
  */
-export function cruiseWatch(pose, yaw = 0, pitch = 1.05, dist = 4.6) {
+export function cruiseWatch(pose, yaw = 0, pitch = 1.05, dist = 14) {
   const rx = pose.carX - pose.worldX;
   const rz = pose.carZ - pose.worldZ;
   const len = Math.hypot(rx, rz) || 1;
@@ -777,14 +817,14 @@ function pose(group, now, moving) {
 
 function paintJokeCanvas(g, canvas, text) {
   g.clearRect(0, 0, canvas.width, canvas.height);
-  g.fillStyle = "rgba(12,14,18,0.9)";
+  g.fillStyle = "#07080c";
   g.fillRect(8, 14, canvas.width - 16, 68);
   g.strokeStyle = "#e7c27a";
   g.strokeRect(8.5, 14.5, canvas.width - 17, 67);
-  g.fillStyle = "#f3e6c8";
-  g.font = "600 28px Segoe UI, sans-serif";
+  g.fillStyle = "#f2d48a";
+  g.font = "700 22px Segoe UI, sans-serif";
   g.textAlign = "center";
-  g.fillText(text, canvas.width / 2, 58);
+  g.fillText(text, canvas.width / 2, 56);
 }
 
 function jokeSprite(text) {
@@ -795,7 +835,7 @@ function jokeSprite(text) {
   const material = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, depthWrite: false, opacity: 0 });
   material.map.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(material);
-  sprite.scale.set(7.4, 0.98, 1);
+  sprite.scale.set(5.2, 0.72, 1);
   sprite.visible = false;
   sprite.userData.label = text;
   return sprite;
@@ -1310,20 +1350,21 @@ export function buildFlight() {
   );
   earth.visible = false;
   root.add(earth);
+  const starCount = 1400;
   const starGeo = new THREE.BufferGeometry();
-  const starPos = new Float32Array(360 * 3);
-  for (let i = 0; i < 360; i++) {
-    const y = 1 - (i / 360) * 2;
+  const starPos = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount; i++) {
+    const y = 1 - (i / starCount) * 2;
     const ring = Math.sqrt(Math.max(0, 1 - y * y));
     const a = i * 2.399;
-    starPos[i * 3] = Math.cos(a) * ring * 150;
-    starPos[i * 3 + 1] = y * 150;
-    starPos[i * 3 + 2] = Math.sin(a) * ring * 150;
+    starPos[i * 3] = Math.cos(a) * ring * 900;
+    starPos[i * 3 + 1] = y * 900;
+    starPos[i * 3 + 2] = Math.sin(a) * ring * 900;
   }
   starGeo.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
   const stars = new THREE.Points(
     starGeo,
-    new THREE.PointsMaterial({ color: "#f7f1e4", size: 1.4, sizeAttenuation: false }),
+    new THREE.PointsMaterial({ color: "#f7f1e4", size: 2.1, sizeAttenuation: false, fog: false }),
   );
   stars.visible = false;
   root.add(stars);
@@ -1364,7 +1405,86 @@ export function buildFlight() {
     root.add(sprite);
     jokes.push(sprite);
   }
-  return { root, pad, tower, booster, ship, door, car, plume, plumeHot, shipPlume, burn, earth, stars, steam, engines, worlds, jokes };
+  const koni = new THREE.Group();
+  koni.name = "koni";
+  const koniBody = new THREE.Mesh(
+    new THREE.BoxGeometry(0.46, 0.38, 0.46),
+    new THREE.MeshStandardMaterial({ color: "#1a1e24", metalness: 0.45, roughness: 0.4 }),
+  );
+  const panelMat = new THREE.MeshStandardMaterial({ color: "#14181c", metalness: 0.2, roughness: 0.55 });
+  const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.04, 0.28), panelMat);
+  wingL.position.set(-0.58, 0, 0);
+  const wingR = wingL.clone();
+  wingR.position.x = 0.58;
+  const antenna = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.02, 0.02, 0.55, 6),
+    new THREE.MeshStandardMaterial({ color: "#e7c27a", metalness: 0.6, roughness: 0.35 }),
+  );
+  antenna.position.y = 0.42;
+  const screenCanvas = document.createElement("canvas");
+  screenCanvas.width = 256;
+  screenCanvas.height = 144;
+  paintKoniCanvas(screenCanvas, ["KONI", "TN10", "waiting"]);
+  const screenMap = new THREE.CanvasTexture(screenCanvas);
+  screenMap.colorSpace = THREE.SRGBColorSpace;
+  const koniScreen = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.34, 0.2),
+    new THREE.MeshBasicMaterial({ map: screenMap }),
+  );
+  koniScreen.name = "koni-screen";
+  koniScreen.position.z = 0.24;
+  koni.add(koniBody, wingL, wingR, antenna, koniScreen);
+  root.add(koni);
+  let spaceSky = null;
+  let spaceVideo = null;
+  const skyEl = document.createElement("video");
+  if (skyEl && typeof skyEl.play === "function") {
+    skyEl.muted = true;
+    skyEl.loop = true;
+    skyEl.playsInline = true;
+    skyEl.preload = "auto";
+    skyEl.src = "1984/space.mp4";
+    skyEl.setAttribute("playsinline", "");
+    skyEl.setAttribute("muted", "");
+    skyEl.setAttribute("aria-hidden", "true");
+    skyEl.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none";
+    document.body.appendChild(skyEl);
+    const skyMap = new THREE.VideoTexture(skyEl);
+    skyMap.colorSpace = THREE.SRGBColorSpace;
+    spaceSky = new THREE.Mesh(
+      new THREE.SphereGeometry(560, 32, 20),
+      new THREE.MeshBasicMaterial({ map: skyMap, side: THREE.BackSide, depthWrite: false, fog: false }),
+    );
+    spaceSky.name = "space-sky";
+    spaceSky.visible = false;
+    root.add(spaceSky);
+    spaceVideo = skyEl;
+  }
+  return { root, pad, tower, booster, ship, door, car, plume, plumeHot, shipPlume, burn, earth, stars, steam, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo };
+}
+
+function paintKoniCanvas(canvas, lines) {
+  const g = canvas.getContext("2d");
+  if (!g || typeof g.fillRect !== "function") return;
+  g.fillStyle = "#07080c";
+  g.fillRect(0, 0, canvas.width, canvas.height);
+  g.strokeStyle = "#e7c27a";
+  g.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
+  g.fillStyle = "#f2d48a";
+  g.font = "700 18px Consolas, monospace";
+  g.textAlign = "left";
+  const rows = lines && lines.length ? lines : ["KONI", "TN10", "waiting"];
+  rows.slice(0, 6).forEach((line, i) => {
+    g.fillText(String(line).slice(0, 22), 12, 28 + i * 20);
+  });
+}
+
+/** The little KONI screen. lines are short public Testnet 10 notes. */
+export function paintKoni(flight, lines) {
+  const screen = flight && flight.koniScreen;
+  if (!screen || !screen.material || !screen.material.map) return;
+  paintKoniCanvas(screen.material.map.image, lines);
+  screen.material.map.needsUpdate = true;
 }
 
 export function placeFlight(flight, pose) {
@@ -1422,8 +1542,25 @@ export function placeFlight(flight, pose) {
       sprite.material.opacity = burst.fade;
     });
   }
+  if (flight.koni) {
+    const spot = koniSpot(pose);
+    flight.koni.position.set(spot.x, spot.y, spot.z);
+    flight.koni.visible = true;
+    if (pose.worldX != null) {
+      const ox = pose.carX - pose.worldX;
+      const oz = pose.carZ - pose.worldZ;
+      flight.koni.lookAt(spot.x + ox, spot.y, spot.z + oz);
+    } else {
+      flight.koni.rotation.set(0, 0, 0);
+    }
+  }
+  const skyCenterY = pose.worldY != null ? pose.worldY : pose.shipY;
   flight.stars.visible = pose.sky >= 0.45;
-  flight.stars.position.set(0, pose.shipY, 0);
+  flight.stars.position.set(pose.worldX || 0, skyCenterY, pose.worldZ || 0);
+  if (flight.spaceSky) {
+    flight.spaceSky.visible = pose.sky >= 0.55;
+    flight.spaceSky.position.copy(flight.stars.position);
+  }
   for (const puff of flight.steam) {
     puff.material.opacity = pose.beat === "light" ? 0.28 : 0;
   }
@@ -2605,16 +2742,18 @@ export function mountWorld(canvas, map, api) {
     camera.position.set(cam.x + Math.sin(now / 28) * 0.15 * kick, cam.y + Math.cos(now / 24) * 0.1 * kick, cam.z);
     camera.up.copy(UP);
     camera.lookAt(cam.lx, cam.ly, cam.lz);
-    if (camera.far !== 400) {
-      camera.far = 400;
+    const flightFov = pose.sky > 0.5 ? 58 : 42;
+    if (camera.fov !== flightFov || camera.far !== 1400) {
+      camera.fov = flightFov;
+      camera.far = 1400;
       camera.updateProjectionMatrix();
     }
     const day = new THREE.Color("#9ec4e0");
     const night = new THREE.Color("#020308");
     scene.background.copy(day).lerp(night, pose.sky);
     scene.fog.color.copy(scene.background);
-    scene.fog.near = 80;
-    scene.fog.far = 260;
+    scene.fog.near = pose.sky > 0.5 ? 160 : 80;
+    scene.fog.far = pose.sky > 0.5 ? 1100 : 260;
     renderer.toneMappingExposure = 0.94 + pose.plume * 0.3;
     canvas.dataset.mode = "flight";
   }
@@ -2641,7 +2780,13 @@ export function mountWorld(canvas, map, api) {
       renderer.render(scene, camera);
       return;
     }
-    if (flightWas !== 0) lapLeft = 0;
+    if (flightWas !== 0) {
+      lapLeft = 0;
+      if (camera.fov !== 42) {
+        camera.fov = 42;
+        camera.updateProjectionMatrix();
+      }
+    }
     flightWas = 0;
     if (camera.far !== 240) {
       camera.far = 240;
@@ -3048,6 +3193,12 @@ export function mountWorld(canvas, map, api) {
     snap,
     cinemaVideo() {
       return cinema.video;
+    },
+    spaceVideo() {
+      return flight.spaceVideo || null;
+    },
+    showKoni(lines) {
+      paintKoni(flight, lines);
     },
   };
 }

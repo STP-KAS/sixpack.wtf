@@ -204,6 +204,15 @@ body.page-1984 main.kw-stage {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 .flight-card[hidden] { display: none; }
+.flight-card .flight-joke {
+  margin: 0 0 0.45rem;
+  padding: 0.5rem 0.55rem;
+  background: #07080c;
+  color: #f2d48a;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.flight-joke[hidden] { display: none; }
 .flight-card.ended {
   top: 50%;
   bottom: auto;

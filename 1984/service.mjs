@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { fetchBalance, fetchPrice, fetchTx, paymentFromTx, resolveName } from "./chain.mjs";
+import { fetchBalance, fetchKoni, fetchPrice, fetchTx, paymentFromTx, resolveName } from "./chain.mjs";
 import { lookupAccepted, warmNodeWindow } from "./node-tx.mjs";
 import { guestDesk, GUEST_FUND_SOMPI } from "./guest.mjs";
 import {
@@ -272,6 +272,13 @@ export function create1984Service(deps) {
           pathname = "/api/1984" + pathname.slice("/api/kworld".length);
         }
         if (method === "GET" && pathname === "/api/1984") return await home();
+        if (method === "GET" && pathname === "/api/1984/koni") {
+          try {
+            return { status: 200, body: await fetchKoni(deps.fetch) };
+          } catch {
+            return { status: 200, body: { ok: false, network: "testnet-10", blue: "", txs: [] } };
+          }
+        }
         if (method === "GET" && pathname === "/api/1984/account") return await accountOf(query.get("address"));
         if (method === "GET" && pathname === "/api/1984/resolve") {
           const found = await resolveName(query.get("name") || "", deps.fetch);

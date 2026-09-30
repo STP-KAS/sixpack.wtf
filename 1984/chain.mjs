@@ -86,6 +86,35 @@ export async function fetchBalance(address, fetchImpl) {
   return parseBalance(await res.json());
 }
 
+export function parseKoniTip(dag, block) {
+  const blue = String((dag && (dag.virtualDaaScore || dag.blueScore)) || "");
+  const txs = [];
+  const list = block && Array.isArray(block.transactions) ? block.transactions : [];
+  for (const tx of list) {
+    const id = String((tx && tx.verboseData && tx.verboseData.transactionId) || "");
+    if (!/^[0-9a-f]{64}$/.test(id)) continue;
+    let sompi = 0n;
+    for (const out of tx.outputs || []) {
+      try { sompi += BigInt(out.amount || 0); } catch { /* skip a bad output */ }
+    }
+    txs.push({ id, sompi: sompi.toString() });
+    if (txs.length >= 4) break;
+  }
+  return { blue, txs };
+}
+
+export async function fetchKoni(fetchImpl) {
+  const dagRes = await fetchImpl(TN10 + "/info/blockdag", { headers: { accept: "application/json" } });
+  if (!dagRes.ok) throw new Error("Testnet-10 did not return the tip.");
+  const dag = await dagRes.json();
+  const sink = String((dag && dag.sink) || "");
+  if (!/^[0-9a-f]{64}$/.test(sink)) throw new Error("Testnet-10 tip was empty.");
+  const blockRes = await fetchImpl(TN10 + "/blocks/" + sink, { headers: { accept: "application/json" } });
+  if (!blockRes.ok) throw new Error("Testnet-10 did not return that block.");
+  const block = await blockRes.json();
+  return { ok: true, network: "testnet-10", ...parseKoniTip(dag, block) };
+}
+
 export async function fetchTx(txid, fetchImpl) {
   const id = String(txid || "").trim().toLowerCase();
   if (!/^[0-9a-f]{64}$/.test(id)) throw new Error("Paste the 64-character transaction id.");

@@ -7,7 +7,7 @@
   <meta name="description" content="1984 is a Testnet-10 village. Pay a shop with tKAS, POCencept, or the KUSDT toy. Test without a wallet in this tab, or keep a Testnet wallet. Mainnet wallets are refused.">
   <link rel="canonical" href="https://sixpack.wtf/1984.html">
   <link rel="stylesheet" href="site.css?v=27">
-  <link rel="stylesheet" href="1984.css?v=27">
+  <link rel="stylesheet" href="1984.css?v=28">
 </head>
 <body class="page-1984">
 <header class="top">
@@ -26,6 +26,7 @@
     <p id="juice-banner" class="juice-banner" hidden></p>
     <p id="sim-big" class="sim-big" hidden></p>
     <audio id="launch-sound" src="1984/launch.mp3" preload="auto"></audio>
+    <audio id="release-sound" src="1984/release.mp3" preload="auto"></audio>
     <button type="button" id="pay-toggle" class="kw-pay-toggle" aria-controls="you" aria-expanded="false">Who pays</button>
     <div class="kw-turns">
       <button type="button" class="kw-turn" data-turn="left">Left</button>
@@ -35,6 +36,7 @@
     <button type="button" id="ride" class="kw-ride" hidden>Get in</button>
     <button type="button" id="launch" class="kw-launch" hidden>Launch</button>
     <div id="flight" class="flight-card" hidden>
+      <p id="flight-joke" class="flight-joke" hidden></p>
       <p id="flight-clock" class="flight-clock"></p>
       <p id="flight-line"></p>
       <div id="flight-bar" class="flight-bar"><span id="flight-fill"></span></div>
@@ -96,6 +98,6 @@
 </div>
 <script src="nav.js?v=49"></script>
 <script src="wallets/kaspa-wallets.js?v=5"></script>
-<script type="module" src="1984/client.mjs?v=41"></script>
+<script type="module" src="1984/client.mjs?v=42"></script>
 </body>
 </html>
