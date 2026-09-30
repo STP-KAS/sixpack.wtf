@@ -13,7 +13,7 @@ import {
   publicAccount,
 } from "./ledger.mjs";
 import { RESERVE, centsForSompi, sompiForCents } from "./money.mjs";
-import { ROADSTER_PARK, findPath, nearShop, shopVisit, standTile, walkable, world } from "./world.mjs";
+import { ROADSTER_PARK, counterFace, findPath, nearShop, shopVisit, standTile, walkable, world } from "./world.mjs";
 
 const USER = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 const USD = 0.05;
@@ -221,6 +221,18 @@ test("a shop or the bank is the indoor room, and the rules are not", () => {
   assert.equal(shopVisit("rules"), false);
   assert.equal(shopVisit("bench"), false);
   assert.equal(shopVisit("guide"), false);
+});
+
+test("a payment redraws the open counter and leaves the square alone", () => {
+  assert.equal(counterFace("cafe"), "shop");
+  assert.equal(counterFace("restaurant"), "shop");
+  assert.equal(counterFace("groceries"), "shop");
+  assert.equal(counterFace("roadster"), "shop");
+  assert.equal(counterFace("bank"), "bank");
+  assert.equal(counterFace("world"), "");
+  assert.equal(counterFace("rules"), "");
+  assert.equal(counterFace("bench"), "");
+  assert.equal(counterFace("guide"), "");
 });
 
 test("the same transaction cannot mint twice", () => {

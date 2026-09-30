@@ -15,7 +15,7 @@ import {
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
 import { DRIVE_MS, ENTRY_HINT, WALK_MS, escapeRoom, mountWorld, roomUse, seat } from "./view3d.mjs?v=11";
-import { ROADSTER_PARK, destinationFor, findPath, nearShop, shopVisit, walkable, world } from "./world.mjs";
+import { ROADSTER_PARK, counterFace, destinationFor, findPath, nearShop, shopVisit, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 const map = world();
@@ -216,8 +216,14 @@ async function refreshAccount() {
   state.kasSompi = body.kasSompi;
   state.oracle = body.oracle;
   if (body.reserve) state.reserve = body.reserve;
+  paintBooks();
+}
+
+function paintBooks() {
   paintChrome();
-  if (state.mode === "bank") paintBank();
+  const face = counterFace(state.mode);
+  if (face === "bank") paintBank();
+  else if (face === "shop") paintShop(state.mode);
 }
 
 function forgetGuest(prev) {
@@ -1148,7 +1154,9 @@ async function spend(rail, shop, sku) {
         say(body.error || "The shop refused the payment.", true);
         return;
       }
+      if (body.account) state.account = body.account;
       tookPayment(body, sku);
+      paintBooks();
       await refreshAccount();
       return;
     }
@@ -1168,7 +1176,9 @@ async function spend(rail, shop, sku) {
       return;
     }
     if (rail === "kas") shopTxid = "";
+    if (body.account) state.account = body.account;
     tookPayment(body, sku);
+    paintBooks();
     await refreshAccount();
   } catch (err) {
     punch("shake");

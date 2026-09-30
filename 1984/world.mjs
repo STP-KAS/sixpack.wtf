@@ -95,6 +95,12 @@ export function shopVisit(mode) {
   return mode === "bank" || mode === "cafe" || mode === "restaurant" || mode === "groceries" || mode === "roadster";
 }
 
+/** Which open card to redraw after a payment. An empty string means no card is open. */
+export function counterFace(mode) {
+  if (!shopVisit(mode)) return "";
+  return mode === "bank" ? "bank" : "shop";
+}
+
 /** A tile the roadster can stop on. Indoors is for feet, so the car waits outside. */
 export function standTile(map, x, y) {
   const tx = Math.round(x);
