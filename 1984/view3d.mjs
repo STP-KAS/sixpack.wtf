@@ -143,10 +143,108 @@ export function cruiseOfferEnd(ms) {
 
 export function cruiseLine(progress, name) {
   const world = name || "that world";
-  if (progress < 0.25) return world + " is ahead. The roadster rolls so one side does not cook.";
-  if (progress < 0.7) return "Coasting. The car does a slow roll. These are not real miles.";
-  if (progress < 1) return world + " grows ahead. You are not covering a real distance.";
-  return "You are at " + world + ". The bar is full. The vastness stayed vast.";
+  if (progress < 0.25) return "Orbiting " + world + ". A joke goes out into space.";
+  if (progress < 0.7) return "Still orbiting " + world + ". The jokes keep going. These are not real miles.";
+  if (progress < 1) return "Another loop around " + world + ". The jokes do not come back.";
+  return "You are orbiting " + world + ". The bar is full. The jokes are still out there.";
+}
+
+/** How often a new joke leaves the car. */
+export const JOKE_MS = 6500;
+
+const ORBIT_RADIUS = { moon: 8.2, mars: 9.6, jupiter: 14.8, saturn: 12.6 };
+const ORBIT_PERIOD = { moon: 18000, mars: 22000, jupiter: 32000, saturn: 26000 };
+
+const SPACE_JOKES = {
+  moon: [
+    "Sent to the Moon: the bays are dust.",
+    "Sent to the Moon: no cafe up here.",
+    "Sent to the Moon: the door stays shut.",
+  ],
+  mars: [
+    "Sent to Mars: red was not extra.",
+    "Sent to Mars: no fountain on this lap.",
+    "Sent to Mars: the dust does not wave.",
+  ],
+  jupiter: [
+    "Sent to Jupiter: still not real miles.",
+    "Sent to Jupiter: the planet stays quiet.",
+    "Sent to Jupiter: coffee stayed home.",
+  ],
+  saturn: [
+    "Sent to Saturn: the rings are a roundabout.",
+    "Sent to Saturn: the lane is the orbit.",
+    "Sent to Saturn: get out is a long step.",
+  ],
+  any: [
+    "Sent into space: this joke does not come back.",
+    "Sent into space: the joke is already ahead.",
+    "Sent into space: the fountain stayed home.",
+  ],
+};
+
+export function orbitRadius(sku) {
+  return ORBIT_RADIUS[sku] || ORBIT_RADIUS.mars;
+}
+
+export function orbitPeriod(sku) {
+  return ORBIT_PERIOD[sku] || ORBIT_PERIOD.mars;
+}
+
+/** One joke for this moment of a hop. The index steps every JOKE_MS. */
+export function spaceJoke(ms, sku) {
+  const index = Math.floor(Math.max(0, ms) / JOKE_MS);
+  const own = SPACE_JOKES[sku] || [];
+  const list = own.concat(SPACE_JOKES.any);
+  return { index, text: list[index % list.length] };
+}
+
+/**
+ * A circle around the paid world.
+ * θ = 0 puts the car where the ship let it go, nose on headingYaw(1, 0), toward +X.
+ * The world center sits on −Z from that point, so the camera on +Z sees the body past the car.
+ * Tangent is (cos θ, −sin θ). That is d/dθ of (sin θ, cos θ).
+ */
+export function orbitPoint(ms, sku, fromMs) {
+  const base = flightPose(Math.max(FLIGHT_SPACE, fromMs || FLIGHT_SPACE));
+  const radius = orbitRadius(sku);
+  const worldX = base.carX;
+  const worldY = base.carY;
+  const worldZ = base.carZ - radius;
+  const theta = (Math.max(0, ms) / orbitPeriod(sku)) * Math.PI * 2;
+  return {
+    worldX,
+    worldY,
+    worldZ,
+    radius,
+    theta,
+    carX: worldX + radius * Math.sin(theta),
+    carY: worldY + Math.sin(Math.max(0, ms) / 900) * 0.28,
+    carZ: worldZ + radius * Math.cos(theta),
+    tx: Math.cos(theta),
+    tz: -Math.sin(theta),
+  };
+}
+
+function jokeBursts(ms, sku, fromMs) {
+  const t = Math.max(0, ms);
+  const index = Math.floor(t / JOKE_MS);
+  const bursts = [];
+  for (let i = Math.max(0, index - 4); i <= index; i++) {
+    const sent = i * JOKE_MS;
+    const at = orbitPoint(sent, sku, fromMs);
+    const age = (t - sent) / 1000;
+    const travel = 1.8 + age * 8;
+    bursts.push({
+      index: i,
+      text: spaceJoke(sent, sku).text,
+      x: at.carX + at.tx * travel,
+      y: at.carY + 0.7 + age * 1.1,
+      z: at.carZ + at.tz * travel,
+      fade: Math.max(0, 1 - age / 16),
+    });
+  }
+  return bursts;
 }
 
 /** Simulation theory is not on a clock. It shows after the rider ends the flight. */
@@ -202,13 +300,13 @@ export function flightPose(ms) {
 }
 
 /**
- * A hop continues from the release pose. The nose stays on headingYaw(1, 0), toward +X.
- * Roll is local Z. A small nod is local X. The yaw wiggle stays small so the hood still leads.
+ * A hop is an orbit of the paid world. The nose follows the tangent from orbitPoint.
+ * Roll is a bank into the turn, local Z. It is 0 at the first instant.
  */
 export function cruisePose(ms, sku, fromMs) {
   const t = Math.max(0, ms);
+  const at = orbitPoint(t, sku, fromMs);
   const base = flightPose(Math.max(FLIGHT_SPACE, fromMs || FLIGHT_SPACE));
-  const along = cruiseProgress(t);
   const trip = tripBySku(sku);
   return {
     ...base,
@@ -216,18 +314,47 @@ export function cruisePose(ms, sku, fromMs) {
     beatCruise: true,
     dest: sku || "",
     destName: trip ? trip.name : "that world",
-    along,
-    carX: base.carX + along * 14,
-    carY: base.carY + Math.sin(t / 640) * 1.6,
-    carZ: Math.sin(t / 900) * 2,
-    carYaw: headingYaw(1, 0) + Math.sin(t / 1100) * 0.22,
-    carRoll: Math.sin(t / 520) * 1.1,
-    nod: Math.sin(t / 700) * 0.35,
+    along: cruiseProgress(t),
+    theta: at.theta,
+    worldX: at.worldX,
+    worldY: at.worldY,
+    worldZ: at.worldZ,
+    orbitRadius: at.radius,
+    carX: at.carX,
+    carY: at.carY,
+    carZ: at.carZ,
+    carYaw: headingYaw(at.tx, at.tz),
+    carRoll: t > 0 ? -Math.min(1, t / 700) * 0.72 : 0,
+    nod: Math.sin(t / 800) * 0.08,
+    spin: t * 0.00008,
     plume: 0,
     shipPlume: 0,
     sky: 1,
     released: true,
     separated: true,
+    jokes: jokeBursts(t, sku, fromMs),
+  };
+}
+
+/**
+ * Outside the orbit, on the radial from the world through the car.
+ * yaw 0 and pitch = π/2 sits the camera further out than the car, looking at the car,
+ * so the world stays in view past the nose's side. The yaw walks on that same radial's right.
+ */
+export function cruiseWatch(pose, yaw = 0, pitch = 1.05, dist = 4.6) {
+  const rx = pose.carX - pose.worldX;
+  const rz = pose.carZ - pose.worldZ;
+  const len = Math.hypot(rx, rz) || 1;
+  const ox = rx / len;
+  const oz = rz / len;
+  const offset = orbitOffset(yaw, pitch);
+  return {
+    x: pose.carX + (oz * offset.x + ox * offset.z) * dist,
+    y: pose.carY + offset.y * dist,
+    z: pose.carZ + (-ox * offset.x + oz * offset.z) * dist,
+    lx: pose.carX,
+    ly: pose.carY,
+    lz: pose.carZ,
   };
 }
 
@@ -646,6 +773,39 @@ function pose(group, now, moving) {
   if (legR) legR.rotation.x = -swing;
   if (armL) armL.rotation.x = -swing * 0.65;
   if (armR) armR.rotation.x = swing * 0.65;
+}
+
+function paintJokeCanvas(g, canvas, text) {
+  g.clearRect(0, 0, canvas.width, canvas.height);
+  g.fillStyle = "rgba(12,14,18,0.9)";
+  g.fillRect(8, 14, canvas.width - 16, 68);
+  g.strokeStyle = "#e7c27a";
+  g.strokeRect(8.5, 14.5, canvas.width - 17, 67);
+  g.fillStyle = "#f3e6c8";
+  g.font = "600 28px Segoe UI, sans-serif";
+  g.textAlign = "center";
+  g.fillText(text, canvas.width / 2, 58);
+}
+
+function jokeSprite(text) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 720;
+  canvas.height = 96;
+  paintJokeCanvas(canvas.getContext("2d"), canvas, text);
+  const material = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, depthWrite: false, opacity: 0 });
+  material.map.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(7.4, 0.98, 1);
+  sprite.visible = false;
+  sprite.userData.label = text;
+  return sprite;
+}
+
+function writeJoke(sprite, text) {
+  const canvas = sprite.material.map.image;
+  paintJokeCanvas(canvas.getContext("2d"), canvas, text);
+  sprite.material.map.needsUpdate = true;
+  sprite.userData.label = text;
 }
 
 function nameTag(text) {
@@ -1179,13 +1339,13 @@ export function buildFlight() {
   }
   const worlds = {};
   const worldMat = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.72 });
-  const moon = new THREE.Mesh(new THREE.SphereGeometry(2.1, 18, 12), worldMat("#c8c4bc"));
-  const mars = new THREE.Mesh(new THREE.SphereGeometry(2.6, 18, 12), worldMat("#c45a28"));
-  const jupiter = new THREE.Mesh(new THREE.SphereGeometry(4.2, 20, 14), worldMat("#e0b060"));
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(3.2, 18, 12), worldMat("#c8c4bc"));
+  const mars = new THREE.Mesh(new THREE.SphereGeometry(3.8, 18, 12), worldMat("#c45a28"));
+  const jupiter = new THREE.Mesh(new THREE.SphereGeometry(6.4, 20, 14), worldMat("#e0b060"));
   const saturn = new THREE.Group();
-  const saturnBody = new THREE.Mesh(new THREE.SphereGeometry(3.1, 18, 12), worldMat("#e6c98a"));
+  const saturnBody = new THREE.Mesh(new THREE.SphereGeometry(4.4, 18, 12), worldMat("#e6c98a"));
   const saturnRing = new THREE.Mesh(
-    new THREE.TorusGeometry(4.6, 0.16, 6, 28),
+    new THREE.TorusGeometry(6.3, 0.22, 6, 28),
     new THREE.MeshStandardMaterial({ color: "#f0e2c0", roughness: 0.55, side: THREE.DoubleSide }),
   );
   saturnRing.rotation.x = Math.PI / 2.4;
@@ -1198,7 +1358,13 @@ export function buildFlight() {
     body.visible = false;
     root.add(body);
   }
-  return { root, pad, tower, booster, ship, door, car, plume, plumeHot, shipPlume, burn, earth, stars, steam, engines, worlds };
+  const jokes = [];
+  for (let i = 0; i < 5; i++) {
+    const sprite = jokeSprite("");
+    root.add(sprite);
+    jokes.push(sprite);
+  }
+  return { root, pad, tower, booster, ship, door, car, plume, plumeHot, shipPlume, burn, earth, stars, steam, engines, worlds, jokes };
 }
 
 export function placeFlight(flight, pose) {
@@ -1226,20 +1392,35 @@ export function placeFlight(flight, pose) {
     }
     flight.car.userData.thrustLight.intensity = length > 0 ? 6 : 0;
   }
-  flight.pad.visible = pose.sky < 0.45;
-  flight.tower.visible = pose.sky < 0.45;
+  const cruising = pose.beat === "cruise";
+  flight.ship.visible = !cruising;
+  flight.booster.visible = !cruising;
+  flight.pad.visible = !cruising && pose.sky < 0.45;
+  flight.tower.visible = !cruising && pose.sky < 0.45;
   flight.earth.visible = pose.sky >= 0.35;
-  flight.earth.position.y = earthCenter(pose) - (pose.beat === "cruise" ? pose.along * 30 : 0);
-  flight.earth.scale.setScalar(pose.beat === "cruise" ? 1 - pose.along * 0.35 : 1);
+  flight.earth.position.y = earthCenter(pose) - (cruising ? pose.along * 30 : 0);
+  flight.earth.scale.setScalar(cruising ? 1 - pose.along * 0.35 : 1);
   if (flight.worlds) {
     for (const key of Object.keys(flight.worlds)) {
       const body = flight.worlds[key];
-      const on = pose.beat === "cruise" && key === pose.dest;
+      const on = cruising && key === pose.dest;
       body.visible = on;
       if (!on) continue;
-      body.position.set(pose.carX + 18 - pose.along * 7, pose.carY, 0);
-      body.scale.setScalar(0.4 + pose.along * 0.9);
+      body.position.set(pose.worldX, pose.worldY, pose.worldZ);
+      body.scale.setScalar(1);
+      body.rotation.y = pose.spin || 0;
     }
+  }
+  if (flight.jokes) {
+    for (const sprite of flight.jokes) sprite.visible = false;
+    (pose.jokes || []).forEach((burst, n) => {
+      const sprite = flight.jokes[n];
+      if (!sprite || burst.fade <= 0.02) return;
+      if (sprite.userData.label !== burst.text) writeJoke(sprite, burst.text);
+      sprite.visible = true;
+      sprite.position.set(burst.x, burst.y, burst.z);
+      sprite.material.opacity = burst.fade;
+    });
   }
   flight.stars.visible = pose.sky >= 0.45;
   flight.stars.position.set(0, pose.shipY, 0);
@@ -2418,7 +2599,7 @@ export function mountWorld(canvas, map, api) {
       flight.plumeHot.scale.y *= flick;
     }
     const cam = pose.beat === "cruise"
-      ? flightWatch(pose, flightYaw, flightPitch, 9)
+      ? cruiseWatch(pose, flightYaw, flightPitch)
       : flightCamera(ms, flightYaw, flightPitch);
     const kick = pose.plume > 0.4 ? 1 : 0;
     camera.position.set(cam.x + Math.sin(now / 28) * 0.15 * kick, cam.y + Math.cos(now / 24) * 0.1 * kick, cam.z);

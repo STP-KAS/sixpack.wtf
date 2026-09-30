@@ -15,7 +15,7 @@ import {
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
 import { REELS } from "./reels.mjs";
-import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat } from "./view3d.mjs?v=17";
+import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=18";
 import { ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -62,6 +62,7 @@ const state = {
   cruiseStart: 0,
   cruiseSku: "",
   cruiseFrom: 0,
+  jokeSent: -1,
   watching: false,
   showPaid: false,
   reelAt: 0,
@@ -261,6 +262,7 @@ function startLaunch() {
   state.cruiseStart = 0;
   state.cruiseSku = "";
   state.cruiseFrom = 0;
+  state.jokeSent = -1;
   const card = document.getElementById("flight");
   if (card) {
     card.hidden = false;
@@ -349,6 +351,7 @@ function returnFromFlight() {
   state.cruiseStart = 0;
   state.cruiseSku = "";
   state.cruiseFrom = 0;
+  state.jokeSent = -1;
   state.aboard = true;
   state.path = [];
   state.arrived = null;
@@ -415,6 +418,11 @@ function paintFlightCard(now) {
       if (cruising) {
         const trip = tripBySku(state.cruiseSku);
         line.textContent = cruiseLine(progress, trip ? trip.name : "that world");
+        const joke = spaceJoke(ms, state.cruiseSku);
+        if (joke.index !== state.jokeSent) {
+          state.jokeSent = joke.index;
+          say(joke.text);
+        }
       } else {
         line.textContent = flightLine(beat);
       }
@@ -1467,7 +1475,7 @@ function paintGuide() {
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
     "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept swap, a KUSDT swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
-    "<li>The roadster parks on the lot in front of Pike's shop. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, rides a ship to orbit. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, or Saturn. On that hop the end popup waits ten seconds.</li>" +
+    "<li>The roadster parks on the lot in front of Pike's shop. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, rides a ship to orbit. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, or Saturn. The roadster orbits that world, and jokes go out into space. On that hop the end popup waits ten seconds.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. One ticket plays every film, from a seat, and the next film starts when one ends. Snacks sit under the screen while it runs.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
@@ -1495,6 +1503,7 @@ function tookPayment(body, sku) {
     state.cruiseFrom = performance.now() - state.flightStart;
     state.cruiseStart = performance.now();
     state.cruiseSku = sku;
+    state.jokeSent = -1;
     state.flightBeat = "";
     showBanner("Paid.");
     punch("nod");
