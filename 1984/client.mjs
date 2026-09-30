@@ -14,7 +14,7 @@ import {
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
-import { DRIVE_MS, WALK_MS, mountWorld, seat } from "./view3d.mjs?v=10";
+import { DRIVE_MS, ENTRY_HINT, WALK_MS, escapeRoom, mountWorld, roomUse, seat } from "./view3d.mjs?v=11";
 import { ROADSTER_PARK, destinationFor, findPath, nearShop, shopVisit, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -51,6 +51,8 @@ const state = {
   lapUntil: 0,
   aboard: false,
   inside: false,
+  venue: "",
+  seated: false,
 };
 
 const PRIVACY =
@@ -144,7 +146,10 @@ function paintChrome() {
     ["guide", "Guide"],
   ];
   side.innerHTML = buttons
-    .map(([idName, text]) => '<button type="button" data-go="' + idName + '"' + (state.mode === idName ? ' class="on"' : "") + ">" + text + "</button>")
+    .map(([idName, text]) => {
+      const on = state.mode === idName || (state.mode === "world" && state.venue === idName);
+      return '<button type="button" data-go="' + idName + '"' + (on ? ' class="on"' : "") + ">" + text + "</button>";
+    })
     .join("");
 
   const guestOn = id.kind === "guest";
@@ -422,7 +427,7 @@ const RAIL_CHAT = {
 
 function markRoom() {
   const root = document.querySelector(".kw");
-  if (root) root.classList.toggle("room", state.mode !== "world");
+  if (root) root.classList.toggle("room", state.mode !== "world" || !!state.venue);
 }
 
 let keepClerk = false;
@@ -438,6 +443,7 @@ function chooseRail(rail) {
     keepClerk = true;
     openMode("bank");
     keepClerk = false;
+    say(RAIL_CHAT[rail]);
     return;
   }
   say(RAIL_CHAT[rail]);
@@ -448,23 +454,73 @@ function isVisit(mode) {
   return shopVisit(mode);
 }
 
-function arriveVisit(shop) {
+function hidePanel() {
+  panel.hidden = true;
+  panel.innerHTML = "";
+  panel.classList.remove("swap-pop", "stall-pop");
+  const shade = document.getElementById("bank-shade");
+  if (shade) shade.hidden = true;
+}
+
+function enterVenue(shop) {
+  if (!shopVisit(shop)) return;
+  state.path = [];
+  state.arrived = null;
+  if (state.venue !== shop) state.seated = false;
+  state.venue = shop;
   state.inside = true;
-  openMode(shop);
+  if (state.mode !== "world" && state.mode !== shop) {
+    hidePanel();
+    state.mode = "world";
+  }
+  markRoom();
+  paintChrome();
+  if (state.mode !== shop) {
+    const hint = ENTRY_HINT[shop];
+    if (hint) say(hint);
+  }
+}
+
+function arriveVisit(shop) {
+  enterVenue(shop);
 }
 
 function enterVisit(shop) {
-  state.path = [];
-  state.arrived = null;
-  state.inside = true;
-  openMode(shop);
+  enterVenue(shop);
+}
+
+function closeCounter() {
+  if (!isVisit(state.mode)) return;
+  hidePanel();
+  state.mode = "world";
+  markRoom();
+  paintChrome();
+  const hint = ENTRY_HINT[state.venue];
+  if (hint) say(hint);
 }
 
 function openMode(mode) {
   const enteringBank = mode === "bank" && state.mode !== "bank";
   const enteringShop = isVisit(mode) && mode !== "bank" && state.mode !== mode;
-  if (mode === "world" && state.mode !== "world") state.arrived = null;
-  state.inside = isVisit(mode);
+  if (mode === "world") {
+    const leaving = !!state.venue || state.inside || isVisit(state.mode);
+    if (leaving || state.mode !== "world") state.arrived = null;
+    if (leaving) {
+      state.path = [];
+      state.bankClerk = "";
+    }
+    state.venue = "";
+    state.inside = false;
+    state.seated = false;
+  } else if (isVisit(mode)) {
+    state.venue = mode;
+    state.inside = true;
+  } else {
+    state.venue = "";
+    state.inside = false;
+    state.seated = false;
+    if (state.mode !== "world") state.arrived = null;
+  }
   state.mode = mode;
   markRoom();
   paintChrome();
@@ -571,7 +627,7 @@ function paintShop(shopId) {
   const fallback = map.npcs.find((npc) => npc.shop === shopId);
   if (!shop) {
     panel.innerHTML = '<div class="stall-head"><h2>' + esc(fallback ? fallback.name : "Shop") + '</h2><button type="button" id="stall-close">Close</button></div>' + balanceSheet() + "<p>The menu loads from the village ledger. " + esc(state.oracleError || "It is not reachable from this browser yet.") + "</p>";
-    document.getElementById("stall-close").onclick = () => openMode("world");
+    document.getElementById("stall-close").onclick = () => closeCounter();
     return;
   }
   const rail = state.shopRail === "kas" || state.shopRail === "kusdt" ? state.shopRail : "poc";
@@ -618,7 +674,7 @@ function paintShop(shopId) {
     '<div class="booth-tabs">' + picks + "</div>" +
     rows + txid +
     "<p class=\"fine\">One rail for the whole menu. A buy asks on this page, then OK. The wallet opens only when you swap tKAS at the bank. The miner fee on that swap is twice the standard Testnet 10 rate, and it is extra.</p></div>";
-  document.getElementById("stall-close").onclick = () => openMode("world");
+  document.getElementById("stall-close").onclick = () => closeCounter();
   const pasted = document.getElementById("txid");
   if (pasted) pasted.addEventListener("input", () => {
     shopTxid = pasted.value.trim();
@@ -831,7 +887,7 @@ function paintBank() {
     document.getElementById("freeze").onclick = freeze;
   }
   const shut = document.getElementById("bank-close");
-  if (shut) shut.onclick = () => openMode("world");
+  if (shut) shut.onclick = () => closeCounter();
   if (swapBusy) setSwapBusy(true);
 }
 
@@ -884,8 +940,8 @@ function paintGuide() {
     "<li>Or choose New arrival on the welcome gate. That is the same as Test without a wallet. This tab gets 50000 tKAS from Grok's Testnet-10 wallet. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. Returning leaves the gate and uses a wallet that stays on this browser. One thousand of these test wallets can be opened in a day.</li>" +
     "<li>Or paste a kaspatest address. Or type a .kas name that already resolves on TN10. That choice stays until you change it.</li>" +
     "<li>Need coins: New arrival gives this tab 50000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
-    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to go in. The counter is a popup. Buy the roadster and you drive it. W A S D move the way you look. The arrow keys do too. G gets in or out. Esc closes. Pick one rail, then Buy.</li>" +
-    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Step moves you. Left and Right turn you. Tap a building you are next to and you go in. Get in drives. Get out walks. Square closes a shop. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
+    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, sit, then click the menu or the card on the table. The market opens at the counter. The showroom opens when you click Pike or the sign. Buy the roadster and you drive it. W A S D move the way you look. The arrow keys do too. G gets in or out. Esc closes the card, then leaves the room. Square leaves too.</li>" +
+    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
     "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept swap, a KUSDT swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>The roadster parks in front of Pike's shop. Click it to get in. Thrusters show while it moves. Get out to walk. Inside a shop you are on foot. The car does not leave town.</li>" +
@@ -1050,7 +1106,9 @@ function askOk(line) {
       if (ev.target === shade) finish(false);
     };
     const onKey = (ev) => {
-      if (ev.key === "Escape") finish(false);
+      if (ev.key !== "Escape") return;
+      ev.stopPropagation();
+      finish(false);
     };
     ok.addEventListener("click", onOk);
     no.addEventListener("click", onNo);
@@ -1452,7 +1510,7 @@ function walkTo(x, y, then) {
     return;
   }
   state.path = path.slice(1);
-  state.arrived = then || (dest.shop ? () => openMode(dest.shop) : null);
+  state.arrived = then || (dest.shop ? () => enterVenue(dest.shop) : null);
   if (!state.path.length && state.arrived) {
     const fn = state.arrived;
     state.arrived = null;
@@ -1475,6 +1533,30 @@ const worldView = mountWorld(view, map, {
     enterVisit(shop);
   },
   room: () => state.inside,
+  venue: () => state.venue,
+  seated: () => state.seated,
+  clerk: () => state.bankClerk,
+  use(hit, rail) {
+    if (!state.venue) return;
+    const act = roomUse(state.venue, state.seated, hit);
+    if (act.sit) state.seated = true;
+    if (act.open === "bank" && act.clerk === "books") {
+      state.bankClerk = "books";
+      state.bankShutter = performance.now();
+      keepClerk = true;
+      openMode("bank");
+      keepClerk = false;
+      say("The books are locked coins and the practice purse. A clerk does the swap.");
+      return;
+    }
+    if (act.open === "bank") {
+      const next = rail === "poc" || rail === "kusdt" || rail === "kas" ? rail : "kas";
+      chooseRail(next);
+      return;
+    }
+    if (act.say) say(act.say);
+    if (act.open) openMode(act.open);
+  },
   step(dx, dy) {
     if (!dx && !dy) return;
     state.path = [];
@@ -1506,10 +1588,7 @@ const worldView = mountWorld(view, map, {
     }
     const hopIn = () => {
       state.aboard = true;
-      if (state.inside || state.mode !== "world") {
-        state.inside = false;
-        openMode("world");
-      }
+      if (state.venue || state.inside || isVisit(state.mode)) openMode("world");
       showBanner("You drive.");
       say("You are in the roadster. Get out when you want to walk.");
       syncRide();
@@ -1556,7 +1635,11 @@ window.addEventListener("keydown", (ev) => {
     return;
   }
   if (key === "escape") {
-    openMode("world");
+    const ask = document.getElementById("ask");
+    if (ask && !ask.hidden) return;
+    const act = escapeRoom(isVisit(state.mode), !!state.venue);
+    if (act === "counter") closeCounter();
+    else openMode("world");
     return;
   }
   let best = null;
@@ -1577,9 +1660,22 @@ side.addEventListener("click", (ev) => {
   const button = ev.target.closest("[data-go]");
   if (!button) return;
   const mode = button.getAttribute("data-go");
-  if (mode !== "world" && mode !== "rules" && mode !== "bench" && mode !== "guide") {
-    const npc = map.npcs.find((item) => item.shop === mode);
-    if (npc) walkTo(npc.x, npc.y, () => arriveVisit(mode));
+  if (shopVisit(mode)) {
+    if (state.venue && state.venue !== mode) {
+      state.venue = "";
+      state.inside = false;
+      state.seated = false;
+      if (state.mode !== "world") hidePanel();
+      state.mode = "world";
+      markRoom();
+      paintChrome();
+    }
+    if (nearShop(map, state.player.x, state.player.y, mode)) enterVenue(mode);
+    else {
+      const npc = map.npcs.find((item) => item.shop === mode);
+      if (npc) walkTo(npc.x, npc.y, () => enterVenue(mode));
+    }
+    return;
   }
   openMode(mode);
 });
@@ -1680,7 +1776,10 @@ for (const [id, kind] of [["gate-kasware", "kasware"], ["gate-kastle", "kastle"]
   });
 }
 const bankShade = document.getElementById("bank-shade");
-if (bankShade) bankShade.addEventListener("click", () => openMode("world"));
+if (bankShade) bankShade.addEventListener("click", () => {
+  if (isVisit(state.mode)) closeCounter();
+  else openMode("world");
+});
 panel.addEventListener("click", (ev) => {
   const pick = ev.target.closest("[data-rail-pick]");
   if (pick) {

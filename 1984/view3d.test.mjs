@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { CAR_NOSE, DRIVE_MS, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, THRUST_PITCH, WALK_MS, buildingBoxes, clearCamera, drives, groundStep, headingYaw, moveIntent, orbitOffset, seat, thrustCone, thrustLength } from "./view3d.mjs";
+import { CAR_NOSE, DRIVE_MS, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, THRUST_PITCH, WALK_MS, assembleInteriors, buildingBoxes, clearCamera, drives, escapeRoom, groundStep, headingYaw, menuLines, moveIntent, orbitOffset, roomUse, seat, thrustCone, thrustLength } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -176,4 +176,82 @@ test("a camera inside a roof is lifted above it", () => {
   const buried = { x: (road.minX + road.maxX) / 2, y: 1.2, z: (road.minZ + road.maxZ) / 2 };
   assert.ok(clearCamera(buried, boxes) > road.roofY);
   assert.equal(clearCamera({ x: 0, y: 8, z: 0 }, boxes), 8);
+});
+
+test("walking into a room starts the camera inside the walls", () => {
+  const offset = orbitOffset(ROOM_YAW, ROOM_PITCH);
+  const x = offset.x * ROOM_DISTANCE;
+  const y = ROOM_LOOK_Y + offset.y * ROOM_DISTANCE;
+  const z = ROOM_LOOK_Z + offset.z * ROOM_DISTANCE;
+  assert.ok(Math.abs(x) < 1.4, "x " + x);
+  assert.ok(y > 1.4 && y < 3.4, "y " + y);
+  assert.ok(z > 1 && z < 4.0, "z " + z);
+});
+
+test("the wall menu uses the shop prices", () => {
+  assert.equal(menuLines("cafe")[1], "Coffee 2.50");
+  assert.equal(menuLines("restaurant")[1], "Supper 14.00");
+  assert.equal(menuLines("groceries")[0], "Square pebble 0.01");
+  assert.equal(menuLines("roadster")[0], "The roadster 1.00");
+});
+
+test("a room opens the card only from the counter, a clerk, or a seat", () => {
+  assert.equal(roomUse("bank", false, "").open, "");
+  assert.equal(roomUse("bank", false, "").say, "Click a clerk.");
+  assert.equal(roomUse("bank", false, "clerk").open, "bank");
+  assert.equal(roomUse("bank", false, "books").clerk, "books");
+  assert.equal(roomUse("cafe", false, "").open, "");
+  assert.equal(roomUse("cafe", false, "seat").sit, true);
+  assert.equal(roomUse("cafe", false, "seat").open, "");
+  assert.equal(roomUse("cafe", false, "menu").open, "");
+  assert.equal(roomUse("cafe", false, "qr").say, "Take a seat first.");
+  assert.equal(roomUse("cafe", true, "menu").open, "cafe");
+  assert.equal(roomUse("cafe", true, "qr").open, "cafe");
+  assert.equal(roomUse("restaurant", true, "counter").open, "restaurant");
+  assert.equal(roomUse("groceries", false, "").say, "Click the counter.");
+  assert.equal(roomUse("groceries", false, "counter").open, "groceries");
+  assert.equal(roomUse("groceries", false, "seat").open, "");
+  assert.equal(roomUse("roadster", false, "keeper").open, "roadster");
+  assert.equal(roomUse("roadster", false, "sign").open, "roadster");
+  assert.equal(roomUse("roadster", false, "").say, "Click Pike or the sign.");
+  assert.equal(escapeRoom(true, true), "counter");
+  assert.equal(escapeRoom(false, true), "leave");
+  assert.equal(escapeRoom(false, false), "close");
+});
+
+test("the rooms contain clerks, seats, a menu, and a scan card", () => {
+  const ctx = new Proxy({}, {
+    get(_target, key) {
+      if (key === "canvas") return { width: 64, height: 64 };
+      if (key === "createLinearGradient" || key === "createRadialGradient") return () => ({ addColorStop() {} });
+      return () => {};
+    },
+    set() {
+      return true;
+    },
+  });
+  const previous = globalThis.document;
+  globalThis.document = {
+    createElement() {
+      return { width: 64, height: 64, getContext: () => ctx };
+    },
+  };
+  let rooms;
+  try {
+    rooms = assembleInteriors();
+  } finally {
+    globalThis.document = previous;
+  }
+  assert.ok(rooms.clerkNoseZ > 0.9);
+  assert.equal(rooms.clerks, 3);
+  assert.ok(rooms.bankClerkPicks >= 3);
+  assert.ok(rooms.books >= 1);
+  assert.equal(rooms.wallsFaceBothWays, true);
+  assert.ok(rooms.cafeSeats >= 4);
+  assert.ok(rooms.cafeCards >= 2);
+  assert.ok(rooms.cafeMenu >= 1);
+  assert.ok(rooms.tableSeats >= 2);
+  assert.ok(rooms.marketCounter >= 1);
+  assert.ok(rooms.showroomSign >= 1);
+  assert.ok(rooms.showroomKeeper >= 1);
 });
