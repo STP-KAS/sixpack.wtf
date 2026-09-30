@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_RELEASE, FLIGHT_SPACE, FLIGHT_STAGE, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_RIGHT, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, buildingBoxes, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, cruiseWatch, drives, earthCenter, escapeRoom, fitScreen, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
+import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_RELEASE, FLIGHT_SPACE, FLIGHT_STAGE, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, buildingBoxes, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, cruiseWatch, drives, earthCenter, escapeRoom, fitScreen, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -437,6 +437,11 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.equal(PAD_LEFT, "1984/pad-left.mp4");
   assert.equal(PAD_RIGHT, "1984/before.mp4");
   assert.notEqual(PAD_LEFT, PAD_RIGHT);
+  assert.equal(filmLaunchFill("left", 0, 0, PAD_LEFT_SECONDS, PAD_RIGHT_SECONDS), 0);
+  const filmTotal = PAD_LEFT_SECONDS + PAD_RIGHT_SECONDS;
+  assert.ok(Math.abs(filmLaunchFill("left", PAD_LEFT_SECONDS / 2, 0, PAD_LEFT_SECONDS, PAD_RIGHT_SECONDS) - (PAD_LEFT_SECONDS / 2) / filmTotal) < 1e-9);
+  assert.ok(Math.abs(filmLaunchFill("right", 0, 0, PAD_LEFT_SECONDS, PAD_RIGHT_SECONDS) - PAD_LEFT_SECONDS / filmTotal) < 1e-9);
+  assert.equal(filmLaunchFill("right", 0, PAD_RIGHT_SECONDS, PAD_LEFT_SECONDS, PAD_RIGHT_SECONDS), 1);
   assert.equal(pair0.left, PAD_LEAD);
   assert.equal(pair0.right, "random/r01.mp4");
   assert.equal(pairHi.left, PAD_LEAD);

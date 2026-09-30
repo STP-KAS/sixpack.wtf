@@ -16,7 +16,7 @@ import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
 import { RAIL_NAMES, RAILS_NOTE, payRail, railBarHtml } from "./rails-note.mjs?v=4";
 import { REELS, reelShuffle, reelStep } from "./reels.mjs?v=3";
-import { DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_RIGHT, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=30";
+import { DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=31";
 import { HUNTS, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=1";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -512,10 +512,13 @@ function startLaunch() {
     line.hidden = false;
     line.textContent = "Two short films, then the launch. Film on the left.";
   }
-  if (bar) bar.hidden = true;
+  if (bar) bar.hidden = false;
   if (fill) fill.style.width = "0%";
   const barLabel = document.getElementById("flight-bar-label");
-  if (barLabel) barLabel.hidden = true;
+  if (barLabel) {
+    barLabel.hidden = false;
+    barLabel.textContent = "Time before launch";
+  }
   if (note) note.hidden = true;
   if (offer) offer.hidden = true;
   if (planets) {
@@ -639,6 +642,17 @@ function paintPlanets() {
   }
 }
 
+function filmLaunchProgress() {
+  const slots = padSlots();
+  const left = slots[0];
+  const right = slots[1];
+  const leftDur = left && Number.isFinite(left.duration) && left.duration > 0 ? left.duration : PAD_LEFT_SECONDS;
+  const rightDur = right && Number.isFinite(right.duration) && right.duration > 0 ? right.duration : PAD_RIGHT_SECONDS;
+  const leftNow = left && Number.isFinite(left.currentTime) ? left.currentTime : 0;
+  const rightNow = right && Number.isFinite(right.currentTime) ? right.currentTime : 0;
+  return filmLaunchFill(state.padPhase, leftNow, rightNow, leftDur, rightDur);
+}
+
 function paintFlightCard(now) {
   if (state.flightDark) return;
   if (state.preRoll && !state.flightStart) {
@@ -653,8 +667,13 @@ function paintFlightCard(now) {
     }
     const label = document.getElementById("flight-bar-label");
     const bar = document.getElementById("flight-bar");
-    if (label) label.hidden = true;
-    if (bar) bar.hidden = true;
+    const fill = document.getElementById("flight-fill");
+    if (label) {
+      label.hidden = false;
+      label.textContent = "Time before launch";
+    }
+    if (bar) bar.hidden = false;
+    if (fill) fill.style.width = Math.round(filmLaunchProgress() * 100) + "%";
     return;
   }
   const cruising = !!state.cruiseStart;
@@ -2162,7 +2181,7 @@ function paintGuide() {
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
     "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS. When a payment finishes, the steps and the transaction stay on the page. Open the transaction, or start a new purchase. Log out returns you to the welcome gate.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
-    "<li>The roadster parks on the lot in front of Pike's shop. If it is yours, Get in is the large gold button. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, plays two short films on the tower first, with the sound on, for context. The left film plays, then the right film. The launch starts when the second film ends. The screens stop when the ship lifts. The ship lifts when the count reaches zero. When the booster lets go, that separation plays with its voice. When the roadster leaves, that release plays with its voice. A bar fills until the car leaves the ship. KONI, the Kaspa node, leaves with the roadster, and the climb keeps the comms going. Its screen shows the accepted block and the mining reward. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. The way there is ten seconds. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
+    "<li>The roadster parks on the lot in front of Pike's shop. If it is yours, Get in is the large gold button. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, plays two short films on the tower first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. The screens stop when the ship lifts. The ship lifts when the count reaches zero. When the booster lets go, that separation plays with its voice. When the roadster leaves, that release plays with its voice. A bar fills until the car leaves the ship. KONI, the Kaspa node, leaves with the roadster, and the climb keeps the comms going. Its screen shows the accepted block and the mining reward. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. The way there is ten seconds. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +

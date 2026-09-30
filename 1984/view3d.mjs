@@ -1420,9 +1420,23 @@ function plumeCone(color, radius, length, opacity = 0.9, additive = false) {
   return mesh;
 }
 
-/** Left film, then the right film. The countdown starts when the left film ends. */
+/** Left film, then the right film. The countdown starts when the right film ends. */
 export const PAD_LEFT = "1984/pad-left.mp4";
 export const PAD_RIGHT = "1984/before.mp4";
+/** File lengths, used until the player reports its own duration. */
+export const PAD_LEFT_SECONDS = 58.282667;
+export const PAD_RIGHT_SECONDS = 34.946032;
+
+/** How far the two pad films are toward the launch. 0 is the start of the left film. 1 is the end of the right film. */
+export function filmLaunchFill(phase, leftNow, rightNow, leftDur, rightDur) {
+  const left = Number.isFinite(leftDur) && leftDur > 0 ? leftDur : PAD_LEFT_SECONDS;
+  const right = Number.isFinite(rightDur) && rightDur > 0 ? rightDur : PAD_RIGHT_SECONDS;
+  const total = left + right;
+  const onRight = phase === "right";
+  const a = onRight ? left : Math.min(Math.max(Number(leftNow) || 0, 0), left);
+  const b = onRight ? Math.min(Math.max(Number(rightNow) || 0, 0), right) : 0;
+  return Math.max(0, Math.min(1, (a + b) / total));
+}
 /** First clip for the pair helper. The pad plays PAD_LEFT, then PAD_RIGHT. */
 export const PAD_LEAD = PAD_RIGHT;
 
