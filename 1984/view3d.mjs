@@ -353,10 +353,16 @@ export function flightPose(ms) {
   const boosterZ = peel * 6;
   const boosterYaw = peel * 0.65;
   let carX = 0;
+  let bayY = 4.2;
+  let carZ = 0;
   if (t >= FLIGHT_RELEASE) {
-    carX = flightSmooth(t, FLIGHT_RELEASE, FLIGHT_SPACE) * 8;
+    const out = flightSmooth(t, FLIGHT_RELEASE, FLIGHT_SPACE);
+    carX = out * 8;
     if (t > FLIGHT_SPACE) carX += ((t - FLIGHT_SPACE) / 1000) * 0.35;
+    bayY = 4.2 - out * 9;
+    carZ = out * 1.4;
   }
+  const bay = stackPoint(shipX, shipY, carX, bayY, shipRoll);
   let plume;
   if (t < FLIGHT_LIFTOFF) plume = flightSmooth(t, FLIGHT_LIFTOFF - 8000, FLIGHT_LIFTOFF);
   else if (t < FLIGHT_STAGE) plume = 1;
@@ -384,9 +390,10 @@ export function flightPose(ms) {
     shipRoll,
     boosterRoll,
     hot,
+    bayY,
     carX,
-    carY: shipY + 4.2,
-    carZ: 0,
+    carY: bay.y,
+    carZ,
     carYaw: headingYaw(1, 0),
     carPitch: t > FLIGHT_SPACE ? Math.sin((t - FLIGHT_SPACE) / 1800) * 0.35 : 0,
     plume,
@@ -557,7 +564,7 @@ export function earthCenter(pose) {
 
 /**
  * Pad and climb cameras sit on +Z, outside the stack, looking toward x=0.
- * Once the car is leaving, the camera uses orbitOffset around the car.
+ * Separation watches the gap while the booster flips. Deploy sits on the hull and looks down the car toward Earth.
  */
 export function flightCamera(ms, yaw = 0, pitch = 1.05) {
   const pose = flightPose(ms);
@@ -571,7 +578,7 @@ export function flightCamera(ms, yaw = 0, pitch = 1.05) {
       lz: 0,
     };
   }
-  if (pose.beat === "climb" || pose.beat === "stage" || pose.beat === "orbit") {
+  if (pose.beat === "climb") {
     const lx = pose.shipX || 0;
     return {
       x: lx + 2.2,
@@ -582,16 +589,29 @@ export function flightCamera(ms, yaw = 0, pitch = 1.05) {
       lz: 0,
     };
   }
-  const bay = stackPoint(pose.shipX || 0, pose.shipY, pose.carX || 0, 4.2, pose.shipRoll || 0);
-  const offset = orbitOffset(yaw, pitch);
-  const dist = pose.beat === "space" ? 7.5 : 11;
+  if (pose.beat === "stage" || pose.beat === "orbit") {
+    const sx = pose.shipX || 0;
+    const bx = pose.boosterX || 0;
+    const midX = (sx + bx) / 2;
+    const midY = (pose.shipY + pose.boosterY) / 2;
+    return {
+      x: midX - 8,
+      y: midY + 3,
+      z: 24,
+      lx: midX,
+      ly: midY,
+      lz: (pose.boosterZ || 0) * 0.35,
+    };
+  }
+  const bayY = pose.bayY != null ? pose.bayY : 4.2;
+  const bay = stackPoint(pose.shipX || 0, pose.shipY, pose.carX || 0, bayY, pose.shipRoll || 0);
   return {
-    x: bay.x + offset.x * dist,
-    y: bay.y + offset.y * dist,
-    z: pose.carZ + offset.z * dist,
+    x: (pose.shipX || 0) + 1.5,
+    y: pose.shipY + 5.4,
+    z: 3.4,
     lx: bay.x,
     ly: bay.y,
-    lz: pose.carZ,
+    lz: pose.carZ || 0,
   };
 }
 
@@ -1809,8 +1829,8 @@ export function placeFlight(flight, pose) {
     flight.car.position.set(pose.carX, pose.carY, pose.carZ);
     flight.car.rotation.set(pose.nod || 0, pose.carYaw, pose.carRoll || 0);
   } else {
-    const bay = stackPoint(pose.shipX || 0, pose.shipY, pose.carX || 0, 4.2, shipRoll);
-    flight.car.position.set(bay.x, bay.y, pose.carZ);
+    const bay = stackPoint(pose.shipX || 0, pose.shipY, pose.carX || 0, pose.bayY != null ? pose.bayY : 4.2, shipRoll);
+    flight.car.position.set(bay.x, bay.y, pose.carZ || 0);
     flight.car.rotation.set(pose.nod || 0, pose.carYaw, shipRoll + (pose.carRoll || 0));
   }
   const column = Math.max(0.001, pose.plume * 20);
@@ -1857,7 +1877,8 @@ export function placeFlight(flight, pose) {
     if (show) flight.hullLine.material.opacity = 1;
   }
   const open = pose.released ? Math.min(1, pose.carX / 6) : 0;
-  flight.door.position.y = flight.door.userData.homeY + open * 1.5;
+  flight.door.position.y = flight.door.userData.homeY + open * 0.35;
+  flight.door.rotation.z = -open * 1.2;
   const length = pose.thrust != null ? pose.thrust : thrustLength(pose.released);
   if (flight.car.userData.flames) {
     for (const flame of flight.car.userData.flames) {
@@ -1892,8 +1913,9 @@ export function placeFlight(flight, pose) {
     for (const screen of flight.padScreens) screen.visible = show;
   }
   flight.earth.visible = pose.sky >= 0.35;
-  flight.earth.position.y = earthCenter(pose) - (cruising ? pose.along * 30 : 0);
-  flight.earth.scale.setScalar(cruising ? 1 - pose.along * 0.35 : 1);
+  const deploy = !cruising && (pose.beat === "release" || pose.beat === "space" || pose.separated);
+  flight.earth.position.y = earthCenter(pose) - (cruising ? pose.along * 30 : 0) + (deploy ? 4 : 0);
+  flight.earth.scale.setScalar(cruising ? 1 - pose.along * 0.35 : deploy ? 1.12 : 1);
   if (flight.worlds) {
     for (const key of Object.keys(flight.worlds)) {
       const body = flight.worlds[key];

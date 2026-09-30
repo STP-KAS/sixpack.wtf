@@ -518,6 +518,11 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.equal(cam.lx, space.carX);
   assert.equal(cam.ly, space.carY);
   assert.equal(cam.lz, space.carZ);
+  assert.ok(cam.y > space.carY, "deploy looks down");
+  assert.ok(space.carY < space.shipY - 4, "car left toward Earth");
+  const sep = flightCamera(FLIGHT_STAGE + 4000);
+  assert.ok(sep.z > later.boosterZ + 8, "camera clears the booster");
+  assert.ok(sep.lx < later.shipX && sep.lx > later.boosterX, "looks at the gap");
   const plume = new THREE.Vector3(0, 1, 0).applyAxisAngle(new THREE.Vector3(1, 0, 0), FLIGHT_PLUME_PITCH);
   assert.ok(plume.y < -0.99);
 });
