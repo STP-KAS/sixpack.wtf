@@ -1,5 +1,5 @@
 import { readIdentity, writeIdentity } from "./identity.mjs";
-import { BENCH, REPOS } from "./links.mjs";
+import { BENCH, REPOS } from "./links.mjs?v=2";
 import {
   GUEST_DISCLAIMER,
   RESERVE,
@@ -1900,6 +1900,7 @@ function paintGuide() {
     "<li>The roadster parks on the lot in front of Pike's shop. Click it, or Get in, to drive. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, starts the countdown. The ship lifts when the count reaches zero. A bar fills until the car leaves the ship. KONI, the Kaspa node, leaves with the roadster, and the climb keeps the comms going. Its screen lists Testnet 10 transactions. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, or Saturn with tKAS, POCencept, or KUSDT. The way there is ten seconds, then the roadster orbits farther out. Jokes stay on the screen for ten seconds. On that hop the end popup waits ten seconds.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept, or KUSDT. What are the rails? opens the short note. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The next film starts when one ends.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Promise is not Buy. The pack stays hidden until it pays.</li>" +
+    "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +

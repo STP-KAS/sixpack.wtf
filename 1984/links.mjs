@@ -2,6 +2,16 @@
 
 export const BENCH = [
   {
+    id: "ceiling",
+    title: "The ceiling",
+    text: "A peer-to-peer chain is for a settlement between two people, including while almost nobody takes the coin. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process. This square is the classroom, not that product.",
+    hrefs: [
+      ["The ceiling", "https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md"],
+      ["stable-staghunt-theory", "https://github.com/STP-KAS/stable-staghunt-theory"],
+      ["kaspanet/vprogs", "https://github.com/kaspanet/vprogs"],
+    ],
+  },
+  {
     id: "silverscript",
     title: "SilverScript",
     text: "Covenants on Kaspa. Kaspero Labs showed a freelancer contract: the chain holds the coins until a milestone is notarized. The studio does not hold the funds.",
@@ -132,6 +142,7 @@ export const REPOS = [
   "rusty-kaspa",
   "sixpack.wtf",
   "staghunt-grok-review",
+  "stable-staghunt-theory",
   "stillpay-mainnet",
   "stillpay-tn10",
   "stp-kachat",
