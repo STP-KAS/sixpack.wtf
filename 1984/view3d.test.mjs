@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { CAR_NOSE, DRIVE_MS, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, WALK_MS, buildingBoxes, clearCamera, drives, groundStep, headingYaw, moveIntent, orbitOffset, seat } from "./view3d.mjs";
+import { CAR_NOSE, DRIVE_MS, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, THRUST_PITCH, WALK_MS, buildingBoxes, clearCamera, drives, groundStep, headingYaw, moveIntent, orbitOffset, seat, thrustCone, thrustLength } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -29,6 +29,20 @@ test("pitch 0 looks straight down from above", () => {
   const offset = orbitOffset(0.4, 0);
   assert.ok(offset.y > 0.99);
   assert.ok(Math.hypot(offset.x, offset.z) < 1e-6);
+});
+
+test("a stopped roadster has no thrust and a moving one throws a long plume", () => {
+  assert.equal(thrustLength(false), 0);
+  assert.ok(thrustLength(true) > 2);
+  const tip = new THREE.Vector3(0, 1, 0).applyAxisAngle(new THREE.Vector3(1, 0, 0), THRUST_PITCH);
+  assert.ok(tip.z > 0.99);
+  assert.ok(Math.abs(tip.y) < 1e-6);
+  assert.ok(Math.abs(tip.x) < 1e-6);
+  assert.ok(CAR_NOSE.z < 0);
+  const cone = thrustCone();
+  cone.computeBoundingBox();
+  assert.ok(Math.abs(cone.boundingBox.min.y) < 1e-6);
+  assert.ok(cone.boundingBox.max.y > 0.99);
 });
 
 test("a figure nose follows the tile the player steps toward", () => {

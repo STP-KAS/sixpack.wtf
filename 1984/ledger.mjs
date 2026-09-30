@@ -385,6 +385,43 @@ export function applyRedeem(state, input, now) {
   };
 }
 
+/** POCencept and KUSDT trade 1:1. Locked stays locked. The purse stays a purse. No tKAS moves. */
+export function applyExchange(state, input, now) {
+  const address = assertTestnet(input.address);
+  const from = input.from;
+  const to = input.to;
+  if ((from !== "poc" && from !== "kusdt") || (to !== "poc" && to !== "kusdt") || from === to) {
+    throw new Error("Swap POCencept and KUSDT with each other.");
+  }
+  const cents = BigInt(input.cents);
+  if (cents <= 0n) throw new Error("Type a toy-dollar amount above zero.");
+  const next = clone(state);
+  const account = ensure(next, address);
+  if ((from === "kusdt" || to === "kusdt") && account.kusdtFrozen) {
+    throw new Error("KUSDT is frozen. A frozen tether-style balance does not move.");
+  }
+  const [fromField, fromBacked] = fields(from);
+  const [toField, toBacked] = fields(to);
+  const have = bi(account[fromField]);
+  if (have < cents) throw new Error("Not enough " + railName(from) + ".");
+  const backed = bi(account[fromBacked]);
+  const practice = have - backed;
+  const fromPractice = practice >= cents ? cents : practice;
+  const fromLocked = cents - fromPractice;
+  account[fromField] = String(have - cents);
+  account[fromBacked] = String(backed - fromLocked);
+  account[toField] = String(bi(account[toField]) + cents);
+  account[toBacked] = String(bi(account[toBacked]) + fromLocked);
+  const receipt = pushReceipt(next, account, {
+    at: now,
+    kind: "exchange",
+    rail: to,
+    cents,
+    note: "Swapped toy tags. Locked stayed locked. The purse stayed a purse. No tKAS moved.",
+  });
+  return { state: next, result: { ok: true, receipt, account: publicAccount(next, address) } };
+}
+
 export function attachTxid(state, receiptId, txid) {
   const next = clone(state);
   const row = next.receipts.find((item) => item.id === String(receiptId));

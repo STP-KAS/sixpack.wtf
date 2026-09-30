@@ -97,6 +97,31 @@ test("one tKAS locks five cents, and redeeming one toy dollar does not", async (
   assert.equal(read().accounts[USER].pocBacked, "0");
 });
 
+test("a purse swap does not create locked toy dollars", async () => {
+  const { svc, read } = harness(async () => ({ txids: ["zz"] }));
+  const purse = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/practice",
+    query: new URLSearchParams(),
+    body: { address: USER },
+    ip: "127.0.0.1",
+  });
+  assert.equal(purse.body.ok, true);
+  const moved = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/exchange",
+    query: new URLSearchParams(),
+    body: { address: USER, from: "poc", to: "kusdt", amount: "1.00" },
+    ip: "127.0.0.1",
+  });
+  assert.equal(moved.body.ok, true);
+  assert.equal(read().accounts[USER].poc, "1900");
+  assert.equal(read().accounts[USER].pocBacked, "0");
+  assert.equal(read().accounts[USER].kusdt, "2100");
+  assert.equal(read().accounts[USER].kusdtBacked, "0");
+  assert.equal(read().accounts[USER].liability, "0");
+});
+
 test("a failed redeem puts the toy balance back", async () => {
   const { svc, read } = harness(async () => {
     throw new Error("node down");

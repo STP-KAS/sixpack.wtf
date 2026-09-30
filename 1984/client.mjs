@@ -14,8 +14,8 @@ import {
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { kasSpendAction, lockSigner, shopBanner, txidFromWallet } from "./kas-spend.mjs";
-import { DRIVE_MS, WALK_MS, mountWorld, seat } from "./view3d.mjs?v=9";
-import { destinationFor, findPath, nearShop, shopVisit, walkable, world } from "./world.mjs";
+import { DRIVE_MS, WALK_MS, mountWorld, seat } from "./view3d.mjs?v=10";
+import { ROADSTER_PARK, destinationFor, findPath, nearShop, shopVisit, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 const map = world();
@@ -43,6 +43,7 @@ const state = {
   id: loadId(),
   arrived: null,
   bankRail: "kas",
+  bankClerk: "",
   shopRail: "poc",
   bankShutter: 0,
   bankFlight: null,
@@ -188,7 +189,7 @@ function toggleRide() {
       : "You are in the roadster. Get out when you want to walk.");
   } else {
     showBanner("You walk.");
-    say("You got out. The car stays here. Get in when you want to drive.");
+    say("You got out. The roadster is parked in front of Pike's shop. Click it to get back in.");
   }
   paintChrome();
 }
@@ -424,14 +425,23 @@ function markRoom() {
   if (root) root.classList.toggle("room", state.mode !== "world");
 }
 
+let keepClerk = false;
+
 function chooseRail(rail) {
   if (rail !== "kas" && rail !== "poc" && rail !== "kusdt") return;
-  if (state.bankRail === rail && !state.bankFlight) return;
+  if (swapBusy) return;
   state.bankFlight = null;
   state.bankRail = rail;
+  state.bankClerk = rail;
   state.bankShutter = performance.now();
+  if (state.mode !== "bank") {
+    keepClerk = true;
+    openMode("bank");
+    keepClerk = false;
+    return;
+  }
   say(RAIL_CHAT[rail]);
-  if (state.mode === "bank") paintBank();
+  paintBank();
 }
 
 function isVisit(mode) {
@@ -469,9 +479,10 @@ function openMode(mode) {
   }
   panel.hidden = false;
   if (mode === "bank") {
-    if (enteringBank) {
+    if (enteringBank && !keepClerk) {
+      state.bankClerk = "";
       state.bankShutter = performance.now();
-      say("Examine Venn's bank. " + RAIL_CHAT[state.bankRail]);
+      say("Push a clerk. tKAS, POCencept, or KUSDT.");
     }
     paintBank();
   } else if (mode === "rules") paintRules();
@@ -613,7 +624,7 @@ function paintShop(shopId) {
 
 let lockDraft = "1";
 let redeemDraft = "";
-let swapNoteText = "Nothing moved yet. The top box locks tKAS. The lower box redeems toy dollars.";
+let swapNoteText = "Push a clerk. tKAS, POCencept, or KUSDT.";
 let swapNoteKind = "";
 let swapBusy = false;
 let spendBusy = false;
@@ -660,72 +671,174 @@ function paintLockPreview() {
   const cents = centsForSompi(sompi, state.oracle);
   const tag = formatCents(cents);
   el.textContent = cents > 0n
-    ? formatTkas(sompi) + " tKAS becomes about " + tag + " POCencept or KUSDT at $" + Number(state.oracle).toFixed(4) + ". Redeem " + tag + " in the toy-dollar box."
-    : formatTkas(sompi) + " tKAS is below 0.01 at this price. Lock more tKAS.";
+    ? formatTkas(sompi) + " tKAS becomes about " + tag + " at $" + Number(state.oracle).toFixed(4) + "."
+    : formatTkas(sompi) + " tKAS is below 0.01 at this price. Swap more tKAS.";
+}
+
+function clerkFigure(id) {
+  if (id === "kas") {
+    if (!state.id.address) return "—";
+    if (state.kasSompi == null) return "…";
+    return formatTkas(state.kasSompi) + " tKAS";
+  }
+  if (!state.account) return "—";
+  const cents = id === "poc" ? state.account.poc : state.account.kusdt;
+  const frozen = id === "kusdt" && state.account.kusdtFrozen ? " · frozen" : "";
+  return formatCents(cents) + frozen;
+}
+
+function bankFine() {
+  const quote = state.oracle ? "Live KAS $" + Number(state.oracle).toFixed(4) + "." : "Live quote unavailable.";
+  return '<p class="fine">' + esc(quote) + " Reserve " + esc(state.reserve) + ". Miner fee is extra tKAS. " + esc(payingLine()) + "</p>";
+}
+
+function statusLine() {
+  return '<p id="swap-status" class="swap-status' + (swapNoteKind ? " " + swapNoteKind : "") + '" role="status">' + esc(swapNoteText) + "</p>";
+}
+
+function swapLoadHtml() {
+  return '<p class="swap-load" id="swap-load" hidden><span class="sspin" aria-hidden="true"></span><span id="swap-load-text">Kasware is opening.</span></p><ol id="swap-steps" class="swap-steps" hidden></ol>';
+}
+
+function showSteps(steps, index, headline) {
+  const load = document.getElementById("swap-load");
+  const text = document.getElementById("swap-load-text");
+  const list = document.getElementById("swap-steps");
+  if (load) load.hidden = false;
+  if (text) text.textContent = headline;
+  if (!list) return;
+  list.hidden = false;
+  list.innerHTML = steps.map((name, i) => {
+    const cls = i < index ? "done" : i === index ? "on" : "";
+    return '<li class="' + cls + '">' + esc(name) + "</li>";
+  }).join("");
+}
+
+function hideSteps() {
+  const load = document.getElementById("swap-load");
+  const list = document.getElementById("swap-steps");
+  if (load) load.hidden = true;
+  if (list) {
+    list.hidden = true;
+    list.innerHTML = "";
+  }
+}
+
+function paintToyPreview() {
+  const el = document.getElementById("toy-preview");
+  if (!el) return;
+  const raw = fieldValue("redeem-amt").trim();
+  if (!raw) {
+    el.textContent = "Type an amount, like 1.00.";
+    return;
+  }
+  try {
+    el.textContent = formatCents(parseDollars(raw)) + " toy dollars.";
+  } catch (err) {
+    el.textContent = err.message;
+  }
 }
 
 function paintBank() {
   rememberSwapFields();
-  const rail = state.bankRail || "kas";
-  const quote = state.oracle ? "Live KAS $" + Number(state.oracle).toFixed(4) + "." : "Live quote unavailable.";
-  const kas = !state.id.address ? "—" : state.kasSompi == null ? "…" : formatTkas(state.kasSompi);
-  const poc = splitCents(state.account && state.account.poc, state.account && state.account.pocBacked);
-  const kusdt = splitCents(state.account && state.account.kusdt, state.account && state.account.kusdtBacked);
+  const clerk = state.bankClerk || "";
   const frozen = !!(state.account && state.account.kusdtFrozen);
-  const card = (id, title, amount, detail, extra) =>
-    '<button type="button" class="swap-bal' + (id === rail ? " on" : "") + (extra ? " " + extra : "") + '" data-booth="' + id + '">' +
-    "<span>" + esc(title) + "</span><strong>" + esc(amount) + "</strong><small>" + esc(detail) + "</small></button>";
-  panel.innerHTML =
-    '<div class="swap">' +
-    '<div class="swap-head"><h2>Venn\'s bank</h2><button type="button" id="bank-close">Close</button></div>' +
-    '<p class="fine">Lock spends tKAS and adds a tag. Redeem pays tKAS back for the locked tag only. The purse does not redeem. ' + esc(payingLine()) + "</p>" +
-    '<div class="swap-bals">' +
-    card("kas", "tKAS", kas, "spendable") +
-    card("poc", "POCencept", formatCents(poc.have), "locked " + formatCents(poc.lock) + " · purse " + formatCents(poc.purse)) +
-    card("kusdt", "KUSDT", formatCents(kusdt.have), "locked " + formatCents(kusdt.lock) + " · purse " + formatCents(kusdt.purse) + (frozen ? " · frozen" : ""), frozen ? "frozen" : "") +
-    "</div>" +
-    '<p id="swap-status" class="swap-status' + (swapNoteKind ? " " + swapNoteKind : "") + '" role="status">' + esc(swapNoteText) + "</p>" +
-    '<p class="swap-step">1. Lock tKAS</p>' +
-    '<label class="amt">tKAS to lock<input id="lock-amt" value="' + esc(lockDraft) + '" inputmode="decimal" autocomplete="off"></label>' +
-    '<p class="swap-preview" id="lock-preview"></p>' +
-    '<div class="kw-row"><button type="button" id="lock-poc">Lock into POCencept</button><button type="button" id="lock-kusdt">Lock into KUSDT</button></div>' +
-    '<p class="swap-step">2. Redeem toy dollars</p>' +
-    '<label class="amt">Toy dollars to redeem<input id="redeem-amt" value="' + esc(redeemDraft) + '" placeholder="type 0.05" inputmode="decimal" autocomplete="off"></label>' +
-    '<p class="fine">This box is toy dollars, like 0.05. It is not tKAS. Only the locked part comes back.</p>' +
-    '<div class="kw-row"><button type="button" id="fill-poc">Use locked POCencept</button><button type="button" id="fill-kusdt">Use locked KUSDT</button></div>' +
-    '<div class="kw-row"><button type="button" id="redeem-poc">Redeem POCencept</button><button type="button" id="redeem-kusdt">Redeem KUSDT</button></div>' +
-    '<div class="kw-row"><button type="button" id="purse">Practice purse</button><button type="button" id="freeze">' + (frozen ? "Thaw KUSDT" : "Freeze KUSDT") + "</button></div>" +
-    '<details class="paid-already"' + (lockTxid ? " open" : "") + '><summary>Already sent tKAS? Paste the txid</summary><textarea id="lock-txid" rows="2">' + esc(lockTxid) + "</textarea></details>" +
-    '<p class="fine">' + esc(quote) + " Reserve " + esc(state.reserve) + ". Miner fee is extra tKAS.</p>" +
-    "</div>";
-  paintLockPreview();
-  document.getElementById("lock-amt").addEventListener("input", () => {
-    lockDraft = fieldValue("lock-amt");
+  const close = '<button type="button" id="bank-close">Close</button>';
+  let body;
+  if (!clerk) {
+    const push = (id, title) =>
+      '<button type="button" class="clerk-push" data-booth="' + id + '"><span>' + esc(title) + "</span><strong>" + esc(clerkFigure(id)) + "</strong><small>Push this window</small></button>";
+    body =
+      '<div class="swap-head"><h2>Venn\'s bank</h2>' + close + "</div>" +
+      '<p class="clerk-ask">Push a clerk.</p>' +
+      '<div class="clerk-picks">' + push("kas", "tKAS") + push("poc", "POCencept") + push("kusdt", "KUSDT") + "</div>" +
+      '<button type="button" class="clerk-books" data-clerk="books">The books</button>' +
+      statusLine() + bankFine();
+  } else if (clerk === "books") {
+    const poc = splitCents(state.account && state.account.poc, state.account && state.account.pocBacked);
+    const kusdt = splitCents(state.account && state.account.kusdt, state.account && state.account.kusdtBacked);
+    const card = (title, amount, detail) =>
+      '<div class="swap-bal"><span>' + esc(title) + "</span><strong>" + esc(amount) + "</strong><small>" + esc(detail) + "</small></div>";
+    body =
+      '<div class="swap-head"><h2>The books</h2><button type="button" id="clerk-back" data-clerk="">Back</button></div>' +
+      "<p>Locked toy dollars came from a real tKAS send. That part can come back as tKAS.</p>" +
+      "<p>The purse is practice coins. Shops spend the purse first. The purse does not come back as tKAS.</p>" +
+      "<p>A swap between POCencept and KUSDT moves each pile as itself. Locked stays locked. The purse stays a purse. No extra tKAS is locked or freed.</p>" +
+      "<p>KUSDT can be frozen. POCencept cannot. A freeze blocks any swap that touches KUSDT.</p>" +
+      '<div class="swap-bals">' +
+      card("POCencept", formatCents(poc.have), "locked " + formatCents(poc.lock) + " · purse " + formatCents(poc.purse)) +
+      card("KUSDT", formatCents(kusdt.have), "locked " + formatCents(kusdt.lock) + " · purse " + formatCents(kusdt.purse) + (frozen ? " · frozen" : "")) +
+      "</div>" +
+      '<div class="kw-row"><button type="button" id="purse" data-act>Practice purse</button><button type="button" id="freeze" data-act>' + (frozen ? "Thaw KUSDT" : "Freeze KUSDT") + "</button></div>" +
+      statusLine() + bankFine();
+  } else if (clerk === "kas") {
+    body =
+      '<div class="swap-head"><h2>tKAS</h2><button type="button" id="clerk-back" data-clerk="">Back</button></div>' +
+      '<p class="clerk-ask">This window swaps into POCencept or KUSDT.</p>' +
+      '<p class="clerk-bal"><span>You have</span><strong>' + esc(clerkFigure("kas")) + "</strong></p>" +
+      '<p class="fine">Only the part that came from tKAS can come back. Practice stays a shop coin.</p>' +
+      '<label class="amt">tKAS to swap<input id="lock-amt" value="' + esc(lockDraft) + '" inputmode="decimal" autocomplete="off"></label>' +
+      '<p class="swap-preview" id="lock-preview"></p>' +
+      '<div class="kw-row"><button type="button" id="lock-poc" data-act>Swap to POCencept</button><button type="button" id="lock-kusdt" data-act' + (frozen ? ' data-hold="1" disabled' : "") + ">Swap to KUSDT</button></div>" +
+      swapLoadHtml() + statusLine() +
+      '<details class="paid-already"' + (lockTxid ? " open" : "") + '><summary>Already sent tKAS? Paste the txid</summary><textarea id="lock-txid" rows="2">' + esc(lockTxid) + "</textarea></details>" +
+      bankFine();
+  } else {
+    const name = clerk === "poc" ? "POCencept" : "KUSDT";
+    const other = clerk === "poc" ? "kusdt" : "poc";
+    const otherName = clerk === "poc" ? "KUSDT" : "POCencept";
+    const blocked = clerk === "kusdt" && frozen;
+    const otherBlocked = other === "kusdt" && frozen;
+    body =
+      '<div class="swap-head"><h2>' + esc(name) + '</h2><button type="button" id="clerk-back" data-clerk="">Back</button></div>' +
+      '<p class="clerk-ask">This window swaps into tKAS or ' + esc(otherName) + ".</p>" +
+      '<p class="clerk-bal"><span>You have</span><strong>' + esc(clerkFigure(clerk)) + "</strong></p>" +
+      '<p class="fine">Only the part that came from tKAS can come back. Practice stays a shop coin.</p>' +
+      (blocked ? '<p class="fine">KUSDT is frozen. Thaw it in the books before these swaps.</p>' : "") +
+      '<label class="amt">Toy dollars<input id="redeem-amt" value="' + esc(redeemDraft) + '" placeholder="1.00" inputmode="decimal" autocomplete="off"></label>' +
+      '<p class="swap-preview" id="toy-preview"></p>' +
+      '<div class="kw-row"><button type="button" id="redeem-' + clerk + '" data-act' + (blocked ? ' data-hold="1" disabled' : "") + ">Swap to tKAS</button>" +
+      '<button type="button" id="x-' + clerk + "-" + other + '" data-act' + (blocked || otherBlocked ? ' data-hold="1" disabled' : "") + ">Swap to " + esc(otherName) + "</button></div>" +
+      swapLoadHtml() + statusLine() + bankFine();
+  }
+  panel.innerHTML = '<div class="swap">' + body + "</div>";
+  if (clerk === "kas") {
     paintLockPreview();
-  });
-  document.getElementById("redeem-amt").addEventListener("input", () => {
-    redeemDraft = fieldValue("redeem-amt");
-  });
-  document.getElementById("lock-txid").addEventListener("input", () => {
-    lockTxid = fieldValue("lock-txid").trim();
-  });
-  document.getElementById("bank-close").onclick = () => openMode("world");
-  document.getElementById("lock-poc").onclick = () => lock("poc");
-  document.getElementById("lock-kusdt").onclick = () => lock("kusdt");
-  document.getElementById("fill-poc").onclick = () => fillRedeem("poc");
-  document.getElementById("fill-kusdt").onclick = () => fillRedeem("kusdt");
-  document.getElementById("redeem-poc").onclick = () => redeem("poc");
-  document.getElementById("redeem-kusdt").onclick = () => redeem("kusdt");
-  document.getElementById("purse").onclick = practice;
-  document.getElementById("freeze").onclick = freeze;
+    document.getElementById("lock-amt").addEventListener("input", () => {
+      lockDraft = fieldValue("lock-amt");
+      paintLockPreview();
+    });
+    const tx = document.getElementById("lock-txid");
+    if (tx) tx.addEventListener("input", () => {
+      lockTxid = fieldValue("lock-txid").trim();
+    });
+    document.getElementById("lock-poc").onclick = () => lock("poc");
+    document.getElementById("lock-kusdt").onclick = () => lock("kusdt");
+  } else if (clerk === "poc" || clerk === "kusdt") {
+    paintToyPreview();
+    document.getElementById("redeem-amt").addEventListener("input", () => {
+      redeemDraft = fieldValue("redeem-amt");
+      paintToyPreview();
+    });
+    const other = clerk === "poc" ? "kusdt" : "poc";
+    document.getElementById("redeem-" + clerk).onclick = () => redeem(clerk);
+    document.getElementById("x-" + clerk + "-" + other).onclick = () => exchange(clerk, other);
+  } else if (clerk === "books") {
+    document.getElementById("purse").onclick = practice;
+    document.getElementById("freeze").onclick = freeze;
+  }
+  const shut = document.getElementById("bank-close");
+  if (shut) shut.onclick = () => openMode("world");
   if (swapBusy) setSwapBusy(true);
 }
 
 function setSwapBusy(on) {
   swapBusy = on;
-  for (const id of ["lock-poc", "lock-kusdt", "fill-poc", "fill-kusdt", "redeem-poc", "redeem-kusdt", "purse", "freeze"]) {
-    const button = document.getElementById(id);
-    if (button) button.disabled = on;
+  const root = panel.querySelector(".swap");
+  if (!root) return;
+  for (const button of root.querySelectorAll("button")) {
+    if (button.id === "bank-close" || button.id === "clerk-back") continue;
+    button.disabled = on || button.getAttribute("data-hold") === "1";
   }
 }
 
@@ -767,12 +880,12 @@ function paintGuide() {
     "<li class=\"only-phone\">On a phone, set Testnet 10 inside Kasware or Kastle before you log in. This page cannot switch the phone wallet. Or open this page in the Kastle browser. If the window is black, close it, unlock the wallet, and try again. A mainnet address is still refused. That login stays on this browser.</li>" +
     "<li>Or choose New arrival on the welcome gate. That is the same as Test without a wallet. This tab gets 10000 tKAS from Grok's Testnet-10 wallet. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. Returning leaves the gate and uses a wallet that stays on this browser. One thousand of these test wallets can be opened in a day.</li>" +
     "<li>Or paste a kaspatest address. Or type a .kas name that already resolves on TN10. That choice stays until you change it.</li>" +
-    "<li>Need coins: New arrival gives this tab 10000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. Take the practice purse in the bank. That purse is play money.</li>" +
+    "<li>Need coins: New arrival gives this tab 10000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to go in. The counter is a popup. Buy the roadster and you drive it. W A S D move the way you look. The arrow keys do too. G gets in or out. Esc closes. Pick one rail, then Buy.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Step moves you. Left and Right turn you. Tap a building you are next to and you go in. Get in drives. Get out walks. Square closes a shop. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
     "<li>tKAS asks the wallet to sign a real Testnet-10 transaction. The miner fee is twice the standard Testnet 10 rate, and it is extra tKAS.</li>" +
-    "<li>Venn's bank opens as a swap. Step 1 locks tKAS. Step 2 redeems toy dollars. Use locked POCencept puts the locked amount in the toy-dollar box. The Result line says whether it landed. KUSDT is the only freeze.</li>" +
-    "<li>Pike sells the roadster for 1.00 toy dollar. Get in to drive. Get out to walk. Inside a shop you are on foot. The car does not leave town.</li>" +
+    "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While Kasware is opening, the steps stay on that clerk.</li>" +
+    "<li>The roadster parks in front of Pike's shop. Click it to get in. Thrusters show while it moves. Get out to walk. Inside a shop you are on foot. The car does not leave town.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +
@@ -1010,31 +1123,16 @@ function tagName(rail) {
   return rail === "poc" ? "POCencept" : "KUSDT";
 }
 
-function lockedDollars(rail) {
-  if (!state.account) return "";
-  const field = rail === "poc" ? "pocBacked" : "kusdtBacked";
-  const cents = BigInt(state.account[field] || 0);
-  if (cents <= 0n) return "";
-  return formatCents(cents);
-}
-
 function putRedeemAmount(amount) {
   redeemDraft = amount;
   const el = document.getElementById("redeem-amt");
   if (el) el.value = amount;
 }
 
-function fillRedeem(rail) {
-  if (swapBusy) return;
-  const name = tagName(rail);
-  const amount = lockedDollars(rail);
-  if (!amount) {
-    punch("shake");
-    swapNote("Nothing locked in " + name + ". Lock tKAS first. The purse does not redeem.", "bad");
-    return;
-  }
-  putRedeemAmount(amount);
-  swapNote(amount + " locked " + name + " is in the toy-dollar box. Press Redeem " + name + ".", "wait");
+function walletWord(plan) {
+  if (plan === "kastle" || state.id.kind === "kastle") return "Kastle";
+  if (plan === "kasware" || state.id.kind === "kasware") return "Kasware";
+  return "the wallet";
 }
 
 async function lock(rail) {
@@ -1060,24 +1158,40 @@ async function lock(rail) {
   try {
     let body;
     if (state.id.kind === "guest") {
+      const steps = ["Checking the amount", "Paying from this tab", "Adding the tag", "Done"];
+      showSteps(steps, 1, "Paying from this tab.");
+      showSteps(steps, 2, "Adding the tag.");
       body = await post("/api/1984/guest/convert", {
         token: state.id.token,
         rail,
         amount: fieldValue("lock-amt").trim(),
       });
+      showSteps(steps, steps.length, "Done.");
     } else {
       const txField = document.getElementById("lock-txid");
       let txid = (txField && txField.value.trim()) || lockTxid;
+      let steps;
       if (!txid) {
+        const who = walletWord();
+        steps = ["Checking the amount", "Opening " + who, "Approve the send in " + who, "Waiting for Testnet 10", "Adding the tag"];
+        showSteps(steps, 1, who === "the wallet" ? "The wallet is opening." : who + " is opening.");
         const plan = await signerForSpend();
         if (plan !== "kit" && plan !== "kasware" && plan !== "kastle") {
           punch("shake");
+          hideSteps();
           swapNote("Not swapped. " + signerRefusal(plan), "bad");
           return;
         }
-        swapNote("Approve " + shown + " in the wallet. The miner fee is twice the standard rate, and it is extra.", "wait");
+        const named = walletWord(plan);
+        steps = ["Checking the amount", "Opening " + named, "Approve the send in " + named, "Waiting for Testnet 10", "Adding the tag"];
+        showSteps(steps, 2, "Approve the send in " + named + ".");
+        swapNote("Approve " + shown + " in " + named + ". The miner fee is twice the standard rate, and it is extra.", "wait");
         rememberWalletKind(plan);
         txid = await sendFromWallet(plan, sompi);
+        showSteps(steps, 3, "Waiting for Testnet 10.");
+      } else {
+        steps = ["Checking the amount", "Waiting for Testnet 10", "Adding the tag"];
+        showSteps(steps, 1, "Waiting for Testnet 10.");
       }
       sent = !!txid;
       if (txid) {
@@ -1089,30 +1203,25 @@ async function lock(rail) {
           if (details) details.open = true;
         }
       }
+      showSteps(steps, steps.length - 1, "Adding the tag.");
+      swapNote("Waiting for Testnet 10. Adding the " + name + " tag…", "wait");
       body = await post("/api/1984/convert", { rail, txid });
+      showSteps(steps, steps.length, "Done.");
     }
     if (!body.ok) {
       punch("shake");
-      swapNote("Not swapped. " + (body.error || "The lock did not clear.") + (sent ? " The txid is in the paste box. Press Lock again to claim it. That does not send a second time." : " Nothing moved."), "bad");
+      swapNote("Not swapped. " + (body.error || "The lock did not clear.") + (sent ? " The txid is in the paste box. Press Swap again to claim it. That does not send a second time." : " Nothing moved."), "bad");
       return;
     }
     punch("nod");
     lockTxid = "";
     const got = body.cents == null || body.cents === "" ? "" : formatCents(body.cents);
     if (got) putRedeemAmount(got);
-    swapNote(
-      got
-        ? "Swapped. " + shown + " became " + got + " " + name + ". That amount is in the toy-dollar box."
-        : "Swapped. " + shown + " locked into " + name + ". The locked line on the card has the amount.",
-      "ok"
-    );
+    swapNote(got ? "Swapped. " + shown + " became " + got + " " + name + "." : "Swapped. " + shown + " locked into " + name + ".", "ok");
     await refreshAccount();
-    state.bankRail = "kas";
-    state.bankFlight = { rail, until: performance.now() + 600 };
-    if (state.mode === "bank") paintBank();
   } catch (err) {
     punch("shake");
-    swapNote("Not swapped. " + (err && err.message ? err.message : "The lock did not clear.") + (sent ? " The txid is in the paste box. Press Lock again to claim it. That does not send a second time." : " Nothing moved."), "bad");
+    swapNote("Not swapped. " + (err && err.message ? err.message : "The lock did not clear.") + (sent ? " The txid is in the paste box. Press Swap again to claim it. That does not send a second time." : " Nothing moved."), "bad");
   } finally {
     setSwapBusy(false);
   }
@@ -1123,39 +1232,88 @@ async function redeem(rail) {
   const name = tagName(rail);
   if (!requireId()) {
     punch("shake");
-    swapNote("Not redeemed. Choose who pays first. Nothing moved.", "bad");
+    swapNote("Not swapped. Choose who pays first. Nothing moved.", "bad");
     return;
   }
   const amount = fieldValue("redeem-amt").trim();
   if (!amount) {
     punch("shake");
-    swapNote("Not redeemed. The toy-dollar box is empty. Press Use locked " + name + ", or type an amount like 0.05.", "bad");
+    swapNote("Not swapped. Type an amount, like 1.00.", "bad");
     return;
   }
   try {
     parseDollars(amount);
   } catch (err) {
     punch("shake");
-    swapNote("Not redeemed. " + err.message + " Use the toy-dollar box, not the tKAS box.", "bad");
+    swapNote("Not swapped. " + err.message, "bad");
     return;
   }
+  const steps = ["Checking the amount", "Taking the locked tag", "Sending tKAS back", "Done"];
   setSwapBusy(true);
-  swapNote("Redeeming " + amount + " " + name + "…", "wait");
+  showSteps(steps, 1, "Taking the locked tag.");
+  swapNote("Swapping " + amount + " " + name + " back to tKAS…", "wait");
+  showSteps(steps, 2, "Sending tKAS back.");
   try {
     const body = await post("/api/1984/redeem", { rail, amount });
     if (!body.ok) {
       punch("shake");
-      swapNote("Not redeemed. " + (body.error || "The redeem did not clear.") + " The tag was put back.", "bad");
+      swapNote("Not swapped. " + (body.error || "The redeem did not clear.") + " The tag was put back.", "bad");
       await refreshAccount();
       return;
     }
+    showSteps(steps, steps.length, "Done.");
     punch("nod");
     const tx = body.txids && body.txids[0] ? " Tx " + String(body.txids[0]).slice(0, 10) + "…" : "";
-    swapNote("Redeemed. " + amount + " " + name + " left the locked balance and tKAS was sent." + tx, "ok");
+    swapNote("Swapped. " + amount + " " + name + " came back as tKAS." + tx, "ok");
     await refreshAccount();
   } catch (err) {
     punch("shake");
-    swapNote("Not redeemed. " + (err && err.message ? err.message : "The redeem did not clear.") + " The tag was put back.", "bad");
+    swapNote("Not swapped. " + (err && err.message ? err.message : "The redeem did not clear.") + " The tag was put back.", "bad");
+  } finally {
+    setSwapBusy(false);
+  }
+}
+
+async function exchange(from, to) {
+  if (swapBusy) return;
+  const source = tagName(from);
+  const dest = tagName(to);
+  if (!requireId()) {
+    punch("shake");
+    swapNote("Not swapped. Choose who pays first. Nothing moved.", "bad");
+    return;
+  }
+  const amount = fieldValue("redeem-amt").trim();
+  if (!amount) {
+    punch("shake");
+    swapNote("Not swapped. Type an amount, like 1.00.", "bad");
+    return;
+  }
+  try {
+    parseDollars(amount);
+  } catch (err) {
+    punch("shake");
+    swapNote("Not swapped. " + err.message, "bad");
+    return;
+  }
+  const steps = ["Checking the amount", "Moving the tag", "Done"];
+  setSwapBusy(true);
+  showSteps(steps, 1, "Moving the tag.");
+  swapNote("Swapping " + amount + " " + source + " to " + dest + "…", "wait");
+  try {
+    const body = await post("/api/1984/exchange", { from, to, amount });
+    if (!body.ok) {
+      punch("shake");
+      swapNote("Not swapped. " + (body.error || "The swap did not clear.") + " Nothing moved.", "bad");
+      return;
+    }
+    showSteps(steps, steps.length, "Done.");
+    punch("nod");
+    swapNote("Swapped. " + amount + " " + source + " is now " + dest + ". Locked stayed locked. The purse stayed a purse.", "ok");
+    await refreshAccount();
+  } catch (err) {
+    punch("shake");
+    swapNote("Not swapped. " + (err && err.message ? err.message : "The swap did not clear.") + " Nothing moved.", "bad");
   } finally {
     setSwapBusy(false);
   }
@@ -1324,6 +1482,30 @@ const worldView = mountWorld(view, map, {
   },
   booth(rail) {
     chooseRail(rail);
+  },
+  car() {
+    const owns = !!(state.account && state.account.roadster);
+    if (!owns) {
+      if (nearShop(map, state.player.x, state.player.y, "roadster")) enterVisit("roadster");
+      else {
+        const npc = map.npcs.find((item) => item.shop === "roadster");
+        if (npc) walkTo(npc.x, npc.y, () => arriveVisit("roadster"));
+      }
+      return;
+    }
+    const hopIn = () => {
+      state.aboard = true;
+      if (state.inside || state.mode !== "world") {
+        state.inside = false;
+        openMode("world");
+      }
+      showBanner("You drive.");
+      say("You are in the roadster. Get out when you want to walk.");
+      syncRide();
+    };
+    const dist = Math.max(Math.abs(state.player.x - ROADSTER_PARK.x), Math.abs(state.player.y - ROADSTER_PARK.y));
+    if (dist <= 2) hopIn();
+    else walkTo(ROADSTER_PARK.x, ROADSTER_PARK.y, hopIn);
   },
   frozen: () => !!(state.account && state.account.kusdtFrozen),
   driving() {
@@ -1502,6 +1684,14 @@ panel.addEventListener("click", (ev) => {
   if (short) {
     punch("shake");
     say(short.getAttribute("data-short"), true);
+    return;
+  }
+  const clerkBtn = ev.target.closest("[data-clerk]");
+  if (clerkBtn) {
+    if (swapBusy) return;
+    state.bankClerk = clerkBtn.getAttribute("data-clerk") || "";
+    if (!state.bankClerk) say("Push a clerk. tKAS, POCencept, or KUSDT.");
+    paintBank();
     return;
   }
   const booth = ev.target.closest("[data-booth]");

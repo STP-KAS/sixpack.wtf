@@ -417,7 +417,7 @@ body.page-1984 main.kw-stage {
   gap: 0.4rem;
   margin: 0.55rem 0 0.35rem;
 }
-button.swap-bal {
+button.swap-bal, div.swap-bal {
   width: 100%;
   background: #2a1a10;
   border: 2px solid #8a7040;
@@ -427,17 +427,89 @@ button.swap-bal {
   color: #f3e6c8;
   cursor: pointer;
 }
+div.swap-bal { cursor: default; }
 button.swap-bal.on { border-color: #f2d48a; background: #3a2818; }
 button.swap-bal.frozen { box-shadow: inset 0 -4px 0 #c0392b; }
-button.swap-bal span { display: block; color: #f2d48a; font-size: 0.72rem; font-weight: 700; }
-button.swap-bal strong {
+button.swap-bal span, div.swap-bal span { display: block; color: #f2d48a; font-size: 0.72rem; font-weight: 700; }
+button.swap-bal strong, div.swap-bal strong {
   display: block;
   margin: 0.2rem 0 0.1rem;
   font-size: clamp(1.05rem, 2.2vw, 1.35rem);
   overflow-wrap: anywhere;
   color: #f3e6c8;
 }
-button.swap-bal small { display: block; color: #b7a88a; font-size: 0.68rem; line-height: 1.25; font-weight: 400; }
+button.swap-bal small, div.swap-bal small { display: block; color: #b7a88a; font-size: 0.68rem; line-height: 1.25; font-weight: 400; }
+.clerk-ask {
+  margin: 0.35rem 0 0.15rem;
+  color: #f2d48a;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.clerk-picks { display: grid; gap: 0.45rem; margin: 0.45rem 0; }
+button.clerk-push {
+  width: 100%;
+  min-height: 4.4rem;
+  text-align: left;
+  background: #3a2418;
+  border: 3px solid #e7c27a;
+  color: #f3e6c8;
+  padding: 0.55rem 0.75rem;
+}
+button.clerk-push span {
+  display: block;
+  color: #f2d48a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+button.clerk-push strong { display: block; margin: 0.12rem 0; font-size: 1.35rem; }
+button.clerk-push small { display: block; color: #f3e6c8; font-size: 0.98rem; font-weight: 700; }
+button.clerk-books {
+  width: 100%;
+  margin: 0.15rem 0 0.35rem;
+  background: #241910;
+  border: 2px solid #8a7040;
+  color: #f2d48a;
+  font-weight: 700;
+}
+.clerk-bal span { color: #b7a88a; font-size: 0.78rem; }
+.clerk-bal strong { display: block; margin: 0.1rem 0 0.35rem; font-size: 1.7rem; color: #f3e6c8; }
+.swap-load { margin: 0.35rem 0 0.1rem; font-weight: 700; color: #f2d48a; }
+.swap-load[hidden], .swap-steps[hidden] { display: none; }
+.sspin {
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-right: 0.45rem;
+  border: 2px solid #5c4a30;
+  border-top-color: #f2d48a;
+  border-radius: 50%;
+  display: inline-block;
+  vertical-align: -2px;
+  animation: sspin 0.8s linear infinite;
+}
+@keyframes sspin { to { transform: rotate(360deg); } }
+.swap-steps { list-style: none; margin: 0.45rem 0 0.2rem; padding: 0; }
+.swap-steps li {
+  position: relative;
+  margin: 0;
+  padding: 0.22rem 0 0.22rem 1.2rem;
+  color: #8d7d66;
+}
+.swap-steps li.on { color: #f2d48a; font-weight: 700; }
+.swap-steps li.done { color: #7ee0c5; }
+.swap-steps li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #5c4a30;
+}
+.swap-steps li.on::before { background: #f2d48a; }
+.swap-steps li.done::before { background: #7ee0c5; }
 .swap .kw-row button { text-align: center; font-weight: 700; }
 .kw-panel[hidden] { display: none; }
 .kw-row { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.25rem 0 0.45rem; }
@@ -634,6 +706,9 @@ a { color: #f2d48a; }
   .swap-status { min-height: 0; margin: 0.25rem 0 0.05rem; padding: 0.28rem 0.4rem; }
   .swap-step { margin: 0.35rem 0 0; }
   .swap-preview { min-height: 0; margin: 0.05rem 0 0.15rem; }
+  button.clerk-push { min-height: 3.4rem; padding: 0.4rem 0.55rem; }
+  button.clerk-push strong { font-size: 1.15rem; }
+  .clerk-bal strong { font-size: 1.35rem; }
   .kw-panel.swap-pop, .kw-panel.stall-pop {
     position: absolute;
     left: 50%;

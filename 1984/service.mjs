@@ -8,6 +8,7 @@ import { lookupAccepted, warmNodeWindow } from "./node-tx.mjs";
 import { guestDesk, GUEST_FUND_SOMPI } from "./guest.mjs";
 import {
   applyConvert,
+  applyExchange,
   applyFreeze,
   applyPractice,
   applyRedeem,
@@ -389,6 +390,15 @@ export function create1984Service(deps) {
           const pay = await waitPayment(address, body.txid, 1n);
           return await queue(async () => {
             const out = applyConvert(state, { address, rail: body.rail, payment: pay, usdPerKas: usd }, now);
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: out.result };
+          });
+        }
+        if (pathname === "/api/1984/exchange") {
+          const cents = parseDollars(body.amount);
+          return await queue(async () => {
+            const out = applyExchange(state, { address, from: body.from, to: body.to, cents }, now);
             state = out.state;
             deps.save(state);
             return { status: 200, body: out.result };

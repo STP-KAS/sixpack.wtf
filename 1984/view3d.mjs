@@ -1,7 +1,7 @@
 /** Ashfields in 3D. Original meshes. The camera turns around the player through a full circle. */
 
 import * as THREE from "./vendor/three.module.js";
-import { standTile } from "./world.mjs";
+import { ROADSTER_PARK, standTile } from "./world.mjs";
 
 const TILE = 1.15;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -32,6 +32,20 @@ export function headingYaw(dx, dz) {
 
 /** Hood marker. The roadster's nose is this local point, the same −z front as a figure. */
 export const CAR_NOSE = { x: 0, y: 0.5, z: -0.9 };
+/** ConeGeometry's tip is local +Y. This X turn sends that tip to local +Z, the rear. */
+export const THRUST_PITCH = Math.PI / 2;
+
+/** 0 when the car is still. Long enough to read as a plume when it is moving. */
+export function thrustLength(moving) {
+  return moving ? 2.8 : 0;
+}
+
+/** Cone base sits on the bumper. Scaling local Y grows the plume toward +Y, which THRUST_PITCH turns to +Z. */
+export function thrustCone() {
+  const geo = new THREE.ConeGeometry(0.14, 1, 7);
+  geo.translate(0, 0.5, 0);
+  return geo;
+}
 export const WALK_MS = 140;
 export const DRIVE_MS = 75;
 
@@ -610,7 +624,7 @@ function addDressing(parent, map, maps) {
   const cap = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), stone("#e8f4ff", 0.08));
   cap.position.set(fountain.x, 1.12, fountain.z);
   parent.add(basin, lip, water, jet, cap, lap);
-  const carAt = worldOf(map, 17.6, 21.7, 0);
+  const carAt = worldOf(map, ROADSTER_PARK.x + 0.5, ROADSTER_PARK.y + 0.5, 0);
   const car = new THREE.Group();
   const body = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.28, 2.15), stone("#c0392b", 0.4));
   body.position.set(0, 0.36, 0.05);
@@ -636,9 +650,31 @@ function addDressing(parent, map, maps) {
     car.add(hanger);
     wheels.push(hanger);
   }
-  car.add(body, cabin, glass, hood);
+  const flames = [];
+  const flameGeo = thrustCone();
+  for (const fx of [-0.28, 0.28]) {
+    for (const [color, hot] of [["#ff6a1a", false], ["#ffe14a", true]]) {
+      const flame = new THREE.Mesh(
+        flameGeo,
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: hot ? 0.95 : 0.88, depthWrite: false }),
+      );
+      flame.rotation.x = THRUST_PITCH;
+      flame.position.set(fx, 0.42, 1.18);
+      flame.visible = false;
+      flame.scale.y = 0.001;
+      flame.userData.hot = hot;
+      car.add(flame);
+      flames.push(flame);
+    }
+  }
+  const thrustLight = new THREE.PointLight("#ff7a2a", 0, 7, 2);
+  thrustLight.position.set(0, 0.42, 1.35);
+  car.add(body, cabin, glass, hood, thrustLight);
   car.position.set(carAt.x, 0, carAt.z);
   car.userData.wheels = wheels;
+  car.userData.flames = flames;
+  car.userData.thrustLight = thrustLight;
+  car.userData.lastPos = car.position.clone();
   car.name = "roadster-car";
   car.userData.park = car.position.clone();
   car.userData.parkYaw = 0;
@@ -1261,12 +1297,30 @@ export function mountWorld(canvas, map, api) {
       } else {
         if (player.parent !== town) town.add(player);
         player.position.set(shown.x, 0, shown.z);
-        if (car) car.userData.riding = false;
+        if (car) {
+          car.userData.riding = false;
+          if (lapLeft <= 0) {
+            car.position.copy(car.userData.park);
+            car.rotation.y = car.userData.parkYaw;
+          }
+        }
         if (face && (face.x || face.y)) player.rotation.y = headingYaw(face.x, face.y);
       }
       if (car && car.userData.wheels) {
         const spin = lapLeft > 0 || (drive && moving) ? 0.55 : 0;
         for (const hanger of car.userData.wheels) hanger.rotation.x += spin;
+      }
+      if (car && car.userData.flames) {
+        const carMoved = car.position.distanceTo(car.userData.lastPos) > 0.012;
+        car.userData.lastPos.copy(car.position);
+        const thrusting = riding && (lapLeft > 0 || (drive && (moving || carMoved)));
+        const length = thrustLength(thrusting);
+        for (const flame of car.userData.flames) {
+          flame.visible = length > 0;
+          const flick = length > 0 ? 0.82 + 0.28 * Math.abs(Math.sin(now / 38 + flame.position.x * 8)) : 0;
+          flame.scale.y = length > 0 ? length * (flame.userData.hot ? flick * 0.62 : flick) : 0.001;
+        }
+        car.userData.thrustLight.intensity = length > 0 ? 6 : 0;
       }
       canvas.dataset.ride = riding ? "car" : "foot";
       for (const puff of puffs) {
@@ -1335,6 +1389,16 @@ export function mountWorld(canvas, map, api) {
       return;
     }
     if (api.room && api.room()) return;
+    const car = town.getObjectByName("roadster-car");
+    if (car && api.car) {
+      const carHits = raycaster.intersectObject(car, true);
+      if (carHits.length) {
+        marker.visible = false;
+        markTile = null;
+        api.car();
+        return;
+      }
+    }
     const hits = raycaster.intersectObjects(pick, true);
     if (!hits[0]) return;
     let owner = hits[0].object;
