@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_RELEASE, FLIGHT_SPACE, FLIGHT_STAGE, JOKE_MS, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, buildingBoxes, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, cruiseWatch, drives, earthCenter, escapeRoom, fitScreen, flightBeat, flightCamera, flightClock, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
+import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_RELEASE, FLIGHT_SPACE, FLIGHT_STAGE, JOKE_MS, LOOK_PITCH, LOOK_YAW, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, buildingBoxes, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, cruiseWatch, drives, earthCenter, escapeRoom, fitScreen, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -401,6 +401,23 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.ok(Math.abs(together.shipRoll - together.boosterRoll) < 1e-9);
   assert.ok(later.shipX > later.boosterX + 4, "ahead " + later.shipX + " " + later.boosterX);
   assert.ok(Math.abs(later.boosterRoll) > Math.abs(at.boosterRoll) + 1);
+  const onShip = flightPose(FLIGHT_LIFTOFF + 15000);
+  assert.equal(flightClock(FLIGHT_LIFTOFF + 15000), "T+ 0:15");
+  assert.equal(flightLine("light"), "Countdown.");
+  assert.equal(flightLine("liftoff"), "Liftoff.");
+  assert.equal(flightLine("climb"), "Climbing out.");
+  assert.equal(flightLine("stage", FLIGHT_LIFTOFF + 15000), "The booster is on the ship.");
+  assert.equal(onShip.line, "The booster is on the ship.");
+  assert.equal(flightLine("stage", FLIGHT_STAGE + 2501), "The booster lets go.");
+  assert.ok(Math.abs(onShip.shipRoll - onShip.boosterRoll) < 1e-9);
+  const topX = onShip.boosterX - 11.2 * Math.sin(onShip.shipRoll);
+  const topY = onShip.boosterY + 11.2 * Math.cos(onShip.shipRoll);
+  assert.ok(Math.abs(onShip.shipX - topX) < 0.35, "on x " + onShip.shipX + " " + topX);
+  assert.ok(Math.abs(onShip.shipY - topY) < 0.35, "on y " + onShip.shipY + " " + topY);
+  const mateGap = Math.hypot(onShip.shipX - onShip.boosterX, onShip.shipY - onShip.boosterY);
+  const leftGap = Math.hypot(later.shipX - later.boosterX, later.shipY - later.boosterY);
+  assert.ok(Math.abs(mateGap - 11.2) < 0.2, "mated " + mateGap);
+  assert.ok(leftGap > mateGap + 6, "left " + leftGap);
   const wildEarly = cruisePose(1000, "abyss", FLIGHT_SPACE);
   const wild = cruisePose(8000, "abyss", FLIGHT_SPACE);
   assert.equal(wildEarly.guestOn, false);
@@ -499,6 +516,37 @@ test("the roadster leaves the ship nose-first on +X", () => {
     if (node.name === "raptor") bells += 1;
   });
   assert.equal(bells, 33);
+  let jets = 0;
+  flight.booster.traverse((node) => {
+    if (node.name === "bell-jet") jets += 1;
+  });
+  assert.equal(jets, 33);
+  assert.equal(flight.shipJets.length, 3);
+  flight.plume.geometry.computeBoundingBox();
+  const box = flight.plume.geometry.boundingBox;
+  assert.ok(box.max.y <= 0.02, "plume tip " + box.max.y);
+  assert.ok(box.min.y < -0.8, "plume down " + box.min.y);
+  const plumePos = flight.plume.geometry.attributes.position;
+  let wide = 0;
+  for (let i = 0; i < plumePos.count; i++) {
+    if (plumePos.getY(i) < box.min.y + 0.15) wide = Math.max(wide, Math.hypot(plumePos.getX(i), plumePos.getZ(i)));
+  }
+  assert.ok(wide > 1, "downstream " + wide);
+  assert.ok(Math.abs(flight.plume.rotation.x) < 1e-6);
+  const matedPose = flightPose(FLIGHT_LIFTOFF + 15000);
+  placeFlight(flight, matedPose);
+  assert.ok(Math.abs(flight.ship.rotation.z - flight.booster.rotation.z) < 1e-6);
+  const expectX = matedPose.boosterX - 11.2 * Math.sin(flight.booster.rotation.z);
+  const expectY = matedPose.boosterY + 11.2 * Math.cos(flight.booster.rotation.z);
+  assert.ok(Math.abs(flight.ship.position.x - expectX) < 0.35, "mesh x " + flight.ship.position.x);
+  assert.ok(Math.abs(flight.ship.position.y - expectY) < 0.35, "mesh y " + flight.ship.position.y);
+  assert.equal(flight.hullLine.visible, true);
+  assert.equal(flight.hullLine.userData.label, "The booster is on the ship.");
+  placeFlight(flight, flightPose(FLIGHT_LIFTOFF));
+  assert.ok(flight.plume.scale.y > 12, "column " + flight.plume.scale.y);
+  assert.equal(flight.plume.visible, true);
+  assert.equal(flight.jets.length, 33);
+  assert.ok(flight.splash.visible);
   placeFlight(flight, flightPose(FLIGHT_SPACE));
   assert.equal(flight.ship.position.x, 0);
   assert.ok(flight.car.position.x > 6);

@@ -113,7 +113,7 @@ export const APPROACH_MS = 10000;
 export const APPROACH_FAR = 48;
 /** Speed and distance on the hop are not miles. Ten blocks a second is the Kaspa rate. */
 export const FLIGHT_NOTE = "Space is broad. Speed and distance here are relative. Being among the stars in a vast space is hard, and with an average of 10 blocks per second it is possible. Enjoy the flight.";
-/** Cone tip is local +Y. A half turn sends the plume down, toward −Y. */
+/** A half turn of local +Y lands on −Y. The exhaust column is built on −Y already. */
 export const FLIGHT_PLUME_PITCH = Math.PI;
 
 function flightSmooth(ms, from, to) {
@@ -135,11 +135,15 @@ export function flightBeat(ms) {
   return "space";
 }
 
-export function flightLine(beat) {
+export function flightLine(beat, ms) {
   if (beat === "light") return "Countdown.";
   if (beat === "liftoff") return "Liftoff.";
   if (beat === "climb") return "Climbing out.";
-  if (beat === "stage") return "Hot stage.";
+  if (beat === "stage") {
+    const t = Math.max(0, ms || 0);
+    if (t <= FLIGHT_STAGE + 2500) return "The booster is on the ship.";
+    return "The booster lets go.";
+  }
   if (beat === "orbit") return "Ship ahead.";
   if (beat === "release") return "The roadster and KONI leave the ship.";
   return "You are in space. KONI keeps the Testnet 10 list.";
@@ -317,9 +321,9 @@ function stackPoint(originX, originY, localX, localY, roll) {
 /**
  * Stack positions for one moment.
  * Climb pitches the whole stack downrange, nose toward +X.
- * Hot stage lights the ship, pulls it ahead on that lean, and flips the booster nose-back.
- * Y of the stack stays on the old climb. X and roll are the split.
- * The roadster stays in the bay until release, then slides out toward +X.
+ * Through T+ 0:15 the ship base sits on the booster top. Same axis, no flip.
+ * After that the booster slides back along that axis and flips nose-back.
+ * The climb height stays the old stack. The roadster stays in the bay until release.
  * Its nose uses headingYaw(1, 0), the same −z front as the town car.
  */
 export function flightPose(ms) {
@@ -327,20 +331,21 @@ export function flightPose(ms) {
   const beat = flightBeat(t);
   const up = flightSmooth(t, FLIGHT_LIFTOFF, FLIGHT_ORBIT);
   const stackY = up * 48;
-  let boosterY = stackY;
-  let shipY = stackY + 11.2;
-  if (t >= FLIGHT_STAGE) {
-    const drop = flightSmooth(t, FLIGHT_STAGE, FLIGHT_STAGE + 5000);
-    boosterY = stackY * (1 - drop) + (stackY - 28) * drop;
-    shipY = stackY + 11.2 + flightSmooth(t, FLIGHT_STAGE, FLIGHT_ORBIT) * 16;
-  }
+  const letGo = FLIGHT_STAGE + 2500;
   const lean = 0.42 * flightSmooth(t, FLIGHT_LIFTOFF + 2000, FLIGHT_STAGE) * (1 - flightSmooth(t, FLIGHT_ORBIT, FLIGHT_RELEASE));
-  const pull = 17 * flightSmooth(t, FLIGHT_STAGE, FLIGHT_STAGE + 2800) * (1 - flightSmooth(t, FLIGHT_ORBIT, FLIGHT_RELEASE));
   const shipRoll = -lean;
-  const flip = t >= FLIGHT_STAGE ? flightSmooth(t, FLIGHT_STAGE + 400, FLIGHT_STAGE + 3900) * 0.85 * Math.PI : 0;
-  const boosterRoll = -lean - flip;
-  const shipX = Math.sin(lean) * (11.2 + pull);
-  const boosterX = t >= FLIGHT_STAGE ? -flightSmooth(t, FLIGHT_STAGE, FLIGHT_STAGE + 3500) * 8 : 0;
+  const leave = flightSmooth(t, letGo, letGo + 2000);
+  const pull = 5 * leave * (1 - flightSmooth(t, FLIGHT_ORBIT, FLIGHT_RELEASE));
+  const slip = flightSmooth(t, letGo, letGo + 1600) * 14;
+  const along = 11.2 + pull;
+  const shipAt = stackPoint(0, stackY, 0, along, shipRoll);
+  const boostAt = stackPoint(0, stackY, 0, -slip, shipRoll);
+  const flip = flightSmooth(t, letGo, letGo + 2700) * 0.85 * Math.PI;
+  const boosterRoll = shipRoll - flip;
+  const shipX = shipAt.x;
+  const shipY = shipAt.y;
+  const boosterX = boostAt.x;
+  const boosterY = boostAt.y;
   let carX = 0;
   if (t >= FLIGHT_RELEASE) {
     carX = flightSmooth(t, FLIGHT_RELEASE, FLIGHT_SPACE) * 8;
@@ -378,7 +383,8 @@ export function flightPose(ms) {
     plume,
     shipPlume,
     sky,
-    separated: t >= FLIGHT_STAGE,
+    line: flightLine(beat, t),
+    separated: t > letGo,
     released: carX > 0.2,
     beatCruise: false,
   };
@@ -1367,38 +1373,48 @@ function makeRoadster(bodyColor = "#c0392b", hoodColor = "#922b21") {
   return car;
 }
 
+/** Center bell, then 10, then 22. Same rings for the bells and the jets. */
+function bellSpots() {
+  const spots = [[0, 0]];
+  const ring = (count, radius) => {
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2;
+      spots.push([Math.cos(a) * radius, Math.sin(a) * radius]);
+    }
+  };
+  ring(10, 0.38);
+  ring(22, 0.74);
+  return spots;
+}
+
 function raptorBells(parent) {
   const geo = new THREE.CylinderGeometry(0.07, 0.11, 0.32, 6);
   const mat = new THREE.MeshStandardMaterial({ color: "#2c3136", metalness: 0.62, roughness: 0.38 });
   let n = 0;
-  const ring = (count, radius) => {
-    for (let i = 0; i < count; i++) {
-      const a = (i / count) * Math.PI * 2;
-      const bell = new THREE.Mesh(geo, mat);
-      bell.name = "raptor";
-      bell.position.set(Math.cos(a) * radius, -0.16, Math.sin(a) * radius);
-      parent.add(bell);
-      n += 1;
-    }
-  };
-  const center = new THREE.Mesh(geo, mat);
-  center.name = "raptor";
-  center.position.y = -0.16;
-  parent.add(center);
-  n += 1;
-  ring(10, 0.38);
-  ring(22, 0.74);
+  for (const [x, z] of bellSpots()) {
+    const bell = new THREE.Mesh(geo, mat);
+    bell.name = "raptor";
+    bell.position.set(x, -0.16, z);
+    parent.add(bell);
+    n += 1;
+  }
   return n;
 }
 
-function plumeCone(color, radius, length) {
-  const geo = new THREE.ConeGeometry(radius, length, 12);
-  geo.translate(0, length * 0.5, 0);
+/** Tip at the bell (y = 0). Wide base on local −Y. scale.y lengthens the column downward. */
+function plumeCone(color, radius, length, opacity = 0.9, additive = false) {
+  const geo = new THREE.ConeGeometry(radius, length, 16);
+  geo.translate(0, -length * 0.5, 0);
   const mesh = new THREE.Mesh(
     geo,
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false }),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      depthWrite: false,
+      blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
+    }),
   );
-  mesh.rotation.x = FLIGHT_PLUME_PITCH;
   mesh.visible = false;
   mesh.scale.y = 0.001;
   return mesh;
@@ -1440,11 +1456,37 @@ export function buildFlight() {
     }
   }
   const engines = raptorBells(booster);
-  const plume = plumeCone("#ff6a1a", 1.5, 1);
-  plume.position.y = -0.05;
-  const plumeHot = plumeCone("#ffe14a", 0.7, 1);
-  plumeHot.position.y = -0.05;
-  booster.add(plume, plumeHot);
+  const plume = plumeCone("#ff6a1a", 1.15, 1, 0.78, true);
+  plume.position.y = -0.55;
+  plume.renderOrder = 2;
+  const plumeHot = plumeCone("#fff6ea", 0.42, 1, 0.95, false);
+  plumeHot.position.y = -0.55;
+  plumeHot.renderOrder = 3;
+  const plumeSkirt = plumeCone("#ff9a3a", 2.1, 1, 0.34, true);
+  plumeSkirt.position.y = -0.55;
+  plumeSkirt.renderOrder = 1;
+  const jets = [];
+  for (const [x, z] of bellSpots()) {
+    const jet = plumeCone("#fff4dc", 0.08, 1, 0.95, true);
+    jet.name = "bell-jet";
+    jet.position.set(x, -0.34, z);
+    jet.renderOrder = 4;
+    booster.add(jet);
+    jets.push(jet);
+  }
+  const diamonds = [];
+  for (let i = 0; i < 5; i++) {
+    const gem = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.16 + (i % 2) * 0.05, 0),
+      new THREE.MeshBasicMaterial({ color: "#fffaf0", transparent: true, opacity: 0.9, depthWrite: false }),
+    );
+    gem.visible = false;
+    gem.renderOrder = 5;
+    gem.userData.step = i;
+    booster.add(gem);
+    diamonds.push(gem);
+  }
+  booster.add(plume, plumeHot, plumeSkirt);
   const burn = new THREE.PointLight("#ff7a2a", 0, 28, 1.6);
   burn.position.y = -0.4;
   booster.add(burn);
@@ -1472,9 +1514,21 @@ export function buildFlight() {
   door.position.set(1.02, 4.2, 0);
   door.userData.homeY = 4.2;
   ship.add(door);
-  const shipPlume = plumeCone("#ffb15a", 0.55, 1);
-  shipPlume.position.y = 0.05;
-  ship.add(shipPlume);
+  const shipPlume = plumeCone("#ffb15a", 0.55, 1, 0.8, true);
+  shipPlume.position.y = 0;
+  shipPlume.renderOrder = 2;
+  const shipJets = [];
+  for (const [x, z] of [[0, 0.22], [0.22, -0.12], [-0.22, -0.12]]) {
+    const jet = plumeCone("#ffe7c2", 0.14, 1, 0.92, true);
+    jet.position.set(x, 0, z);
+    jet.renderOrder = 4;
+    ship.add(jet);
+    shipJets.push(jet);
+  }
+  const hullLine = jokeSprite("");
+  hullLine.position.set(0, 4.6, 0);
+  hullLine.scale.set(3.4, 0.48, 1);
+  ship.add(shipPlume, hullLine);
   root.add(ship);
 
   const car = makeRoadster();
@@ -1528,6 +1582,21 @@ export function buildFlight() {
   );
   stars.visible = false;
   root.add(stars);
+  const splash = new THREE.Mesh(
+    new THREE.CircleGeometry(3.4, 24),
+    new THREE.MeshBasicMaterial({
+      color: "#ffd0a0",
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+    }),
+  );
+  splash.rotation.x = -Math.PI / 2;
+  splash.position.y = 0.05;
+  splash.visible = false;
+  root.add(splash);
   const steam = [];
   for (let i = 0; i < 5; i++) {
     const puff = new THREE.Mesh(
@@ -1620,7 +1689,7 @@ export function buildFlight() {
     root.add(spaceSky);
     spaceVideo = skyEl;
   }
-  return { root, pad, tower, booster, ship, door, car, starman, plume, plumeHot, shipPlume, burn, earth, stars, steam, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo };
+  return { root, pad, tower, booster, ship, door, car, starman, plume, plumeHot, plumeSkirt, jets, diamonds, shipPlume, shipJets, hullLine, burn, earth, stars, steam, splash, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo };
 }
 
 function paintKoniCanvas(canvas, lines) {
@@ -1661,14 +1730,43 @@ export function placeFlight(flight, pose) {
     flight.car.position.set(bay.x, bay.y, pose.carZ);
     flight.car.rotation.set(pose.nod || 0, pose.carYaw, shipRoll + (pose.carRoll || 0));
   }
-  const grow = Math.max(0.001, pose.plume * 14);
-  flight.plume.visible = pose.plume > 0.02;
-  flight.plume.scale.y = grow;
-  flight.plumeHot.visible = pose.plume > 0.02;
-  flight.plumeHot.scale.y = grow * 0.55;
+  const column = Math.max(0.001, pose.plume * 20);
+  const lit = pose.plume > 0.02;
+  flight.plume.visible = lit;
+  flight.plume.scale.y = column;
+  flight.plumeHot.visible = lit;
+  flight.plumeHot.scale.y = column * 0.82;
+  if (flight.plumeSkirt) {
+    flight.plumeSkirt.visible = lit;
+    flight.plumeSkirt.scale.y = column * 0.92;
+  }
+  if (flight.jets) {
+    for (const jet of flight.jets) {
+      jet.visible = lit;
+      jet.scale.y = lit ? 0.6 + pose.plume * 2.2 : 0.001;
+    }
+  }
+  if (flight.diamonds) {
+    for (const gem of flight.diamonds) {
+      gem.visible = pose.plume > 0.15;
+      gem.position.y = -(2.2 + gem.userData.step * 3.2) * pose.plume;
+    }
+  }
   flight.burn.intensity = pose.plume * 18;
   flight.shipPlume.visible = pose.shipPlume > 0;
   flight.shipPlume.scale.y = pose.shipPlume > 0 ? 7 : 0.001;
+  if (flight.shipJets) {
+    for (const jet of flight.shipJets) {
+      jet.visible = pose.shipPlume > 0.02;
+      jet.scale.y = pose.shipPlume > 0.02 ? 1.6 + pose.shipPlume * 1.5 : 0.001;
+    }
+  }
+  if (flight.hullLine) {
+    const show = pose.beat === "stage" && !!pose.line;
+    flight.hullLine.visible = show;
+    if (show && flight.hullLine.userData.label !== pose.line) writeJoke(flight.hullLine, pose.line);
+    if (show) flight.hullLine.material.opacity = 1;
+  }
   const open = pose.released ? Math.min(1, pose.carX / 6) : 0;
   flight.door.position.y = flight.door.userData.homeY + open * 1.5;
   const length = pose.thrust != null ? pose.thrust : thrustLength(pose.released);
@@ -1750,8 +1848,13 @@ export function placeFlight(flight, pose) {
     flight.spaceSky.visible = pose.sky >= 0.55;
     flight.spaceSky.position.copy(flight.stars.position);
   }
+  const onPad = pose.stackY < 8 && pose.plume > 0.45 && pose.beat !== "cruise";
+  if (flight.splash) {
+    flight.splash.visible = onPad;
+    flight.splash.material.opacity = onPad ? 0.42 * pose.plume : 0;
+  }
   for (const puff of flight.steam) {
-    puff.material.opacity = pose.beat === "light" ? 0.28 : 0;
+    puff.material.opacity = pose.beat === "light" || onPad ? 0.32 : 0;
   }
 }
 
@@ -3105,6 +3208,10 @@ export function mountWorld(canvas, map, api) {
     if (pose.plume > 0.02) {
       flight.plume.scale.y *= flick;
       flight.plumeHot.scale.y *= flick;
+      if (flight.plumeSkirt) flight.plumeSkirt.scale.y *= flick;
+      if (flight.jets) {
+        for (const jet of flight.jets) jet.scale.y *= flick;
+      }
     }
     const cam = pose.beat === "cruise"
       ? cruiseWatch(pose, flightYaw, flightPitch)

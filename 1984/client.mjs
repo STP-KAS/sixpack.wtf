@@ -16,7 +16,7 @@ import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
 import { RAIL_NAMES, RAILS_NOTE, payRail, railBarHtml } from "./rails-note.mjs?v=2";
 import { REELS, reelShuffle, reelStep } from "./reels.mjs?v=2";
-import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=24";
+import { DRIVE_MS, ENTRY_HINT, FLIGHT_NOTE, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=25";
 import { HUNTS, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -456,7 +456,7 @@ function paintFlightCard(now) {
   const clock = document.getElementById("flight-clock");
   if (clock) clock.textContent = flightClock(cruising ? ms : now - state.flightStart);
   const beat = cruising ? "cruise" : flightBeat(now - state.flightStart);
-  if (beat !== state.flightBeat || cruising) {
+  if (beat !== state.flightBeat || cruising || beat === "stage") {
     state.flightBeat = beat;
     const line = document.getElementById("flight-line");
     if (line) {
@@ -474,7 +474,7 @@ function paintFlightCard(now) {
           shown.textContent = joke.text;
         }
       } else {
-        line.textContent = flightLine(beat);
+        line.textContent = flightLine(beat, now - state.flightStart);
         const shown = document.getElementById("flight-joke");
         if (shown) shown.hidden = true;
       }
