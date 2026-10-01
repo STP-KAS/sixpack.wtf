@@ -66,6 +66,17 @@ export function screenFit(videoW, videoH, frameW = SCREEN_W, frameH = SCREEN_H) 
   return { w, h, scaleX: w / frameW, scaleY: h / frameH };
 }
 
+/**
+ * A portrait lens sees less of the square across. Step the camera back.
+ * A square or wide picture keeps the distance it already has. The result stays within the town zoom.
+ */
+export function portraitDistance(distance, aspect) {
+  const d = Number(distance);
+  const a = Number(aspect);
+  if (!(d > 0) || !(a > 0) || a >= 1) return d > 0 ? d : distance;
+  return Math.min(40, d * Math.min(1.55, 0.86 / a));
+}
+
 /** Scale the picture mesh. scale 1 fills the glass, which is only right for that exact shape. */
 export function fitScreen(mesh, videoW, videoH) {
   const fit = screenFit(videoW, videoH);
@@ -3716,6 +3727,7 @@ export function mountWorld(canvas, map, api) {
     const talking = !indoors && api.mode() !== "world" && api.mode() !== "rules" && api.mode() !== "bench" && api.mode() !== "guide";
     talk += ((talking ? 1 : 0) - talk) * Math.min(1, dt * 2.5);
     frameDistance = indoors ? bankDistance : townDistance * (1 - 0.2 * talk);
+    if (!indoors) frameDistance = portraitDistance(frameDistance, camera.aspect);
     const spin = moveIntent(held).spin;
     if (spin) yaw += spin * dt * 1.5;
     const watching = !!(api.watching && api.watching());
