@@ -528,15 +528,31 @@ function abyssCar(ms, fromMs) {
   };
 }
 
+/**
+ * The old roadster leads on the same circle. The lead breathes, and a smaller
+ * radial offset keeps the pass side by side instead of stacked on the look line.
+ * At t = 8000 the along-track lead is about 8 scene units.
+ */
+function guestChase(t, theta, rho) {
+  const phase = ((t - 8000) / 22000) * Math.PI * 2;
+  const lead = 0.028 + 0.012 * Math.sin(phase);
+  const guestTheta = theta + lead;
+  const grho = rho + 1.6 * Math.cos(phase);
+  return {
+    theta: guestTheta,
+    rho: grho,
+    tx: Math.cos(guestTheta),
+    tz: -Math.sin(guestTheta),
+  };
+}
+
 function abyssPose(ms, fromMs) {
   const at = abyssCar(ms, fromMs);
   const t = at.t;
   const trip = tripBySku("abyss");
-  const meet = t >= 7500;
-  const guestTheta = at.theta + 0.055;
+  const meet = t >= 2500;
+  const guest = guestChase(t, at.theta, at.rho);
   const bank = -0.26 * flightSmooth(t, 600, 2800);
-  const gtx = Math.cos(guestTheta);
-  const gtz = -Math.sin(guestTheta);
   return {
     ...at.base,
     beat: "cruise",
@@ -564,10 +580,11 @@ function abyssPose(ms, fromMs) {
     separated: true,
     thrust: 1.1 * (1 - flightSmooth(t, 1200, 4500)),
     guestOn: meet,
-    guestX: at.earthX + at.rho * Math.sin(guestTheta),
+    raceOpen: flightSmooth(t, 2500, 4800),
+    guestX: at.earthX + guest.rho * Math.sin(guest.theta),
     guestY: at.carY,
-    guestZ: at.earthZ + at.rho * Math.cos(guestTheta),
-    guestYaw: headingYaw(gtx, gtz),
+    guestZ: at.earthZ + guest.rho * Math.cos(guest.theta),
+    guestYaw: headingYaw(guest.tx, guest.tz),
     guestRoll: bank,
     jokes: jokeBursts(t, "abyss", fromMs),
   };
@@ -651,6 +668,43 @@ export function cruiseWatch(pose, yaw = 0, pitch = 1.05, dist = 14) {
   };
 }
 
+/**
+ * Both cars, from outside the circle. Pitch stays level so the pair and the limb stay in the window.
+ * yaw walks on the same radial as cruiseWatch.
+ */
+export function raceWatch(pose, yaw = 0) {
+  const mx = (pose.carX + pose.guestX) / 2;
+  const my = (pose.carY + pose.guestY) / 2;
+  const mz = (pose.carZ + pose.guestZ) / 2;
+  const gap = Math.hypot(pose.guestX - pose.carX, pose.guestY - pose.carY, pose.guestZ - pose.carZ);
+  const dist = Math.max(14, gap * 1.7);
+  return cruiseWatch({
+    carX: mx,
+    carY: my,
+    carZ: mz,
+    worldX: pose.worldX,
+    worldY: pose.worldY,
+    worldZ: pose.worldZ,
+  }, yaw, Math.PI / 2, dist);
+}
+
+/** Solo Earth shot, then a zoom out onto the race once the old roadster is in the window. */
+export function abyssWatch(pose, yaw = 0, pitch = 1.05) {
+  if (!pose.guestOn) return cruiseWatch(pose, yaw, pitch, 6);
+  const race = raceWatch(pose, yaw);
+  const open = pose.raceOpen != null ? pose.raceOpen : 1;
+  if (open >= 1) return race;
+  const solo = cruiseWatch(pose, yaw, Math.PI / 2, 6);
+  return {
+    x: solo.x + (race.x - solo.x) * open,
+    y: solo.y + (race.y - solo.y) * open,
+    z: solo.z + (race.z - solo.z) * open,
+    lx: solo.lx + (race.lx - solo.lx) * open,
+    ly: solo.ly + (race.ly - solo.ly) * open,
+    lz: solo.lz + (race.lz - solo.lz) * open,
+  };
+}
+
 /** Camera around a pose, same orbitOffset frame as the town camera. Looks at the car. */
 export function flightWatch(pose, yaw = 0, pitch = 1.05, dist = 9) {
   const offset = orbitOffset(yaw, pitch);
@@ -670,9 +724,64 @@ export function earthCenter(_pose) {
 }
 
 /**
+ * Just outside the vehicle, leaned off the Earth radial, so the limb crosses the window
+ * the way the cruise does. yaw walks around that radial. dist is scene units from the subject.
+ */
+export function limbShot(x, y, z, dist, yaw = 0) {
+  const ey = earthCenter();
+  let ox = x;
+  let oy = y - ey;
+  let oz = z;
+  const olen = Math.hypot(ox, oy, oz) || 1;
+  ox /= olen;
+  oy /= olen;
+  oz /= olen;
+  let hx = -oz;
+  let hz = ox;
+  let hlen = Math.hypot(hx, hz);
+  if (hlen < 1e-4) {
+    hx = 0;
+    hz = 1;
+  } else {
+    hx /= hlen;
+    hz /= hlen;
+  }
+  const px = -hz;
+  const pz = hx;
+  const tilt = 0.52;
+  const side = Math.sin(tilt);
+  const out = Math.cos(tilt);
+  const cb = Math.cos(yaw);
+  const sb = Math.sin(yaw);
+  const sideX = hx * cb + px * sb;
+  const sideZ = hz * cb + pz * sb;
+  const vx = ox * out + sideX * side;
+  const vy = oy * out;
+  const vz = oz * out + sideZ * side;
+  const vlen = Math.hypot(vx, vy, vz) || 1;
+  return {
+    x: x + (vx / vlen) * dist,
+    y: y + (vy / vlen) * dist,
+    z: z + (vz / vlen) * dist,
+    lx: x,
+    ly: y,
+    lz: z,
+  };
+}
+
+/** Clear air once the ship is above the blue. The pad and the climb keep their haze. */
+export function flightFog(pose) {
+  if (pose && (pose.beat === "cruise" || pose.beat === "orbit" || pose.beat === "release" || pose.beat === "space")) {
+    return { near: 400, far: 1400 };
+  }
+  if (pose && pose.sky > 0.15) return { near: 90, far: 1400 };
+  return { near: 40, far: 420 };
+}
+
+/**
  * Pad and climb cameras sit on +Z and keep the Earth limb in the window.
  * Until the booster lets go, the camera stays on the stack. Separation then watches the gap.
- * The coast looks slightly down the ship. Ejection sits outboard of the car, a little above it.
+ * Coast and ejection sit just outside the vehicle, so the Earth fills the window the way the cruise does.
  */
 export function flightCamera(ms, yaw = 0, pitch = 1.05) {
   const pose = flightPose(ms);
@@ -715,26 +824,10 @@ export function flightCamera(ms, yaw = 0, pitch = 1.05) {
     };
   }
   if (pose.beat === "orbit") {
-    const lx = pose.shipX || 0;
-    return {
-      x: lx - 5,
-      y: pose.shipY + 2.2,
-      z: 38,
-      lx,
-      ly: pose.shipY - 9.5,
-      lz: 0,
-    };
+    const hull = stackPoint(pose.shipX || 0, pose.shipY, 0, 4, pose.shipRoll || 0);
+    return limbShot(hull.x, hull.y, 0, 22, yaw);
   }
-  const bayY = pose.bayY != null ? pose.bayY : 4.2;
-  const bay = stackPoint(pose.shipX || 0, pose.shipY, pose.carX || 0, bayY, pose.shipRoll || 0);
-  return {
-    x: bay.x - 1.4,
-    y: bay.y + 4.6,
-    z: (pose.carZ || 0) + 11.5,
-    lx: bay.x,
-    ly: bay.y,
-    lz: pose.carZ || 0,
-  };
+  return limbShot(pose.carX || 0, pose.carY, pose.carZ || 0, 11, yaw);
 }
 
 /** Outdoors with the keys, the car is the body. A shop interior is on foot. */
@@ -2369,11 +2462,12 @@ export function placeFlight(flight, pose) {
     }
     }
   }
-  const skyCenterY = pose.worldY != null ? pose.worldY : pose.shipY;
+  const above = pose.beat === "orbit" || pose.beat === "release" || pose.beat === "space";
+  const skyY = pose.worldY != null ? pose.worldY : (above ? earthCenter(pose) : pose.shipY);
   flight.stars.visible = pose.sky >= 0.45;
-  flight.stars.position.set(pose.worldX || 0, skyCenterY, pose.worldZ || 0);
+  flight.stars.position.set(pose.worldX || 0, skyY, pose.worldZ || 0);
   if (flight.spaceSky) {
-    flight.spaceSky.visible = pose.sky >= 0.55;
+    flight.spaceSky.visible = pose.sky >= 0.55 && !above;
     flight.spaceSky.position.copy(flight.stars.position);
   }
   const onPad = pose.stackY < 8 && pose.plume > 0.45 && pose.beat !== "cruise";
@@ -3749,7 +3843,7 @@ export function mountWorld(canvas, map, api) {
     // Level with the car, just outside the circle, so the limb crosses the window.
     const watchPitch = cruisingWatch ? (Math.PI / 2) * (flightPitch / 1.05) : flightPitch;
     const cam = cruisingWatch
-      ? cruiseWatch(pose, flightYaw, watchPitch, 6)
+      ? (pose.dest === "abyss" ? abyssWatch(pose, flightYaw, watchPitch) : cruiseWatch(pose, flightYaw, watchPitch, 6))
       : flightCamera(ms, flightYaw, flightPitch);
     const kick = pose.plume > 0.4 ? 1 : 0;
     camera.position.set(cam.x + Math.sin(now / 28) * 0.15 * kick, cam.y + Math.cos(now / 24) * 0.1 * kick, cam.z);
@@ -3765,16 +3859,9 @@ export function mountWorld(canvas, map, api) {
     const night = new THREE.Color("#020308");
     scene.background.copy(day).lerp(night, pose.sky);
     scene.fog.color.copy(scene.background);
-    if (pose.beat === "cruise") {
-      scene.fog.near = 400;
-      scene.fog.far = 1400;
-    } else if (pose.sky > 0.15) {
-      scene.fog.near = 90;
-      scene.fog.far = 1400;
-    } else {
-      scene.fog.near = 40;
-      scene.fog.far = 420;
-    }
+    const fog = flightFog(pose);
+    scene.fog.near = fog.near;
+    scene.fog.far = fog.far;
     renderer.toneMappingExposure = 0.94 + pose.plume * 0.3;
     canvas.dataset.mode = "flight";
   }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, cruiseWatch, drives, EARTH_RADIUS, EARTH_SURFACE, HANG_RADIUS, WORLD_RADIUS, earthCenter, escapeRoom, fitScreen, portraitDistance, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
+import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, cruiseWatch, abyssWatch, raceWatch, flightFog, drives, EARTH_RADIUS, EARTH_SURFACE, HANG_RADIUS, WORLD_RADIUS, earthCenter, escapeRoom, fitScreen, portraitDistance, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -605,6 +605,44 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.ok(sep.lx < later.shipX && sep.lx > later.boosterX, "looks at the gap");
   const plume = new THREE.Vector3(0, 1, 0).applyAxisAngle(new THREE.Vector3(1, 0, 0), FLIGHT_PLUME_PITCH);
   assert.ok(plume.y < -0.99);
+  const leadOf = (p) => (p.guestX - p.carX) * Math.cos(p.theta) + (p.guestZ - p.carZ) * (-Math.sin(p.theta));
+  const laterLead = cruisePose(8000 + 5500, "abyss", FLIGHT_SPACE);
+  assert.ok(Math.abs(leadOf(laterLead) - leadOf(wild)) > 2, "the lead changes " + leadOf(laterLead));
+  const pair = abyssWatch(wild, 0, Math.PI / 2);
+  const offLook = (cam, x, y, z) => {
+    const toL = [cam.lx - cam.x, cam.ly - cam.y, cam.lz - cam.z];
+    const toP = [x - cam.x, y - cam.y, z - cam.z];
+    const nl = Math.hypot(...toL);
+    const np = Math.hypot(...toP);
+    const dot = (toL[0] * toP[0] + toL[1] * toP[1] + toL[2] * toP[2]) / (nl * np);
+    return Math.acos(Math.min(1, Math.max(-1, dot))) * 180 / Math.PI;
+  };
+  assert.ok(offLook(pair, wild.carX, wild.carY, wild.carZ) < 22, "player in the race window");
+  assert.ok(offLook(pair, wild.guestX, wild.guestY, wild.guestZ) < 22, "old roadster in the race window");
+  const disk = (cam, ex, ey, ez, radius) => {
+    const toL = [cam.lx - cam.x, cam.ly - cam.y, cam.lz - cam.z];
+    const toE = [ex - cam.x, ey - cam.y, ez - cam.z];
+    const nl = Math.hypot(...toL);
+    const ne = Math.hypot(...toE);
+    const dot = (toL[0] * toE[0] + toL[1] * toE[1] + toL[2] * toE[2]) / (nl * ne);
+    const beta = Math.acos(Math.min(1, Math.max(-1, dot)));
+    const alpha = Math.asin(Math.min(1, radius / ne));
+    return (alpha - beta) * 180 / Math.PI;
+  };
+  const raceLimb = disk(pair, wild.worldX, wild.worldY, wild.worldZ, EARTH_RADIUS);
+  assert.ok(raceLimb > 12 && raceLimb < 26, "race limb " + raceLimb);
+  for (const ms of [FLIGHT_ORBIT, FLIGHT_SECO, FLIGHT_RELEASE, FLIGHT_SPACE]) {
+    const shot = flightCamera(ms);
+    const limb = disk(shot, 0, earthCenter(), 0, EARTH_RADIUS);
+    assert.ok(limb > 12 && limb < 26, ms + " limb " + limb);
+  }
+  assert.equal(flightFog(flightPose(FLIGHT_ORBIT)).near, 400);
+  assert.equal(flightFog(flightPose(FLIGHT_RELEASE)).near, 400);
+  assert.equal(flightFog(flightPose(FLIGHT_SPACE)).near, 400);
+  assert.equal(flightFog(cruisePose(9000, "abyss", FLIGHT_SPACE)).near, 400);
+  assert.equal(flightFog(flightPose(FLIGHT_STAGE)).near, 90);
+  assert.equal(flightFog(flightPose(0)).near, 40);
+  assert.equal(raceWatch(wild, 0).ly, (wild.carY + wild.guestY) / 2);
 });
 
 test("the roadster leaves the ship nose-first on +X", () => {
