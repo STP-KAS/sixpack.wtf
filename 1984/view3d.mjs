@@ -1836,7 +1836,7 @@ export function buildFlight() {
     root.add(spaceSky);
     spaceVideo = skyEl;
   }
-  return { root, pad, tower, booster, ship, door, car, starman, plume, plumeHot, plumeSkirt, jets, diamonds, shipPlume, shipSkirt, shipJets, hullLine, fins, burn, earth, stars, steam, splash, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo, padScreens, padVideos };
+  return { root, pad, tower, booster, ship, door, car, starman, plume, plumeHot, plumeSkirt, jets, diamonds, shipPlume, shipSkirt, shipJets, hullLine, fins, burn, earth, stars, steam, splash, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo, padScreens, padVideos, padFilmsDone: false };
 }
 
 function paintKoniCanvas(canvas, lines) {
@@ -1862,6 +1862,30 @@ export function paintKoni(flight, lines) {
   if (!screen || !screen.material || !screen.material.map) return;
   paintKoniCanvas(screen.material.map.image, lines);
   screen.material.map.needsUpdate = true;
+}
+
+/** Both films are done. The last frame leaves the tower. */
+export function erasePadFilms(flight) {
+  if (!flight) return;
+  flight.padFilmsDone = true;
+  for (const screen of flight.padScreens || []) {
+    screen.visible = false;
+    if (screen.material) {
+      screen.material.map = null;
+      screen.material.needsUpdate = true;
+    }
+  }
+  for (const film of flight.padVideos || []) {
+    try { film.pause(); } catch (err) { /* already quiet */ }
+    try { film.removeAttribute("src"); } catch (err) { /* already clear */ }
+    try { film.load(); } catch (err) { /* no file left */ }
+  }
+}
+
+/** The next launch may play the two films again. */
+export function armPadFilms(flight) {
+  if (!flight) return;
+  flight.padFilmsDone = false;
 }
 
 export function placeFlight(flight, pose) {
@@ -1965,7 +1989,8 @@ export function placeFlight(flight, pose) {
   flight.pad.visible = !cruising && pose.sky < 0.45;
   flight.tower.visible = !cruising && pose.sky < 0.45;
   if (flight.padScreens) {
-    const show = pose.beat === "light";
+    // The countdown is still the light beat. Once both films are done the screens stay down.
+    const show = pose.beat === "light" && !flight.padFilmsDone;
     for (const screen of flight.padScreens) screen.visible = show;
   }
   flight.earth.visible = pose.sky >= 0.35;
@@ -3427,8 +3452,16 @@ export function mountWorld(canvas, map, api) {
 
   function render(now) {
     resize();
-    for (const film of flight.padVideos || []) {
-      if (film._padMap && film.readyState >= 2) film._padMap.needsUpdate = true;
+    const padFilms = flight.padVideos || [];
+    for (let i = 0; i < padFilms.length; i++) {
+      const film = padFilms[i];
+      if (!film._padMap || film.readyState < 2 || flight.padFilmsDone) continue;
+      film._padMap.needsUpdate = true;
+      const screen = flight.padScreens && flight.padScreens[i];
+      if (screen && screen.material && screen.material.map !== film._padMap) {
+        screen.material.map = film._padMap;
+        screen.material.needsUpdate = true;
+      }
     }
     const flightMs = api.flight ? api.flight() : 0;
     if (flightMs !== 0) {
@@ -3879,6 +3912,12 @@ export function mountWorld(canvas, map, api) {
     },
     padVideos() {
       return flight.padVideos || [];
+    },
+    dropPadFilms() {
+      erasePadFilms(flight);
+    },
+    showPadFilms() {
+      armPadFilms(flight);
     },
     showKoni(lines) {
       paintKoni(flight, lines);
