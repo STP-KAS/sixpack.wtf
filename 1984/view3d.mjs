@@ -1048,6 +1048,49 @@ function nameTag(text) {
   return sprite;
 }
 
+export const BUILDING_SIGN_W = 3.8;
+export const BUILDING_SIGN_H = 0.98;
+const SIGN_OUT = 1.2;
+const SIGN_LIFT = 1.15;
+
+/** Door-face name. The board sits in front of the eave and above the tiles. */
+export function buildingSignPose(wallX, wallZ, nx, nz, bodyH) {
+  return {
+    x: wallX + nx * SIGN_OUT,
+    y: bodyH + 0.12 + SIGN_LIFT,
+    z: wallZ + nz * SIGN_OUT,
+  };
+}
+
+function buildingSign(text) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 128;
+  const g = canvas.getContext("2d");
+  g.fillStyle = "rgba(12,10,8,0.94)";
+  g.fillRect(10, 14, 492, 100);
+  g.strokeStyle = "#e7c27a";
+  g.lineWidth = 6;
+  g.strokeRect(13, 17, 486, 94);
+  g.fillStyle = "#f6ead0";
+  g.font = "700 68px Segoe UI, sans-serif";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.fillText(text, 256, 66);
+  const material = new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(canvas),
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+  });
+  material.map.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(BUILDING_SIGN_W, BUILDING_SIGN_H, 1);
+  sprite.renderOrder = 12;
+  sprite.userData.label = text;
+  return sprite;
+}
+
 function tagPick(object, pick, shop) {
   object.traverse((child) => {
     child.userData.pick = pick;
@@ -1297,9 +1340,15 @@ function addBuildings(parent, map, maps, pick, awnings) {
       tagPick(cloth, { x: b.npc.x, y: b.npc.y }, b.shop);
       pick.push(cloth);
     }
-    const sign = nameTag(b.sign);
-    sign.position.set(wallX + face.nx * 0.35, h + 0.55, wallZ + face.nz * 0.35);
-    parent.add(sign);
+    const signAt = buildingSignPose(wallX, wallZ, face.nx, face.nz, h);
+    const sign = buildingSign(b.sign);
+    sign.position.set(signAt.x, signAt.y, signAt.z);
+    const arm = new THREE.Mesh(
+      new THREE.BoxGeometry(Math.abs(face.nx) ? SIGN_OUT : 0.1, 0.1, Math.abs(face.nz) ? SIGN_OUT : 0.1),
+      stone("#e1c27a", 0.42),
+    );
+    arm.position.set(wallX + face.nx * (SIGN_OUT / 2), signAt.y, wallZ + face.nz * (SIGN_OUT / 2));
+    parent.add(arm, sign);
     const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.7, 0.28), stone("#ffffff", 0.85, maps.blocks));
     chimney.position.set(center.x + w * 0.22, h + 0.85, center.z - d * 0.12);
     chimney.castShadow = true;
