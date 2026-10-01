@@ -2669,12 +2669,19 @@ function paySlip(info) {
     }
   }
   if (info.place) payPlace = info.place;
+  const again = document.getElementById("pay-slip-again");
+  if (again) again.textContent = spaceSlip() ? "Close this tab" : "New purchase";
+}
+
+function spaceSlip() {
+  return payPlace === "orbit" || !!(state.flightStart && !state.flightDark);
 }
 
 function newPurchase() {
   const box = document.getElementById("pay-slip");
+  const inSpace = spaceSlip();
   if (box) box.hidden = true;
-  if (!payPlace) return;
+  if (inSpace || !payPlace) return;
   openMode(payPlace);
 }
 

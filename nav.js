@@ -2,12 +2,12 @@
   const file = (location.pathname.split("/").pop() || "index.html").toLowerCase();
   const items = [
     { href: "./", files: ["", "index.html"], label: "Home" },
-    { href: "rails.html", files: ["rails.html"], label: "Economics" },
     { href: "farce.html", files: ["farce.html"], label: "Farce" },
     { href: "eulogy.html", files: ["eulogy.html"], label: "Eulogy" },
     { href: "random.html", files: ["random.html"], label: "Random" },
     { href: "aigen.html", files: ["aigen.html"], label: "ai gen" },
     { href: "faucet.html", files: ["faucet.html"], label: "Faucet" },
+    { href: "rails.html", files: ["rails.html"], label: "Economics" },
     { href: "1984.html", files: ["1984.html", "kworld.html"], label: "1984" },
     { href: "grok.html", files: ["grok.html"], label: "Grok.SPCXAI.KAS" },
     { href: "help.html", files: ["help.html"], label: "Help" },
