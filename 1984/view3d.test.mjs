@@ -451,7 +451,7 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.ok(later.plume > 0.2, "boostback " + later.plume);
   const pair0 = padPair([PAD_LEAD, "random/r01.mp4", "1984/cinema/harvard.mp4"], 0);
   const pairHi = padPair([PAD_LEAD, "random/r01.mp4", "1984/cinema/harvard.mp4"], 0.99);
-  assert.equal(PAD_LEFT, "1984/pad-left.mp4");
+  assert.equal(PAD_LEFT, "1984/pad-left.mp4?v=2");
   assert.equal(PAD_RIGHT, "1984/before.mp4");
   assert.notEqual(PAD_LEFT, PAD_RIGHT);
   assert.equal(filmLaunchFill("left", 0, 0, PAD_LEFT_SECONDS, PAD_RIGHT_SECONDS), 0);
