@@ -1492,8 +1492,8 @@ function plumeCone(color, radius, length, opacity = 0.9, additive = false) {
   return mesh;
 }
 
-/** Left film, then the right film. The countdown starts when the right film ends. v=2 keeps the left film's words at the bottom. */
-export const PAD_LEFT = "1984/pad-left.mp4?v=2";
+/** Left film, then the right film. The countdown starts when the right film ends. v=3 is the original picture with the caption line moved to the bottom. */
+export const PAD_LEFT = "1984/pad-left.mp4?v=3";
 export const PAD_RIGHT = "1984/before.mp4";
 /** File lengths, used until the player reports its own duration. */
 export const PAD_LEFT_SECONDS = 58.282667;

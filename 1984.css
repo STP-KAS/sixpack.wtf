@@ -929,9 +929,8 @@ a { color: #f2d48a; }
   display: grid;
   place-items: center;
   background:
-    radial-gradient(ellipse at 18% 78%, rgba(196, 92, 28, 0.45), transparent 36%),
-    radial-gradient(ellipse at 82% 78%, rgba(196, 92, 28, 0.45), transparent 36%),
-    linear-gradient(#4a453c 0%, #1a1614 42%, #2c2822 100%);
+    radial-gradient(ellipse at 50% 115%, rgba(120, 68, 24, 0.32), transparent 46%),
+    linear-gradient(#14110e 0%, #0c0b0a 52%, #1a120c 100%);
 }
 .kw-gate[hidden] { display: none; }
 .kw-gate-card {
@@ -939,14 +938,30 @@ a { color: #f2d48a; }
   max-height: calc(100% - 1.5rem);
   overflow: auto;
   text-align: center;
-  color: #f3e6c8;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.05), transparent 30%),
-    linear-gradient(#5c574e, #3a3630 55%, #2a2723);
-  border: 3px solid #7a756c;
-  border-radius: 12px;
-  box-shadow: 0 18px 50px rgba(0,0,0,0.55), inset 0 0 0 2px #1c1916;
+  color: #f2d48a;
+  background: #161311;
+  border: 1px solid #d7c4a2;
+  border-radius: 2px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.55);
   padding: 1.15rem 1rem 0.95rem;
+}
+.kw-gate button {
+  background: #1a1612;
+  color: #f2d48a;
+  border: 1px solid #6b5a3e;
+  box-shadow: none;
+  text-align: center;
+  font-weight: 700;
+}
+.kw-gate button:disabled {
+  opacity: 0.45;
+  color: #8a7d68;
+  cursor: default;
+}
+.gate-foot {
+  margin: 0.55rem 0 0;
+  color: #cbbd9a;
+  font-size: 0.78rem;
 }
 .kw-gate h1 {
   margin: 0.35rem 0 0.4rem;

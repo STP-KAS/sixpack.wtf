@@ -243,7 +243,7 @@ test("a progress login returns a job the page can poll", async () => {
     ip: "203.0.113.8",
   });
   assert.equal(missing.status, 404);
-  assert.match(missing.body.error, /Try New arrival again/);
+  assert.match(missing.body.error, /Try Test without a wallet again/);
 });
 
 test("a guest job that carries a key is not returned", async () => {

@@ -335,7 +335,7 @@ export function create1984Service(deps) {
           if (!found || found.key || found.privateKey) {
             return {
               status: 404,
-              body: { ok: false, pending: false, error: "That opening expired. Try New arrival again." },
+              body: { ok: false, pending: false, error: "That opening expired. Try Test without a wallet again." },
             };
           }
           return { status: 200, body: found };

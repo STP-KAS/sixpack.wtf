@@ -17,7 +17,7 @@ import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
 import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=5";
 import { REELS, reelShuffle, reelStep } from "./reels.mjs?v=3";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=39";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=40";
 import { HUNTS, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=1";
 const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -815,18 +815,18 @@ function toggleRide() {
   paintChrome();
 }
 
-async function refreshAccount() {
+async function refreshAccount(quiet) {
   if (!state.id.address) {
     state.account = null;
     state.kasSompi = null;
     paintChrome();
-    return;
+    return { ok: false };
   }
   const body = await api("/api/1984/account?address=" + encodeURIComponent(state.id.address));
   if (!body.ok) {
-    say(body.error || "Could not read the account.", true);
+    if (!quiet) say(body.error || "Could not read the account.", true);
     paintChrome();
-    return;
+    return { ok: false, error: body.error || "Could not read the account." };
   }
   state.account = body.account;
   state.kasSompi = body.kasSompi;
@@ -834,6 +834,7 @@ async function refreshAccount() {
   if (body.reserve) state.reserve = body.reserve;
   paintBooks();
   maybeSwapNotice();
+  return { ok: true, account: body.account };
 }
 
 function paintBooks() {
@@ -893,24 +894,27 @@ async function logOut() {
   paintChrome();
   if (state.id.address) refreshAccount();
   say(state.id.address
-    ? "Logged out. Returning still uses the wallet saved on this browser."
+    ? "Logged out. The same address loads its history from this gate."
     : "Logged out. The welcome gate is the landing.");
 }
 
-function setIdentity(next) {
+function setIdentity(next, quiet) {
   const prev = state.id;
   try {
     writeIdentity(boxes(), next);
   } catch (err) {
     say(err.message, true);
-    return;
+    return { ok: false, refused: true, error: err.message };
   }
   state.id = next;
   if (prev && prev.kind === "guest" && prev.token && prev.token !== next.token) forgetGuest(prev);
   paintChrome();
-  refreshAccount();
-  if (next.kind === "guest") say("Paying as a test address for this tab only. " + GUEST_DISCLAIMER);
-  else say("Paying as " + (next.label || next.address) + ". This one keeps its history on this browser.");
+  const pending = refreshAccount(!!quiet);
+  if (!quiet) {
+    if (next.kind === "guest") say("Paying as a test address for this tab only. " + GUEST_DISCLAIMER);
+    else say("Paying as " + (next.label || next.address) + ". This one keeps its history on this browser.");
+  }
+  return pending;
 }
 
 async function readLiveAddress(kind) {
@@ -996,11 +1000,8 @@ async function connectWallet(kind) {
     if (switchError) say(switchError, true);
     return;
   }
-  setIdentity({ address, label: name, kind });
-  hideGate();
-  gateStatus("");
-  if (switchError) say(name + " is logged in. The address is Testnet 10. The wallet did not switch from this page.");
-  else say(name + " is logged in on Testnet 10. This login stays on this browser.");
+  await enterAddress(address, name);
+  if (switchError) say(name + " is on Testnet 10. The wallet did not switch from this page.");
 }
 
 const GUEST_STEPS = [
@@ -1069,7 +1070,7 @@ async function postGuest() {
 
 async function pollGuest(base, job, onStep) {
   const deadline = Date.now() + 720000;
-  let last = "The test wallet is still opening. Leave this tab open and try New arrival again if this stays.";
+  let last = "The test wallet is still opening. Leave this tab open and try Test without a wallet again if this stays.";
   while (Date.now() < deadline) {
     try {
       const res = await fetch(base + "/api/1984/guest?job=" + encodeURIComponent(job), {
@@ -1107,7 +1108,7 @@ async function startGuest(onStep) {
     }
     setIdentity({ address: body.address, label: "test tab", kind: "guest", token: body.token });
     if (state.id.kind !== "guest" || state.id.token !== body.token) {
-      return { ok: false, error: "The test wallet opened, but this tab could not keep it. Use Returning, or Who pays." };
+      return { ok: false, error: "The test wallet opened, but this tab could not keep it. Open Who pays and try Test without a wallet." };
     }
     say("This tab has " + formatTkas(body.sompi) + " tKAS. The balance can take a moment to show. Close the tab and this address is gone.");
     const address = body.address;
@@ -1215,20 +1216,81 @@ function watchNameBox(input) {
   });
 }
 
+function accountHasHistory(account) {
+  if (!account) return false;
+  if (Array.isArray(account.receipts) && account.receipts.length > 0) return true;
+  if (account.practice || account.roadster || account.kusdtFrozen) return true;
+  if (account.spentDay) return true;
+  for (const key of ["poc", "kusdt", "pocBacked", "kusdtBacked", "liability", "spentCents", "seq"]) {
+    try {
+      if (BigInt(account[key] || "0") !== 0n) return true;
+    } catch (_) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function sessionLine(walletName, loaded) {
+  if (!loaded || !loaded.ok) return "The till did not answer. This address is set. Its history is not loaded yet.";
+  if (accountHasHistory(loaded.account)) {
+    return walletName
+      ? walletName + " is on Testnet 10. This address already has a history."
+      : "This address already has a history. It is loaded.";
+  }
+  return walletName
+    ? walletName + " is on Testnet 10. Started a session for this address."
+    : "Started a session for this address.";
+}
+
+async function enterAddress(address, walletName) {
+  const kind = walletName === "Kasware" ? "kasware" : walletName === "Kastle" ? "kastle" : "address";
+  const loaded = await setIdentity({ address, label: walletName || address, kind }, true);
+  if (loaded && loaded.refused) {
+    if (gateIsOpen()) gateStatus(loaded.error || "That address was refused.", true);
+    return;
+  }
+  hideGate();
+  gateStatus("");
+  say(sessionLine(walletName, loaded));
+}
+
+function gateAddressProblem(value) {
+  const raw = String(value || "").replace(/[\u200b-\u200d\ufeff]/g, "").trim();
+  if (!raw) return "Paste a kaspatest address.";
+  try {
+    assertTestnet(raw);
+    return "";
+  } catch (err) {
+    return (err && err.message) || "Use a Testnet-10 kaspatest: address.";
+  }
+}
+
+function paintGateAddress() {
+  const button = document.getElementById("gate-use-addr");
+  const field = document.getElementById("gate-addr");
+  if (!button || !field) return;
+  const problem = gateAddressProblem(field.value);
+  button.disabled = !!problem;
+  gateStatus(problem, !!problem);
+}
+
 async function useAddress(from) {
   const field = pickedField(from, addressField);
+  let address = "";
   try {
-    const address = assertTestnet(field && field.value);
-    if (field) field.value = address;
-    setIdentity({ address, label: address, kind: "address" });
-    if (state.id && state.id.kind === "address" && state.id.address === address && gateIsOpen()) {
-      hideGate();
-      gateStatus("");
-    }
+    address = assertTestnet(field && field.value);
   } catch (err) {
     say(err.message, true);
     if (gateIsOpen()) gateStatus(err.message, true);
+    return;
   }
+  if (field) field.value = address;
+  if (gateIsOpen() && field && field.id === "gate-addr") {
+    await enterAddress(address, "");
+    return;
+  }
+  setIdentity({ address, label: address, kind: "address" });
 }
 
 async function useName(from) {
@@ -2321,12 +2383,12 @@ function paintGuide() {
     "<ol>" +
     "<li class=\"only-desk\">Click Kasware or Kastle and approve the login. This page asks the wallet to open on Testnet 10. If the window is black, close it, click the wallet icon, unlock, and try again. A mainnet address is still refused. That login stays on this browser.</li>" +
     "<li class=\"only-phone\">On a phone, set Testnet 10 inside Kasware or Kastle before you log in. This page cannot switch the phone wallet. Or open this page in the Kastle browser. If the window is black, close it, unlock the wallet, and try again. A mainnet address is still refused. That login stays on this browser.</li>" +
-    "<li>Or choose New arrival on the welcome gate. That is the same as Test without a wallet. This tab gets 50000 tKAS from Grok's Testnet-10 wallet. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. Returning leaves the gate and uses a wallet that stays on this browser. One thousand of these test wallets can be opened in a day.</li>" +
-    "<li>Or paste a kaspatest address in the box on the welcome gate, or again in Who pays. A .kas name that already resolves on TN10 is in Who pays. That choice stays until you change it.</li>" +
-    "<li>Need coins: New arrival gives this tab 50000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
+    "<li>Test without a wallet is in Who pays, after you are in. This tab gets 50000 tKAS from Grok's Testnet-10 wallet. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. The welcome gate asks who pays. The same address loads its history. A new address starts a session. One thousand of these test wallets can be opened in a day.</li>" +
+    "<li>Or paste a kaspatest address in the box on the welcome gate, or again in Who pays. Open this address loads that history, or starts a session when the address is new. A .kas name that already resolves on TN10 is in Who pays. That choice stays until you change it.</li>" +
+    "<li>Need coins: Who pays, then Test without a wallet, gives this tab 50000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, take a seat and the menu blinks, or order at the blinking counter. The market opens at the counter. The showroom opens when you click Pike or the sign. Buy the roadster and it waits on the lot. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too.</li>" +
-    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
-    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS. When a payment finishes, the steps and the transaction stay on the page. Open the transaction, or start a new purchase. Log out returns you to the welcome gate. Returning still uses the wallet saved on this browser.</li>" +
+    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. Test without a wallet is in Who pays.</li>" +
+    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS. When a payment finishes, the steps and the transaction stay on the page. Open the transaction, or start a new purchase. Log out returns you to the welcome gate. The same address loads its history.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>The roadster parks on the lot in front of Pike's shop. If it is yours, Drive in your roadster is the large gold button. Once you are in the car, Launch into space is the gold button. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, plays two short films on the tower first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. One tower stands beside it, and the chopsticks stay open. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: you hang out with the old roadster. It has been cruising for years. The way there is ten seconds. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends.</li>" +
@@ -3316,53 +3378,8 @@ function hideGate() {
   if (gate) gate.hidden = true;
   maybeSwapNotice();
 }
-function markReturning(on) {
-  const root = document.querySelector(".kw");
-  if (root) root.classList.toggle("returning", !!on);
-}
 const clearLogout = document.getElementById("log-out-clear");
 if (clearLogout) clearLogout.addEventListener("click", () => logOut().catch((err) => say(err.message, true)));
-document.getElementById("gate-new").addEventListener("click", () => {
-  markReturning(false);
-  const button = document.getElementById("gate-new");
-  if (button) button.disabled = true;
-  gateStatus("Opening a test wallet for this tab…");
-  let latest = "Waiting for the till";
-  let latestDetail = "";
-  let showed = false;
-  const timer = setTimeout(() => {
-    showed = true;
-    paintGuestWait(latest, latestDetail);
-  }, 700);
-  startGuest((step, detail) => {
-    if (step) latest = step;
-    latestDetail = detail || "";
-    if (showed) paintGuestWait(latest, latestDetail);
-  })
-    .then((result) => {
-      if (state.id.kind === "guest") {
-        hideGate();
-        return;
-      }
-      const msg = (result && result.error) || "No test wallet. Use Returning, or Who pays.";
-      const usedUp = /used today's|used up/i.test(msg);
-      say(msg, true);
-      if (usedUp) {
-        hideGate();
-        say("The square is open. A new test wallet is not available from this network until tomorrow.");
-        return;
-      }
-      gateStatus(msg, true);
-    })
-    .catch((err) => {
-      gateStatus(err.message, true);
-      say(err.message, true);
-    })
-    .finally(() => {
-      clearTimeout(timer);
-      if (button) button.disabled = false;
-    });
-});
 const payToggle = document.getElementById("pay-toggle");
 function setPayOpen(open) {
   you.hidden = !open;
@@ -3440,26 +3457,56 @@ if (flightPlanets) flightPlanets.addEventListener("click", (ev) => {
   if (!btn || btn.disabled) return;
   spend(btn.getAttribute("data-pay"), "orbit", btn.getAttribute("data-sku"));
 });
-document.getElementById("gate-back").addEventListener("click", () => {
-  markReturning(true);
-  hideGate();
-  setPayOpen(false);
-  if (state.id.kind === "guest") {
-    say("This tab is already a new arrival. Close the tab and that address is gone. Who pays is in the corner if you want a wallet kept.");
-  } else if (state.id.address) {
-    say("Returning as " + (state.id.label || state.id.address) + ". The square is open.");
-  } else {
-    say("The square is open. Who pays is in the corner for Kasware, Kastle, a kaspatest address, or a .kas name.");
-  }
-});
 const gateAddr = document.getElementById("gate-addr");
 const gateName = document.getElementById("gate-kasname");
 const gateUseAddr = document.getElementById("gate-use-addr");
 const gateUseName = document.getElementById("gate-use-name");
-if (gateUseAddr) gateUseAddr.addEventListener("click", () => useAddress(gateAddr));
+if (gateAddr) {
+  gateAddr.addEventListener("input", paintGateAddress);
+  gateAddr.addEventListener("paste", (ev) => {
+    const text = (ev.clipboardData && ev.clipboardData.getData("text")) || "";
+    let address = "";
+    try { address = assertTestnet(text); } catch (_) { address = ""; }
+    if (!address) return;
+    ev.preventDefault();
+    gateAddr.value = address;
+    paintGateAddress();
+    enterAddress(address, "").catch((err) => {
+      gateStatus(err.message, true);
+      say(err.message, true);
+    });
+  });
+  gateAddr.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Enter") return;
+    ev.preventDefault();
+    const problem = gateAddressProblem(gateAddr.value);
+    if (problem) {
+      paintGateAddress();
+      return;
+    }
+    enterAddress(assertTestnet(gateAddr.value), "").catch((err) => {
+      gateStatus(err.message, true);
+      say(err.message, true);
+    });
+  });
+}
+if (gateUseAddr) {
+  gateUseAddr.addEventListener("click", () => {
+    if (gateUseAddr.disabled || !gateAddr) return;
+    const problem = gateAddressProblem(gateAddr.value);
+    if (problem) {
+      paintGateAddress();
+      return;
+    }
+    enterAddress(assertTestnet(gateAddr.value), "").catch((err) => {
+      gateStatus(err.message, true);
+      say(err.message, true);
+    });
+  });
+}
 if (gateUseName) gateUseName.addEventListener("click", () => useName(gateName));
-watchAddressBox(gateAddr);
 watchNameBox(gateName);
+paintGateAddress();
 for (const [id, kind] of [["gate-kasware", "kasware"], ["gate-kastle", "kastle"]]) {
   const button = document.getElementById(id);
   if (!button) continue;
@@ -3531,7 +3578,7 @@ panel.addEventListener("click", (ev) => {
 
 requestAnimationFrame(step);
 paintChrome();
-say("1984. Ashfields. Testnet 10. The gate asks if you are a new arrival or returning.");
+say("1984. Ashfields. Testnet 10. The gate asks who pays.");
 window.addEventListener("pagehide", () => {
   if (state.id.kind !== "guest" || !state.id.token) return;
   const payload = JSON.stringify({ token: state.id.token, address: state.id.address, life: PAGE_LIFE });
