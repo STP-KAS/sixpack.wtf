@@ -2388,7 +2388,7 @@ function paintGuide() {
     "<li>Need coins: Who pays, then Test without a wallet, gives this tab 50000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, take a seat and the menu blinks, or order at the blinking counter. The market opens at the counter. The showroom opens when you click Pike or the sign. Buy the roadster and it waits on the lot. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. Test without a wallet is in Who pays.</li>" +
-    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS. When a payment finishes, the steps and the transaction stay on the page. Open the transaction, or start a new purchase. Log out returns you to the welcome gate. The same address loads its history.</li>" +
+    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS. When a payment finishes, the steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate. The same address loads its history.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>The roadster parks on the lot in front of Pike's shop. If it is yours, Drive in your roadster is the large gold button. Once you are in the car, Launch into space is the gold button. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, plays two short films on the tower first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. One tower stands beside it, and the chopsticks stay open. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. After the booster is gone, the ship coasts, then the roadster leaves. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: you hang out with the old roadster. It has been cruising for years. The way there is ten seconds. Out there the two cars orbit the Earth. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends.</li>" +
@@ -2577,6 +2577,7 @@ function askOk(line) {
   const text = document.getElementById("ask-line");
   const ok = document.getElementById("ask-ok");
   const no = document.getElementById("ask-no");
+  const close = document.getElementById("ask-close");
   if (askBusy || !shade || !text || !ok || !no) return Promise.resolve(false);
   askBusy = true;
   text.textContent = line;
@@ -2587,6 +2588,7 @@ function askOk(line) {
       shade.hidden = true;
       ok.removeEventListener("click", onOk);
       no.removeEventListener("click", onNo);
+      if (close) close.removeEventListener("click", onNo);
       shade.removeEventListener("click", onShade);
       document.removeEventListener("keydown", onKey);
       resolve(yes);
@@ -2606,6 +2608,7 @@ function askOk(line) {
     };
     ok.addEventListener("click", onOk);
     no.addEventListener("click", onNo);
+    if (close) close.addEventListener("click", onNo);
     shade.addEventListener("click", onShade);
     document.addEventListener("keydown", onKey);
     ok.focus();
@@ -2741,6 +2744,11 @@ function paySlip(info) {
 
 function spaceSlip() {
   return payPlace === "orbit" || !!(state.flightStart && !state.flightDark);
+}
+
+function closePaySlip() {
+  const box = document.getElementById("pay-slip");
+  if (box) box.hidden = true;
 }
 
 function newPurchase() {
@@ -3416,6 +3424,14 @@ const simBig = document.getElementById("sim-big");
 if (simBig) simBig.addEventListener("click", () => { simBig.hidden = true; });
 const payAgain = document.getElementById("pay-slip-again");
 if (payAgain) payAgain.addEventListener("click", newPurchase);
+const payClose = document.getElementById("pay-slip-close");
+if (payClose) payClose.addEventListener("click", closePaySlip);
+const siteTab = document.querySelector(".tabs a.on");
+if (siteTab && siteTab.parentElement) {
+  const parent = siteTab.parentElement;
+  const left = siteTab.offsetLeft - (parent.clientWidth - siteTab.offsetWidth) / 2;
+  parent.scrollLeft = Math.max(0, left);
+}
 const needSwapCard = document.getElementById("need-swap");
 if (needSwapCard) {
   needSwapCard.addEventListener("click", (ev) => {

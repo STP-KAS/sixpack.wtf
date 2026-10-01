@@ -706,8 +706,30 @@ body.page-1984 main.kw-stage {
   color: #f3e6c8;
   font-size: 1.05rem;
 }
+.ask-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+}
+.ask-head p { flex: 1 1 auto; margin: 0; }
+#ask-close {
+  flex: 0 0 auto;
+}
+#ask-close,
+#pay-slip-close {
+  min-height: 44px;
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  text-align: center;
+  font-weight: 700;
+  background: #1a120c;
+  color: #f2d48a;
+  border: 2px solid #e7c27a;
+}
 .ask-row { display: flex; gap: 0.5rem; }
-.ask-row button {
+.ask-row button, .ask-row a {
   flex: 1;
   text-align: center;
   font-weight: 700;
@@ -746,7 +768,7 @@ body.page-1984 main.kw-stage {
   z-index: 8;
   width: min(420px, calc(100% - 24px));
   padding: 0.8rem 0.9rem;
-  background: rgba(12, 14, 18, 0.94);
+  background: #10141c;
   border: 2px solid #e7c27a;
   color: #f3e6c8;
 }
@@ -1047,11 +1069,33 @@ a { color: #f2d48a; }
   }
   body.page-1984 .top {
     flex-wrap: nowrap;
+    overflow: hidden;
+    align-items: stretch;
+    gap: 0.45rem;
+    padding-top: max(0.28rem, env(safe-area-inset-top));
+    padding-left: max(0.4rem, env(safe-area-inset-left));
+    padding-right: max(0.4rem, env(safe-area-inset-right));
+  }
+  body.page-1984 .wordmark {
+    flex: 0 0 auto;
+    align-self: center;
+    font-size: 0.95rem;
+  }
+  body.page-1984 .tabs {
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    padding-top: max(0.28rem, env(safe-area-inset-top));
+    scrollbar-width: none;
   }
-  body.page-1984 .tabs { flex-wrap: nowrap; }
+  body.page-1984 .tabs::-webkit-scrollbar { display: none; }
+  body.page-1984 .tabs a {
+    flex: 0 0 auto;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+  }
   .hint-desk, .only-desk, .hint-phone { display: none; }
   li.only-phone { display: list-item; }
   .kw-step { display: inline-block; }
@@ -1078,11 +1122,23 @@ a { color: #f2d48a; }
     bottom: auto;
     width: auto;
     flex: 0 0 auto;
-    flex-direction: row;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    gap: 0.45rem;
-    padding: 0.4rem;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    overflow: visible;
+    gap: 0.28rem;
+    padding: 0.3rem 0.35rem 0.35rem;
+  }
+  .kw-side button {
+    min-width: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 0.78rem;
+    line-height: 1.15;
+    padding: 0.28rem 0.12rem;
+    min-height: 40px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .kw-side button, .kw-panel button, .kw-you button, .kw-gate-row button, .kw-turn, .kw-pay-toggle, .kw-launch, .kw-ride, .flight-card button, .show-card button {
     white-space: nowrap;
@@ -1097,9 +1153,13 @@ a { color: #f2d48a; }
     right: auto;
     top: auto;
     flex: 0 0 auto;
-    white-space: normal;
-    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.82rem;
     line-height: 1.35;
+    padding-left: max(0.4rem, env(safe-area-inset-left));
+    padding-right: max(0.4rem, env(safe-area-inset-right));
   }
   .kw-hint.hint-phone { display: none; }
   .kw-pay-toggle {
@@ -1109,7 +1169,7 @@ a { color: #f2d48a; }
     bottom: max(6px, env(safe-area-inset-bottom));
     width: 96px;
     min-height: 48px;
-    z-index: 4;
+    z-index: 7;
     text-align: center;
   }
   .kw-logout {
@@ -1183,13 +1243,37 @@ a { color: #f2d48a; }
     width: min(440px, calc(100vw - 16px));
     max-height: calc(100dvh - 4.2rem);
   }
-  .show-card { bottom: max(12px, env(safe-area-inset-bottom)); }
   .show-card {
-    left: 8px;
-    right: auto;
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
     top: auto;
-    width: min(280px, 46vw);
-    max-height: min(70dvh, calc(100% - 12px));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: auto;
+    max-height: min(68dvh, calc(100% - 12px));
+  }
+  .ask-shade {
+    align-items: flex-end;
+    padding: 0.6rem 0.55rem max(0.6rem, env(safe-area-inset-bottom));
+  }
+  .ask-card {
+    width: 100%;
+    max-height: min(72dvh, calc(100% - 0.5rem));
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ask-head { align-items: center; }
+  .ask-row { flex-direction: column; }
+  .ask-row button, .ask-row a { min-height: 48px; width: 100%; }
+  .pay-slip {
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    top: auto;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    transform: none;
+    width: auto;
+    max-height: min(58dvh, calc(100% - 12px));
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .show-list button { white-space: normal; text-align: left; }
   .kw-gate {
@@ -1215,10 +1299,11 @@ a { color: #f2d48a; }
     bottom: auto;
     flex: 0 0 auto;
     width: auto;
-    height: 168px;
-    max-height: 32vh;
+    height: 112px;
+    max-height: 22vh;
     margin: 0;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    padding-bottom: env(safe-area-inset-bottom);
   }
   .kw-chat p.sim { font-size: 1.2rem; }
   .sim-big { top: auto; bottom: 12px; transform: translateX(-50%); font-size: 1.25rem; }
@@ -1233,7 +1318,12 @@ a { color: #f2d48a; }
     margin: 0;
     z-index: 6;
   }
-  .kw-you { bottom: 8px; }
+  .kw-you {
+    top: 12.2rem;
+    bottom: calc(11rem + env(safe-area-inset-bottom));
+    max-height: none;
+  }
+  .show-card { background: #10141c; }
   .booth-tabs { flex-wrap: nowrap; overflow-x: auto; }
   .booth-tabs button { min-height: 44px; }
   .swap-bals { grid-template-columns: 1fr; gap: 0.28rem; margin: 0.35rem 0 0.2rem; }
@@ -1256,5 +1346,17 @@ a { color: #f2d48a; }
     margin: 0;
     z-index: 6;
     transform: translate(-50%, -50%);
+  }
+  .kw-side button {
+    min-width: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 0.78rem;
+    line-height: 1.15;
+    padding: 0.28rem 0.12rem;
+    min-height: 42px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
