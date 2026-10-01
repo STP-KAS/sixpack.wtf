@@ -12,7 +12,7 @@ import {
   freshState,
   publicAccount,
 } from "./ledger.mjs";
-import { RESERVE, centsForSompi, sompiForCents } from "./money.mjs";
+import { RESERVE, assertTestnet, centsForSompi, sompiForCents } from "./money.mjs";
 import { PARKING_BAYS, ROADSTER_PARK, SHOPS, counterFace, findPath, nearShop, shopVisit, standTile, walkable, world } from "./world.mjs";
 
 const USER = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
@@ -281,4 +281,23 @@ test("the same transaction cannot mint twice", () => {
   state = applyConvert(state, { address: USER, rail: "kusdt", payment: locked, usdPerKas: USD }, NOW).state;
   assert.throws(() => applyConvert(state, { address: USER, rail: "poc", payment: locked, usdPerKas: USD }, NOW));
   assert.throws(() => applyPractice(state, { address: "kaspa:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" }, NOW));
+});
+
+test("a pasted kaspatest address is the address that stays", () => {
+  const body = "q".repeat(61);
+  const clean = "kaspatest:" + body;
+  assert.equal(assertTestnet(clean), clean);
+  assert.equal(assertTestnet("kaspatest:" + body.slice(0, 20) + " " + body.slice(20) + "\n"), clean);
+  assert.equal(assertTestnet("kaspatest:" + body.slice(0, 30) + "\n" + body.slice(30)), clean);
+  assert.equal(assertTestnet("see " + clean + " thanks"), clean);
+  assert.equal(assertTestnet(body), clean);
+  assert.equal(assertTestnet("kaspatest" + body), clean);
+  assert.equal(assertTestnet("kaspatest " + body), clean);
+  const mixed = "Q" + "q".repeat(60);
+  assert.equal(assertTestnet("KaspaTest:" + mixed), "kaspatest:" + mixed);
+  assert.equal(assertTestnet("kaspatest :" + mixed), "kaspatest:" + mixed);
+  assert.equal(assertTestnet(clean.slice(0, 15) + "\u200b" + clean.slice(15)), clean);
+  assert.throws(() => assertTestnet("kaspa:" + body), /Mainnet/);
+  assert.throws(() => assertTestnet("https://example.test/kaspa:" + body), /Mainnet/);
+  assert.throws(() => assertTestnet("kaspatest:qq"), /Testnet-10/);
 });

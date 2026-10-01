@@ -5,6 +5,7 @@ import {
   RESERVE,
   assertNotMainnetNetwork,
   assertTestnet,
+  normalizeKasName,
   centsForSompi,
   formatCents,
   formatTkas,
@@ -376,6 +377,12 @@ function short(address) {
 }
 
 function paintChrome() {
+  const addrDraft = document.getElementById("addr");
+  const nameDraft = document.getElementById("kasname");
+  const keepAddr = addrDraft && document.activeElement === addrDraft ? addrDraft.value : null;
+  const keepName = nameDraft && document.activeElement === nameDraft ? nameDraft.value : null;
+  const addrSel = keepAddr != null ? [addrDraft.selectionStart, addrDraft.selectionEnd] : null;
+  const nameSel = keepName != null ? [nameDraft.selectionStart, nameDraft.selectionEnd] : null;
   const id = state.id;
   const label = id.label || short(id.address);
   const kas = !id.address ? "— tKAS" : state.kasSompi == null ? "… tKAS" : formatTkas(state.kasSompi) + " tKAS";
@@ -425,6 +432,20 @@ function paintChrome() {
     '<button type="button" id="use-name">Use this name</button>' +
     '<p class="warn">' + esc(PRIVACY) + '</p>' +
     '<p class="fine"><a href="https://app.knsdomains.org" target="_blank" rel="noopener">KNS app</a> · <a href="https://tn10.knsdomains.org" target="_blank" rel="noopener">TN10 names</a></p>';
+  const addrBox = document.getElementById("addr");
+  const nameBox = document.getElementById("kasname");
+  if (addrBox && keepAddr != null) {
+    addrBox.value = keepAddr;
+    addrBox.focus();
+    if (addrSel) addrBox.setSelectionRange(addrSel[0], addrSel[1]);
+  }
+  if (nameBox && keepName != null) {
+    nameBox.value = keepName;
+    if (keepAddr == null) nameBox.focus();
+    if (nameSel) nameBox.setSelectionRange(nameSel[0], nameSel[1]);
+  }
+  watchAddressBox(addrBox);
+  watchNameBox(nameBox);
   syncRide();
 }
 
@@ -1103,34 +1124,117 @@ async function keepGuest() {
   refreshAccount();
 }
 
-async function useAddress() {
+function gateIsOpen() {
+  const gateBox = document.getElementById("gate");
+  return !!(gateBox && !gateBox.hidden);
+}
+
+function addressField() {
+  const gateInput = document.getElementById("gate-addr");
+  const panelInput = document.getElementById("addr");
+  if (gateIsOpen() && gateInput && document.activeElement === gateInput) return gateInput;
+  if (panelInput && document.activeElement === panelInput) return panelInput;
+  if (gateIsOpen() && gateInput && String(gateInput.value || "").trim()) return gateInput;
+  return panelInput || gateInput;
+}
+
+function nameField() {
+  const gateInput = document.getElementById("gate-kasname");
+  const panelInput = document.getElementById("kasname");
+  if (gateIsOpen() && gateInput && document.activeElement === gateInput) return gateInput;
+  if (panelInput && document.activeElement === panelInput) return panelInput;
+  if (gateIsOpen() && gateInput && String(gateInput.value || "").trim()) return gateInput;
+  return panelInput || gateInput;
+}
+
+function pickedField(from, pick) {
+  if (from && typeof from.value === "string") return from;
+  return pick();
+}
+
+function watchAddressBox(input) {
+  if (!input || input.dataset.addrWatch) return;
+  input.dataset.addrWatch = "1";
+  input.addEventListener("paste", (ev) => {
+    const text = (ev.clipboardData && ev.clipboardData.getData("text")) || "";
+    let address = "";
+    try { address = assertTestnet(text); } catch (_) { address = ""; }
+    if (!address) return;
+    ev.preventDefault();
+    input.value = address;
+    useAddress(input);
+  });
+  input.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Enter") return;
+    ev.preventDefault();
+    useAddress(input);
+  });
+}
+
+function watchNameBox(input) {
+  if (!input || input.dataset.nameWatch) return;
+  input.dataset.nameWatch = "1";
+  input.addEventListener("paste", (ev) => {
+    const text = (ev.clipboardData && ev.clipboardData.getData("text")) || "";
+    const name = normalizeKasName(text);
+    if (!name) return;
+    ev.preventDefault();
+    input.value = name;
+    useName(input);
+  });
+  input.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Enter") return;
+    ev.preventDefault();
+    useName(input);
+  });
+}
+
+async function useAddress(from) {
+  const field = pickedField(from, addressField);
   try {
-    const address = assertTestnet(document.getElementById("addr").value);
+    const address = assertTestnet(field && field.value);
+    if (field) field.value = address;
     setIdentity({ address, label: address, kind: "address" });
+    if (state.id && state.id.kind === "address" && state.id.address === address && gateIsOpen()) {
+      hideGate();
+      gateStatus("");
+    }
   } catch (err) {
     say(err.message, true);
+    if (gateIsOpen()) gateStatus(err.message, true);
   }
 }
 
-async function useName() {
-  const raw = document.getElementById("kasname").value;
+async function useName(from) {
+  const field = pickedField(from, nameField);
+  const raw = field ? field.value : "";
   const body = await api("/api/1984/resolve?name=" + encodeURIComponent(raw));
   if (!body.ok) {
-    say(body.error || "KNS did not answer.", true);
+    const msg = body.error || "KNS did not answer.";
+    say(msg, true);
+    if (gateIsOpen()) gateStatus(msg, true);
     return;
   }
   if (!body.found) {
-    say("That name is not on the TN10 KNS resolver. Create it at KNS, or keep the kaspatest address.", true);
+    const msg = "That name is not on the TN10 KNS resolver. Create it at KNS, or keep the kaspatest address.";
+    say(msg, true);
+    if (gateIsOpen()) gateStatus(msg, true);
     return;
   }
+  let address = "";
   try {
-    assertTestnet(body.found.address);
+    address = assertTestnet(body.found.address);
   } catch (err) {
     say(err.message, true);
+    if (gateIsOpen()) gateStatus(err.message, true);
     return;
   }
   say(PRIVACY);
-  setIdentity({ address: body.found.address, label: body.found.domain, kind: "name" });
+  setIdentity({ address, label: body.found.domain, kind: "name" });
+  if (state.id && state.id.kind === "name" && state.id.address === address && gateIsOpen()) {
+    hideGate();
+    gateStatus("");
+  }
 }
 
 function quoteSompi(cents) {
@@ -2181,7 +2285,7 @@ function paintGuide() {
     "<li class=\"only-desk\">Click Kasware or Kastle and approve the login. This page asks the wallet to open on Testnet 10. If the window is black, close it, click the wallet icon, unlock, and try again. A mainnet address is still refused. That login stays on this browser.</li>" +
     "<li class=\"only-phone\">On a phone, set Testnet 10 inside Kasware or Kastle before you log in. This page cannot switch the phone wallet. Or open this page in the Kastle browser. If the window is black, close it, unlock the wallet, and try again. A mainnet address is still refused. That login stays on this browser.</li>" +
     "<li>Or choose New arrival on the welcome gate. That is the same as Test without a wallet. This tab gets 50000 tKAS from Grok's Testnet-10 wallet. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. Returning leaves the gate and uses a wallet that stays on this browser. One thousand of these test wallets can be opened in a day.</li>" +
-    "<li>Or paste a kaspatest address. Or type a .kas name that already resolves on TN10. That choice stays until you change it.</li>" +
+    "<li>Or paste a kaspatest address in the box on the welcome gate, or again in Who pays. Or type a .kas name that already resolves on TN10. That choice stays until you change it.</li>" +
     "<li>Need coins: New arrival gives this tab 50000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, take a seat and the menu blinks, or order at the blinking counter. The market opens at the counter. The showroom opens when you click Pike or the sign. Buy the roadster and it waits on the lot. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
@@ -3150,8 +3254,8 @@ you.addEventListener("click", (ev) => {
       .catch((err) => say(err.message, true))
       .finally(() => clearTimeout(timer));
   }
-  if (ev.target.id === "use-addr") useAddress();
-  if (ev.target.id === "use-name") useName();
+  if (ev.target.closest("#use-addr")) useAddress(document.getElementById("addr"));
+  if (ev.target.closest("#use-name")) useName(document.getElementById("kasname"));
 });
 
 const gate = document.getElementById("gate");
@@ -3280,6 +3384,14 @@ document.getElementById("gate-back").addEventListener("click", () => {
     say("The square is open. Who pays is in the corner for Kasware, Kastle, a kaspatest address, or a .kas name.");
   }
 });
+const gateAddr = document.getElementById("gate-addr");
+const gateName = document.getElementById("gate-kasname");
+const gateUseAddr = document.getElementById("gate-use-addr");
+const gateUseName = document.getElementById("gate-use-name");
+if (gateUseAddr) gateUseAddr.addEventListener("click", () => useAddress(gateAddr));
+if (gateUseName) gateUseName.addEventListener("click", () => useName(gateName));
+watchAddressBox(gateAddr);
+watchNameBox(gateName);
 for (const [id, kind] of [["gate-kasware", "kasware"], ["gate-kastle", "kastle"]]) {
   const button = document.getElementById(id);
   if (!button) continue;

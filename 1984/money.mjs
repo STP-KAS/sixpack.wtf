@@ -3,7 +3,7 @@
 export const RESERVE =
   "kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx";
 
-const BECH = /^kaspatest:[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{50,80}$/i;
+const BECH_CHAR = /[qpzry9x8gf2tvdw0s3jn54khce6mua7l]/i;
 const SCALE = 1_000_000_000_000n;
 const SOMPI = 100_000_000n;
 
@@ -16,13 +16,53 @@ export const MIN_REDEEM_SOMPI = 1_000_000n;
 export const GUEST_DISCLAIMER =
   "This test address exists only in this browser tab. Close the tab and it is gone from this browser. Leftover tKAS is swept back and is not yours to recover. Kasware, Kastle, a pasted kaspatest address, or a .kas name stays on this browser and keeps its history.";
 
+/** Body chars after the prefix. A wrap is joined until the body is long enough, then a space ends it. */
+function takeBechBody(raw, start) {
+  let body = "";
+  for (let i = start; i < raw.length && body.length < 80; i += 1) {
+    const ch = raw[i];
+    if (/\s/.test(ch)) {
+      if (body.length >= 50) break;
+      continue;
+    }
+    if (!BECH_CHAR.test(ch)) break;
+    body += ch;
+  }
+  if (body.length >= 50 && body.length <= 80) return body;
+  return "";
+}
+
+/** Pull a kaspatest address out of a paste. Spaces and a surrounding page are ignored. */
+function readKaspatest(raw) {
+  const lower = raw.toLowerCase();
+  const at = lower.indexOf("kaspatest");
+  if (at >= 0) {
+    let i = at + "kaspatest".length;
+    while (i < raw.length && /\s/.test(raw[i])) i += 1;
+    if (raw[i] === ":") {
+      const body = takeBechBody(raw, i + 1);
+      if (body) return "kaspatest:" + body;
+      return "";
+    }
+    if (raw.slice(0, at).trim() === "") {
+      const body = takeBechBody(raw, i);
+      if (body) return "kaspatest:" + body;
+    }
+  }
+  const bare = raw.trim().replace(/[\s\u00a0]+/g, "");
+  if (/^[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{50,80}$/i.test(bare)) return "kaspatest:" + bare;
+  return "";
+}
+
 export function assertTestnet(value) {
-  const address = String(value || "").trim();
-  if (/^kaspa:/i.test(address) && !/^kaspatest:/i.test(address)) {
+  const raw = String(value || "").replace(/[\u200b-\u200d\ufeff]/g, "");
+  const found = readKaspatest(raw);
+  if (found) return found;
+  const squashed = raw.replace(/[\s\u00a0]+/g, "");
+  if (/kaspa:/i.test(squashed) && !/kaspatest:/i.test(squashed)) {
     throw new Error("Mainnet wallets are refused. Switch the wallet to Testnet 10.");
   }
-  if (!BECH.test(address)) throw new Error("Use a Testnet-10 kaspatest: address.");
-  return address;
+  throw new Error("Use a Testnet-10 kaspatest: address.");
 }
 
 export function assertNotMainnetNetwork(network) {

@@ -994,6 +994,30 @@ a { color: #f2d48a; }
 .gate-steps li.done::before { background: #8fd0b0; }
 .gate-wait-note { display: block; margin-top: 0.35rem; color: #cbbd9a; font-size: 0.8rem; }
 .kw-gate-row button { flex: 1; text-align: center; font-weight: 700; padding: 0.55rem 0.4rem; }
+.gate-paste {
+  display: block;
+  margin: 0.55rem 0 0.2rem;
+  text-align: left;
+  font-size: 0.78rem;
+  color: #f2d48a;
+}
+.gate-paste input {
+  display: block;
+  width: 100%;
+  margin-top: 0.2rem;
+  font: inherit;
+  font-size: 0.85rem;
+  background: #1a1612;
+  color: #f3e6c8;
+  border: 1px solid #8a7040;
+  padding: 0.35rem 0.4rem;
+}
+#gate-use-addr, #gate-use-name {
+  width: 100%;
+  margin: 0.15rem 0 0.35rem;
+  text-align: center;
+  font-weight: 700;
+}
 
 @media (max-width: 980px) {
   body.page-1984 {
@@ -1162,7 +1186,7 @@ a { color: #f2d48a; }
     padding: 0.9rem 0.75rem 0.8rem;
   }
   .kw-gate-row { flex-direction: column; }
-  .kw-you input, .kw-panel input, .kw-panel select { font-size: 16px; }
+  .kw-you input, .kw-panel input, .kw-panel select, .gate-paste input { font-size: 16px; }
   .kw-chat {
     position: relative;
     left: auto;
