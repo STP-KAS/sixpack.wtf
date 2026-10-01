@@ -40,6 +40,27 @@ test("the landing gate keeps wallet history and a one-time funded address", () =
   assert.match(client, /getElementById\("gate-guest"\)/);
 });
 
+test("exit to the square is on the shop card", () => {
+  const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
+  assert.match(html, /id="show-exit">Exit to the square<\/button>/);
+  assert.match(client, /id="place-exit">Exit to the square<\/button>/);
+  assert.match(client, /closest\("#show-exit"\)\) openMode\("world"\)/);
+  assert.match(client, /Exit to the square is on the shop, the bank, Hunt Hall, and the cinema/);
+  const wire = sliceFn(client, "wirePlaceExit");
+  assert.match(wire, /openMode\("world"\)/);
+  for (const name of ["paintShop", "paintBank", "paintHunt", "paintRules", "paintBench", "paintGuide"]) {
+    assert.match(sliceFn(client, name), /placeActs\(/);
+    assert.match(sliceFn(client, name), /wirePlaceExit\(\)/);
+  }
+  const bank = sliceFn(client, "paintBank");
+  assert.match(bank, /id="bank-close">Close<\/button>/);
+  assert.match(bank, /id="clerk-back"/);
+  const busy = sliceFn(client, "setSwapBusy");
+  assert.match(busy, /button\.id === "place-exit"/);
+  assert.match(css, /#place-exit/);
+  assert.match(css, /\.stall-acts/);
+});
+
 test("closing the pay slip leaves new purchase on that card", () => {
   const close = sliceFn(client, "closePaySlip");
   assert.match(close, /box\.hidden = true/);

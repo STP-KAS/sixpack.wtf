@@ -1436,6 +1436,19 @@ function closeCounter() {
   paintChrome();
 }
 
+function placeExitHtml() {
+  return '<button type="button" id="place-exit">Exit to the square</button>';
+}
+
+function placeActs(closeHtml) {
+  return '<div class="stall-acts">' + (closeHtml || "") + placeExitHtml() + "</div>";
+}
+
+function wirePlaceExit() {
+  const exit = document.getElementById("place-exit");
+  if (exit) exit.onclick = () => openMode("world");
+}
+
 function reelVideo() {
   return worldView && worldView.cinemaVideo ? worldView.cinemaVideo() : null;
 }
@@ -1707,6 +1720,7 @@ function bindReel() {
       }
       return;
     }
+    if (ev.target.closest("#show-exit")) openMode("world");
     if (ev.target.closest("#show-leave")) stopShow(false);
   });
 }
@@ -1905,8 +1919,9 @@ function paintShop(shopId) {
   const shop = (state.home && state.home.shops ? state.home.shops : []).find((item) => item.id === shopId);
   const fallback = map.npcs.find((npc) => npc.shop === shopId);
   if (!shop) {
-    panel.innerHTML = '<div class="stall-head"><h2>' + esc(fallback ? fallback.name : "Shop") + '</h2><button type="button" id="stall-close">Close</button></div>' + balanceSheet() + "<p>The menu loads from the village ledger. " + esc(state.oracleError || "It is not reachable from this browser yet.") + "</p>";
+    panel.innerHTML = '<div class="stall-head"><h2>' + esc(fallback ? fallback.name : "Shop") + "</h2>" + placeActs('<button type="button" id="stall-close">Close</button>') + "</div>" + balanceSheet() + "<p>The menu loads from the village ledger. " + esc(state.oracleError || "It is not reachable from this browser yet.") + "</p>";
     document.getElementById("stall-close").onclick = () => closeCounter();
+    wirePlaceExit();
     return;
   }
   const rail = payRail(state.shopRail);
@@ -1932,7 +1947,7 @@ function paintShop(shopId) {
     '<div class="stall-head">' +
     '<svg class="stall-badge" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="10" fill="' + face.tint + '"/><text x="32" y="42" text-anchor="middle" fill="#f3e6c8" font-size="28" font-family="Georgia, serif">' + face.letter + "</text></svg>" +
     "<div><p class=\"stall-keeper\">" + esc(shop.keeper) + "</p><h2>" + esc(shop.name) + "</h2></div>" +
-    '<button type="button" id="stall-close">Close</button></div>' +
+    placeActs('<button type="button" id="stall-close">Close</button>') + "</div>" +
     "<p>" + esc(shop.line) + "</p>" +
     balanceSheet() +
     railBarHtml(rail) +
@@ -1941,6 +1956,7 @@ function paintShop(shopId) {
     "<p class=\"fine\">" + esc(SWAP_PAY) + " No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap.</p>" +
     "<p class=\"fine\">One rail for this buy. A buy asks on this page, then OK. The wallet opens only when you swap tKAS at the bank. The miner fee on that swap is twice the standard Testnet 10 rate, and it is extra.</p></div>";
   document.getElementById("stall-close").onclick = () => closeCounter();
+  wirePlaceExit();
   const pasted = document.getElementById("txid");
   if (pasted) pasted.addEventListener("input", () => {
     shopTxid = pasted.value.trim();
@@ -2069,7 +2085,8 @@ function paintBank() {
   rememberSwapFields();
   const clerk = state.bankClerk || "";
   const frozen = !!(state.account && state.account.kusdtFrozen);
-  const close = '<button type="button" id="bank-close">Close</button>';
+  const close = placeActs('<button type="button" id="bank-close">Close</button>');
+  const back = placeActs('<button type="button" id="clerk-back" data-clerk="">Back</button>');
   let body;
   if (!clerk) {
     const push = (id, title) =>
@@ -2087,7 +2104,7 @@ function paintBank() {
     const card = (title, amount, detail) =>
       '<div class="swap-bal"><span>' + esc(title) + "</span><strong>" + esc(amount) + "</strong><small>" + esc(detail) + "</small></div>";
     body =
-      '<div class="swap-head"><h2>The books</h2><button type="button" id="clerk-back" data-clerk="">Back</button></div>' +
+      '<div class="swap-head"><h2>The books</h2>' + back + "</div>" +
       "<p>Locked toy dollars came from a real tKAS send. That part can come back as tKAS.</p>" +
       "<p>The purse is practice coins. Shops spend the purse first. The purse does not come back as tKAS.</p>" +
       "<p>A swap between POCencept and KUSDT moves each pile as itself. Locked stays locked. The purse stays a purse. No extra tKAS is locked or freed.</p>" +
@@ -2104,7 +2121,7 @@ function paintBank() {
       statusLine() + bankFine();
   } else if (clerk === "kas") {
     body =
-      '<div class="swap-head"><h2>tKAS</h2><button type="button" id="clerk-back" data-clerk="">Back</button></div>' +
+      '<div class="swap-head"><h2>tKAS</h2>' + back + "</div>" +
       '<p class="clerk-ask">Swap tKAS here for POCencept or KUSDT. That is how you pay for something.</p>' +
       '<p class="clerk-bal"><span>You have</span><strong>' + esc(clerkFigure("kas")) + "</strong></p>" +
       '<p class="fine">Only the part that came from tKAS can come back. Practice stays a shop coin.</p>' +
@@ -2122,7 +2139,7 @@ function paintBank() {
     const blocked = clerk === "kusdt" && frozen;
     const otherBlocked = other === "kusdt" && frozen;
     body =
-      '<div class="swap-head"><h2>' + esc(name) + '</h2><button type="button" id="clerk-back" data-clerk="">Back</button></div>' +
+      '<div class="swap-head"><h2>' + esc(name) + "</h2>" + back + "</div>" +
       '<p class="clerk-ask">This window swaps into tKAS or ' + esc(otherName) + ".</p>" +
       '<p class="clerk-bal"><span>You have</span><strong>' + esc(clerkFigure(clerk)) + "</strong></p>" +
       '<p class="fine">Only the part that came from tKAS can come back. Practice stays a shop coin.</p>' +
@@ -2161,6 +2178,7 @@ function paintBank() {
   }
   const shut = document.getElementById("bank-close");
   if (shut) shut.onclick = () => closeCounter();
+  wirePlaceExit();
   if (swapBusy) setSwapBusy(true);
 }
 
@@ -2169,7 +2187,7 @@ function setSwapBusy(on) {
   const root = panel.querySelector(".swap");
   if (!root) return;
   for (const button of root.querySelectorAll("button")) {
-    if (button.id === "bank-close" || button.id === "clerk-back") continue;
+    if (button.id === "bank-close" || button.id === "clerk-back" || button.id === "place-exit") continue;
     button.disabled = on || button.getAttribute("data-hold") === "1";
   }
 }
@@ -2235,13 +2253,14 @@ function paintHunt() {
     : "";
   panel.innerHTML =
     '<div class="stall"><div class="stall-head"><div><p class="stall-keeper">Reed</p><h2>Hunt Hall</h2></div>' +
-    '<button type="button" id="stall-close">Close</button></div>' +
+    placeActs('<button type="button" id="stall-close">Close</button>') + "</div>" +
     "<p>Classroom pack desk. Tags on this ledger. Not Tether. Not a company till. Hidden until it pays.</p>" +
     balanceSheet() + rows + txid +
     "<p class=\"fine\">" + esc(SWAP_PAY) + "</p>" +
     "<p class=\"fine\">A promise asks on this page, then OK. The pack stays hidden. The wallet opens only when you swap tKAS at the bank.</p></div>";
   const close = document.getElementById("stall-close");
   if (close) close.onclick = () => closeCounter();
+  wirePlaceExit();
   const pasted = document.getElementById("hunt-txid");
   if (pasted) pasted.addEventListener("input", () => {
     shopTxid = pasted.value.trim();
@@ -2358,7 +2377,7 @@ function paintRules() {
     .map((id) => '<label><input type="checkbox" data-rail value="' + id + '"' + (rules.rails.includes(id) ? " checked" : "") + "> " + id + "</label>")
     .join("");
   panel.innerHTML =
-    "<h2>Spending rules</h2>" +
+    '<div class="stall-head"><h2>Spending rules</h2>' + placeActs("") + "</div>" +
     "<p>These are the square's rules for this address. An empty list means every shop and every rail. They are a stand-in for a covenant: a limit you chose, checked before the payment.</p>" +
     '<label>Daily cap in toy dollars, 0 for none<input id="cap" value="' + esc((Number(rules.dailyCapCents) / 100).toFixed(2)) + '"></label>' +
     '<label>Ask again above this many toy dollars, 0 for never<input id="confirm" value="' + esc((Number(rules.confirmOverCents) / 100).toFixed(2)) + '"></label>' +
@@ -2368,6 +2387,7 @@ function paintRules() {
     '<p class="fine">PegLab: this quote is an outside price. If it moves, a redeem can fail because the lock no longer covers the toy dollars. That is a peg failing. It is not a promise of dollars. Grams are not this dollar. BitCoffee\'s covenant KUSD is a different object and is not minted here.</p>' +
     '<p class="fine">A real covenant would enforce this on Testnet-10 without trusting this page. SilverScript and the Kaspero freelancer sheet are on the bench. This page checks the rule before it moves a toy balance. A vProg guest can sequence a step. This square does not claim the shop spend is that step.</p>';
   document.getElementById("save-rules").onclick = saveRules;
+  wirePlaceExit();
 }
 
 function paintBench() {
@@ -2376,24 +2396,25 @@ function paintBench() {
     return "<h2>" + esc(block.title) + "</h2><p>" + esc(block.text) + "</p><p>" + links + "</p>";
   }).join("");
   const repos = REPOS.map((name) => '<a href="https://github.com/STP-KAS/' + encodeURIComponent(name) + '" target="_blank" rel="noopener">' + esc(name) + "</a>").join(" ");
-  panel.innerHTML = blocks + "<h2>STP-KAS repos</h2><div class=\"repo-cloud\">" + repos + "</div>";
+  panel.innerHTML = placeActs("") + blocks + "<h2>STP-KAS repos</h2><div class=\"repo-cloud\">" + repos + "</div>";
+  wirePlaceExit();
 }
 
 function paintGuide() {
   panel.innerHTML =
-    "<h2>How to try this on Testnet 10</h2>" +
+    '<div class="stall-head"><h2>How to try this on Testnet 10</h2>' + placeActs("") + "</div>" +
     "<ol>" +
     "<li class=\"only-desk\">Click Kasware or Kastle and approve the login. This page asks the wallet to open on Testnet 10. If the window is black, close it, click the wallet icon, unlock, and try again. A mainnet address is still refused. That login stays on this browser.</li>" +
     "<li class=\"only-phone\">On a phone, set Testnet 10 inside Kasware or Kastle before you log in. This page cannot switch the phone wallet. Or open this page in the Kastle browser. If the window is black, close it, unlock the wallet, and try again. A mainnet address is still refused. That login stays on this browser.</li>" +
     "<li>On the welcome gate, Kasware and Kastle are the wallets. The same Kasware or Kastle wallet opens its history. Use a funded test address opens one funded address for this visit. Each test address is used once. Come back later and that history is gone. Close the tab and the leftover tKAS is swept back. It does not replace a wallet you already saved. This tab gets 50000 tKAS from Grok's Testnet-10 wallet. One thousand of these test wallets can be opened in a day. Who pays can open another funded test address after you are in.</li>" +
     "<li>A kaspatest address, or a .kas name that already resolves on TN10, can be pasted in Who pays. That choice stays until you change it.</li>" +
     "<li>Need coins: Use a funded test address on the welcome gate, or Who pays, then Test without a wallet. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
-    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, take a seat and the menu blinks, or order at the blinking counter. The market opens at the counter. The showroom opens when you click Pike or the sign. Buy the roadster and it waits on the lot. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too.</li>" +
-    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. Test without a wallet is in Who pays.</li>" +
+    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, take a seat and the menu blinks, or order at the blinking counter. The market opens at the counter. The showroom opens when you click Pike or the sign. Buy the roadster and it waits on the lot. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
+    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. Test without a wallet is in Who pays.</li>" +
     "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS. When a payment finishes, the steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate. The same Kasware or Kastle wallet opens its history.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>The roadster parks on the lot in front of Pike's shop. If it is yours, Drive in your roadster is the large gold button. Once you are in the car, Launch into space is the gold button. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, plays two short films on the tower first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. One tower stands beside it, and the chopsticks stay open. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. After the booster is gone, the ship coasts, then the roadster leaves. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: you hang out with the old roadster. It has been cruising for years. The way there is ten seconds. Out there the two cars orbit the Earth. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
-    "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends.</li>" +
+    "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends. Exit to the square leaves the cinema.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
@@ -2402,6 +2423,7 @@ function paintGuide() {
     "<p>Also on the bench: KNS, tic-tac-toe, KaChat, Kaspero Labs, SilverScript, Argent. Tidewater is an MIT fishing island; this square did not copy that ocean. The Go topic list is markers and private-server code. This page uses neither of those, and it does not ship a soundtrack.</p>" +
     "<p class=\"warn\">" + esc(PRIVACY) + "</p>" +
     "<h2>Name</h2><p>This tab is called 1984.</p>";
+  wirePlaceExit();
 }
 
 function requireId() {

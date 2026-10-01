@@ -639,9 +639,26 @@ body.page-1984 main.kw-stage {
 .good .buy { grid-column: 1 / -1; margin-top: 0.15rem; }
 .hunt-need { width: 5rem; }
 .good-mark { display: block; width: 52px; height: 52px; }
-.stall-head { display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.35rem; }
+.stall-head { display: flex; align-items: center; flex-wrap: wrap; gap: 0.65rem; margin-bottom: 0.35rem; }
 .stall-head h2 { margin: 0; }
-.stall-head button { margin-left: auto; flex: 0 0 auto; }
+.stall-acts { margin-left: auto; display: flex; flex: 0 0 auto; gap: 0.35rem; }
+.stall-head .stall-acts button,
+.swap-head .stall-acts button { margin-left: 0; flex: 0 0 auto; }
+#place-exit,
+#show-exit {
+  background: linear-gradient(#f0d7a0, #c49a45);
+  color: #1a1612;
+  font-weight: 700;
+  text-align: center;
+}
+.show-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.35rem;
+}
+.show-head .show-now { flex: 1 1 auto; margin: 0; }
 .stall-keeper {
   margin: 0;
   color: #f2d48a;
@@ -832,7 +849,7 @@ body.page-1984 main.kw-stage {
   font-weight: 700;
   line-height: 1.35;
 }
-.swap-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.swap-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.6rem; }
 .swap-head h2 { margin: 0; }
 .swap-head button { flex: 0 0 auto; }
 .swap-bals {
@@ -1411,6 +1428,13 @@ a { color: #f2d48a; }
     padding: 0.32rem 0.4rem;
   }
   .flight-planets button:last-child { grid-column: 1 / -1; }
+  .stall-head,
+  .swap-head,
+  .show-head { flex-wrap: wrap; }
+  .stall-acts { width: 100%; margin-left: 0; }
+  .stall-acts button { flex: 1 1 0; text-align: center; white-space: normal; line-height: 1.15; }
+  #place-exit { flex: 1.6 1 0; }
+  #show-exit { width: 100%; white-space: normal; line-height: 1.15; }
   .flight-card.ended {
     left: max(8px, env(safe-area-inset-left));
     right: max(8px, env(safe-area-inset-right));
