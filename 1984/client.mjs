@@ -838,6 +838,7 @@ async function logOut() {
   state.id = { address: "", label: "", kind: "" };
   state.account = null;
   state.kasSompi = null;
+  markReturning(false);
   closeCounter();
   const gateBox = document.getElementById("gate");
   if (gateBox) gateBox.hidden = false;
@@ -3153,7 +3154,14 @@ const gate = document.getElementById("gate");
 function hideGate() {
   if (gate) gate.hidden = true;
 }
+function markReturning(on) {
+  const root = document.querySelector(".kw");
+  if (root) root.classList.toggle("returning", !!on);
+}
+const clearLogout = document.getElementById("log-out-clear");
+if (clearLogout) clearLogout.addEventListener("click", () => logOut().catch((err) => say(err.message, true)));
 document.getElementById("gate-new").addEventListener("click", () => {
+  markReturning(false);
   const button = document.getElementById("gate-new");
   if (button) button.disabled = true;
   gateStatus("Opening a test wallet for this tab…");
@@ -3257,6 +3265,7 @@ if (flightPlanets) flightPlanets.addEventListener("click", (ev) => {
   spend(btn.getAttribute("data-pay"), "orbit", btn.getAttribute("data-sku"));
 });
 document.getElementById("gate-back").addEventListener("click", () => {
+  markReturning(true);
   hideGate();
   setPayOpen(false);
   if (state.id.kind === "guest") {

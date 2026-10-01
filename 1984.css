@@ -67,7 +67,7 @@ body.page-1984 .tabs button.on { background: #8a7040; color: #1a1612; }
 .kw-bar {
   position: absolute;
   left: 112px;
-  right: 132px;
+  right: 370px;
   top: 6px;
   z-index: 3;
   margin: 0;
@@ -159,13 +159,28 @@ body.page-1984 main.kw-stage {
 .kw-pay-toggle {
   position: absolute;
   top: 8px;
-  right: 132px;
+  right: 252px;
   z-index: 3;
   margin: 0;
   text-align: center;
   background: rgba(28, 22, 16, 0.9);
   border: 2px solid #c6a15a;
 }
+.kw-logout {
+  position: absolute;
+  top: 8px;
+  right: 132px;
+  z-index: 7;
+  margin: 0;
+  min-height: 44px;
+  padding: 0.35rem 0.75rem;
+  text-align: center;
+  font-weight: 700;
+  color: #1a1612;
+  background: linear-gradient(#f0d7a0, #c49a45);
+  border: 2px solid #1c1916;
+}
+.kw.returning .kw-hint { display: none; }
 .kw-turns {
   position: absolute;
   left: 50%;
@@ -988,8 +1003,7 @@ a { color: #f2d48a; }
     padding-top: max(0.28rem, env(safe-area-inset-top));
   }
   body.page-1984 .tabs { flex-wrap: nowrap; }
-  .hint-desk, .only-desk { display: none; }
-  .hint-phone { display: block; }
+  .hint-desk, .only-desk, .hint-phone { display: none; }
   li.only-phone { display: list-item; }
   .kw-step { display: inline-block; }
   .kw {
@@ -1038,16 +1052,7 @@ a { color: #f2d48a; }
     font-size: 0.9rem;
     line-height: 1.35;
   }
-  .kw-hint.hint-phone {
-    left: 8px;
-    right: 8px;
-    top: auto;
-    bottom: 62px;
-    max-width: none;
-    font-size: 0.88rem;
-    line-height: 1.35;
-    padding: 0.35rem 0.5rem;
-  }
+  .kw-hint.hint-phone { display: none; }
   .kw-pay-toggle {
     top: auto;
     left: auto;
@@ -1057,6 +1062,15 @@ a { color: #f2d48a; }
     min-height: 48px;
     z-index: 4;
     text-align: center;
+  }
+  .kw-logout {
+    top: 8px;
+    left: 8px;
+    right: auto;
+    min-width: 7.5rem;
+    min-height: 48px;
+    font-size: 1.05rem;
+    z-index: 7;
   }
   .kw-turns {
     left: 6px;
