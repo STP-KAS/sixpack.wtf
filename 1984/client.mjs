@@ -1,4 +1,4 @@
-import { clearIdentity, readIdentity, writeIdentity } from "./identity.mjs";
+import { clearGuest, readIdentity, writeIdentity } from "./identity.mjs";
 import { BENCH, REPOS } from "./links.mjs?v=3";
 import {
   GUEST_DISCLAIMER,
@@ -878,26 +878,22 @@ async function logOut() {
   const prev = state.id;
   if (prev && prev.kind === "guest") forgetGuest(prev);
   try {
-    const kit = window.KaspaWallets;
-    if (kit && typeof kit.logout === "function" && prev && (prev.kind === "kasware" || prev.kind === "kastle")) {
-      await kit.logout();
-    }
+    clearGuest(boxes());
   } catch (_) {}
-  try {
-    clearIdentity(boxes());
-  } catch (_) {}
-  state.id = { address: "", label: "", kind: "" };
+  state.id = loadId();
   state.account = null;
   state.kasSompi = null;
   swapTold = false;
   const needSwap = document.getElementById("need-swap");
   if (needSwap) needSwap.hidden = true;
-  markReturning(false);
   closeCounter();
   const gateBox = document.getElementById("gate");
   if (gateBox) gateBox.hidden = false;
   paintChrome();
-  say("Logged out. The welcome gate is the landing.");
+  if (state.id.address) refreshAccount();
+  say(state.id.address
+    ? "Logged out. Returning still uses the wallet saved on this browser."
+    : "Logged out. The welcome gate is the landing.");
 }
 
 function setIdentity(next) {
@@ -2325,7 +2321,7 @@ function paintGuide() {
     "<li>Need coins: New arrival gives this tab 50000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, take a seat and the menu blinks, or order at the blinking counter. The market opens at the counter. The showroom opens when you click Pike or the sign. Buy the roadster and it waits on the lot. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
-    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS. When a payment finishes, the steps and the transaction stay on the page. Open the transaction, or start a new purchase. Log out returns you to the welcome gate.</li>" +
+    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS. When a payment finishes, the steps and the transaction stay on the page. Open the transaction, or start a new purchase. Log out returns you to the welcome gate. Returning still uses the wallet saved on this browser.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>The roadster parks on the lot in front of Pike's shop. If it is yours, Drive in your roadster is the large gold button. Once you are in the car, Launch into space is the gold button. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, plays two short films on the tower first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The ship lifts when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. When the roadster leaves, that release plays its voice while the car leaves the bay toward the Earth. A bar fills until the car leaves the ship. The climb keeps the comms going. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. The way there is ten seconds. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends.</li>" +

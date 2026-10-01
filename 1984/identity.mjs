@@ -54,7 +54,13 @@ export function writeIdentity(storage, next) {
   );
 }
 
-/** Log out. The welcome gate is the landing again. */
+/** This visit ends. A test tab closes. The saved wallet stays for Returning. */
+export function clearGuest(storage) {
+  migrateAll(storage);
+  storage.session.removeItem(GUEST_KEY);
+}
+
+/** Drop the saved wallet and the test tab. */
 export function clearIdentity(storage) {
   migrateAll(storage);
   storage.session.removeItem(GUEST_KEY);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { GUEST_KEY, SAVED_KEY, clearIdentity, readIdentity, writeIdentity } from "./identity.mjs";
+import { GUEST_KEY, SAVED_KEY, clearGuest, clearIdentity, readIdentity, writeIdentity } from "./identity.mjs";
 
 function mem() {
   const local = new Map();
@@ -54,6 +54,21 @@ test("an older saved wallet and test tab are read once under the new keys", () =
   const after = readIdentity(storage);
   assert.equal(after.kind, "kasware");
   assert.equal(after.address, WALLET);
+});
+
+test("ending a visit keeps the saved wallet for Returning", () => {
+  const storage = mem();
+  writeIdentity(storage, { address: WALLET, label: "kasware", kind: "kasware" });
+  writeIdentity(storage, { address: GUEST, label: "test tab", kind: "guest", token: "tab-token" });
+  clearGuest(storage);
+  const id = readIdentity(storage);
+  assert.equal(id.kind, "kasware");
+  assert.equal(id.address, WALLET);
+  assert.equal(id.token, undefined);
+  assert.equal(storage.raw.session.has(GUEST_KEY), false);
+  const saved = JSON.parse(storage.raw.local.get(SAVED_KEY));
+  assert.equal(saved.address, WALLET);
+  assert.equal(saved.kind, "kasware");
 });
 
 test("choosing a wallet again clears the test tab and keeps the new history", () => {
