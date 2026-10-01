@@ -283,6 +283,155 @@ test("the same transaction cannot mint twice", () => {
   assert.throws(() => applyPractice(state, { address: "kaspa:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" }, NOW));
 });
 
+test("the same accepted tKAS purchase returns its receipt", () => {
+  const other = "kaspatest:qpppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp";
+  let state = freshState();
+  const coffee = sompiForCents(250, USD);
+  const payment = pay(coffee, 11);
+  const first = applySpend(
+    state,
+    { address: USER, shop: "cafe", sku: "coffee", rail: "kas", payment, usdPerKas: USD },
+    NOW
+  );
+  assert.equal(first.result.ok, true);
+  assert.equal(first.result.receipt.note, "Nia's Cafe · Coffee");
+  assert.equal(first.state.receipts.length, 1);
+  assert.deepEqual(first.state.txids[payment.txid], {
+    address: USER,
+    kind: "spend",
+    shop: "cafe",
+    sku: "coffee",
+    rail: "kas",
+    receiptId: first.result.receipt.id,
+  });
+  const again = applySpend(
+    first.state,
+    { address: USER, shop: "cafe", sku: "coffee", rail: "kas", payment, usdPerKas: USD },
+    NOW
+  );
+  assert.equal(again.result.ok, true);
+  assert.equal(again.result.receipt.id, first.result.receipt.id);
+  assert.equal(again.state, first.state);
+  assert.equal(again.state.seq, first.state.seq);
+  assert.equal(again.state.receipts.length, 1);
+  assert.equal(again.state.accounts[USER].poc, first.state.accounts[USER].poc);
+  assert.equal(again.state.accounts[USER].liability, first.state.accounts[USER].liability);
+  assert.equal(again.state.accounts[USER].spentCents, "250");
+  assert.throws(
+    () => applySpend(first.state, { address: USER, shop: "cafe", sku: "tea", rail: "kas", payment, usdPerKas: USD }, NOW),
+    /That transaction was already used/
+  );
+  assert.equal(first.state.receipts.length, 1);
+  assert.throws(
+    () => applySpend(first.state, { address: other, shop: "cafe", sku: "coffee", rail: "kas", payment, usdPerKas: USD }, NOW),
+    /That transaction was already used/
+  );
+  assert.equal(first.state.accounts[other], undefined);
+  const tiny = pay(1n, 12);
+  assert.throws(
+    () => applySpend(first.state, { address: USER, shop: "cafe", sku: "coffee", rail: "kas", payment: tiny, usdPerKas: USD }, NOW),
+    /The payment is smaller than the quote/
+  );
+  assert.equal(first.state.txids[tiny.txid], undefined);
+  const second = pay(coffee, 13);
+  const more = applySpend(
+    first.state,
+    { address: USER, shop: "cafe", sku: "coffee", rail: "kas", payment: second, usdPerKas: USD },
+    NOW
+  );
+  assert.equal(more.result.ok, true);
+  assert.equal(more.state.receipts.length, 2);
+  assert.equal(more.state.accounts[USER].spentCents, "500");
+  assert.notEqual(more.result.receipt.id, first.result.receipt.id);
+
+  const keys = pay(sompiForCents(100, USD), 15);
+  const bought = applySpend(
+    more.state,
+    { address: USER, shop: "roadster", sku: "keys", rail: "kas", payment: keys, usdPerKas: USD },
+    NOW
+  );
+  assert.equal(bought.state.accounts[USER].roadster, true);
+  const replayKeys = applySpend(
+    bought.state,
+    { address: USER, shop: "roadster", sku: "keys", rail: "kas", payment: keys, usdPerKas: USD },
+    NOW
+  );
+  assert.equal(replayKeys.state, bought.state);
+  assert.equal(replayKeys.state.accounts[USER].roadster, true);
+  assert.equal(replayKeys.state.receipts.length, bought.state.receipts.length);
+
+  const lock = pay(coffee, 14);
+  const minted = applyConvert(bought.state, { address: USER, rail: "poc", payment: lock, usdPerKas: USD }, NOW);
+  const liability = minted.state.accounts[USER].liability;
+  const poc = minted.state.accounts[USER].poc;
+  const replayLock = applyConvert(minted.state, { address: USER, rail: "poc", payment: lock, usdPerKas: USD }, NOW);
+  assert.equal(replayLock.result.ok, true);
+  assert.equal(replayLock.result.receipt.id, minted.result.receipt.id);
+  assert.equal(replayLock.state, minted.state);
+  assert.equal(replayLock.state.accounts[USER].liability, liability);
+  assert.equal(replayLock.state.accounts[USER].poc, poc);
+  assert.throws(
+    () => applySpend(minted.state, { address: USER, shop: "cafe", sku: "coffee", rail: "kas", payment: lock, usdPerKas: USD }, NOW),
+    /That transaction was already used/
+  );
+  assert.throws(
+    () => applyConvert(minted.state, { address: USER, rail: "kusdt", payment: second, usdPerKas: USD }, NOW),
+    /That transaction was already used/
+  );
+  assert.equal(minted.state.accounts[USER].kusdt, "0");
+
+  const aged = minted.state;
+  aged.txids[payment.txid] = { address: USER, kind: "spend" };
+  const agedReplay = applySpend(
+    aged,
+    { address: USER, shop: "cafe", sku: "coffee", rail: "kas", payment, usdPerKas: USD },
+    NOW
+  );
+  assert.equal(agedReplay.result.ok, true);
+  assert.equal(agedReplay.result.receipt.id, first.result.receipt.id);
+  assert.equal(agedReplay.state, aged);
+  aged.txids[lock.txid] = { address: USER, kind: "convert" };
+  const agedLock = applyConvert(aged, { address: USER, rail: "poc", payment: lock, usdPerKas: USD }, NOW);
+  assert.equal(agedLock.result.receipt.id, minted.result.receipt.id);
+  assert.throws(
+    () => applyConvert(aged, { address: USER, rail: "kusdt", payment: lock, usdPerKas: USD }, NOW),
+    /That transaction was already used/
+  );
+
+  let capped = aged;
+  for (let i = 0; i < 400; i += 1) {
+    capped = applyRules(capped, { address: USER, rules: { dailyCapCents: 0, shops: [], rails: [], confirmOverCents: 0 } }, NOW).state;
+  }
+  assert.equal(capped.receipts.some((row) => row.txid === payment.txid), false);
+  assert.equal(capped.txids[second.txid].shop, "cafe");
+  const keptId = capped.txids[second.txid].receiptId;
+  const seq = capped.seq;
+  const spent = capped.accounts[USER].spentCents;
+  const dropped = applySpend(
+    capped,
+    { address: USER, shop: "cafe", sku: "coffee", rail: "kas", payment: second, usdPerKas: USD },
+    NOW
+  );
+  assert.equal(dropped.result.ok, true);
+  assert.equal(dropped.result.receipt.id, keptId);
+  assert.equal(dropped.result.receipt.note, "Nia's Cafe · Coffee");
+  assert.equal(dropped.state, capped);
+  assert.equal(dropped.state.seq, seq);
+  assert.equal(dropped.state.accounts[USER].spentCents, spent);
+  assert.equal(dropped.state.receipts.length, capped.receipts.length);
+
+  const bare = freshState();
+  const orphan = pay(coffee, 31);
+  bare.txids[orphan.txid] = { address: USER, kind: "spend" };
+  assert.throws(
+    () => applySpend(bare, { address: USER, shop: "cafe", sku: "coffee", rail: "kas", payment: orphan, usdPerKas: USD }, NOW),
+    /That transaction was already used/
+  );
+  assert.equal(bare.seq, "0");
+  assert.equal(bare.receipts.length, 0);
+  assert.equal(Object.keys(bare.accounts).length, 0);
+});
+
 test("a pasted kaspatest address is the address that stays", () => {
   const body = "q".repeat(61);
   const clean = "kaspatest:" + body;

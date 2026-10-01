@@ -2,14 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { create1984Service } from "./service.mjs";
 import {
+  applyConvert,
   applyFreeze,
   applyPractice,
   applyPromise,
   applySnap,
+  applySpend,
   applyWithdrawPromise,
   freshState,
   publicHunts,
 } from "./ledger.mjs";
+import { sompiForCents } from "./money.mjs";
 import { HUNTS, counterFace, findPath, huntById, itemBySku, shopVisit, world } from "./world.mjs";
 
 const A = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
@@ -91,6 +94,36 @@ test("a solo need of 2 does not snap and the body has no pack size", () => {
   assert.equal(snap.state.accounts[A.toLowerCase()].poc, "2000");
   assert.equal(JSON.stringify(snap.result).includes('"count"'), false);
   assert.equal(snap.state.receipts.some((item) => item.kind === "snap"), false);
+});
+
+test("a shop txid is refused as a hunt payment", () => {
+  let state = freshState();
+  const paid = sompiForCents(500, 0.05);
+  const payment = { txid: "d".repeat(64), paid };
+  state = applySpend(
+    state,
+    { address: A, shop: "cafe", sku: "coffee", rail: "kas", payment, usdPerKas: 0.05 },
+    20
+  ).state;
+  state = promise(state, A, "model", "kas", 2);
+  assert.throws(
+    () => applySnap(state, { address: A, hunt: "model", payment, usdPerKas: 0.05 }, 30),
+    /That transaction was already used/
+  );
+  assert.equal(state.txids[payment.txid].kind, "spend");
+  assert.equal(state.receipts.some((row) => row.kind === "snap"), false);
+  const huntPay = { txid: "e".repeat(64), paid };
+  const held = applySnap(state, { address: A, hunt: "model", payment: huntPay, usdPerKas: 0.05 }, 31);
+  assert.equal(held.state.txids[huntPay.txid].kind, "snap-hold");
+  assert.throws(
+    () => applySpend(held.state, { address: A, shop: "cafe", sku: "coffee", rail: "kas", payment: huntPay, usdPerKas: 0.05 }, 32),
+    /That transaction was already used/
+  );
+  assert.throws(
+    () => applyConvert(held.state, { address: A, rail: "poc", payment: huntPay, usdPerKas: 0.05 }, 33),
+    /That transaction was already used/
+  );
+  assert.equal(held.state.accounts[A.toLowerCase()].spentCents, "250");
 });
 
 test("a tKAS snap without payment is not Paid", () => {

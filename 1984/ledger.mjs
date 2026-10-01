@@ -252,6 +252,35 @@ export function applySpend(state, input, now) {
   if (!RAILS.includes(input.rail)) throw new Error("Pick tKAS, POCencept, or KUSDT.");
   const cents = BigInt(item.cents);
   const today = dayKey(now);
+  if (input.rail === "kas" && input.payment && state.txids && state.txids[input.payment.txid]) {
+    const need = sompiForCents(cents, input.usdPerKas);
+    if (bi(input.payment.paid) < need) throw new Error("The payment is smaller than the quote.");
+    const txid = input.payment.txid;
+    const seen = state.txids[txid];
+    if (!sameKasSpend(state, seen, address, shop, item, txid)) {
+      throw new Error("That transaction was already used.");
+    }
+    const found = spendReceipt(state, txid, shop.id, item.sku);
+    const receipt = found || {
+      id: seen.receiptId,
+      at: now,
+      address,
+      kind: "spend",
+      shop: shop.id,
+      sku: item.sku,
+      rail: "kas",
+      cents: String(cents),
+      sompi: "0",
+      txid,
+      seq: seen.receiptId || "",
+      kusdtSeq: "",
+      note: shop.name + " · " + item.name,
+    };
+    return {
+      state,
+      result: { ok: true, receipt, account: publicAccount(state, address), item: item.name, shop: shop.name },
+    };
+  }
   const peek = ensure(clone(state), address);
   const gate = checkRules(peek, { shop: shop.id, rail: input.rail, cents, confirmed: !!input.confirmed }, today);
   if (gate.needsConfirm) {
@@ -280,7 +309,6 @@ export function applySpend(state, input, now) {
     sompi = bi(input.payment.paid);
     txid = input.payment.txid;
     if (next.txids[txid]) throw new Error("That transaction was already used.");
-    next.txids[txid] = { address, kind: "spend" };
   } else {
     takeToken(account, input.rail, cents);
   }
@@ -297,6 +325,9 @@ export function applySpend(state, input, now) {
     txid,
     note: shop.name + " · " + item.name,
   });
+  if (input.rail === "kas") {
+    next.txids[txid] = { address, kind: "spend", shop: shop.id, sku: item.sku, rail: "kas", receiptId: receipt.id };
+  }
   return {
     state: next,
     result: { ok: true, receipt, account: publicAccount(next, address), item: item.name, shop: shop.name },
@@ -309,18 +340,43 @@ export function applyConvert(state, input, now) {
     throw new Error("Convert locks tKAS into POCencept or KUSDT.");
   }
   if (!input.payment) throw new Error("Locking tKAS needs an accepted Testnet-10 transaction.");
+  const cents = centsForSompi(input.payment.paid, input.usdPerKas);
+  if (cents <= 0n) throw new Error("That payment is too small at the live price to mint 0.01.");
+  const txid = input.payment.txid;
+  const seen = state.txids && state.txids[txid];
+  if (seen) {
+    if (!sameConvert(state, seen, address, input.rail, txid)) {
+      throw new Error("That transaction was already used.");
+    }
+    const found = convertReceipt(state, txid, input.rail);
+    const receipt = found || {
+      id: seen.receiptId,
+      at: now,
+      address,
+      kind: "convert",
+      shop: "",
+      sku: "",
+      rail: input.rail,
+      cents: String(cents),
+      sompi: String(bi(input.payment.paid)),
+      txid,
+      seq: seen.receiptId || "",
+      kusdtSeq: "",
+      note: "Locked tKAS at the live quote. Backed. Redeemable until the oracle moves past the lock.",
+    };
+    return {
+      state,
+      result: { ok: true, receipt, account: publicAccount(state, address), cents: String(found ? found.cents : cents) },
+    };
+  }
   const today = dayKey(now);
   const peek = ensure(clone(state), address);
   checkRules(peek, { shop: "", rail: input.rail, cents: 0n, confirmed: true }, today);
-  const cents = centsForSompi(input.payment.paid, input.usdPerKas);
-  if (cents <= 0n) throw new Error("That payment is too small at the live price to mint 0.01.");
   const next = clone(state);
-  if (next.txids[input.payment.txid]) throw new Error("That transaction was already used.");
   const account = ensure(next, address);
   if (input.rail === "kusdt" && account.kusdtFrozen) {
     throw new Error("KUSDT is frozen. Unfreeze it before minting more.");
   }
-  next.txids[input.payment.txid] = { address, kind: "convert" };
   const field = input.rail === "poc" ? "poc" : "kusdt";
   const backedField = input.rail === "poc" ? "pocBacked" : "kusdtBacked";
   account[field] = String(bi(account[field]) + cents);
@@ -332,9 +388,10 @@ export function applyConvert(state, input, now) {
     rail: input.rail,
     cents,
     sompi: input.payment.paid,
-    txid: input.payment.txid,
+    txid,
     note: "Locked tKAS at the live quote. Backed. Redeemable until the oracle moves past the lock.",
   });
+  next.txids[txid] = { address, kind: "convert", rail: input.rail, receiptId: receipt.id };
   return { state: next, result: { ok: true, receipt, account: publicAccount(next, address), cents: String(cents) } };
 }
 
@@ -453,6 +510,44 @@ function readHold(state, id) {
 
 function sameAddress(left, right) {
   return String(left || "").toLowerCase() === String(right || "").toLowerCase();
+}
+
+function findReceipt(state, match) {
+  const rows = state.receipts || [];
+  for (let i = rows.length - 1; i >= 0; i -= 1) {
+    if (match(rows[i])) return rows[i];
+  }
+  return null;
+}
+
+function spendReceipt(state, txid, shopId, sku) {
+  return findReceipt(
+    state,
+    (row) => row.txid === txid && row.kind === "spend" && row.shop === shopId && row.sku === sku && (!row.rail || row.rail === "kas")
+  );
+}
+
+function convertReceipt(state, txid, rail) {
+  return findReceipt(
+    state,
+    (row) => row.txid === txid && row.kind === "convert" && row.rail === rail
+  );
+}
+
+/** A stored txid matches this shop purchase, including a record written before shop and sku were saved. */
+function sameKasSpend(state, seen, address, shop, item, txid) {
+  if (!seen || seen.kind !== "spend" || !sameAddress(seen.address, address)) return false;
+  if (seen.rail && seen.rail !== "kas") return false;
+  if (seen.shop || seen.sku) return seen.shop === shop.id && seen.sku === item.sku;
+  const found = spendReceipt(state, txid, shop.id, item.sku);
+  return !!(found && sameAddress(found.address, address));
+}
+
+function sameConvert(state, seen, address, rail, txid) {
+  if (!seen || seen.kind !== "convert" || !sameAddress(seen.address, address)) return false;
+  if (seen.rail) return seen.rail === rail;
+  const found = convertReceipt(state, txid, rail);
+  return !!(found && sameAddress(found.address, address));
 }
 
 function wholeNeed(value) {

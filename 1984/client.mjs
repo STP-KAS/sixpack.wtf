@@ -2028,6 +2028,10 @@ function paintBank() {
       "<p>The purse is practice coins. Shops spend the purse first. The purse does not come back as tKAS.</p>" +
       "<p>A swap between POCencept and KUSDT moves each pile as itself. Locked stays locked. The purse stays a purse. No extra tKAS is locked or freed.</p>" +
       "<p>KUSDT can be frozen. POCencept cannot. A freeze blocks any swap that touches KUSDT.</p>" +
+      "<p>The miner fee on a tKAS send is extra. It is twice the standard Testnet 10 rate. The price is not reduced to pay the miner.</p>" +
+      "<p>A tKAS payment smaller than the quote does not buy the item and does not mint toy dollars.</p>" +
+      "<p>Sending the same accepted txid again, for the same address and the same purchase, returns the receipt already written. A different item or a different address with that txid is refused.</p>" +
+      "<p>This counter did not compile a covenant. POCencept and KUSDT stay tags on this square.</p>" +
       '<div class="swap-bals">' +
       card("POCencept", formatCents(poc.have), "locked " + formatCents(poc.lock) + " · purse " + formatCents(poc.purse)) +
       card("KUSDT", formatCents(kusdt.have), "locked " + formatCents(kusdt.lock) + " · purse " + formatCents(kusdt.purse) + (frozen ? " · frozen" : "")) +
