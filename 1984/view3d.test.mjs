@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, cruiseWatch, drives, EARTH_RADIUS, HANG_RADIUS, earthCenter, escapeRoom, fitScreen, portraitDistance, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
+import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, cruiseWatch, drives, EARTH_RADIUS, EARTH_SURFACE, HANG_RADIUS, WORLD_RADIUS, earthCenter, escapeRoom, fitScreen, portraitDistance, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -543,7 +543,10 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.ok(arrived.carX > hop.carX + 20, "approach " + arrived.carX);
   assert.equal(arrived.carRoll, 0);
   assert.ok(Math.abs(Math.hypot(arrived.carX - arrived.worldX, arrived.carZ - arrived.worldZ) - arrived.orbitRadius) < 0.02);
-  assert.ok(Math.abs(cruisePose(APPROACH_MS + 800, "mars", FLIGHT_SPACE).carRoll) > 0.5);
+  const banked = cruisePose(APPROACH_MS + 3000, "mars", FLIGHT_SPACE);
+  assert.ok(Math.abs(banked.carRoll) > 0.2 && Math.abs(banked.carRoll) < 0.3, "bank " + banked.carRoll);
+  assert.ok(cruisePose(APPROACH_MS + 400, "mars", FLIGHT_SPACE).thrust > 0.5);
+  assert.ok(cruisePose(APPROACH_MS + 6000, "mars", FLIGHT_SPACE).thrust < 0.05);
   const back = cruisePose(APPROACH_MS + orbitPeriod("mars"), "mars", FLIGHT_SPACE);
   assert.ok(Math.hypot(back.carX - arrived.carX, back.carZ - arrived.carZ) < 0.05, "lap " + back.carX);
   for (const sku of ["moon", "mars", "jupiter", "saturn"]) {
@@ -552,6 +555,9 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
       const radial = Math.hypot(pose.carX - pose.worldX, pose.carZ - pose.worldZ);
       assert.ok(Math.abs(radial - pose.orbitRadius) < 0.02, sku + " r " + radial);
       assert.ok(pose.orbitRadius > orbitRadius(sku) - 0.001);
+      const hang = Math.hypot(pose.carX - pose.worldX, pose.carY - pose.worldY, pose.carZ - pose.worldZ);
+      assert.ok(hang > WORLD_RADIUS[sku] + 20, sku + " clearance " + hang);
+      assert.ok(Math.abs(pose.carY - cruisePose(APPROACH_MS, sku, FLIGHT_SPACE).carY) < 0.05, sku + " altitude");
     }
   }
   const quarter = cruisePose(APPROACH_MS + orbitPeriod("mars") / 4, "mars", FLIGHT_SPACE);
@@ -678,6 +684,7 @@ test("the roadster leaves the ship nose-first on +X", () => {
   placeFlight(flight, hot);
   const stageLimb = flight.earth.position.y + EARTH_RADIUS;
   assert.equal(flight.earth.visible, true);
+  assert.ok(Math.abs(stageLimb - EARTH_SURFACE) < 1e-6, "stage limb " + stageLimb);
   assert.ok(stageLimb < Math.min(hot.shipY, hot.boosterY) - 10, "stage limb " + stageLimb);
   assert.ok(flight.ship.position.x > flight.booster.position.x + 4);
   assert.ok(Math.abs(flight.booster.rotation.z) > 1);
@@ -695,7 +702,8 @@ test("the roadster leaves the ship nose-first on +X", () => {
   placeFlight(flight, flightPose(FLIGHT_SPACE));
   const deployLimb = flight.earth.position.y + EARTH_RADIUS;
   const parked = flightPose(FLIGHT_SPACE);
-  assert.ok(parked.carY - deployLimb > 20 && parked.carY - deployLimb < 36, "deploy limb " + (parked.carY - deployLimb));
+  assert.ok(Math.abs(flight.earth.position.x) < 1e-6 && Math.abs(flight.earth.position.z) < 1e-6);
+  assert.ok(parked.carY - deployLimb > 40, "deploy limb " + (parked.carY - deployLimb));
   flight.root.updateMatrixWorld(true);
   const hood = flight.car.getObjectByName("hood");
   const hoodAt = new THREE.Vector3();
@@ -712,8 +720,8 @@ test("the roadster leaves the ship nose-first on +X", () => {
   flight.car.getWorldPosition(hopMid);
   const hopCue = hopHood.sub(hopMid).setY(0).normalize();
   assert.ok(hopCue.dot(new THREE.Vector3(1, 0, 0)) > 0.9, "cruise hood " + hopCue.x + "," + hopCue.z);
-  placeFlight(flight, cruisePose(APPROACH_MS + 800, "mars", FLIGHT_SPACE));
-  assert.ok(Math.abs(flight.car.rotation.z) > 0.5);
+  placeFlight(flight, cruisePose(APPROACH_MS + 3000, "mars", FLIGHT_SPACE));
+  assert.ok(Math.abs(flight.car.rotation.z) > 0.2 && Math.abs(flight.car.rotation.z) < 0.3);
   assert.equal(flight.worlds.mars.visible, true);
   assert.equal(flight.earth.visible, false);
   assert.equal(flight.worlds.moon.visible, false);
@@ -735,16 +743,26 @@ test("the roadster leaves the ship nose-first on +X", () => {
   assert.equal(flight.worlds.mars.position.x, around.worldX);
   assert.equal(flight.worlds.mars.position.y, around.worldY);
   assert.equal(flight.worlds.mars.position.z, around.worldZ);
-  assert.ok(flight.worlds.mars.geometry.parameters.radius + 3 < around.orbitRadius);
+  const marsVisual = flight.worlds.mars.scale.x * flight.worlds.mars.geometry.parameters.radius;
+  const marsHang = Math.hypot(around.orbitRadius, around.carY - around.worldY);
+  assert.ok(marsHang > marsVisual + 20, "mars clearance " + marsHang);
   const held = flight.worlds.mars.position.x;
   const half = cruisePose(APPROACH_MS + orbitPeriod("mars") / 2, "mars", FLIGHT_SPACE);
   placeFlight(flight, half);
   assert.equal(flight.worlds.mars.position.x, held);
   assert.equal(flight.worlds.mars.position.z, half.worldZ);
   assert.ok(Math.hypot(flight.car.position.x - half.worldX, flight.car.position.z - half.worldZ) > 4);
-  placeFlight(flight, cruisePose(APPROACH_MS + 400, "saturn", FLIGHT_SPACE));
+  const saturnPose = cruisePose(APPROACH_MS + orbitPeriod("saturn") / 4, "saturn", FLIGHT_SPACE);
+  placeFlight(flight, saturnPose);
   assert.equal(flight.worlds.saturn.visible, true);
   assert.equal(flight.worlds.mars.visible, false);
+  const saturnRing = flight.worlds.saturn.userData.ring;
+  const tilt = Math.abs(flight.worlds.saturn.rotation.x);
+  const ringPeak = saturnPose.orbitRadius * Math.tan(tilt);
+  const saturnAlt = saturnPose.carY - saturnPose.worldY;
+  assert.ok(saturnAlt > ringPeak + 30, "above rings " + saturnAlt + " " + ringPeak);
+  const saturnBody = saturnRing.geometry.parameters.outerRadius * flight.worlds.saturn.scale.x;
+  assert.ok(saturnBody > WORLD_RADIUS.saturn, "ring wider than the body");
   const quiet = cruisePose(APPROACH_MS - 1, "mars", FLIGHT_SPACE);
   placeFlight(flight, quiet);
   assert.equal(flight.jokes.filter((sprite) => sprite.visible).length, 0);
@@ -835,6 +853,8 @@ test("the roadster leaves the ship nose-first on +X", () => {
   });
   placeFlight(flight, flightPose(0));
   assert.equal(flight.mount.visible, true);
+  assert.equal(flight.earth.visible, true);
+  assert.ok(Math.abs(flight.earth.position.y + EARTH_RADIUS - EARTH_SURFACE) < 1e-6);
   assert.ok(Math.abs(flight.booster.position.x) < 0.05);
   assert.ok(flight.booster.position.y < 0.2);
   assert.ok(padLeft.geometry.parameters.height / padLeft.geometry.parameters.width > 1.2);
@@ -844,7 +864,7 @@ test("the roadster leaves the ship nose-first on +X", () => {
   for (const screen of [padLeft, padRight]) {
     const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(screen.getWorldQuaternion(new THREE.Quaternion()));
     const at = screen.getWorldPosition(new THREE.Vector3());
-    const toCam = new THREE.Vector3(0, 2.4, 28).sub(at).normalize();
+    const toCam = new THREE.Vector3(0, 4.6, 64).sub(at).normalize();
     assert.ok(fwd.dot(toCam) > 0.9, "pad " + screen.name + " " + fwd.dot(toCam));
   }
   placeFlight(flight, flightPose(0));

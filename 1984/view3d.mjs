@@ -135,6 +135,8 @@ export const FLIGHT_NOTE = "Space is broad. Speed and distance here are relative
 export const ABYSS_HANG = "You hang out with the old roadster. It has been cruising for years.";
 /** Unit sphere. The mesh scale is this radius, so the car stays a car in front of it. */
 export const EARTH_RADIUS = 280;
+/** The pad sits just above this. Launch and ejection use this fixed surface. */
+export const EARTH_SURFACE = -0.55;
 /** Hang altitude above that surface, same scene units. */
 export const HANG_ALT = 62;
 export const HANG_RADIUS = EARTH_RADIUS + HANG_ALT;
@@ -142,8 +144,10 @@ export const HANG_RADIUS = EARTH_RADIUS + HANG_ALT;
 const HANG_LIFT = 0.55;
 /** One calm lap. θ = 0 is the release point, tangent +X. */
 const HANG_LAP_MS = 80000;
-/** Photo yaw so the day side faces the hang camera. */
+/** Photo yaw so the day side faces the hang camera. Launch uses the same coast. */
 const EARTH_FACE = 1.15;
+/** Tips the pole so the pad sits on a mid-latitude coast, not the ice. */
+const EARTH_PAD_TILT = 1.05;
 /** A half turn of local +Y lands on −Y. The exhaust column is built on −Y already. */
 export const FLIGHT_PLUME_PITCH = Math.PI;
 
@@ -237,8 +241,16 @@ export function cruiseLine(progress, name) {
 /** One joke holds the screen for this long, then the next one. */
 export const JOKE_MS = 10000;
 
-const ORBIT_RADIUS = { moon: 18, mars: 22, jupiter: 34, saturn: 28 };
-const ORBIT_PERIOD = { moon: 18000, mars: 22000, jupiter: 32000, saturn: 26000 };
+/** Body radius in scene units. The car stays a car in front of the disk. Jupiter fits the camera far plane. */
+export const WORLD_RADIUS = { moon: 100, mars: 150, jupiter: 340, saturn: 270 };
+/** Altitude above that surface. Saturn clears the tilted rings. */
+export const WORLD_ALT = { moon: 24, mars: 38, jupiter: 62, saturn: 110 };
+const WORLD_PERIOD = { moon: 70000, mars: 84000, jupiter: 110000, saturn: 120000 };
+/** Sphere u = 0.25 is +Z, the side the hop camera sees. This yaw puts the marked face there. */
+const WORLD_FACE = { moon: 0.4, mars: 1.2, jupiter: 0.8, saturn: 0.2 };
+const SATURN_TILT = 26.7 * Math.PI / 180;
+const SATURN_RING_INNER = 1.11;
+const SATURN_RING_OUTER = 2.27;
 
 const SPACE_JOKES = {
   moon: [
@@ -274,12 +286,27 @@ const SPACE_JOKES = {
   ],
 };
 
+function worldKey(sku) {
+  return WORLD_RADIUS[sku] ? sku : "mars";
+}
+
+function worldHang(sku) {
+  const key = worldKey(sku);
+  return WORLD_RADIUS[key] + WORLD_ALT[key];
+}
+
+/** Horizontal radius of the same lifted circle the Earth hang uses. */
+function worldRho(sku) {
+  const hang = worldHang(sku);
+  return hang * Math.sqrt(1 - HANG_LIFT * HANG_LIFT);
+}
+
 export function orbitRadius(sku) {
-  return ORBIT_RADIUS[sku] || ORBIT_RADIUS.mars;
+  return worldRho(sku);
 }
 
 export function orbitPeriod(sku) {
-  return ORBIT_PERIOD[sku] || ORBIT_PERIOD.mars;
+  return WORLD_PERIOD[worldKey(sku)];
 }
 
 /** One joke for this moment of a hop. The first one starts when the orbit does. */
@@ -293,16 +320,18 @@ export function spaceJoke(ms, sku) {
 }
 
 /**
- * A circle around the paid world.
+ * A circle around the paid world, the same lift as the Earth hang.
  * θ = 0 puts the car where the ship let it go, nose on headingYaw(1, 0), toward +X.
- * The world center sits on −Z from that point, so the camera on +Z sees the body past the car.
+ * The world center sits below that point and on −Z, so the camera on +Z sees the body past the car.
  * Tangent is (cos θ, −sin θ). That is d/dθ of (sin θ, cos θ).
  */
 export function orbitPoint(ms, sku, fromMs) {
   const base = flightPose(Math.max(FLIGHT_SPACE, fromMs || FLIGHT_SPACE));
-  const radius = orbitRadius(sku);
+  const hang = worldHang(sku);
+  const lift = hang * HANG_LIFT;
+  const radius = worldRho(sku);
   const worldX = base.carX + APPROACH_FAR;
-  const worldY = base.carY;
+  const worldY = base.carY - lift;
   const worldZ = base.carZ - radius;
   const orbitMs = Math.max(0, Math.max(0, ms) - APPROACH_MS);
   const theta = (orbitMs / orbitPeriod(sku)) * Math.PI * 2;
@@ -313,7 +342,7 @@ export function orbitPoint(ms, sku, fromMs) {
     radius,
     theta,
     carX: worldX + radius * Math.sin(theta),
-    carY: worldY + Math.sin(orbitMs / 900) * 0.28,
+    carY: worldY + lift,
     carZ: worldZ + radius * Math.cos(theta),
     tx: Math.cos(theta),
     tz: -Math.sin(theta),
@@ -561,6 +590,8 @@ export function cruisePose(ms, sku, fromMs) {
   const carY = arriving ? base.carY + (insert.carY - base.carY) * u : at.carY;
   const carZ = arriving ? base.carZ + (insert.carZ - base.carZ) * u : at.carZ;
   const yaw = arriving ? headingYaw(1, 0) : headingYaw(at.tx, at.tz);
+  const bank = arriving ? 0 : flightSmooth(Math.max(0, t - APPROACH_MS), 600, 2800);
+  const fade = arriving ? 0 : flightSmooth(Math.max(0, t - APPROACH_MS), 1200, 4500);
   return {
     ...base,
     beat: "cruise",
@@ -577,14 +608,15 @@ export function cruisePose(ms, sku, fromMs) {
     carY,
     carZ,
     carYaw: yaw,
-    carRoll: arriving ? 0 : (t > APPROACH_MS ? -Math.min(1, (t - APPROACH_MS) / 700) * 0.72 : 0),
-    nod: arriving ? 0 : Math.sin((t - APPROACH_MS) / 800) * 0.08,
-    spin: arriving ? 0 : (t - APPROACH_MS) * 0.00008,
+    carRoll: bank ? -0.26 * bank : 0,
+    nod: 0,
+    spin: (WORLD_FACE[sku] || 0) + Math.max(0, t - APPROACH_MS) * 0.000035,
     plume: 0,
     shipPlume: 0,
     sky: 1,
     released: true,
     separated: true,
+    thrust: fade ? 1.1 * (1 - fade) : (arriving ? 0 : 1.1),
     jokes: jokeBursts(t, sku, fromMs),
   };
 }
@@ -632,36 +664,37 @@ export function flightWatch(pose, yaw = 0, pitch = 1.05, dist = 9) {
   };
 }
 
-/** Climb and coast: sphere center. The surface sits 48 below the ship. */
-export function earthCenter(pose) {
-  return pose.shipY - 48 - EARTH_RADIUS;
+/** Fixed center under the pad. The surface does not chase the ship. */
+export function earthCenter(_pose) {
+  return EARTH_SURFACE - EARTH_RADIUS;
 }
 
 /**
- * Pad and climb cameras sit on +Z, outside the stack, looking toward x=0.
- * Separation watches the gap while the booster flips. After that the camera stays with the ship through the coast.
- * Deploy sits on the hull and looks down the car toward Earth.
+ * Pad and climb cameras sit on +Z and keep the Earth limb in the window.
+ * Until the booster lets go, the camera stays on the stack. Separation then watches the gap.
+ * The coast looks slightly down the ship. Ejection sits outboard of the car, a little above it.
  */
 export function flightCamera(ms, yaw = 0, pitch = 1.05) {
   const pose = flightPose(ms);
   if (pose.beat === "light" || pose.beat === "liftoff") {
+    const y = 4.6 + pose.stackY * 0.45;
     return {
       x: 0,
-      y: 2.4 + pose.stackY * 0.25,
-      z: 28,
+      y,
+      z: 64,
       lx: 0,
-      ly: 9 + pose.stackY * 0.85,
+      ly: y + 2.6 + pose.stackY * 0.2,
       lz: 0,
     };
   }
-  if (pose.beat === "climb") {
+  if (pose.beat === "climb" || (pose.beat === "stage" && ms < stageMarks().letGo)) {
     const lx = pose.shipX || 0;
     return {
       x: lx + 2.2,
-      y: pose.shipY - 2,
-      z: 16,
+      y: pose.shipY + 0.6,
+      z: 56,
       lx,
-      ly: pose.shipY + 6,
+      ly: pose.shipY - 10.5,
       lz: 0,
     };
   }
@@ -670,34 +703,34 @@ export function flightCamera(ms, yaw = 0, pitch = 1.05) {
     const bx = pose.boosterX || 0;
     const midX = (sx + bx) / 2;
     const midY = (pose.shipY + pose.boosterY) / 2;
-    const span = Math.max(Math.abs(pose.shipY - pose.boosterY) + 18, Math.abs(sx - bx) + 8, 16);
-    const dist = Math.max(28, span * 1.35);
+    const span = Math.max(Math.abs(pose.shipY - pose.boosterY) + 22, Math.abs(sx - bx) + 10, 20);
+    const dist = Math.max(48, span * 1.25);
     return {
-      x: midX - dist * 0.22,
-      y: midY + dist * 0.16,
+      x: midX - dist * 0.1,
+      y: midY + 2,
       z: dist,
       lx: midX,
-      ly: midY + 3,
-      lz: (pose.boosterZ || 0) * 0.35,
+      ly: midY - 6,
+      lz: (pose.boosterZ || 0) * 0.2,
     };
   }
   if (pose.beat === "orbit") {
     const lx = pose.shipX || 0;
     return {
-      x: lx - 1.5,
-      y: pose.shipY + 1.5,
-      z: 16,
+      x: lx - 5,
+      y: pose.shipY + 2.2,
+      z: 38,
       lx,
-      ly: pose.shipY + 3,
+      ly: pose.shipY - 9.5,
       lz: 0,
     };
   }
   const bayY = pose.bayY != null ? pose.bayY : 4.2;
   const bay = stackPoint(pose.shipX || 0, pose.shipY, pose.carX || 0, bayY, pose.shipRoll || 0);
   return {
-    x: (pose.shipX || 0) + 1.5,
-    y: pose.shipY + 5.4,
-    z: 3.4,
+    x: bay.x - 1.4,
+    y: bay.y + 4.6,
+    z: (pose.carZ || 0) + 11.5,
     lx: bay.x,
     ly: bay.y,
     lz: pose.carZ || 0,
@@ -906,6 +939,42 @@ function paintTex(size, draw) {
   tex.wrapT = THREE.RepeatWrapping;
   tex.anisotropy = 8;
   return tex;
+}
+
+/** Photo replaces the painted fallback once a browser can fetch it. */
+function loadWorldPhoto(material, url, ring) {
+  try {
+    if (typeof document !== "undefined" && typeof document.createElementNS === "function") {
+      const loader = new THREE.TextureLoader();
+      loader.load(url, (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = 8;
+        tex.wrapS = ring ? THREE.ClampToEdgeWrapping : THREE.RepeatWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        material.map = tex;
+        material.needsUpdate = true;
+      });
+    }
+  } catch (err) {
+    /* Painted fallback stays. */
+  }
+}
+
+function worldAir(color, opacity) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(1.018, 48, 32),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      side: THREE.BackSide,
+      depthWrite: false,
+      fog: false,
+    }),
+  );
+  mesh.name = "world-air";
+  mesh.renderOrder = 2;
+  return mesh;
 }
 
 function makeMaps() {
@@ -1692,8 +1761,8 @@ export function buildFlight() {
     screen.name = side < 0 ? "pad-left" : "pad-right";
     screen.position.set(-6.6, side < 0 ? 14.4 : 7.0, 0.55);
     tower.add(screen);
-    // Countdown camera stays at (0, 2.4, 28). PlaneGeometry faces local +Z, and lookAt points that +Z at the camera.
-    screen.lookAt(0, 2.4, 28);
+    // Countdown camera stays at (0, 4.6, 64). PlaneGeometry faces local +Z, and lookAt points that +Z at the camera.
+    screen.lookAt(0, 4.6, 64);
     padScreens.push(screen);
     const film = document.createElement("video");
     if (film && typeof film.play === "function") {
@@ -1953,18 +2022,64 @@ export function buildFlight() {
     steam.push(puff);
   }
   const worlds = {};
-  const worldMat = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.72 });
-  const moon = new THREE.Mesh(new THREE.SphereGeometry(3.2, 18, 12), worldMat("#c8c4bc"));
-  const mars = new THREE.Mesh(new THREE.SphereGeometry(3.8, 18, 12), worldMat("#c45a28"));
-  const jupiter = new THREE.Mesh(new THREE.SphereGeometry(6.4, 20, 14), worldMat("#e0b060"));
+  const worldBody = (fallback, radius) => {
+    const map = paintTex(64, (g, s) => {
+      g.fillStyle = fallback;
+      g.fillRect(0, 0, s, s);
+    });
+    const mat = new THREE.MeshBasicMaterial({ map, color: "#ffffff", fog: false });
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 48), mat);
+    mesh.scale.setScalar(radius);
+    mesh.userData.photo = mat;
+    return mesh;
+  };
+  const moon = worldBody("#c8c4bc", WORLD_RADIUS.moon);
+  moon.name = "moon";
+  const mars = worldBody("#c45a28", WORLD_RADIUS.mars);
+  mars.name = "mars";
+  mars.add(worldAir("#e7b090", 0.14));
+  const jupiter = worldBody("#e0b060", WORLD_RADIUS.jupiter);
+  jupiter.name = "jupiter";
+  jupiter.add(worldAir("#f0d8b0", 0.1));
   const saturn = new THREE.Group();
-  const saturnBody = new THREE.Mesh(new THREE.SphereGeometry(4.4, 18, 12), worldMat("#e6c98a"));
+  saturn.name = "saturn";
+  const saturnBody = worldBody("#e6c98a", 1);
+  saturnBody.add(worldAir("#f3e6c8", 0.1));
+  const ringMap = paintTex(256, (g, s) => {
+    g.clearRect(0, 0, s, s);
+    const c = s / 2;
+    const inner = SATURN_RING_INNER / SATURN_RING_OUTER;
+    g.strokeStyle = "rgba(230,210,170,0.9)";
+    g.lineWidth = (1 - inner) * c;
+    g.beginPath();
+    g.arc(c, c, ((inner + 1) / 2) * c, 0, Math.PI * 2);
+    g.stroke();
+  });
+  ringMap.wrapS = THREE.ClampToEdgeWrapping;
+  ringMap.wrapT = THREE.ClampToEdgeWrapping;
   const saturnRing = new THREE.Mesh(
-    new THREE.TorusGeometry(6.3, 0.22, 6, 28),
-    new THREE.MeshStandardMaterial({ color: "#f0e2c0", roughness: 0.55, side: THREE.DoubleSide }),
+    new THREE.RingGeometry(SATURN_RING_INNER, SATURN_RING_OUTER, 96),
+    new THREE.MeshBasicMaterial({
+      map: ringMap,
+      color: "#ffffff",
+      transparent: true,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      fog: false,
+    }),
   );
-  saturnRing.rotation.x = Math.PI / 2.4;
+  saturnRing.name = "saturn-ring";
+  saturnRing.rotation.x = Math.PI / 2;
+  saturn.rotation.x = SATURN_TILT;
+  saturn.scale.setScalar(WORLD_RADIUS.saturn);
   saturn.add(saturnBody, saturnRing);
+  saturn.userData.ground = saturnBody;
+  saturn.userData.ring = saturnRing;
+  loadWorldPhoto(moon.userData.photo, "1984/moon.jpg?v=1");
+  loadWorldPhoto(mars.userData.photo, "1984/mars.jpg?v=1");
+  loadWorldPhoto(jupiter.userData.photo, "1984/jupiter.jpg?v=1");
+  loadWorldPhoto(saturnBody.userData.photo, "1984/saturn.jpg?v=1");
+  loadWorldPhoto(saturnRing.material, "1984/saturn-ring.png?v=1", true);
   worlds.moon = moon;
   worlds.mars = mars;
   worlds.jupiter = jupiter;
@@ -2199,19 +2314,17 @@ export function placeFlight(flight, pose) {
     for (const screen of flight.padScreens) screen.visible = show;
   }
   const hang = cruising && pose.dest === "abyss";
-  flight.earth.visible = hang || (!cruising && pose.sky >= 0.35);
+  flight.earth.visible = hang || !cruising;
   if (flight.earth.visible) {
     if (hang) {
       flight.earth.position.set(pose.worldX, pose.worldY, pose.worldZ);
     } else {
-      const deploy = pose.beat === "release" || pose.beat === "space";
-      const floorY = Math.min(pose.shipY, pose.boosterY);
-      const surface = pose.beat === "stage" ? floorY - 18 : deploy ? pose.carY - 28 : pose.shipY - 48;
-      flight.earth.position.set(deploy ? flight.car.position.x : (pose.shipX || 0), surface - EARTH_RADIUS, deploy ? flight.car.position.z : 0);
+      flight.earth.position.set(0, earthCenter(pose), 0);
     }
     flight.earth.scale.setScalar(EARTH_RADIUS);
     const spin = pose.earthSpin != null ? pose.earthSpin : (pose.stackY || 0) * 0.004;
-    flight.earth.rotation.y = spin;
+    if (hang) flight.earth.rotation.set(0, spin, 0);
+    else flight.earth.rotation.set(EARTH_PAD_TILT, EARTH_FACE + (pose.stackY || 0) * 0.004, 0);
     if (flight.earthClouds) flight.earthClouds.rotation.y = spin * 0.4;
   }
   if (flight.worlds) {
@@ -2221,8 +2334,10 @@ export function placeFlight(flight, pose) {
       body.visible = on;
       if (!on) continue;
       body.position.set(pose.worldX, pose.worldY, pose.worldZ);
-      body.scale.setScalar(1);
-      body.rotation.y = pose.spin || 0;
+      body.scale.setScalar(WORLD_RADIUS[key] || 1);
+      const turn = pose.spin || 0;
+      if (body.userData.ground) body.userData.ground.rotation.y = turn;
+      else body.rotation.y = turn;
     }
   }
   if (flight.jokes) {
@@ -3630,18 +3745,17 @@ export function mountWorld(canvas, map, api) {
         for (const jet of flight.jets) jet.scale.y *= flick;
       }
     }
-    const abyss = pose.beat === "cruise" && pose.dest === "abyss";
-    // Default pitch 1.05 looks down on a small moon. On Earth that same pitch stares into the disk.
-    // π/2 sits the camera level with the car, outside the circle, so the limb crosses the window.
-    const watchPitch = abyss ? (Math.PI / 2) * (flightPitch / 1.05) : flightPitch;
-    const cam = pose.beat === "cruise"
-      ? cruiseWatch(pose, flightYaw, watchPitch, abyss ? 6 : 14)
+    const cruisingWatch = pose.beat === "cruise";
+    // Level with the car, just outside the circle, so the limb crosses the window.
+    const watchPitch = cruisingWatch ? (Math.PI / 2) * (flightPitch / 1.05) : flightPitch;
+    const cam = cruisingWatch
+      ? cruiseWatch(pose, flightYaw, watchPitch, 6)
       : flightCamera(ms, flightYaw, flightPitch);
     const kick = pose.plume > 0.4 ? 1 : 0;
     camera.position.set(cam.x + Math.sin(now / 28) * 0.15 * kick, cam.y + Math.cos(now / 24) * 0.1 * kick, cam.z);
     camera.up.copy(UP);
     camera.lookAt(cam.lx, cam.ly, cam.lz);
-    const flightFov = pose.sky > 0.5 ? 58 : 42;
+    const flightFov = pose.sky >= 0.5 ? 58 : 42;
     if (camera.fov !== flightFov || camera.far !== 1400) {
       camera.fov = flightFov;
       camera.far = 1400;
@@ -3651,9 +3765,16 @@ export function mountWorld(canvas, map, api) {
     const night = new THREE.Color("#020308");
     scene.background.copy(day).lerp(night, pose.sky);
     scene.fog.color.copy(scene.background);
-    const hangFog = pose.beat === "cruise" && pose.dest === "abyss";
-    scene.fog.near = pose.sky > 0.5 ? (hangFog ? 400 : 160) : 80;
-    scene.fog.far = pose.sky > 0.5 ? (hangFog ? 1400 : 1100) : 260;
+    if (pose.beat === "cruise") {
+      scene.fog.near = 400;
+      scene.fog.far = 1400;
+    } else if (pose.sky > 0.15) {
+      scene.fog.near = 90;
+      scene.fog.far = 1400;
+    } else {
+      scene.fog.near = 40;
+      scene.fog.far = 420;
+    }
     renderer.toneMappingExposure = 0.94 + pose.plume * 0.3;
     canvas.dataset.mode = "flight";
   }
