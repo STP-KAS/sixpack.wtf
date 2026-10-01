@@ -341,13 +341,13 @@ export function create1984Service(deps) {
           return { status: 200, body: found };
         }
         if (method === "GET" && pathname === "/api/1984/fee") {
-          let rate = 200;
+          let rate = 600;
           try {
-            const quoted = deps.feeRate ? await deps.feeRate() : await (await import("../faucet/pay.mjs")).quotedPayFeeRate();
+            const quoted = deps.feeRate ? await deps.feeRate() : await (await import("../faucet/pay.mjs")).quotedPageFeeRate();
             const n = Number(quoted);
-            if (Number.isFinite(n) && n >= 200) rate = n;
+            if (Number.isFinite(n) && n >= 600) rate = n;
           } catch {
-            rate = 200;
+            rate = 600;
           }
           return { status: 200, body: { ok: true, network: "testnet-10", feerate: rate } };
         }
@@ -586,7 +586,8 @@ export function service1984() {
       guests,
       pay: async (to, sompi) => {
         const { payTn10 } = await import("../faucet/pay.mjs");
-        return payTn10(to, sompi);
+        const { pageFeeRate } = await import("../faucet/fee-rate.mjs");
+        return payTn10(to, sompi, undefined, pageFeeRate);
       },
     });
     guests.onGone = (address) => singleton.forget(address);

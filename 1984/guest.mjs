@@ -376,16 +376,19 @@ export function guestDesk() {
     },
     async fund(address, sompi, onStep) {
       const { payTn10 } = await import("../faucet/pay.mjs");
-      return payTn10(address, sompi, onStep);
+      const { pageFeeRate } = await import("../faucet/fee-rate.mjs");
+      return payTn10(address, sompi, onStep, pageFeeRate);
     },
     async pay({ key, from, sompi }) {
       const { payFromKey } = await import("../faucet/pay.mjs");
-      const out = await payFromKey({ privHex: key, fromAddr: from, toAddr: RESERVE, sompi });
+      const { pageFeeRate } = await import("../faucet/fee-rate.mjs");
+      const out = await payFromKey({ privHex: key, fromAddr: from, toAddr: RESERVE, sompi, rateOf: pageFeeRate });
       return { txid: out.txids && out.txids[0], sompi: out.sompi, txids: out.txids };
     },
     async sweep({ key, from }) {
       const { payFromKey } = await import("../faucet/pay.mjs");
-      return payFromKey({ privHex: key, fromAddr: from, toAddr: RESERVE, sompi: 0n, drain: true });
+      const { pageFeeRate } = await import("../faucet/fee-rate.mjs");
+      return payFromKey({ privHex: key, fromAddr: from, toAddr: RESERVE, sompi: 0n, drain: true, rateOf: pageFeeRate });
     },
   });
   return singleton;

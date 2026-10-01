@@ -174,8 +174,8 @@
   async function sendKaspa(to, sompi, opts) {
     var given = opts || {};
     opts = {
-      priorityFee: Math.max(Number(given.priorityFee) || 0, 2000000),
-      feeRate: Math.max(Number(given.feeRate) || 0, 200),
+      priorityFee: Math.max(Number(given.priorityFee) || 0, 6000000),
+      feeRate: Math.max(Number(given.feeRate) || 0, 600),
     };
     if (given.payload) opts.payload = given.payload;
     const order = [];

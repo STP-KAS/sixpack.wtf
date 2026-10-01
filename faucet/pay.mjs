@@ -6,7 +6,7 @@ import { homedir } from "node:os";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { payFeeRate } from "./fee-rate.mjs";
+import { pageFeeRate, payFeeRate } from "./fee-rate.mjs";
 import { FROM } from "./policy.mjs";
 
 const WASM =
@@ -157,22 +157,34 @@ export function selectCovering(amounts, want, feeReserve, maxInputs) {
   return { count: picked.length, sum, ok: false };
 }
 
-async function feeRateFor(rpc) {
+async function feeRateFor(rpc, rateOf = payFeeRate) {
   try {
     const quoted = await withTimeout(rpc.getFeeEstimate({}), 8000, "Reading the Testnet 10 fee took too long.");
-    return payFeeRate(quoted);
+    return rateOf(quoted);
   } catch {
-    return payFeeRate(null);
+    return rateOf(null);
   }
 }
 
-/** Doubled ordinary fee from a synced Testnet 10 node. No key and no spend. */
+/** Doubled ordinary fee from a synced Testnet 10 node. No key and no spend. The faucet uses this. */
 export async function quotedPayFeeRate() {
   const kaspa = await sdk();
   const net = new kaspa.NetworkId("testnet-10");
   const rpc = await connectRpc(kaspa, net);
   try {
     return await feeRateFor(rpc);
+  } finally {
+    await rpc.disconnect().catch(() => undefined);
+  }
+}
+
+/** Six times the ordinary fee from a synced Testnet 10 node. No key and no spend. 1984 uses this. */
+export async function quotedPageFeeRate() {
+  const kaspa = await sdk();
+  const net = new kaspa.NetworkId("testnet-10");
+  const rpc = await connectRpc(kaspa, net);
+  try {
+    return await feeRateFor(rpc, pageFeeRate);
   } finally {
     await rpc.disconnect().catch(() => undefined);
   }
@@ -219,11 +231,11 @@ function withSpendLock(fn) {
   return run;
 }
 
-export async function payFromKey({ privHex, fromAddr, toAddr, sompi, drain, onStep }) {
-  return withSpendLock(() => payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep }));
+export async function payFromKey({ privHex, fromAddr, toAddr, sompi, drain, onStep, rateOf }) {
+  return withSpendLock(() => payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep, rateOf }));
 }
 
-async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep }) {
+async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep, rateOf }) {
   const step = (name, extra) => {
     if (onStep) onStep(name, extra);
   };
@@ -257,7 +269,7 @@ async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep
       const bb = BigInt(b.amount);
       return aa < bb ? 1 : aa > bb ? -1 : 0;
     });
-    const rate = await feeRateFor(rpc);
+    const rate = await feeRateFor(rpc, rateOf || payFeeRate);
     const slack = BigInt(Math.ceil(rate)) * 50_000n;
     if (drain) {
       const changeFloor = slack > 20_000_000n ? slack : 20_000_000n;
@@ -365,7 +377,7 @@ async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep
   }
 }
 
-export async function payTn10(toAddr, sompi, onStep) {
+export async function payTn10(toAddr, sompi, onStep, rateOf) {
   const { privHex, fromAddr } = loadKey();
-  return payFromKey({ privHex, fromAddr, toAddr, sompi, onStep });
+  return payFromKey({ privHex, fromAddr, toAddr, sompi, onStep, rateOf });
 }
