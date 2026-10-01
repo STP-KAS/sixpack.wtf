@@ -24,6 +24,22 @@ test("the buy ask closes without starting a purchase", () => {
   assert.doesNotMatch(ask, /newPurchase|openMode/);
 });
 
+test("the landing gate keeps wallet history and a one-time funded address", () => {
+  assert.match(html, /id="gate-kasware">Log in with Kasware<\/button>/);
+  assert.match(html, /id="gate-kastle">Log in with Kastle<\/button>/);
+  assert.match(html, /id="gate-guest">Use a funded test address<\/button>/);
+  assert.match(html, /The same Kasware or Kastle wallet opens its history\./);
+  assert.match(html, /Each test address is used once\. Come back later and that history is gone\./);
+  assert.doesNotMatch(html, /Same kaspatest address, same history/);
+  assert.doesNotMatch(html, /id="gate-addr"/);
+  assert.doesNotMatch(html, /Open this address/);
+  assert.match(client, /Each test address is used once\. Come back later and that history is gone\./);
+  const guest = sliceFn(client, "startGuest");
+  assert.match(guest, /hideGate\(\)/);
+  assert.match(client, /function openFundedTest\(/);
+  assert.match(client, /getElementById\("gate-guest"\)/);
+});
+
 test("closing the pay slip leaves new purchase on that card", () => {
   const close = sliceFn(client, "closePaySlip");
   assert.match(close, /box\.hidden = true/);

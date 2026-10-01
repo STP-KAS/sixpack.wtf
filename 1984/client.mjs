@@ -894,7 +894,7 @@ async function logOut() {
   paintChrome();
   if (state.id.address) refreshAccount();
   say(state.id.address
-    ? "Logged out. The same address loads its history from this gate."
+    ? "Logged out. The same Kasware or Kastle wallet opens its history."
     : "Logged out. The welcome gate is the landing.");
 }
 
@@ -1110,7 +1110,9 @@ async function startGuest(onStep) {
     if (state.id.kind !== "guest" || state.id.token !== body.token) {
       return { ok: false, error: "The test wallet opened, but this tab could not keep it. Open Who pays and try Test without a wallet." };
     }
-    say("This tab has " + formatTkas(body.sompi) + " tKAS. The balance can take a moment to show. Close the tab and this address is gone.");
+    hideGate();
+    gateStatus("");
+    say("This tab has " + formatTkas(body.sompi) + " tKAS. The balance can take a moment to show. Each test address is used once. Come back later and that history is gone.");
     const address = body.address;
     const later = (ms) => {
       setTimeout(() => {
@@ -2383,12 +2385,12 @@ function paintGuide() {
     "<ol>" +
     "<li class=\"only-desk\">Click Kasware or Kastle and approve the login. This page asks the wallet to open on Testnet 10. If the window is black, close it, click the wallet icon, unlock, and try again. A mainnet address is still refused. That login stays on this browser.</li>" +
     "<li class=\"only-phone\">On a phone, set Testnet 10 inside Kasware or Kastle before you log in. This page cannot switch the phone wallet. Or open this page in the Kastle browser. If the window is black, close it, unlock the wallet, and try again. A mainnet address is still refused. That login stays on this browser.</li>" +
-    "<li>Test without a wallet is in Who pays, after you are in. This tab gets 50000 tKAS from Grok's Testnet-10 wallet. Close the tab and that address is gone. Leftover tKAS is swept back. It does not replace a wallet you already saved. The welcome gate asks who pays. The same address loads its history. A new address starts a session. One thousand of these test wallets can be opened in a day.</li>" +
-    "<li>Or paste a kaspatest address in the box on the welcome gate, or again in Who pays. Open this address loads that history, or starts a session when the address is new. A .kas name that already resolves on TN10 is in Who pays. That choice stays until you change it.</li>" +
-    "<li>Need coins: Who pays, then Test without a wallet, gives this tab 50000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
+    "<li>On the welcome gate, Kasware and Kastle are the wallets. The same Kasware or Kastle wallet opens its history. Use a funded test address opens one funded address for this visit. Each test address is used once. Come back later and that history is gone. Close the tab and the leftover tKAS is swept back. It does not replace a wallet you already saved. This tab gets 50000 tKAS from Grok's Testnet-10 wallet. One thousand of these test wallets can be opened in a day. Who pays can open another funded test address after you are in.</li>" +
+    "<li>A kaspatest address, or a .kas name that already resolves on TN10, can be pasted in Who pays. That choice stays until you change it.</li>" +
+    "<li>Need coins: Use a funded test address on the welcome gate, or Who pays, then Test without a wallet. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, take a seat and the menu blinks, or order at the blinking counter. The market opens at the counter. The showroom opens when you click Pike or the sign. Buy the roadster and it waits on the lot. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. Test without a wallet is in Who pays.</li>" +
-    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS. When a payment finishes, the steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate. The same address loads its history.</li>" +
+    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS. When a payment finishes, the steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate. The same Kasware or Kastle wallet opens its history.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>The roadster parks on the lot in front of Pike's shop. If it is yours, Drive in your roadster is the large gold button. Once you are in the car, Launch into space is the gold button. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, plays two short films on the tower first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. One tower stands beside it, and the chopsticks stay open. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. After the booster is gone, the ship coasts, then the roadster leaves. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: you hang out with the old roadster. It has been cruising for years. The way there is ten seconds. Out there the two cars orbit the Earth. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends.</li>" +
@@ -3356,27 +3358,7 @@ you.addEventListener("click", (ev) => {
   if (ev.target.id === "log-out") logOut().catch((err) => say(err.message, true));
   if (ev.target.id === "use-kasware") connectWallet("kasware").catch((err) => say(err.message, true));
   if (ev.target.id === "use-kastle") connectWallet("kastle").catch((err) => say(err.message, true));
-  if (ev.target.id === "use-guest") {
-    let last = "";
-    let showed = false;
-    const timer = setTimeout(() => {
-      showed = true;
-    }, 700);
-    startGuest((step, detail) => {
-      const line = detail ? step + " (" + detail + ")" : step;
-      if (!line || line === last) return;
-      last = line;
-      const gateEl = document.getElementById("gate");
-      if (gateEl && !gateEl.hidden) {
-        if (showed) paintGuestWait(step, detail);
-      } else if (showed) say(line);
-    })
-      .then((result) => {
-        if (result && result.error) say(result.error, true);
-      })
-      .catch((err) => say(err.message, true))
-      .finally(() => clearTimeout(timer));
-  }
+  if (ev.target.id === "use-guest") openFundedTest(ev.target);
   if (ev.target.closest("#use-addr")) useAddress(document.getElementById("addr"));
   if (ev.target.closest("#use-name")) useName(document.getElementById("kasname"));
 });
@@ -3523,6 +3505,41 @@ if (gateUseAddr) {
 if (gateUseName) gateUseName.addEventListener("click", () => useName(gateName));
 watchNameBox(gateName);
 paintGateAddress();
+function openFundedTest(button) {
+  if (guestBusy) return;
+  if (button) button.disabled = true;
+  let last = "";
+  let showed = false;
+  const timer = setTimeout(() => {
+    showed = true;
+  }, 700);
+  startGuest((step, detail) => {
+    const line = detail ? step + " (" + detail + ")" : step;
+    if (!line || line === last) return;
+    last = line;
+    const gateEl = document.getElementById("gate");
+    if (gateEl && !gateEl.hidden) {
+      if (showed) paintGuestWait(step, detail);
+    } else if (showed) say(line);
+  })
+    .then((result) => {
+      if (result && result.ok) return;
+      if (result && result.error) {
+        if (gateIsOpen()) gateStatus(result.error, true);
+        say(result.error, true);
+      }
+    })
+    .catch((err) => {
+      if (gateIsOpen()) gateStatus(err.message, true);
+      say(err.message, true);
+    })
+    .finally(() => {
+      clearTimeout(timer);
+      if (button) button.disabled = false;
+    });
+}
+const gateGuest = document.getElementById("gate-guest");
+if (gateGuest) gateGuest.addEventListener("click", () => openFundedTest(gateGuest));
 for (const [id, kind] of [["gate-kasware", "kasware"], ["gate-kastle", "kastle"]]) {
   const button = document.getElementById(id);
   if (!button) continue;

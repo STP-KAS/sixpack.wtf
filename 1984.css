@@ -1001,6 +1001,12 @@ a { color: #f2d48a; }
   font-size: 0.75rem;
 }
 .kw-gate-row { display: flex; gap: 0.55rem; margin: 0.85rem 0 0.35rem; }
+.gate-note {
+  margin: 0.1rem 0 0.15rem;
+  color: #f2d48a;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
 .kw-wallets { margin-top: 0.2rem; }
 .kw-wallets button { font-weight: 700; }
 .gate-status { min-height: 1.25em; margin: 0.15rem 0 0.35rem; color: #f2d48a; font-size: 0.88rem; }
