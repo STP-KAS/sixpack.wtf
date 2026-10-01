@@ -769,6 +769,29 @@ export function limbShot(x, y, z, dist, yaw = 0) {
   };
 }
 
+/**
+ * In space the window is black and the stars show.
+ * The filmed sky stays off there, so looking around does not play clouds across the dark.
+ * Stage is already above the blue, so it uses the same dark field.
+ */
+export function spaceBackdrop(pose) {
+  const beat = pose && pose.beat;
+  const inSpace = beat === "stage" || beat === "cruise" || beat === "orbit" || beat === "release" || beat === "space";
+  const high = pose && Number(pose.sky) >= 0.55;
+  return {
+    stars: inSpace || !!(pose && Number(pose.sky) >= 0.45),
+    film: !!high && !inSpace,
+  };
+}
+
+/** stars: the dark field. film: the climb picture. off: the pad. */
+export function spaceSkyMode(pose) {
+  const backdrop = spaceBackdrop(pose);
+  if (backdrop.film) return "film";
+  if (backdrop.stars) return "stars";
+  return "off";
+}
+
 /** Clear air once the ship is above the blue. The pad and the climb keep their haze. */
 export function flightFog(pose) {
   if (pose && (pose.beat === "cruise" || pose.beat === "orbit" || pose.beat === "release" || pose.beat === "space")) {
@@ -1034,6 +1057,50 @@ function paintTex(size, draw) {
   return tex;
 }
 
+/** A dark sky. Stars only, so looking around does not play the cloudy film. */
+function starfieldTexture() {
+  const w = 2048;
+  const h = 1024;
+  let canvas;
+  try {
+    canvas = document.createElement("canvas");
+  } catch (err) {
+    return null;
+  }
+  if (!canvas || typeof canvas.getContext !== "function") return null;
+  canvas.width = w;
+  canvas.height = h;
+  const g = canvas.getContext("2d");
+  if (!g || typeof g.fillRect !== "function") return null;
+  g.fillStyle = "#010204";
+  g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 4200; i++) {
+    const x = hash(i, 1) * w;
+    const y = hash(i, 2) * h;
+    const bright = hash(i, 3);
+    const warm = hash(i, 4);
+    const radius = bright > 0.988 ? 1.6 : bright > 0.94 ? 1.05 : 0.5;
+    const alpha = (0.4 + bright * 0.6).toFixed(3);
+    const red = warm > 0.93 ? 255 : warm < 0.07 ? 186 : 232;
+    const green = warm > 0.93 ? 220 : warm < 0.07 ? 210 : 236;
+    const blue = warm > 0.93 ? 186 : 255;
+    g.fillStyle = "rgba(" + red + "," + green + "," + blue + "," + alpha + ")";
+    g.beginPath();
+    g.arc(x, y, radius, 0, Math.PI * 2);
+    g.fill();
+    if (bright > 0.988) {
+      g.fillRect(x - 2.4, y - 0.35, 4.8, 0.7);
+      g.fillRect(x - 0.35, y - 2.4, 0.7, 4.8);
+    }
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.anisotropy = 4;
+  return tex;
+}
+
 /** Photo replaces the painted fallback once a browser can fetch it. */
 function loadWorldPhoto(material, url, ring) {
   try {
@@ -1042,8 +1109,9 @@ function loadWorldPhoto(material, url, ring) {
       loader.load(url, (tex) => {
         tex.colorSpace = THREE.SRGBColorSpace;
         tex.anisotropy = 8;
-        tex.wrapS = ring ? THREE.ClampToEdgeWrapping : THREE.RepeatWrapping;
+        tex.wrapS = THREE.RepeatWrapping;
         tex.wrapT = THREE.ClampToEdgeWrapping;
+        if (ring) material.premultipliedAlpha = false;
         material.map = tex;
         material.needsUpdate = true;
       });
@@ -2023,7 +2091,7 @@ export function buildFlight() {
     new THREE.MeshBasicMaterial({
       color: "#8ec5ff",
       transparent: true,
-      opacity: 0.18,
+      opacity: 0.05,
       side: THREE.BackSide,
       depthWrite: false,
       fog: false,
@@ -2053,6 +2121,7 @@ export function buildFlight() {
     }),
   );
   earthClouds.name = "earth-clouds";
+  earthClouds.visible = false;
   earthClouds.renderOrder = 1;
   earth.add(earthClouds, earthAir);
   root.add(earth);
@@ -2071,7 +2140,7 @@ export function buildFlight() {
   } catch (err) {
     /* The painted sphere stays until a browser can fetch the photo. */
   }
-  const starCount = 1400;
+  const starCount = 2200;
   const starGeo = new THREE.BufferGeometry();
   const starPos = new Float32Array(starCount * 3);
   for (let i = 0; i < starCount; i++) {
@@ -2085,7 +2154,7 @@ export function buildFlight() {
   starGeo.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
   const stars = new THREE.Points(
     starGeo,
-    new THREE.PointsMaterial({ color: "#f7f1e4", size: 2.1, sizeAttenuation: false, fog: false }),
+    new THREE.PointsMaterial({ color: "#f3f6ff", size: 1.6, sizeAttenuation: false, fog: false }),
   );
   stars.visible = false;
   root.add(stars);
@@ -2130,14 +2199,14 @@ export function buildFlight() {
   moon.name = "moon";
   const mars = worldBody("#c45a28", WORLD_RADIUS.mars);
   mars.name = "mars";
-  mars.add(worldAir("#e7b090", 0.14));
+  mars.add(worldAir("#e7b090", 0.04));
   const jupiter = worldBody("#e0b060", WORLD_RADIUS.jupiter);
   jupiter.name = "jupiter";
-  jupiter.add(worldAir("#f0d8b0", 0.1));
+  jupiter.add(worldAir("#f0d8b0", 0.04));
   const saturn = new THREE.Group();
   saturn.name = "saturn";
   const saturnBody = worldBody("#e6c98a", 1);
-  saturnBody.add(worldAir("#f3e6c8", 0.1));
+  saturnBody.add(worldAir("#f3e6c8", 0.04));
   const ringMap = paintTex(256, (g, s) => {
     g.clearRect(0, 0, s, s);
     const c = s / 2;
@@ -2156,6 +2225,7 @@ export function buildFlight() {
       map: ringMap,
       color: "#ffffff",
       transparent: true,
+      premultipliedAlpha: false,
       side: THREE.DoubleSide,
       depthWrite: false,
       fog: false,
@@ -2168,11 +2238,11 @@ export function buildFlight() {
   saturn.add(saturnBody, saturnRing);
   saturn.userData.ground = saturnBody;
   saturn.userData.ring = saturnRing;
-  loadWorldPhoto(moon.userData.photo, "1984/moon.jpg?v=1");
-  loadWorldPhoto(mars.userData.photo, "1984/mars.jpg?v=1");
-  loadWorldPhoto(jupiter.userData.photo, "1984/jupiter.jpg?v=1");
-  loadWorldPhoto(saturnBody.userData.photo, "1984/saturn.jpg?v=1");
-  loadWorldPhoto(saturnRing.material, "1984/saturn-ring.png?v=1", true);
+  loadWorldPhoto(moon.userData.photo, "1984/moon.jpg?v=2");
+  loadWorldPhoto(mars.userData.photo, "1984/mars.jpg?v=2");
+  loadWorldPhoto(jupiter.userData.photo, "1984/jupiter.jpg?v=2");
+  loadWorldPhoto(saturnBody.userData.photo, "1984/saturn.jpg?v=2");
+  loadWorldPhoto(saturnRing.material, "1984/saturn-ring.png?v=2", true);
   worlds.moon = moon;
   worlds.mars = mars;
   worlds.jupiter = jupiter;
@@ -2239,6 +2309,9 @@ export function buildFlight() {
     );
     spaceSky.name = "space-sky";
     spaceSky.visible = false;
+    spaceSky.userData.filmMap = skyMap;
+    const field = starfieldTexture();
+    if (field) spaceSky.userData.starfield = field;
     root.add(spaceSky);
     spaceVideo = skyEl;
   }
@@ -2464,10 +2537,29 @@ export function placeFlight(flight, pose) {
   }
   const above = pose.beat === "orbit" || pose.beat === "release" || pose.beat === "space";
   const skyY = pose.worldY != null ? pose.worldY : (above ? earthCenter(pose) : pose.shipY);
-  flight.stars.visible = pose.sky >= 0.45;
+  const mode = spaceSkyMode(pose);
   flight.stars.position.set(pose.worldX || 0, skyY, pose.worldZ || 0);
+  if (flight.earthClouds) flight.earthClouds.visible = false;
+  const field = flight.spaceSky && flight.spaceSky.userData.starfield;
+  const showField = mode === "stars" && !!field;
+  flight.stars.visible = mode === "stars" && !showField;
   if (flight.spaceSky) {
-    flight.spaceSky.visible = pose.sky >= 0.55 && !above;
+    const filmMap = flight.spaceSky.userData.filmMap;
+    if (showField) {
+      if (flight.spaceSky.material.map !== field) {
+        flight.spaceSky.material.map = field;
+        flight.spaceSky.material.needsUpdate = true;
+      }
+      flight.spaceSky.visible = true;
+    } else if (mode === "film" && filmMap) {
+      if (flight.spaceSky.material.map !== filmMap) {
+        flight.spaceSky.material.map = filmMap;
+        flight.spaceSky.material.needsUpdate = true;
+      }
+      flight.spaceSky.visible = true;
+    } else {
+      flight.spaceSky.visible = false;
+    }
     flight.spaceSky.position.copy(flight.stars.position);
   }
   const onPad = pose.stackY < 8 && pose.plume > 0.45 && pose.beat !== "cruise";

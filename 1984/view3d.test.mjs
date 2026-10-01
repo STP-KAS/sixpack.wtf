@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, cruiseWatch, abyssWatch, raceWatch, flightFog, drives, EARTH_RADIUS, EARTH_SURFACE, HANG_RADIUS, WORLD_RADIUS, earthCenter, escapeRoom, fitScreen, portraitDistance, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
+import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, cruiseWatch, abyssWatch, raceWatch, flightFog, spaceBackdrop, spaceSkyMode, drives, EARTH_RADIUS, EARTH_SURFACE, HANG_RADIUS, WORLD_RADIUS, earthCenter, escapeRoom, fitScreen, portraitDistance, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -643,6 +643,24 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.equal(flightFog(flightPose(FLIGHT_STAGE)).near, 90);
   assert.equal(flightFog(flightPose(0)).near, 40);
   assert.equal(raceWatch(wild, 0).ly, (wild.carY + wild.guestY) / 2);
+  for (const pose of [
+    flightPose(FLIGHT_ORBIT),
+    flightPose(FLIGHT_RELEASE),
+    flightPose(FLIGHT_SPACE),
+    cruisePose(9000, "abyss", FLIGHT_SPACE),
+    cruisePose(9000, "moon", FLIGHT_SPACE),
+  ]) {
+    const sky = spaceBackdrop(pose);
+    assert.equal(sky.stars, true, pose.beat + " stars");
+    assert.equal(sky.film, false, pose.beat + " film");
+  }
+  const climbing = spaceBackdrop(flightPose(FLIGHT_CLIMB));
+  assert.equal(climbing.film, false);
+  assert.equal(spaceBackdrop(flightPose(0)).stars, false);
+  const upperClimb = spaceBackdrop({ beat: "climb", sky: 0.8 });
+  assert.equal(upperClimb.film, true);
+  assert.equal(spaceSkyMode(flightPose(34000)), "stars");
+  assert.equal(spaceSkyMode(flightPose(0)), "off");
 });
 
 test("the roadster leaves the ship nose-first on +X", () => {
@@ -722,6 +740,9 @@ test("the roadster leaves the ship nose-first on +X", () => {
   placeFlight(flight, hot);
   const stageLimb = flight.earth.position.y + EARTH_RADIUS;
   assert.equal(flight.earth.visible, true);
+  assert.equal(flight.earthClouds.visible, false);
+  assert.equal(spaceSkyMode(hot), "stars");
+  assert.equal(flight.stars.visible, true);
   assert.ok(Math.abs(stageLimb - EARTH_SURFACE) < 1e-6, "stage limb " + stageLimb);
   assert.ok(stageLimb < Math.min(hot.shipY, hot.boosterY) - 10, "stage limb " + stageLimb);
   assert.ok(flight.ship.position.x > flight.booster.position.x + 4);
@@ -761,6 +782,8 @@ test("the roadster leaves the ship nose-first on +X", () => {
   placeFlight(flight, cruisePose(APPROACH_MS + 3000, "mars", FLIGHT_SPACE));
   assert.ok(Math.abs(flight.car.rotation.z) > 0.2 && Math.abs(flight.car.rotation.z) < 0.3);
   assert.equal(flight.worlds.mars.visible, true);
+  assert.equal(flight.earthClouds.visible, false);
+  assert.equal(flight.stars.visible, true);
   assert.equal(flight.earth.visible, false);
   assert.equal(flight.worlds.moon.visible, false);
   assert.equal(flight.ship.visible, false);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buyAskLine, kasSpendAction, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
+import { buyAskLine, kasSpendAction, lockSigner, payKind, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs";
 
 test("a guest shop payment stays on the server, which asks before the key signs", () => {
   assert.equal(kasSpendAction({ kind: "guest", txid: "", needsConfirm: true, ready: false }), "guest");
@@ -63,6 +63,18 @@ test("a shop buy and a toy swap ask on the page", () => {
   assert.equal(swapAskLine("1.00", "POCencept", "KUSDT"), "You want to swap 1.00 POCencept for KUSDT?");
   assert.equal(swapAskLine("1.00", "KUSDT", "tKAS"), "You want to swap 1.00 KUSDT for tKAS?");
   assert.equal(buyAskLine("", ""), "You want to buy this for this?");
+});
+
+test("open tx points at that Testnet 10 transaction", () => {
+  const id = "a7a042501c32cfede58d8672b12a86deaaa2f538606d82002d2e286e689028e7";
+  const url = "https://tn10.kaspa.stream/transactions/" + id;
+  assert.equal(tn10TxUrl(id), url);
+  assert.equal(tn10TxUrl(id.toUpperCase()), url);
+  assert.equal(tn10TxUrl({ txid: id }), url);
+  assert.equal(tn10TxUrl("Tx " + id), url);
+  assert.equal(tn10TxUrl(""), "");
+  assert.equal(tn10TxUrl("[object Object]"), "");
+  assert.equal(tn10TxUrl(url).includes("/txs/"), false);
 });
 
 test("a wallet shop payment asks before it signs, then signs, and a pasted txid is only claimed", () => {

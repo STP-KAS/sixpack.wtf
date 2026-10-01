@@ -101,3 +101,12 @@ export function txidFromWallet(raw) {
   }
   return text;
 }
+
+const TX_ID = /[0-9a-fA-F]{64}/;
+
+/** The page for this Testnet 10 transaction. The transactions list is a different page. */
+export function tn10TxUrl(raw) {
+  const hit = String(txidFromWallet(raw)).match(TX_ID);
+  if (!hit) return "";
+  return "https://tn10.kaspa.stream/transactions/" + hit[0].toLowerCase();
+}
