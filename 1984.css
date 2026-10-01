@@ -448,7 +448,8 @@ body.page-1984 main.kw-stage {
   border: 3px solid #1c1916;
   box-shadow: inset 0 0 0 2px #8a7040, 0 12px 28px rgba(0,0,0,0.45);
 }
-.kw.room .kw-you { display: none; }
+.kw.room .kw-you,
+.kw.flight .kw-you { display: none; }
 .kw.room .kw-hint { display: none; }
 .kw-you h2, .kw-panel h2 { margin: 0 0 0.25rem; font-size: 0.95rem; color: #f2d48a; }
 .kw-you label, .kw-panel label { display: block; font-size: 0.75rem; margin: 0.35rem 0; }

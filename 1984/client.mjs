@@ -539,6 +539,7 @@ function startLaunch() {
   if (warn) warn.hidden = true;
   const big = document.getElementById("sim-big");
   if (big) big.hidden = true;
+  setPayOpen(false);
   markFlight();
   syncRide();
   startLeftFilm();
