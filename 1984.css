@@ -713,9 +713,14 @@ body.page-1984 main.kw-stage {
   font-weight: 700;
   padding: 0.55rem 0.4rem;
 }
-#ask-ok {
+#ask-ok, #need-swap-bank {
   background: linear-gradient(#e6c98a, #a07838);
   color: #1a1612;
+}
+#need-swap .ask-card h2 {
+  margin: 0 0 0.45rem;
+  color: #f2d48a;
+  font-size: 1.25rem;
 }
 .juice-banner {
   position: absolute;

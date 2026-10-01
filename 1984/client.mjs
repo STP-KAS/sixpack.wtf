@@ -15,7 +15,7 @@ import {
 } from "./money.mjs";
 import { payFeeRate, WALLET_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, shopBanner, swapAskLine, txidFromWallet } from "./kas-spend.mjs";
-import { RAIL_NAMES, RAILS_NOTE, payRail, railBarHtml } from "./rails-note.mjs?v=4";
+import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=5";
 import { REELS, reelShuffle, reelStep } from "./reels.mjs?v=3";
 import { DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=35";
 import { HUNTS, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=1";
@@ -664,7 +664,7 @@ function paintPlanets() {
   const sig = rail + ":" + items.map((trip) => trip.sku + "@" + trip.cents).join(",") + ":" + (state.oracle || "") + ":" + (state.kasSompi || "") + ":" + (state.account && state.account.kusdtFrozen ? "f" : "");
   if (box.dataset.sig !== sig) {
     box.dataset.sig = sig;
-    box.innerHTML = railBarHtml(rail) + items.map((trip) => saleButton(rail, "orbit", trip.sku, trip.cents, trip.name, true)).join("");
+    box.innerHTML = '<p class="fine">' + esc(SWAP_PAY) + "</p>" + railBarHtml(rail) + items.map((trip) => saleButton(rail, "orbit", trip.sku, trip.cents, trip.name, true)).join("");
   }
 }
 
@@ -830,6 +830,7 @@ async function refreshAccount() {
   state.oracle = body.oracle;
   if (body.reserve) state.reserve = body.reserve;
   paintBooks();
+  maybeSwapNotice();
 }
 
 function paintBooks() {
@@ -838,6 +839,29 @@ function paintBooks() {
   if (face === "bank") paintBank();
   else if (face === "hunt") paintHunt();
   else if (face === "shop") paintShop(state.mode);
+}
+
+function maybeSwapNotice() {
+  if (swapTold) return;
+  const gateBox = document.getElementById("gate");
+  if (gateBox && !gateBox.hidden) return;
+  if (state.flightStart || state.preRoll) return;
+  if (!state.account) return;
+  const text = swapNeed({
+    kas: state.id.kind === "guest" || state.kasSompi == null ? null : state.kasSompi,
+    poc: state.account.poc || 0,
+    kusdt: state.account.kusdt || 0,
+  });
+  if (!text) {
+    swapTold = true;
+    return;
+  }
+  const card = document.getElementById("need-swap");
+  const line = document.getElementById("need-swap-line");
+  if (!card || !line) return;
+  line.textContent = text;
+  card.hidden = false;
+  swapTold = true;
 }
 
 function forgetGuest(prev) {
@@ -863,6 +887,9 @@ async function logOut() {
   state.id = { address: "", label: "", kind: "" };
   state.account = null;
   state.kasSompi = null;
+  swapTold = false;
+  const needSwap = document.getElementById("need-swap");
+  if (needSwap) needSwap.hidden = true;
   markReturning(false);
   closeCounter();
   const gateBox = document.getElementById("gate");
@@ -1389,7 +1416,7 @@ function paintShow() {
   const ticket = shop && shop.items ? shop.items.find((item) => item.sku === "reel") : null;
   const pay = document.getElementById("show-pay");
   if (pay && ticket) {
-    pay.innerHTML = "<p>The ticket is " + esc(formatCents(ticket.cents)) + " toy dollars.</p>" + saleButton(rail, "cinema", "reel", ticket.cents, ticket.name, false);
+    pay.innerHTML = "<p>The ticket is " + esc(formatCents(ticket.cents)) + " toy dollars.</p><p class=\"fine\">" + esc(SWAP_PAY) + "</p>" + saleButton(rail, "cinema", "reel", ticket.cents, ticket.name, false);
   }
   const box = document.getElementById("show-snacks");
   if (!box || !shop) return;
@@ -1719,7 +1746,11 @@ function saleButton(rail, shop, sku, cents, name, withName) {
     return blocked("KUSDT is frozen", "KUSDT is frozen. POCencept and tKAS still spend.");
   }
   if (canPay(rail, cents) === false) {
-    return blocked("Not enough " + names[rail], "Not enough " + names[rail] + " for " + name + ".");
+    const have = rail === "kas"
+      ? BigInt(state.kasSompi || 0)
+      : BigInt(rail === "kusdt" ? (state.account && state.account.kusdt) || 0 : (state.account && state.account.poc) || 0);
+    const line = shortRail(rail, have);
+    return blocked(line, line);
   }
   const caption = withName ? name + " · " + price : "Buy · " + price;
   return '<button type="button" class="buy" data-pay="' + rail + '" data-shop="' + shop + '" data-sku="' + sku + '">' + esc(caption) + "</button>";
@@ -1844,6 +1875,7 @@ function paintShop(shopId) {
     railBarHtml(rail) +
     rows + txid +
     "<p class=\"fine\">" + esc(payKind("shop")) + "</p>" +
+    "<p class=\"fine\">" + esc(SWAP_PAY) + " No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap.</p>" +
     "<p class=\"fine\">One rail for this buy. A buy asks on this page, then OK. The wallet opens only when you swap tKAS at the bank. The miner fee on that swap is twice the standard Testnet 10 rate, and it is extra.</p></div>";
   document.getElementById("stall-close").onclick = () => closeCounter();
   const pasted = document.getElementById("txid");
@@ -1857,6 +1889,7 @@ let redeemDraft = "";
 let swapNoteText = "Push a clerk. tKAS, POCencept, or KUSDT.";
 let swapNoteKind = "";
 let swapBusy = false;
+let swapTold = false;
 let spendBusy = false;
 let shopTxid = "";
 let lockTxid = "";
@@ -1980,7 +2013,7 @@ function paintBank() {
       '<button type="button" class="clerk-push" data-booth="' + id + '"><span>' + esc(title) + "</span><strong>" + esc(clerkFigure(id)) + "</strong><small>Push this window</small></button>";
     body =
       '<div class="swap-head"><h2>Venn\'s bank</h2>' + close + "</div>" +
-      '<p class="clerk-ask">Push a clerk.</p>' +
+      '<p class="clerk-ask">To pay for something, swap tKAS here for POCencept and KUSDT. Push a clerk.</p>' +
       '<div class="clerk-picks">' + push("kas", "tKAS") + push("poc", "POCencept") + push("kusdt", "KUSDT") + "</div>" +
       '<button type="button" class="rails-open" data-rails>What are the rails?</button>' +
       '<button type="button" class="clerk-books" data-clerk="books">The books</button>' +
@@ -2005,7 +2038,7 @@ function paintBank() {
   } else if (clerk === "kas") {
     body =
       '<div class="swap-head"><h2>tKAS</h2><button type="button" id="clerk-back" data-clerk="">Back</button></div>' +
-      '<p class="clerk-ask">This window swaps into POCencept or KUSDT.</p>' +
+      '<p class="clerk-ask">Swap tKAS here for POCencept or KUSDT. That is how you pay for something.</p>' +
       '<p class="clerk-bal"><span>You have</span><strong>' + esc(clerkFigure("kas")) + "</strong></p>" +
       '<p class="fine">Only the part that came from tKAS can come back. Practice stays a shop coin.</p>' +
       '<label class="amt">tKAS to swap<input id="lock-amt" value="' + esc(lockDraft) + '" inputmode="decimal" autocomplete="off"></label>' +
@@ -2138,6 +2171,7 @@ function paintHunt() {
     '<button type="button" id="stall-close">Close</button></div>' +
     "<p>Classroom pack desk. Tags on this ledger. Not Tether. Not a company till. Hidden until it pays.</p>" +
     balanceSheet() + rows + txid +
+    "<p class=\"fine\">" + esc(SWAP_PAY) + "</p>" +
     "<p class=\"fine\">A promise asks on this page, then OK. The pack stays hidden. The wallet opens only when you swap tKAS at the bank.</p></div>";
   const close = document.getElementById("stall-close");
   if (close) close.onclick = () => closeCounter();
@@ -2289,7 +2323,7 @@ function paintGuide() {
     "<li>Need coins: New arrival gives this tab 50000 tKAS. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, take a seat and the menu blinks, or order at the blinking counter. The market opens at the counter. The showroom opens when you click Pike or the sign. Buy the roadster and it waits on the lot. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Get in drives. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. New arrival is the test wallet.</li>" +
-    "<li>The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS. When a payment finishes, the steps and the transaction stay on the page. Open the transaction, or start a new purchase. Log out returns you to the welcome gate.</li>" +
+    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. The miner fee on a tKAS swap is twice the standard Testnet 10 rate, and it is extra tKAS. When a payment finishes, the steps and the transaction stay on the page. Open the transaction, or start a new purchase. Log out returns you to the welcome gate.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>The roadster parks on the lot in front of Pike's shop. If it is yours, Drive in your roadster is the large gold button. Once you are in the car, Launch into space is the gold button. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, plays two short films on the tower first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. The screens stop when the ship lifts. The ship lifts when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. When the roadster leaves, that release plays its voice while the car leaves the bay toward the Earth. A bar fills until the car leaves the ship. The climb keeps the comms going. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. The way there is ten seconds. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends.</li>" +
@@ -3155,6 +3189,12 @@ window.addEventListener("keydown", (ev) => {
   if (key !== "e" && key !== "escape" && key !== "g") return;
   if (ev.target && (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA")) return;
   if (key === "escape") {
+    const need = document.getElementById("need-swap");
+    if (need && !need.hidden) {
+      ev.preventDefault();
+      need.hidden = true;
+      return;
+    }
     const rails = document.getElementById("rails-note");
     if (rails && !rails.hidden) {
       ev.preventDefault();
@@ -3201,33 +3241,36 @@ window.addEventListener("keydown", (ev) => {
 });
 
 window.addEventListener("resize", () => worldView.resize());
+function walkInto(mode) {
+  if (state.flightStart || state.preRoll) return;
+  if (!shopVisit(mode)) {
+    openMode(mode);
+    return;
+  }
+  const near = nearShop(map, state.player.x, state.player.y, mode);
+  if (state.venue && state.venue !== mode) {
+    stopShow(true);
+    if (!near) veilRoom();
+    state.venue = "";
+    state.inside = false;
+    state.seated = false;
+    state.huntSpoke = false;
+    if (state.mode !== "world") hidePanel();
+    state.mode = "world";
+    markRoom();
+    paintChrome();
+  }
+  if (near) enterVenue(mode);
+  else {
+    const npc = map.npcs.find((item) => item.shop === mode);
+    if (npc) walkTo(npc.x, npc.y, () => enterVenue(mode));
+  }
+}
 side.addEventListener("click", (ev) => {
   if (state.flightStart || state.preRoll) return;
   const button = ev.target.closest("[data-go]");
   if (!button) return;
-  const mode = button.getAttribute("data-go");
-  if (shopVisit(mode)) {
-    const near = nearShop(map, state.player.x, state.player.y, mode);
-    if (state.venue && state.venue !== mode) {
-      stopShow(true);
-      if (!near) veilRoom();
-      state.venue = "";
-      state.inside = false;
-      state.seated = false;
-      state.huntSpoke = false;
-      if (state.mode !== "world") hidePanel();
-      state.mode = "world";
-      markRoom();
-      paintChrome();
-    }
-    if (near) enterVenue(mode);
-    else {
-      const npc = map.npcs.find((item) => item.shop === mode);
-      if (npc) walkTo(npc.x, npc.y, () => enterVenue(mode));
-    }
-    return;
-  }
-  openMode(mode);
+  walkInto(button.getAttribute("data-go"));
 });
 you.addEventListener("click", (ev) => {
   if (ev.target.id === "log-out") logOut().catch((err) => say(err.message, true));
@@ -3261,6 +3304,7 @@ you.addEventListener("click", (ev) => {
 const gate = document.getElementById("gate");
 function hideGate() {
   if (gate) gate.hidden = true;
+  maybeSwapNotice();
 }
 function markReturning(on) {
   const root = document.querySelector(".kw");
@@ -3345,6 +3389,20 @@ const simBig = document.getElementById("sim-big");
 if (simBig) simBig.addEventListener("click", () => { simBig.hidden = true; });
 const payAgain = document.getElementById("pay-slip-again");
 if (payAgain) payAgain.addEventListener("click", newPurchase);
+const needSwapCard = document.getElementById("need-swap");
+if (needSwapCard) {
+  needSwapCard.addEventListener("click", (ev) => {
+    if (ev.target === needSwapCard || ev.target.closest("#need-swap-ok")) needSwapCard.hidden = true;
+  });
+}
+const needSwapBank = document.getElementById("need-swap-bank");
+if (needSwapBank) {
+  needSwapBank.addEventListener("click", () => {
+    if (needSwapCard) needSwapCard.hidden = true;
+    walkInto("bank");
+    say(SWAP_PAY);
+  });
+}
 const railsNote = document.getElementById("rails-note");
 if (railsNote) {
   railsNote.addEventListener("click", (ev) => {
