@@ -232,7 +232,7 @@ const SPACE_JOKES = {
     "Beautiful. The Gulf of America.",
   ],
   any: [
-    "KONI shows the accepted block and the mining reward.",
+    "The card stays open for the next hop.",
     "Another world is on the card.",
     "The abyss is past this circle.",
   ],
@@ -322,8 +322,9 @@ function stackPoint(originX, originY, localX, localY, roll) {
  * Stack positions for one moment.
  * Climb pitches the whole stack downrange, nose toward +X.
  * Through T+ 0:15 the ship base sits on the booster top. Same axis, no flip.
- * After that the ship pulls ahead on that axis. The booster slips back, peels
- * off the axis toward the pad camera, and flips nose-back for the boostback burn.
+ * After that the ship keeps going and the booster falls back on that same axis.
+ * Once a gap is open, the booster turns about its middle until the bells point
+ * forward for the boostback burn. A small yaw takes it out of the pitch plane.
  * The climb height stays the old stack. The roadster stays in the bay until release.
  * Its nose uses headingYaw(1, 0), the same −z front as the town car.
  */
@@ -336,22 +337,22 @@ export function flightPose(ms) {
   const lean = 0.42 * flightSmooth(t, FLIGHT_LIFTOFF + 2000, FLIGHT_STAGE) * (1 - flightSmooth(t, FLIGHT_ORBIT, FLIGHT_RELEASE));
   const shipRoll = -lean;
   const coast = 1 - flightSmooth(t, FLIGHT_ORBIT, FLIGHT_RELEASE);
-  const pull = 8 * flightSmooth(t, letGo, letGo + 1600) * coast;
-  const slip = flightSmooth(t, letGo, letGo + 1200) * 16;
-  const aside = flightSmooth(t, letGo, letGo + 1400) * 4.5;
+  const pull = 11 * flightSmooth(t, letGo, letGo + 1300) * coast;
+  const slip = flightSmooth(t, letGo, FLIGHT_ORBIT + 2000) * 26;
+  const aside = flightSmooth(t, letGo + 700, letGo + 2400) * 1.4;
   const along = 11.2 + pull;
   const shipAt = stackPoint(0, stackY, 0, along, shipRoll);
   const boostAt = stackPoint(0, stackY, -aside, -slip, shipRoll);
-  const peel = flightSmooth(t, letGo, letGo + 1600);
-  const drop = flightSmooth(t, letGo + 800, letGo + 2200) * 6;
-  const flip = flightSmooth(t, letGo, letGo + 2000) * Math.PI;
+  const peel = flightSmooth(t, letGo + 500, letGo + 2200);
+  const drop = flightSmooth(t, letGo + 200, letGo + 1700) * 14 + flightSmooth(t, letGo + 1700, FLIGHT_ORBIT) * 8;
+  const flip = flightSmooth(t, letGo + 550, letGo + 2500) * Math.PI;
   const boosterRoll = shipRoll - flip;
   const shipX = shipAt.x;
   const shipY = shipAt.y;
   const boosterX = boostAt.x;
   const boosterY = boostAt.y - drop;
-  const boosterZ = peel * 6;
-  const boosterYaw = peel * 0.65;
+  const boosterZ = peel * 4.5;
+  const boosterYaw = peel * 0.5;
   let carX = 0;
   let bayY = 4.2;
   let carZ = 0;
@@ -595,9 +596,9 @@ export function flightCamera(ms, yaw = 0, pitch = 1.05) {
     const midX = (sx + bx) / 2;
     const midY = (pose.shipY + pose.boosterY) / 2;
     return {
-      x: midX - 8,
-      y: midY + 3,
-      z: 24,
+      x: midX - 6,
+      y: midY + 2,
+      z: 18,
       lx: midX,
       ly: midY,
       lz: (pose.boosterZ || 0) * 0.35,
@@ -1816,8 +1817,14 @@ export function paintKoni(flight, lines) {
 
 export function placeFlight(flight, pose) {
   const shipRoll = pose.shipRoll || 0;
-  flight.booster.position.set(pose.boosterX || 0, pose.boosterY, pose.boosterZ || 0);
-  flight.booster.rotation.set(0, pose.boosterYaw || 0, pose.boosterRoll || 0);
+  // Pose boosterX/Y is the bell point before the flip. The half-turn is about the middle.
+  const mid = 5.5;
+  const roll = pose.boosterRoll || 0;
+  const axis = shipRoll;
+  const cx = (pose.boosterX || 0) - mid * Math.sin(axis);
+  const cy = pose.boosterY + mid * Math.cos(axis);
+  flight.booster.rotation.set(0, pose.boosterYaw || 0, roll);
+  flight.booster.position.set(cx + mid * Math.sin(roll), cy - mid * Math.cos(roll), pose.boosterZ || 0);
   if (flight.fins) {
     const kick = Math.max(0, -(pose.boosterRoll || 0) - Math.abs(pose.shipRoll || 0));
     const bend = Math.min(0.55, kick * 0.15);
@@ -1940,7 +1947,7 @@ export function placeFlight(flight, pose) {
   }
   if (flight.koni) {
     const spot = koniSpot(pose);
-    flight.koni.visible = pose.beat === "cruise";
+    flight.koni.visible = false;
     if (!pose.released && pose.beat !== "cruise") {
       const seat = stackPoint(pose.shipX || 0, pose.shipY, 0.4, 3.4, shipRoll);
       flight.koni.position.set(seat.x, seat.y, spot.z);

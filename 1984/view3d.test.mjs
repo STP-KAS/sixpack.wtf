@@ -428,6 +428,11 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.equal(still.boosterZ, 0);
   assert.equal(still.boosterYaw, 0);
   assert.ok(Math.abs(still.shipRoll - still.boosterRoll) < 1e-9);
+  const pushed = flightPose(FLIGHT_STAGE + 2900);
+  assert.ok(Math.abs(pushed.boosterRoll - pushed.shipRoll) < 1e-9, "axial before the flip");
+  assert.ok(pushed.shipX > pushed.boosterX, "ship ahead " + pushed.shipX + " " + pushed.boosterX);
+  const flipped = flightPose(FLIGHT_STAGE + 5000);
+  assert.ok(Math.abs(Math.abs(flipped.boosterRoll - flipped.shipRoll) - Math.PI) < 0.05, "half turn " + flipped.boosterRoll);
   assert.equal(flightPose(FLIGHT_STAGE + 1000).plume, 0);
   assert.ok(later.boosterZ > 2, "peel " + later.boosterZ);
   assert.ok(Math.abs(later.boosterYaw) > 0.2, "yaw " + later.boosterYaw);
@@ -575,6 +580,8 @@ test("the roadster leaves the ship nose-first on +X", () => {
   assert.ok(Math.abs(flight.plume.rotation.x) < 1e-6);
   const matedPose = flightPose(FLIGHT_LIFTOFF + 15000);
   placeFlight(flight, matedPose);
+  assert.ok(Math.abs(flight.booster.position.x - matedPose.boosterX) < 1e-6);
+  assert.ok(Math.abs(flight.booster.position.y - matedPose.boosterY) < 1e-6);
   assert.ok(Math.abs(flight.ship.rotation.z - flight.booster.rotation.z) < 1e-6);
   const expectX = matedPose.boosterX - 11.2 * Math.sin(flight.booster.rotation.z);
   const expectY = matedPose.boosterY + 11.2 * Math.cos(flight.booster.rotation.z);
@@ -661,7 +668,12 @@ test("the roadster leaves the ship nose-first on +X", () => {
   assert.ok(near < 2, "joke " + near);
   const onOrbit = cruisePose(APPROACH_MS, "mars", FLIGHT_SPACE);
   placeFlight(flight, onOrbit);
-  assert.equal(flight.koni.visible, true);
+  assert.equal(flight.koni.visible, false);
+  placeFlight(flight, flightPose(FLIGHT_SPACE));
+  assert.equal(flight.koni.visible, false);
+  placeFlight(flight, flightPose(FLIGHT_RELEASE));
+  assert.equal(flight.koni.visible, false);
+  placeFlight(flight, onOrbit);
   flight.root.updateMatrixWorld(true);
   const screen = flight.koni.getObjectByName("koni-screen");
   const screenNormal = new THREE.Vector3(0, 0, 1).applyQuaternion(screen.getWorldQuaternion(new THREE.Quaternion()));
