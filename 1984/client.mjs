@@ -391,8 +391,13 @@ function paintChrome() {
   const frozen = state.account && state.account.kusdtFrozen ? " · KUSDT stable frozen" : "";
   const guestLine = id.kind === "guest" ? " · this tab only" : "";
   const driving = state.account && state.account.roadster ? (state.aboard ? " · driving" : " · roadster is yours") : "";
+  const bankOn = state.mode === "bank" ? " on" : "";
   bar.innerHTML =
-    "<strong>" + esc(label) + "</strong> · " + esc(kas) + " · " + esc(poc) + " · " + esc(kusdt) + frozen + esc(guestLine) + driving;
+    '<p class="bal-line"><strong>' + esc(label) + "</strong>" + esc(guestLine) + driving + "</p>" +
+    '<p class="bal-line">' + esc(kas) + "</p>" +
+    '<p class="bal-line">' + esc(poc) + "</p>" +
+    '<p class="bal-line">' + esc(kusdt) + esc(frozen) + "</p>" +
+    '<button type="button" id="bar-bank" class="bar-bank' + bankOn + '">Bank</button>';
 
   const buttons = [
     ["world", "Square"],
@@ -2415,6 +2420,7 @@ function paintGuide() {
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>The roadster parks on the lot in front of Pike's shop. If it is yours, Drive in your roadster is the large gold button. Once you are in the car, Launch into space is the gold button. Thrusters show while it moves. Get out is the gold button. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, plays two short films on the tower first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. One tower stands beside it, and the chopsticks stay open. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. After the booster is gone, the ship coasts, then the roadster leaves. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: you hang out with the old roadster. It has been cruising for years. The way there is ten seconds. Out there the two cars race in orbit around the Earth. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>The Moon map is NASA. Mars, Jupiter, Saturn, and the rings are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0.</li>" +
+    "<li>The balances stay in the top right, on the square, in a shop, in the cinema, and on a flight. Bank is on that card.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends. Exit to the square leaves the cinema.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
@@ -3377,6 +3383,16 @@ side.addEventListener("click", (ev) => {
   const button = ev.target.closest("[data-go]");
   if (!button) return;
   walkInto(button.getAttribute("data-go"));
+});
+bar.addEventListener("click", (ev) => {
+  if (!ev.target.closest("#bar-bank")) return;
+  const notice = document.getElementById("need-swap");
+  if (notice) notice.hidden = true;
+  if (state.flightStart || state.preRoll) {
+    openMode("bank");
+    return;
+  }
+  walkInto("bank");
 });
 you.addEventListener("click", (ev) => {
   if (ev.target.id === "log-out") logOut().catch((err) => say(err.message, true));

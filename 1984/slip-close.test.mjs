@@ -61,6 +61,23 @@ test("exit to the square is on the shop card", () => {
   assert.match(css, /\.stall-acts/);
 });
 
+test("the balances stay in the top right with Bank", () => {
+  const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
+  assert.match(html, /<header class="kw-bar" id="bar"><\/header>/);
+  assert.match(html, /1984\.css\?v=50/);
+  assert.match(html, /1984\/client\.mjs\?v=88/);
+  const chrome = sliceFn(client, "paintChrome");
+  assert.match(chrome, /id="bar-bank" class="bar-bank/);
+  assert.match(chrome, />Bank<\/button>/);
+  assert.match(client, /closest\("#bar-bank"\)/);
+  assert.match(client, /openMode\("bank"\)/);
+  assert.match(client, /The balances stay in the top right/);
+  assert.match(css, /\.kw-bar \{[\s\S]*?right: 8px;/);
+  assert.match(css, /\.kw\.flight \.kw-bar,\s*\.kw\.watching \.kw-bar,\s*\.kw\.room \.kw-bar \{ display: block; \}/);
+  assert.doesNotMatch(css, /\.kw\.flight \.kw-bar \{ display: none/);
+  assert.doesNotMatch(css, /\.kw\.watching \.kw-bar \{ display: none/);
+});
+
 test("closing the pay slip leaves new purchase on that card", () => {
   const close = sliceFn(client, "closePaySlip");
   assert.match(close, /box\.hidden = true/);

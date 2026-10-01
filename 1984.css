@@ -66,19 +66,34 @@ body.page-1984 .tabs button.on { background: #8a7040; color: #1a1612; }
 }
 .kw-bar {
   position: absolute;
-  left: 112px;
-  right: 370px;
-  top: 6px;
-  z-index: 3;
+  top: 8px;
+  right: 8px;
+  left: auto;
+  z-index: 12;
+  width: min(220px, calc(100% - 16px));
   margin: 0;
-  padding: 0.12rem 0.4rem;
-  background: rgba(20, 14, 10, 0.78);
-  border: none;
-  pointer-events: none;
+  padding: 0.35rem 0.45rem 0.4rem;
+  background: rgba(20, 14, 10, 0.9);
+  border: 2px solid #c6a15a;
+  pointer-events: auto;
   font-size: 0.78rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.3;
+  text-align: right;
+  white-space: normal;
+  overflow: visible;
+}
+.kw-bar .bal-line { margin: 0; }
+.kw-bar .bar-bank {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  min-height: 44px;
+  text-align: center;
+  font-weight: 700;
+  color: #1a1612;
+  background: linear-gradient(#f0d7a0, #c49a45);
+  border: 2px solid #1c1916;
+  pointer-events: auto;
 }
 .kw-bar strong { color: #f2d48a; }
 .kw-bar .fine, .fine { color: #b7a88a; font-size: 0.75rem; margin: 0.1rem 0 0; }
@@ -101,7 +116,7 @@ body.page-1984 main.kw-stage {
 .kw-mini {
   position: absolute;
   right: 8px;
-  top: 8px;
+  top: 180px;
   z-index: 3;
   width: 116px;
   height: 88px;
@@ -160,7 +175,7 @@ body.page-1984 main.kw-stage {
 }
 .kw-pay-toggle {
   position: absolute;
-  top: 8px;
+  top: 180px;
   right: 252px;
   z-index: 3;
   margin: 0;
@@ -170,7 +185,7 @@ body.page-1984 main.kw-stage {
 }
 .kw-logout {
   position: absolute;
-  top: 8px;
+  top: 180px;
   right: 132px;
   z-index: 7;
   margin: 0;
@@ -352,8 +367,7 @@ body.page-1984 main.kw-stage {
 .kw.flight .kw-mini,
 .kw.flight .kw-chat,
 .kw.flight .kw-side,
-.kw.flight .kw-pay-toggle,
-.kw.flight .kw-bar { display: none; }
+.kw.flight .kw-pay-toggle { display: none; }
 .show-card {
   position: absolute;
   left: 12px;
@@ -431,8 +445,10 @@ body.page-1984 main.kw-stage {
 }
 .kw.watching .kw-chat,
 .kw.watching .kw-side,
-.kw.watching .kw-mini,
-.kw.watching .kw-bar { display: none; }
+.kw.watching .kw-mini { display: none; }
+.kw.flight .kw-bar,
+.kw.watching .kw-bar,
+.kw.room .kw-bar { display: block; }
 .kw-you {
   position: absolute;
   right: 10px;
@@ -1175,20 +1191,17 @@ a { color: #f2d48a; }
     touch-action: manipulation;
   }
   .kw-bar {
-    position: relative;
+    position: absolute;
     left: auto;
-    right: auto;
-    top: auto;
-    flex: 0 0 auto;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    right: max(8px, env(safe-area-inset-right));
+    top: max(8px, env(safe-area-inset-top));
+    z-index: 12;
+    width: min(200px, calc(100% - 16px));
+    white-space: normal;
+    overflow: visible;
+    text-align: right;
     font-size: clamp(0.72rem, 2.8vw, 0.82rem);
     line-height: 1.3;
-    padding-top: 0.06rem;
-    padding-bottom: 0.06rem;
-    padding-left: max(0.4rem, env(safe-area-inset-left));
-    padding-right: max(0.4rem, env(safe-area-inset-right));
   }
   .kw-hint.hint-phone { display: none; }
   .kw-pay-toggle {
