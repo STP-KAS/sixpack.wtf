@@ -113,6 +113,9 @@ export const APPROACH_MS = 10000;
 export const APPROACH_FAR = 48;
 /** Speed and distance on the hop are not miles. Ten blocks a second is the Kaspa rate. */
 export const FLIGHT_NOTE = "Space is broad. Speed and distance here are relative. Being among the stars in a vast space is hard, and with an average of 10 blocks per second it is possible. Enjoy the flight.";
+
+/** What Go into the abyss is. The old roadster is already out there. */
+export const ABYSS_HANG = "You hang out with the old roadster. It has been cruising for years.";
 /** A half turn of local +Y lands on −Y. The exhaust column is built on −Y already. */
 export const FLIGHT_PLUME_PITCH = Math.PI;
 
@@ -185,13 +188,13 @@ export function cruiseLine(progress, name) {
   const world = name || "that world";
   const abyss = /abyss/i.test(world);
   if (progress < APPROACH_MS / CRUISE_MS) {
-    if (abyss) return "Look at that view. The Gulf of America is beautiful.";
+    if (abyss) return ABYSS_HANG + " The Gulf of America is beautiful.";
     return "On the way to " + world + ". The climb already pitched downrange.";
   }
   if (abyss) {
-    if (progress < 0.55) return "The Gulf of America. Wonderful.";
-    if (progress < 1) return "What a view. The gulf is wonderful.";
-    return "The Gulf of America fills the window. Wonderful.";
+    if (progress < 0.55) return "The old roadster has been cruising for years. The Gulf of America. Wonderful.";
+    if (progress < 1) return ABYSS_HANG + " What a view. The gulf is wonderful.";
+    return "The old roadster has been cruising for years. The Gulf of America fills the window. Wonderful.";
   }
   if (progress < 1) return "At " + world + ". You can leave for another world, or go into the abyss.";
   return "At " + world + ". The bar is full. Leave for another world, or go into the abyss.";
@@ -225,10 +228,10 @@ const SPACE_JOKES = {
     "Saturn. The card can send you on.",
   ],
   abyss: [
-    "Look down. The Gulf of America is beautiful.",
-    "Wonderful. That gulf fills the window.",
-    "The Gulf of America. Wonderful.",
-    "Beautiful. The Gulf of America.",
+    ABYSS_HANG + " Look down. The Gulf of America is beautiful.",
+    "The old roadster has been cruising for years. Wonderful. That gulf fills the window.",
+    ABYSS_HANG + " The Gulf of America. Wonderful.",
+    "Beautiful. The old roadster has been cruising for years. The Gulf of America.",
   ],
   any: [
     "The card stays open for the next hop.",

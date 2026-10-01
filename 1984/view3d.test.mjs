@@ -476,8 +476,12 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.ok(Math.abs(wild.carYaw - headingYaw(1, 0)) > 2);
   assert.match(cruiseLine(0.1, "Go into the abyss"), /Gulf of America/);
   assert.match(cruiseLine(0.1, "Go into the abyss"), /beautiful/);
+  assert.match(cruiseLine(0.1, "Go into the abyss"), /old roadster/);
+  assert.match(cruiseLine(0.1, "Go into the abyss"), /cruising for years/);
   assert.match(spaceJoke(APPROACH_MS, "abyss").text, /Gulf of America/);
   assert.match(spaceJoke(APPROACH_MS, "abyss").text, /beautiful/);
+  assert.match(spaceJoke(APPROACH_MS, "abyss").text, /old roadster/);
+  assert.match(spaceJoke(APPROACH_MS, "abyss").text, /cruising for years/);
   const hop = cruisePose(0, "mars", FLIGHT_SPACE);
   assert.equal(hop.carYaw, headingYaw(1, 0));
   assert.equal(hop.carRoll, 0);
