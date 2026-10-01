@@ -100,10 +100,16 @@ export const DRIVE_MS = 75;
 /** A ship ride. Times are from the moment Launch is pressed. Up is +Y. The count on the pad runs to zero before the ship leaves. */
 export const FLIGHT_LIFTOFF = 15000;
 export const FLIGHT_CLIMB = 21000;
+/** Most booster engines cut. Flight 14 did this at 2:20. */
 export const FLIGHT_STAGE = 28000;
-export const FLIGHT_ORBIT = 34000;
-export const FLIGHT_RELEASE = 40000;
-export const FLIGHT_SPACE = 48000;
+/** The camera leaves the booster and stays with the ship. */
+export const FLIGHT_ORBIT = 39000;
+/** Ship engine cutoff. Flight 14 did this at 8:11, then coasted. */
+export const FLIGHT_SECO = 46000;
+/** Unpowered float before the bay opens. */
+export const FLIGHT_COAST = 10000;
+export const FLIGHT_RELEASE = FLIGHT_SECO + FLIGHT_COAST;
+export const FLIGHT_SPACE = FLIGHT_RELEASE + 8000;
 /** A paid hop. The end popup waits this long after the hop starts. The bar uses CRUISE_MS. */
 export const CRUISE_END_MS = 10000;
 export const CRUISE_MS = 40000;
@@ -144,10 +150,16 @@ export function flightLine(beat, ms) {
   if (beat === "climb") return "Climbing out.";
   if (beat === "stage") {
     const t = Math.max(0, ms || 0);
-    if (t <= FLIGHT_STAGE + 2500) return "The booster is on the ship.";
-    return "The booster lets go.";
+    const marks = stageMarks();
+    if (t <= marks.letGo) return "The booster is on the ship.";
+    if (t < marks.flipStart) return "Hot staging. The ship pulls away.";
+    return "The booster turns for the boostback.";
   }
-  if (beat === "orbit") return "Stage sep.";
+  if (beat === "orbit") {
+    const t = Math.max(0, ms || 0);
+    if (t < FLIGHT_SECO) return "The ship keeps climbing.";
+    return "The ship is coasting.";
+  }
   return "";
 }
 
@@ -320,41 +332,55 @@ function stackPoint(originX, originY, localX, localY, roll) {
   };
 }
 
+/** Separation clock. letGo stays 2.5s after MECO so T+ 0:15 is still one stack. */
+function stageMarks() {
+  const letGo = FLIGHT_STAGE + 2500;
+  const flipStart = letGo + 2200;
+  const flipEnd = flipStart + 2000;
+  return {
+    letGo,
+    flipStart,
+    flipEnd,
+    boostStart: flipEnd - 500,
+    boostEnd: flipEnd + 4000,
+  };
+}
+
 /**
  * Stack positions for one moment.
  * Climb pitches the whole stack downrange, nose toward +X.
  * Through T+ 0:15 the ship base sits on the booster top. Same axis, no flip.
- * After that the ship keeps going and the booster falls back on that same axis.
- * Once a gap is open, the booster turns about its middle until the bells point
- * forward for the boostback burn. A small yaw takes it out of the pitch plane.
- * The climb height stays the old stack. The roadster stays in the bay until release.
- * Its nose uses headingYaw(1, 0), the same −z front as the town car.
+ * MECO leaves three center engines. The ship is already lit, pulls away, then the booster flips.
+ * Boostback lights 31 bells back toward the pad. The ship burns on, shuts down, and coasts for ten seconds.
+ * The roadster stays in the bay until that coast ends. Its nose uses headingYaw(1, 0), the same −z front as the town car.
  */
 export function flightPose(ms) {
   const t = Math.max(0, ms);
   const beat = flightBeat(t);
-  const up = flightSmooth(t, FLIGHT_LIFTOFF, FLIGHT_ORBIT);
-  const stackY = up * 48;
-  const letGo = FLIGHT_STAGE + 2500;
-  const lean = 0.42 * flightSmooth(t, FLIGHT_LIFTOFF + 2000, FLIGHT_STAGE) * (1 - flightSmooth(t, FLIGHT_ORBIT, FLIGHT_RELEASE));
+  const marks = stageMarks();
+  const burnUp = flightSmooth(t, FLIGHT_LIFTOFF, FLIGHT_SECO);
+  const drift = flightSmooth(t, FLIGHT_SECO, FLIGHT_SECO + 4000) * 2.4;
+  const coastU = t <= FLIGHT_SECO || t >= FLIGHT_RELEASE ? 0 : (t - FLIGHT_SECO) / FLIGHT_COAST;
+  const bob = Math.sin(coastU * Math.PI) * 1.8;
+  const stackY = burnUp * 50 + drift + bob;
+  const lean = 0.42 * flightSmooth(t, FLIGHT_LIFTOFF + 2000, FLIGHT_STAGE) * (1 - flightSmooth(t, FLIGHT_RELEASE - 2500, FLIGHT_RELEASE));
   const shipRoll = -lean;
-  const coast = 1 - flightSmooth(t, FLIGHT_ORBIT, FLIGHT_RELEASE);
-  const pull = 11 * flightSmooth(t, letGo, letGo + 1300) * coast;
-  const slip = flightSmooth(t, letGo, FLIGHT_ORBIT + 2000) * 26;
-  const aside = flightSmooth(t, letGo + 700, letGo + 2400) * 1.4;
+  const pull = 14 * flightSmooth(t, marks.letGo, marks.letGo + 1600);
+  const slip = flightSmooth(t, marks.letGo, FLIGHT_ORBIT) * 24;
+  const aside = flightSmooth(t, marks.flipEnd, marks.flipEnd + 1200) * 1.3;
   const along = 11.2 + pull;
   const shipAt = stackPoint(0, stackY, 0, along, shipRoll);
   const boostAt = stackPoint(0, stackY, -aside, -slip, shipRoll);
-  const peel = flightSmooth(t, letGo + 500, letGo + 2200);
-  const drop = flightSmooth(t, letGo + 200, letGo + 1700) * 14 + flightSmooth(t, letGo + 1700, FLIGHT_ORBIT) * 8;
-  const flip = flightSmooth(t, letGo + 550, letGo + 2500) * Math.PI;
+  const peel = flightSmooth(t, marks.flipEnd, marks.flipEnd + 900);
+  const drop = flightSmooth(t, marks.flipEnd, marks.flipEnd + 1600) * 14 + flightSmooth(t, marks.boostEnd, marks.boostEnd + 2500) * 10;
+  const flip = flightSmooth(t, marks.flipStart, marks.flipEnd) * Math.PI;
   const boosterRoll = shipRoll - flip;
   const shipX = shipAt.x;
   const shipY = shipAt.y;
   const boosterX = boostAt.x;
   const boosterY = boostAt.y - drop;
-  const boosterZ = peel * 4.5;
-  const boosterYaw = peel * 0.5;
+  const boosterZ = peel * 5;
+  const boosterYaw = peel * 0.55;
   let carX = 0;
   let bayY = 4.2;
   let carZ = 0;
@@ -366,19 +392,30 @@ export function flightPose(ms) {
     carZ = out * 1.4;
   }
   const bay = stackPoint(shipX, shipY, carX, bayY, shipRoll);
-  let plume;
-  if (t < FLIGHT_LIFTOFF) plume = flightSmooth(t, FLIGHT_LIFTOFF - 8000, FLIGHT_LIFTOFF);
-  else if (t < FLIGHT_STAGE) plume = 1;
-  else if (t < letGo + 500) plume = 0;
-  else if (t < FLIGHT_ORBIT) plume = 0.7 * (1 - flightSmooth(t, FLIGHT_ORBIT - 1200, FLIGHT_ORBIT));
-  else plume = 0;
-  let shipPlume = 0;
-  if (t >= FLIGHT_STAGE - 700 && t < FLIGHT_ORBIT) {
-    shipPlume = t >= FLIGHT_STAGE ? 1 : flightSmooth(t, FLIGHT_STAGE - 700, FLIGHT_STAGE);
-  } else if (t >= FLIGHT_ORBIT && t < FLIGHT_ORBIT + 1500) {
-    shipPlume = 1 - flightSmooth(t, FLIGHT_ORBIT, FLIGHT_ORBIT + 1500);
+  let plume = 0;
+  let litJets = 0;
+  if (t < FLIGHT_LIFTOFF) {
+    plume = flightSmooth(t, FLIGHT_LIFTOFF - 8000, FLIGHT_LIFTOFF);
+    litJets = plume > 0.02 ? 33 : 0;
+  } else if (t < FLIGHT_STAGE) {
+    plume = 1;
+    litJets = 33;
+  } else if (t < marks.letGo + 200) {
+    plume = 0.18;
+    litJets = 3;
+  } else if (t >= marks.boostStart && t < marks.boostEnd) {
+    const ramp = flightSmooth(t, marks.boostStart, marks.boostStart + 450);
+    const cut = 1 - flightSmooth(t, marks.boostEnd - 600, marks.boostEnd);
+    plume = 0.75 * ramp * cut;
+    litJets = plume > 0.02 ? 31 : 0;
   }
-  const hot = flightSmooth(t, FLIGHT_STAGE - 700, FLIGHT_STAGE) * (1 - flightSmooth(t, letGo, letGo + 1800));
+  let shipPlume = 0;
+  if (t >= FLIGHT_STAGE - 700 && t < FLIGHT_SECO) {
+    shipPlume = t >= FLIGHT_STAGE ? 1 : flightSmooth(t, FLIGHT_STAGE - 700, FLIGHT_STAGE);
+  } else if (t >= FLIGHT_SECO && t < FLIGHT_SECO + 700) {
+    shipPlume = 1 - flightSmooth(t, FLIGHT_SECO, FLIGHT_SECO + 700);
+  }
+  const hot = flightSmooth(t, FLIGHT_STAGE - 700, FLIGHT_STAGE) * (1 - flightSmooth(t, marks.letGo, marks.letGo + 1600));
   const sky = flightSmooth(t, FLIGHT_CLIMB, FLIGHT_ORBIT);
   return {
     beat,
@@ -400,10 +437,11 @@ export function flightPose(ms) {
     carYaw: headingYaw(1, 0),
     carPitch: t > FLIGHT_SPACE ? Math.sin((t - FLIGHT_SPACE) / 1800) * 0.35 : 0,
     plume,
+    litJets,
     shipPlume,
     sky,
     line: flightLine(beat, t),
-    separated: t > letGo,
+    separated: t > marks.letGo,
     released: carX > 0.2,
     beatCruise: false,
   };
@@ -567,7 +605,8 @@ export function earthCenter(pose) {
 
 /**
  * Pad and climb cameras sit on +Z, outside the stack, looking toward x=0.
- * Separation watches the gap while the booster flips. Deploy sits on the hull and looks down the car toward Earth.
+ * Separation watches the gap while the booster flips. After that the camera stays with the ship through the coast.
+ * Deploy sits on the hull and looks down the car toward Earth.
  */
 export function flightCamera(ms, yaw = 0, pitch = 1.05) {
   const pose = flightPose(ms);
@@ -592,18 +631,31 @@ export function flightCamera(ms, yaw = 0, pitch = 1.05) {
       lz: 0,
     };
   }
-  if (pose.beat === "stage" || pose.beat === "orbit") {
+  if (pose.beat === "stage") {
     const sx = pose.shipX || 0;
     const bx = pose.boosterX || 0;
     const midX = (sx + bx) / 2;
     const midY = (pose.shipY + pose.boosterY) / 2;
+    const span = Math.max(Math.abs(pose.shipY - pose.boosterY) + 18, Math.abs(sx - bx) + 8, 16);
+    const dist = Math.max(28, span * 1.35);
     return {
-      x: midX - 6,
-      y: midY + 2,
-      z: 18,
+      x: midX - dist * 0.22,
+      y: midY + dist * 0.16,
+      z: dist,
       lx: midX,
-      ly: midY,
+      ly: midY + 3,
       lz: (pose.boosterZ || 0) * 0.35,
+    };
+  }
+  if (pose.beat === "orbit") {
+    const lx = pose.shipX || 0;
+    return {
+      x: lx - 1.5,
+      y: pose.shipY + 1.5,
+      z: 16,
+      lx,
+      ly: pose.shipY + 3,
+      lz: 0,
     };
   }
   const bayY = pose.bayY != null ? pose.bayY : 4.2;
@@ -1967,34 +2019,40 @@ export function placeFlight(flight, pose) {
   }
   const column = Math.max(0.001, pose.plume * 20);
   const lit = pose.plume > 0.02;
+  const litJets = pose.litJets == null ? (lit && flight.jets ? flight.jets.length : 0) : pose.litJets;
+  const narrow = litJets > 0 && litJets <= 3 ? 0.35 : 1;
   flight.plume.visible = lit;
-  flight.plume.scale.y = column;
+  flight.plume.scale.set(narrow, column, narrow);
   flight.plumeHot.visible = lit;
-  flight.plumeHot.scale.y = column * 0.82;
+  flight.plumeHot.scale.set(narrow, column * 0.82, narrow);
   if (flight.plumeSkirt) {
-    flight.plumeSkirt.visible = lit;
-    flight.plumeSkirt.scale.y = column * 0.92;
+    const wide = lit && litJets > 13;
+    flight.plumeSkirt.visible = wide;
+    flight.plumeSkirt.scale.set(wide ? 1 : 0.001, wide ? column * 0.92 : 0.001, wide ? 1 : 0.001);
   }
   if (flight.jets) {
-    for (const jet of flight.jets) {
-      jet.visible = lit;
-      jet.scale.y = lit ? 0.6 + pose.plume * 2.2 : 0.001;
+    for (let i = 0; i < flight.jets.length; i++) {
+      const jet = flight.jets[i];
+      const on = lit && i < litJets;
+      jet.visible = on;
+      jet.scale.y = on ? 0.6 + pose.plume * 2.2 : 0.001;
     }
   }
   if (flight.diamonds) {
     for (const gem of flight.diamonds) {
-      gem.visible = pose.plume > 0.15;
+      gem.visible = pose.plume > 0.4;
       gem.position.y = -(2.2 + gem.userData.step * 3.2) * pose.plume;
     }
   }
   flight.burn.intensity = pose.plume * 18;
   flight.shipPlume.visible = pose.shipPlume > 0;
-  flight.shipPlume.scale.y = pose.shipPlume > 0 ? 7 + (pose.hot || 0) * 5 : 0.001;
+  const hot = pose.hot || 0;
+  flight.shipPlume.scale.y = pose.shipPlume > 0 ? (2.2 + (1 - hot) * 5.8) * pose.shipPlume : 0.001;
   if (flight.shipSkirt) {
     const flare = pose.shipPlume > 0.02;
-    const wide = 1 + (pose.hot || 0) * 0.85;
+    const wide = 0.42 + hot * 0.12;
     flight.shipSkirt.visible = flare;
-    flight.shipSkirt.scale.set(wide, flare ? 2.4 + (pose.hot || 0) * 4 : 0.001, wide);
+    flight.shipSkirt.scale.set(wide, flare ? 0.8 + hot * 0.7 : 0.001, wide);
   }
   if (flight.shipJets) {
     for (const jet of flight.shipJets) {
@@ -2047,8 +2105,10 @@ export function placeFlight(flight, pose) {
     for (const screen of flight.padScreens) screen.visible = show;
   }
   flight.earth.visible = pose.sky >= 0.35;
-  const deploy = !cruising && (pose.beat === "release" || pose.beat === "space" || pose.separated);
-  flight.earth.position.y = earthCenter(pose) - (cruising ? pose.along * 30 : 0) + (deploy ? 4 : 0);
+  const deploy = !cruising && (pose.beat === "release" || pose.beat === "space");
+  const floor = Math.min(pose.shipY, pose.boosterY);
+  const stageEarth = pose.beat === "stage" ? floor - 52 : earthCenter(pose);
+  flight.earth.position.y = stageEarth - (cruising ? pose.along * 30 : 0) + (deploy ? 4 : 0);
   flight.earth.scale.setScalar(cruising ? 1 - pose.along * 0.35 : deploy ? 1.12 : 1);
   if (flight.worlds) {
     for (const key of Object.keys(flight.worlds)) {
