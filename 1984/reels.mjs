@@ -39,6 +39,9 @@ const RANDOM = [
   ["r37", "Silly Walks"],
   ["r38", "Don't mention the war"],
   ["r39", "Clip"],
+  ["r40", "Liftoff"],
+  ["r41", "What do you think about AI"],
+  ["r42", "Joint address"],
 ];
 
 const EXTRA = [
@@ -91,6 +94,9 @@ const SHAPE = {
   r37: [1920, 1080],
   r38: [1350, 1080],
   r39: [1280, 720],
+  r40: [3840, 2160],
+  r41: [576, 624],
+  r42: [576, 1024],
   desk: [1920, 1080],
   clip: [1920, 886],
   "phone-a": [1024, 576],

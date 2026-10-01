@@ -38,6 +38,9 @@
     { id: "r37", title: "Silly Walks", duration: 166, w: 1920, h: 1080 },
     { id: "r38", title: "Don't mention the war", duration: 263, w: 1350, h: 1080 },
     { id: "r39", title: "Clip", duration: 58, w: 1280, h: 720 },
+    { id: "r40", title: "Liftoff", duration: 46, w: 3840, h: 2160 },
+    { id: "r41", title: "What do you think about AI", duration: 70, w: 576, h: 624 },
+    { id: "r42", title: "Joint address", duration: 43, w: 576, h: 1024 },
   ];
 
   const CAPTION = "this desk agrees";

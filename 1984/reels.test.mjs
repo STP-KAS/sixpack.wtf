@@ -3,7 +3,18 @@ import test from "node:test";
 import { REELS, reelShuffle, reelStep } from "./reels.mjs";
 
 test("the reel plays every Random film, then the desk films", () => {
-  assert.equal(REELS.length, 45);
+  assert.equal(REELS.length, 48);
+  assert.equal(REELS.find((item) => item.id === "r40").src, "random/r40.mp4");
+  assert.equal(REELS.find((item) => item.id === "r40").title, "Liftoff");
+  assert.equal(REELS.find((item) => item.id === "r40").w, 3840);
+  assert.equal(REELS.find((item) => item.id === "r40").h, 2160);
+  assert.equal(REELS.find((item) => item.id === "r41").src, "random/r41.mp4");
+  assert.equal(REELS.find((item) => item.id === "r41").w, 576);
+  assert.equal(REELS.find((item) => item.id === "r41").h, 624);
+  assert.equal(REELS.find((item) => item.id === "r42").src, "random/r42.mp4");
+  assert.equal(REELS.find((item) => item.id === "r42").title, "Joint address");
+  assert.equal(REELS.find((item) => item.id === "r42").w, 576);
+  assert.equal(REELS.find((item) => item.id === "r42").h, 1024);
   assert.equal(REELS.find((item) => item.id === "r39").src, "random/r39.mp4");
   assert.equal(REELS.find((item) => item.id === "r39").w, 1280);
   assert.equal(REELS.find((item) => item.id === "r39").h, 720);

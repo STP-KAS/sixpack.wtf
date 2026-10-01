@@ -878,7 +878,10 @@ test("the roadster leaves the ship nose-first on +X", () => {
   const padLeft = flight.tower.getObjectByName("pad-left");
   const padRight = flight.tower.getObjectByName("pad-right");
   assert.ok(padLeft && padRight);
-  assert.ok(padLeft.position.x < -4 && padRight.position.x < -4, "screens on the tower");
+  assert.equal(padLeft.geometry.parameters.width, 9.6);
+  assert.equal(padRight.geometry.parameters.width, 12.4);
+  assert.ok(padLeft.position.x < -8, "left film left of the rocket");
+  assert.ok(padRight.position.x > 8, "right film right of the rocket");
   const column = flight.tower.getObjectByName("launch-tower");
   assert.ok(column && column.position.x < -4, "tower beside the stack");
   let towers = 0;

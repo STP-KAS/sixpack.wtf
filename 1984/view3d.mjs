@@ -1912,15 +1912,15 @@ export function buildFlight() {
   const padScreens = [];
   const padVideos = [];
   for (const side of [-1, 1]) {
-    // Left film is 576 by 738. Right film is 1920 by 1080. The plane matches that picture.
-    const wide = side < 0 ? 4.8 : 6.2;
-    const tall = side < 0 ? 4.8 * (738 / 576) : 3.5;
+    // Left film is 576 by 738. Right film is 1920 by 1080. Twice the earlier boards, one left of the rocket and one right.
+    const wide = side < 0 ? 9.6 : 12.4;
+    const tall = side < 0 ? 9.6 * (738 / 576) : 7;
     const screen = new THREE.Mesh(
       new THREE.PlaneGeometry(wide, tall),
       new THREE.MeshBasicMaterial({ color: "#ffffff", toneMapped: false }),
     );
     screen.name = side < 0 ? "pad-left" : "pad-right";
-    screen.position.set(-6.6, side < 0 ? 14.4 : 7.0, 0.55);
+    screen.position.set(side < 0 ? -11.2 : 12.6, 9, 2);
     tower.add(screen);
     // Countdown camera stays at (0, 4.6, 64). PlaneGeometry faces local +Z, and lookAt points that +Z at the camera.
     screen.lookAt(0, 4.6, 64);
