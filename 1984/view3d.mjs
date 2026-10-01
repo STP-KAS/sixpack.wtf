@@ -145,8 +145,7 @@ export function flightLine(beat, ms) {
     return "The booster lets go.";
   }
   if (beat === "orbit") return "Stage sep.";
-  if (beat === "release") return "Payload deploy. The roadster leaves the ship.";
-  return "The roadster is out.";
+  return "";
 }
 
 export function flightClock(ms) {
@@ -1536,16 +1535,61 @@ export function buildFlight() {
   const dark = new THREE.MeshStandardMaterial({ color: "#1c1f24", metalness: 0.55, roughness: 0.4 });
   const pad = new THREE.Mesh(new THREE.CylinderGeometry(8, 8.4, 0.35, 8), stone("#6e6256", 0.9));
   pad.position.y = -0.15;
-  const towerL = new THREE.Mesh(new THREE.BoxGeometry(0.35, 16, 0.35), steel);
-  towerL.position.set(-3.2, 8, 0);
-  const towerR = towerL.clone();
-  towerR.position.x = 3.2;
-  const armL = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.22, 0.22), steel);
-  armL.position.set(-2.1, 14.2, 0);
-  const armR = armL.clone();
-  armR.position.x = 2.1;
+  // The booster stands in the mount. One tower stands beside it. The chopsticks stay open.
+  const mount = new THREE.Group();
+  mount.name = "olm";
+  const deck = new THREE.Mesh(
+    new THREE.RingGeometry(1.35, 2.55, 28),
+    new THREE.MeshStandardMaterial({ color: "#8d939c", metalness: 0.64, roughness: 0.38, side: THREE.DoubleSide }),
+  );
+  deck.name = "olm-deck";
+  deck.rotation.x = -Math.PI / 2;
+  deck.position.y = 0.12;
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.62, 0.16, 8, 24), steel);
+  ring.name = "olm-ring";
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = 0.28;
+  mount.add(deck, ring);
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    const clamp = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.14, 0.2), steel);
+    clamp.name = "hold-down";
+    const r = 2.15;
+    clamp.position.set(Math.cos(a) * r, 0.34, Math.sin(a) * r);
+    clamp.rotation.y = -a;
+    clamp.rotation.z = -0.7;
+    mount.add(clamp);
+  }
+  for (let i = 0; i < 4; i++) {
+    const a = Math.PI / 4 + (i / 4) * Math.PI * 2;
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.7, 6), steel);
+    leg.position.set(Math.cos(a) * 1.95, 0.02, Math.sin(a) * 1.95);
+    mount.add(leg);
+  }
+  const trench = new THREE.Mesh(
+    new THREE.BoxGeometry(2.2, 0.08, 8.5),
+    new THREE.MeshStandardMaterial({ color: "#2a2724", roughness: 0.95 }),
+  );
+  trench.name = "flame-trench";
+  trench.position.set(0, -0.02, 1.6);
+  mount.add(trench);
   const tower = new THREE.Group();
-  tower.add(towerL, towerR, armL, armR);
+  const column = new THREE.Mesh(new THREE.BoxGeometry(1.15, 26, 1.15), steel);
+  column.name = "launch-tower";
+  column.position.set(-6.6, 13, -2.4);
+  tower.add(column);
+  const armGeo = new THREE.BoxGeometry(8.2, 0.32, 0.38);
+  for (const [y, z] of [[21.4, -3.15], [19.0, -1.65]]) {
+    const arm = new THREE.Mesh(armGeo, steel);
+    arm.name = "chopstick";
+    arm.position.set(-10.4, y, z);
+    arm.rotation.z = 2.35;
+    tower.add(arm);
+  }
+  const qd = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.2, 0.22), steel);
+  qd.name = "qd-arm";
+  qd.position.set(-5.35, 16.4, -2.4);
+  tower.add(qd);
   const padScreens = [];
   const padVideos = [];
   for (const side of [-1, 1]) {
@@ -1557,7 +1601,7 @@ export function buildFlight() {
       new THREE.MeshBasicMaterial({ color: "#ffffff", toneMapped: false }),
     );
     screen.name = side < 0 ? "pad-left" : "pad-right";
-    screen.position.set(side * 7.2, 7.6, 2);
+    screen.position.set(-6.6, side < 0 ? 14.4 : 7.0, 0.55);
     tower.add(screen);
     // Countdown camera stays at (0, 2.4, 28). PlaneGeometry faces local +Z, and lookAt points that +Z at the camera.
     screen.lookAt(0, 2.4, 28);
@@ -1580,7 +1624,7 @@ export function buildFlight() {
       padVideos.push(film);
     }
   }
-  root.add(pad, tower);
+  root.add(pad, mount, tower);
 
   const booster = new THREE.Group();
   const boosterBody = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.08, 11, 16), steel);
@@ -1589,6 +1633,11 @@ export function buildFlight() {
   const band = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.35, 16), dark);
   band.position.y = 10.5;
   booster.add(band);
+  const skirt = new THREE.Mesh(new THREE.TorusGeometry(1.42, 0.1, 8, 18), dark);
+  skirt.name = "aft-skirt";
+  skirt.rotation.x = Math.PI / 2;
+  skirt.position.y = 0.32;
+  booster.add(skirt);
   const fins = [];
   for (const side of [-1, 1]) {
     for (const z of [-1, 1]) {
@@ -1836,7 +1885,7 @@ export function buildFlight() {
     root.add(spaceSky);
     spaceVideo = skyEl;
   }
-  return { root, pad, tower, booster, ship, door, car, starman, plume, plumeHot, plumeSkirt, jets, diamonds, shipPlume, shipSkirt, shipJets, hullLine, fins, burn, earth, stars, steam, splash, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo, padScreens, padVideos, padFilmsDone: false };
+  return { root, pad, mount, tower, booster, ship, door, car, starman, plume, plumeHot, plumeSkirt, jets, diamonds, shipPlume, shipSkirt, shipJets, hullLine, fins, burn, earth, stars, steam, splash, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo, padScreens, padVideos, padFilmsDone: false };
 }
 
 function paintKoniCanvas(canvas, lines) {
@@ -1988,6 +2037,7 @@ export function placeFlight(flight, pose) {
   flight.booster.visible = !cruising;
   flight.pad.visible = !cruising && pose.sky < 0.45;
   flight.tower.visible = !cruising && pose.sky < 0.45;
+  if (flight.mount) flight.mount.visible = flight.pad.visible;
   if (flight.padScreens) {
     // The countdown is still the light beat. Once both films are done the screens stay down.
     const show = pose.beat === "light" && !flight.padFilmsDone;

@@ -422,8 +422,8 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.equal(onShip.line, "The booster is on the ship.");
   assert.equal(flightLine("stage", FLIGHT_STAGE + 2501), "The booster lets go.");
   assert.equal(flightLine("orbit", FLIGHT_ORBIT), "Stage sep.");
-  assert.equal(flightLine("release", FLIGHT_RELEASE), "Payload deploy. The roadster leaves the ship.");
-  assert.equal(flightLine("space", FLIGHT_SPACE), "The roadster is out.");
+  assert.equal(flightLine("release", FLIGHT_RELEASE), "");
+  assert.equal(flightLine("space", FLIGHT_SPACE), "");
   assert.equal(/KONI/.test(flightLine("orbit", FLIGHT_ORBIT)), false);
   assert.equal(/KONI/.test(flightLine("release", FLIGHT_RELEASE)), false);
   assert.equal(/KONI/.test(flightLine("space", FLIGHT_SPACE)), false);
@@ -710,7 +710,44 @@ test("the roadster leaves the ship nose-first on +X", () => {
   const padLeft = flight.tower.getObjectByName("pad-left");
   const padRight = flight.tower.getObjectByName("pad-right");
   assert.ok(padLeft && padRight);
-  assert.ok(padLeft.position.x < -6 && padRight.position.x > 6);
+  assert.ok(padLeft.position.x < -4 && padRight.position.x < -4, "screens on the tower");
+  const column = flight.tower.getObjectByName("launch-tower");
+  assert.ok(column && column.position.x < -4, "tower beside the stack");
+  let towers = 0;
+  flight.tower.traverse((node) => {
+    if (node.name === "launch-tower") towers += 1;
+  });
+  assert.equal(towers, 1);
+  const deck = flight.mount.getObjectByName("olm-deck");
+  assert.ok(deck && deck.geometry.parameters.innerRadius > 1.08, "booster stands in the mount");
+  flight.root.updateMatrixWorld(true);
+  const clearOfStack = (node, limit) => {
+    node.geometry.computeBoundingBox();
+    const box = node.geometry.boundingBox;
+    const signs = [-1, 1];
+    for (const sx of signs) {
+      for (const sy of signs) {
+        for (const sz of signs) {
+          const p = new THREE.Vector3(
+            sx < 0 ? box.min.x : box.max.x,
+            sy < 0 ? box.min.y : box.max.y,
+            sz < 0 ? box.min.z : box.max.z,
+          ).applyMatrix4(node.matrixWorld);
+          assert.ok(Math.hypot(p.x, p.z) > limit, node.name + " " + Math.hypot(p.x, p.z).toFixed(2));
+        }
+      }
+    }
+  };
+  flight.tower.traverse((node) => {
+    if (node.name === "chopstick" || node.name === "qd-arm" || node.name === "launch-tower" || node.name === "pad-left" || node.name === "pad-right") clearOfStack(node, 2.2);
+  });
+  flight.mount.traverse((node) => {
+    if (node.name === "hold-down") clearOfStack(node, 1.35);
+  });
+  placeFlight(flight, flightPose(0));
+  assert.equal(flight.mount.visible, true);
+  assert.ok(Math.abs(flight.booster.position.x) < 0.05);
+  assert.ok(flight.booster.position.y < 0.2);
   assert.ok(padLeft.geometry.parameters.height / padLeft.geometry.parameters.width > 1.2);
   assert.ok(padRight.geometry.parameters.width / padRight.geometry.parameters.height > 1.7);
   assert.equal(flight.padVideos.length, 0);
@@ -740,6 +777,9 @@ test("the roadster leaves the ship nose-first on +X", () => {
   placeFlight(flight, flightPose(FLIGHT_LIFTOFF));
   assert.equal(padLeft.visible, false);
   assert.equal(padRight.visible, false);
+  placeFlight(flight, flightPose(FLIGHT_ORBIT));
+  assert.equal(flight.mount.visible, false);
+  assert.equal(flight.tower.visible, false);
 });
 
 test("both pad films done drop the last frame", () => {
