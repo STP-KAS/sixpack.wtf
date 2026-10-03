@@ -65,7 +65,7 @@ test("the balances stay in the top right with Bank", () => {
   const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
   assert.match(html, /<header class="kw-bar" id="bar"><\/header>/);
   assert.match(html, /1984\.css\?v=50/);
-  assert.match(html, /1984\/client\.mjs\?v=88/);
+  assert.match(html, /1984\/client\.mjs\?v=89/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);

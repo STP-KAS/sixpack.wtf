@@ -4,7 +4,7 @@ export const BENCH = [
   {
     id: "ceiling",
     title: "The ceiling",
-    text: "A peer-to-peer chain is for a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process. This square is the classroom, not that product.",
+    text: "A peer-to-peer chain is for a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process. This square is the classroom, not that product. The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled.",
     hrefs: [
       ["The ceiling", "https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md"],
       ["stable-staghunt-theory", "https://github.com/STP-KAS/stable-staghunt-theory"],
