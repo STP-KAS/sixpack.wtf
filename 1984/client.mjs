@@ -19,7 +19,7 @@ import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swap
 import { REELS, reelShuffle, reelStep } from "./reels.mjs?v=4";
 import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=48";
 import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=2";
-const TUNNEL = "https://hydrocodone-wireless-clay-requests.trycloudflare.com";
+const TUNNEL = "https://approve-announced-ali-bras.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 const map = world();
 const view = document.getElementById("view");
@@ -348,13 +348,17 @@ function bases() {
   return [...new Set(list.map((item) => String(item).replace(/\/$/, "")))];
 }
 
+function ledgerHeaders(extra) {
+  return Object.assign({ accept: "application/json", "Bypass-Tunnel-Reminder": "true" }, extra || {});
+}
+
 async function api(path, options) {
   let last = "The village ledger is offline. Walking still works.";
   for (const base of bases()) {
     try {
       const res = await fetch(base + path, {
         method: options && options.method ? options.method : "GET",
-        headers: { accept: "application/json", "content-type": "application/json" },
+        headers: ledgerHeaders({ "content-type": "application/json" }),
         body: options && options.body ? options.body : undefined,
         signal: AbortSignal.timeout(45000),
       });
@@ -424,7 +428,7 @@ function paintChrome() {
     "<h2>Who is paying</h2>" +
     "<p class=\"fine\">A wallet or a pasted address stays until you change it. A test address dies with this tab. Never a seed.</p>" +
     '<p class="fine">Testnet 10 only. A mainnet wallet is refused.</p>' +
-    '<div class="kw-row"><button type="button" id="use-kasware">Log in with Kasware</button><button type="button" id="use-kastle">Log in with Kastle</button></div>' +
+    '<div class="kw-row wallet-pc"><button type="button" id="use-kasware">Log in with Kasware</button><button type="button" id="use-kastle">Log in with Kastle</button></div>' +
     '<button type="button" id="use-guest">Test without a wallet</button>' +
     '<button type="button" id="log-out">Log out</button>' +
     '<p class="warn">' + esc(GUEST_DISCLAIMER) + "</p>" +
@@ -1064,7 +1068,7 @@ async function postGuest() {
     try {
       const res = await fetch(base + "/api/1984/guest", {
         method: "POST",
-        headers: { accept: "application/json", "content-type": "application/json" },
+        headers: ledgerHeaders({ "content-type": "application/json" }),
         body: JSON.stringify({ network: "testnet-10", life: PAGE_LIFE, progress: true }),
         signal: AbortSignal.timeout(20000),
       });
@@ -1086,7 +1090,7 @@ async function pollGuest(base, job, onStep) {
   while (Date.now() < deadline) {
     try {
       const res = await fetch(base + "/api/1984/guest?job=" + encodeURIComponent(job), {
-        headers: { accept: "application/json" },
+        headers: ledgerHeaders(),
         signal: AbortSignal.timeout(12000),
       });
       const text = await res.text();
@@ -2419,12 +2423,13 @@ function paintGuide() {
     '<div class="stall-head"><h2>How to try this on Testnet 10</h2>' + placeActs("") + "</div>" +
     "<ol>" +
     "<li class=\"only-desk\">Click Kasware or Kastle and approve the login. This page asks the wallet to open on Testnet 10. If the window is black, close it, click the wallet icon, unlock, and try again. A mainnet address is still refused. That login stays on this browser.</li>" +
-    "<li class=\"only-phone\">On a phone, set Testnet 10 inside Kasware or Kastle before you log in. This page cannot switch the phone wallet. Or open this page in the Kastle browser. If the window is black, close it, unlock the wallet, and try again. A mainnet address is still refused. That login stays on this browser.</li>" +
-    "<li>On the welcome gate, Kasware and Kastle are the wallets. The same Kasware or Kastle wallet opens its history. Use a funded test address opens one funded address for this visit. Each test address is used once. Come back later and that history is gone. Close the tab and the leftover tKAS is swept back. It does not replace a wallet you already saved. This tab gets 50000 tKAS from Grok's Testnet-10 wallet. One thousand of these test wallets can be opened in a day. Who pays can open another funded test address after you are in.</li>" +
+    "<li class=\"only-phone\">On a phone, the welcome gate is Use a funded test address. Kasware and Kastle open on a computer.</li>" +
+    "<li class=\"only-desk\">On the welcome gate, Kasware and Kastle are the wallets. The same Kasware or Kastle wallet opens its history. Use a funded test address opens one funded address for this visit. Each test address is used once. Come back later and that history is gone. Close the tab and the leftover tKAS is swept back. It does not replace a wallet you already saved. This tab gets 50000 tKAS from Grok's Testnet-10 wallet. One thousand of these test wallets can be opened in a day. Who pays can open another funded test address after you are in.</li>" +
+    "<li class=\"only-phone\">On a phone, Use a funded test address opens one funded address for this visit. Each test address is used once. Come back later and that history is gone. Close the tab and the leftover tKAS is swept back. Kasware and Kastle open on a computer. Who pays can open another funded test address after you are in.</li>" +
     "<li>A kaspatest address, or a .kas name that already resolves on TN10, can be pasted in Who pays. That choice stays until you change it.</li>" +
     "<li>Need coins: Use a funded test address on the welcome gate, or Who pays, then Test without a wallet. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, take a seat and the menu blinks, or order at the blinking counter. The market opens at the counter. Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Once it is yours, Launch into space is the gold button. The showroom still opens when you click Pike or the sign. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
-    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. A phone wallet cannot switch to Testnet 10 from this page. Set Testnet 10 inside Kasware or Kastle, or open this page in the Kastle browser. Test without a wallet is in Who pays.</li>" +
+    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. Kasware and Kastle open on a computer. On a phone, use the funded test address.</li>" +
     "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is six times the standard Testnet 10 rate, and it is extra tKAS. When a payment finishes, the steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate. The same Kasware or Kastle wallet opens its history.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, plays two short films on the tower first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. One tower stands beside it, and the chopsticks stay open. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. After the booster is gone, the ship coasts, then the roadster leaves. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: you hang out with the old roadster. It has been cruising for years. The way there is ten seconds. Out there the two cars race in orbit around the Earth. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
@@ -3685,7 +3690,7 @@ window.addEventListener("pagehide", () => {
   for (const base of bases()) {
     fetch(base + "/api/1984/guest/close", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: ledgerHeaders({ "content-type": "application/json" }),
       body: payload,
       keepalive: true,
     }).catch(() => {});

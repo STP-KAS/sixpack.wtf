@@ -7,7 +7,10 @@
   <meta name="description" content="1984 is early development, not the benchmark that was envisioned. The best case is stable money you can spend anywhere, in Kaspa or a stable. It is a Testnet-10 village. Pay a shop with tKAS, POCencept stable, or KUSDT stable. Kasware or Kastle opens that wallet's history. A funded test address is used once. Mainnet wallets are refused.">
   <link rel="canonical" href="https://sixpack.wtf/1984.html">
   <link rel="stylesheet" href="site.css?v=27">
-  <link rel="stylesheet" href="1984.css?v=51">
+  <link rel="stylesheet" href="1984.css?v=52">
+  <script>
+    window.TOWN_API = "https://approve-announced-ali-bras.trycloudflare.com";
+  </script>
 </head>
 <body class="page-1984">
 <header class="top">
@@ -124,22 +127,23 @@
       <p class="kw-world">Testnet 10 · Ashfields</p>
       <h1>Welcome</h1>
       <p>Early development. This is not the benchmark that was envisioned. This is a village square on proof of work. The best case is stable money you can spend anywhere, in Kaspa or in a stable, peer to peer. Choose who pays. The square is behind this gate.</p>
-      <div class="kw-gate-row kw-wallets">
+      <div class="kw-gate-row kw-wallets wallet-pc">
         <button type="button" id="gate-kasware">Log in with Kasware</button>
         <button type="button" id="gate-kastle">Log in with Kastle</button>
       </div>
-      <p class="gate-note">The same Kasware or Kastle wallet opens its history.</p>
+      <p class="gate-note wallet-pc">The same Kasware or Kastle wallet opens its history.</p>
       <div class="kw-gate-row">
         <button type="button" id="gate-guest">Use a funded test address</button>
       </div>
       <p class="gate-note">Each test address is used once. Come back later and that history is gone.</p>
+      <p class="gate-note only-phone">On a phone, use a funded test address. Kasware and Kastle open on a computer.</p>
       <p id="gate-status" class="gate-status" role="status"></p>
-      <p class="fine gate-foot">Kasware and Kastle open on Testnet 10. A mainnet wallet is refused. Never a seed.</p>
+      <p class="fine gate-foot wallet-pc">Kasware and Kastle open on Testnet 10. A mainnet wallet is refused. Never a seed.</p>
     </div>
   </div>
 </div>
 <script src="nav.js?v=51"></script>
 <script src="wallets/kaspa-wallets.js?v=6"></script>
-<script type="module" src="1984/client.mjs?v=90"></script>
+<script type="module" src="1984/client.mjs?v=91"></script>
 </body>
 </html>

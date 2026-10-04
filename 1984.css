@@ -1171,6 +1171,8 @@ a { color: #f2d48a; }
   }
   .hint-desk, .only-desk, .hint-phone { display: none; }
   li.only-phone { display: list-item; }
+  p.only-phone { display: block; }
+  .kw-wallets, .wallet-pc { display: none; }
   .kw-step { display: inline-block; }
   .kw {
     display: flex;

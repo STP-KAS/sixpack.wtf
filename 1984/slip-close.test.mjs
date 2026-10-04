@@ -25,11 +25,30 @@ test("the buy ask closes without starting a purchase", () => {
 });
 
 test("the landing gate keeps wallet history and a one-time funded address", () => {
+  const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
+  const faucet = readFileSync(new URL("../faucet.html", import.meta.url), "utf8");
   assert.match(html, /id="gate-kasware">Log in with Kasware<\/button>/);
   assert.match(html, /id="gate-kastle">Log in with Kastle<\/button>/);
   assert.match(html, /id="gate-guest">Use a funded test address<\/button>/);
+  assert.match(html, /class="kw-gate-row kw-wallets wallet-pc"/);
   assert.match(html, /The same Kasware or Kastle wallet opens its history\./);
   assert.match(html, /Each test address is used once\. Come back later and that history is gone\./);
+  assert.match(html, /On a phone, use a funded test address\. Kasware and Kastle open on a computer\./);
+  assert.match(client, /class="kw-row wallet-pc"/);
+  assert.match(client, /Kasware and Kastle open on a computer/);
+  const phoneAt = css.indexOf("@media (max-width: 980px)");
+  assert.ok(phoneAt > 0);
+  const phone = css.slice(phoneAt);
+  assert.match(phone, /p\.only-phone \{ display: block; \}/);
+  assert.match(phone, /\.kw-wallets, \.wallet-pc \{ display: none; \}/);
+  assert.doesNotMatch(css.slice(0, phoneAt), /\.kw-wallets, \.wallet-pc \{ display: none; \}/);
+  const town = html.match(/window\.TOWN_API = "([^"]+)"/);
+  const tunnel = client.match(/const TUNNEL = "([^"]+)"/);
+  const faucetApi = faucet.match(/window\.FAUCET_API = "([^"]+)"/);
+  assert.ok(town && tunnel && faucetApi);
+  assert.equal(town[1], faucetApi[1]);
+  assert.equal(tunnel[1], faucetApi[1]);
+  assert.match(client, /Bypass-Tunnel-Reminder/);
   assert.doesNotMatch(html, /Same kaspatest address, same history/);
   assert.doesNotMatch(html, /id="gate-addr"/);
   assert.doesNotMatch(html, /Open this address/);
@@ -64,8 +83,8 @@ test("exit to the square is on the shop card", () => {
 test("the balances stay in the top right with Bank", () => {
   const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
   assert.match(html, /<header class="kw-bar" id="bar"><\/header>/);
-  assert.match(html, /1984\.css\?v=51/);
-  assert.match(html, /1984\/client\.mjs\?v=90/);
+  assert.match(html, /1984\.css\?v=52/);
+  assert.match(html, /1984\/client\.mjs\?v=91/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
