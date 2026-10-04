@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
-import { REELS, reelShuffle, reelStep } from "./reels.mjs";
+import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs";
+
+function sliceFn(source, name) {
+  const start = source.indexOf("function " + name + "(");
+  assert.notEqual(start, -1, name);
+  const next = source.indexOf("\nfunction ", start + 1);
+  return source.slice(start, next === -1 ? source.length : next);
+}
 
 test("the reel plays every Random film, then the desk films", () => {
   assert.equal(REELS.length, 48);
@@ -44,4 +52,13 @@ test("the reel plays every Random film, then the desk films", () => {
   assert.notEqual(reelShuffle(2, REELS.length, 2 / REELS.length), 2);
   assert.equal(reelShuffle(0, REELS.length, 0), 1);
   assert.equal(reelShuffle(2, REELS.length, 0), 0);
+  assert.equal(REEL_CAPTION, "this desk agrees");
+  const client = readFileSync(new URL("./client.mjs", import.meta.url), "utf8");
+  const show = sliceFn(client, "paintShow");
+  const list = sliceFn(client, "paintReelList");
+  assert.match(show, /REEL_CAPTION/);
+  assert.doesNotMatch(show, /clip\.title/);
+  assert.match(list, /REEL_CAPTION/);
+  assert.doesNotMatch(list, /clip\.title/);
+  assert.match(client, /Every film is labeled this desk agrees/);
 });

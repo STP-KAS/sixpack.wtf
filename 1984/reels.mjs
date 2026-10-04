@@ -1,4 +1,5 @@
 /** The cinema reel. Random-tab films first, then the desk films that were not already on that tab. */
+export const REEL_CAPTION = "this desk agrees";
 
 const RANDOM = [
   ["r01", "Clock"],
