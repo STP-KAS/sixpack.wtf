@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { extractPayment } from "./chain.mjs";
-import { acceptanceLook, acceptedToRest, mempoolQuery } from "./node-tx.mjs";
+import { acceptanceLook, acceptedToRest, applyAcceptedDelta, mempoolQuery } from "./node-tx.mjs";
 import { RESERVE } from "./money.mjs";
 
 const USER = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
@@ -36,6 +36,38 @@ test("an accepted payment settles, and a mempool payment still waits", () => {
   const query = mempoolQuery("ab".repeat(32));
   assert.equal(query.filterTransactionPool, false);
   assert.equal(query.includeOrphanPool, false);
+});
+
+test("a tip delta keeps a new payment and drops it when that block leaves", () => {
+  const id = "ab".repeat(32);
+  const state = { byId: new Map(), blockTxs: new Map(), cursor: "11".repeat(32) };
+  const next = applyAcceptedDelta(state, {
+    removedChainBlockHashes: [],
+    addedChainBlockHashes: ["22".repeat(32)],
+    chainBlockAcceptedTransactions: [
+      {
+        chainBlockHeader: { hash: "22".repeat(32) },
+        acceptedTransactions: [
+          {
+            subnetworkId: "0000000000000000000000000000000000000000",
+            inputs: [{ verboseData: { utxoEntry: { verboseData: { scriptPublicKeyAddress: USER } } } }],
+            outputs: [{ value: 5n, verboseData: { scriptPublicKeyAddress: RESERVE } }],
+            verboseData: { transactionId: id },
+          },
+        ],
+      },
+    ],
+  });
+  assert.equal(next, "22".repeat(32));
+  assert.equal(state.byId.get(id).transaction_id, id);
+  state.cursor = next;
+  const gone = applyAcceptedDelta(state, {
+    removedChainBlockHashes: ["22".repeat(32)],
+    addedChainBlockHashes: [],
+    chainBlockAcceptedTransactions: [],
+  });
+  assert.equal(gone, "22".repeat(32));
+  assert.equal(state.byId.has(id), false);
 });
 
 test("a coinbase subnetwork stays visible so the bank can refuse it", () => {

@@ -85,15 +85,18 @@ export function create1984Service(deps) {
     return assertTestnet(body && body.address);
   }
 
-  async function payment(address, txid, need) {
-    let tx;
-    try {
-      tx = await fetchTx(txid, deps.fetch);
-    } catch (err) {
-      const msg = String((err && err.message) || "");
-      if (!deps.lookupTx || !/not on Testnet 10 yet/i.test(msg)) throw err;
-      tx = await deps.lookupTx(txid);
+  async function payment(address, txid, need, opts) {
+    const lastTry = !!(opts && opts.publicList);
+    if (deps.lookupTx) {
+      try {
+        return paymentFromTx(await deps.lookupTx(txid), address, need);
+      } catch (err) {
+        const msg = String((err && err.message) || "");
+        if (/not accepted yet/i.test(msg) || (!lastTry && /not on Testnet 10 yet/i.test(msg))) throw err;
+        if (!/not on Testnet 10 yet/i.test(msg)) throw err;
+      }
     }
+    const tx = await fetchTx(txid, deps.fetch);
     return paymentFromTx(tx, address, need);
   }
 
@@ -102,13 +105,13 @@ export function create1984Service(deps) {
     const tries = deps.txTries || 80;
     for (let i = 0; i < tries; i += 1) {
       try {
-        return await payment(address, txid, need);
+        return await payment(address, txid, need, { publicList: i === tries - 1 });
       } catch (err) {
         last = err;
         const msg = String((err && err.message) || "");
         if (!/not on Testnet 10 yet|not accepted yet/i.test(msg)) throw err;
         if (i === tries - 1) break;
-        await pause(200);
+        await pause(50);
       }
     }
     if (/not on Testnet 10 yet/i.test(String((last && last.message) || ""))) {

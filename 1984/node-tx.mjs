@@ -20,9 +20,14 @@ const PUBLIC_WSS = [
   "wss://muon-10.kaspa.blue/kaspa/testnet-10/wrpc/borsh",
 ];
 
-/** About a minute of the selected-parent chain at 10 blocks per second. */
+/** About a minute of the selected-parent chain at 10 blocks per second. The live path does not walk this. */
 const WINDOW = 500;
-const CACHE_MS = 1000;
+/** A couple of seconds of the tip. A just-sent tKAS payment is accepted inside this. */
+const TIP = 24;
+/** Reuse a tip read that just finished. The next block is still ahead of this. */
+const FRESH_MS = 30;
+/** Quick misses before one wide read. A live payment is in the tip well before this. */
+const DEEP_AFTER = 20;
 const NOT_YET = "That transaction is not on Testnet 10 yet.";
 
 let kaspaPromise = null;
@@ -30,8 +35,12 @@ let rpc = null;
 let localDownUntil = 0;
 let spine = [];
 let spineChain = Promise.resolve();
-let scan = { at: 0, byId: null };
-let scanFlight = null;
+let byId = new Map();
+let blockTxs = new Map();
+let cursor = "";
+let refreshedAt = 0;
+let deepAt = 0;
+const missStreak = new Map();
 
 function withTimeout(promise, ms, label) {
   let timer;
@@ -183,8 +192,91 @@ async function extendSpine(client) {
   return spine[spine.length - 1] || "";
 }
 
-async function buildMap() {
+function blockKey(hash) {
+  const key = String(hash || "").trim().toLowerCase();
+  return /^[0-9a-f]{64}$/.test(key) ? key : "";
+}
+
+/** Merge one virtual-chain delta. Removed blocks drop their payments. The cursor moves to the new tip. */
+export function applyAcceptedDelta(state, chain) {
+  const ids = state.byId;
+  const blocks = state.blockTxs;
+  for (const hash of (chain && chain.removedChainBlockHashes) || []) {
+    const key = blockKey(hash);
+    const owned = key && blocks.get(key);
+    if (owned) for (const id of owned) ids.delete(id);
+    if (key) blocks.delete(key);
+  }
+  const added = ((chain && chain.addedChainBlockHashes) || []).map((hash) => blockKey(hash)).filter(Boolean);
+  const groups = (chain && chain.chainBlockAcceptedTransactions) || [];
+  for (let i = 0; i < groups.length; i += 1) {
+    const group = groups[i];
+    const header = group && group.chainBlockHeader;
+    const keys = new Set();
+    const fromHeader = blockKey(header && header.hash);
+    if (fromHeader) keys.add(fromHeader);
+    if (added[i]) keys.add(added[i]);
+    const owned = [];
+    for (const tx of (group && group.acceptedTransactions) || []) {
+      const rest = acceptedToRest(tx);
+      if (/^[0-9a-f]{64}$/.test(rest.transaction_id)) {
+        ids.set(rest.transaction_id, rest);
+        owned.push(rest.transaction_id);
+      }
+    }
+    for (const key of keys) blocks.set(key, owned);
+  }
+  return added.length ? added[added.length - 1] : state.cursor;
+}
+
+async function walkBack(client, sink, steps) {
+  let hash = blockKey(sink);
+  if (!hash) throw notYet();
+  for (let i = 0; i < steps; i += 1) {
+    const block = await client.getBlock({ hash, includeTransactions: false });
+    const header = (block && (block.block || block) && (block.block || block).header) || {};
+    const next = blockKey(parentOf(header));
+    if (!next) break;
+    hash = next;
+  }
+  return hash;
+}
+
+async function pullTip(retried) {
+  const client = await connect();
+  try {
+    if (!cursor) {
+      const dag = await client.getBlockDagInfo();
+      cursor = await walkBack(client, dag && dag.sink, TIP);
+    }
+    const start = cursor;
+    const chain = await client.getVirtualChainFromBlockV2({
+      startHash: start,
+      dataVerbosityLevel: "Full",
+    });
+    cursor = applyAcceptedDelta({ byId, blockTxs, cursor: start }, chain);
+    refreshedAt = Date.now();
+    return byId;
+  } catch (err) {
+    await dropClient();
+    cursor = "";
+    if (!retried) return pullTip(true);
+    if (err instanceof Error && /not on Testnet 10 yet|not accepted yet/i.test(err.message)) throw err;
+    throw notYet();
+  }
+}
+
+async function refreshTip() {
+  if (cursor && Date.now() - refreshedAt < FRESH_MS) return byId;
   return lockSpine(async () => {
+    if (cursor && Date.now() - refreshedAt < FRESH_MS) return byId;
+    return pullTip(false);
+  });
+}
+
+async function deepWindow() {
+  return lockSpine(async () => {
+    if (byId.size && Date.now() - deepAt < 1000) return byId;
     const client = await connect();
     try {
       const start = await extendSpine(client);
@@ -193,28 +285,17 @@ async function buildMap() {
         startHash: start,
         dataVerbosityLevel: "Full",
       });
-      const byId = new Map();
-      const groups = (chain && chain.chainBlockAcceptedTransactions) || [];
-      for (const group of groups) {
-        for (const tx of (group && group.acceptedTransactions) || []) {
-          const rest = acceptedToRest(tx);
-          if (/^[0-9a-f]{64}$/.test(rest.transaction_id)) byId.set(rest.transaction_id, rest);
-        }
-      }
-      scan = { at: Date.now(), byId };
+      cursor = applyAcceptedDelta({ byId, blockTxs, cursor: start }, chain) || blockKey(spine[0]) || start;
+      refreshedAt = Date.now();
+      deepAt = Date.now();
       return byId;
     } catch (err) {
       await dropClient();
+      cursor = "";
       if (err instanceof Error && /not on Testnet 10 yet|not accepted yet/i.test(err.message)) throw err;
       throw notYet();
     }
   });
-}
-
-async function scanMap() {
-  if (scan.byId && Date.now() - scan.at < CACHE_MS) return scan.byId;
-  if (!scanFlight) scanFlight = buildMap().finally(() => { scanFlight = null; });
-  return scanFlight;
 }
 
 /** A mempool read the public nodes accept. Filtering the pool while excluding orphans is rejected. */
@@ -230,13 +311,15 @@ async function seenInMempool(id) {
   try {
     if (!rpc) await connect();
   } catch {
-    return false;
+    return null;
   }
   try {
-    const entry = await withTimeout(rpc.getMempoolEntry(mempoolQuery(id)), 4000, "mempool");
+    const entry = await withTimeout(rpc.getMempoolEntry(mempoolQuery(id)), 350, "mempool");
     return !!(entry && (entry.transaction || entry.mempoolEntry));
-  } catch {
-    return false;
+  } catch (err) {
+    const msg = String((err && err.message) || err || "");
+    if (/not found/i.test(msg)) return false;
+    return null;
   }
 }
 
@@ -251,24 +334,36 @@ export function acceptanceLook({ cachedHit, inMempool }) {
 export async function lookupAccepted(txid) {
   const id = String(txid || "").trim().toLowerCase();
   if (!/^[0-9a-f]{64}$/.test(id)) throw new Error("Paste the 64-character transaction id.");
-  const fresh = scan.byId && Date.now() - scan.at < CACHE_MS ? scan.byId : null;
-  const cached = fresh && fresh.get(id);
-  if (acceptanceLook({ cachedHit: !!cached, inMempool: false }) === "settled" && cached) return cached;
+  const known = byId.get(id);
+  if (acceptanceLook({ cachedHit: !!known, inMempool: false }) === "settled" && known) {
+    missStreak.delete(id);
+    return known;
+  }
+  const map = await refreshTip();
+  const hit = map.get(id);
+  if (acceptanceLook({ cachedHit: !!hit, inMempool: false }) === "settled" && hit) {
+    missStreak.delete(id);
+    return hit;
+  }
   const inMempool = await seenInMempool(id);
-  if (acceptanceLook({ cachedHit: false, inMempool }) === "wait") {
+  if (acceptanceLook({ cachedHit: false, inMempool: inMempool === true }) === "wait") {
+    missStreak.delete(id);
     throw new Error("That transaction is not accepted yet. Wait and claim it again.");
   }
-  if (fresh) throw notYet();
-  const byId = await scanMap();
-  const hit = byId.get(id);
-  if (hit) return hit;
+  if (inMempool === false) {
+    const n = (missStreak.get(id) || 0) + 1;
+    missStreak.set(id, n);
+    if (n >= DEEP_AFTER) {
+      missStreak.set(id, 0);
+      const wide = await deepWindow();
+      const older = wide.get(id);
+      if (older) return older;
+    }
+  }
   throw notYet();
 }
 
-/** Fill the recent-block window once so the first lock does not pay the whole walk. */
+/** Prime the tip so the first tKAS payment reads a short delta, not the long window. */
 export function warmNodeWindow() {
-  lockSpine(async () => {
-    const client = await connect();
-    await extendSpine(client);
-  }).catch(() => undefined);
+  refreshTip().catch(() => undefined);
 }

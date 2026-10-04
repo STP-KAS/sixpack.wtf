@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { create1984Service } from "./service.mjs";
 import { RESERVE, sompiForCents } from "./money.mjs";
@@ -46,6 +47,12 @@ function harness(pay, extra = {}) {
   });
   return { svc, saved, read: () => state };
 }
+
+test("a tKAS wait polls the tip instead of pausing a fifth of a second", () => {
+  const source = readFileSync(new URL("./service.mjs", import.meta.url), "utf8");
+  assert.match(source, /await pause\(50\)/);
+  assert.doesNotMatch(source, /await pause\(200\)/);
+});
 
 test("one tKAS locks five cents, and redeeming one toy dollar does not", async () => {
   const txid = "ab".repeat(32);
