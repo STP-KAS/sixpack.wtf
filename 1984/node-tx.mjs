@@ -217,14 +217,23 @@ async function scanMap() {
   return scanFlight;
 }
 
+/** A mempool read the public nodes accept. Filtering the pool while excluding orphans is rejected. */
+export function mempoolQuery(id) {
+  return {
+    transactionId: id,
+    includeOrphanPool: false,
+    filterTransactionPool: false,
+  };
+}
+
 async function seenInMempool(id) {
-  if (!rpc) return false;
   try {
-    const entry = await rpc.getMempoolEntry({
-      transactionId: id,
-      includeOrphanPool: false,
-      filterTransactionPool: true,
-    });
+    if (!rpc) await connect();
+  } catch {
+    return false;
+  }
+  try {
+    const entry = await withTimeout(rpc.getMempoolEntry(mempoolQuery(id)), 4000, "mempool");
     return !!(entry && (entry.transaction || entry.mempoolEntry));
   } catch {
     return false;
@@ -249,7 +258,7 @@ export async function lookupAccepted(txid) {
   if (acceptanceLook({ cachedHit: false, inMempool }) === "wait") {
     throw new Error("That transaction is not accepted yet. Wait and claim it again.");
   }
-  if (fresh) scan.at = 0;
+  if (fresh) throw notYet();
   const byId = await scanMap();
   const hit = byId.get(id);
   if (hit) return hit;
