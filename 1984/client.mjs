@@ -878,7 +878,11 @@ function maybeSwapNotice() {
   }
   const card = document.getElementById("need-swap");
   const line = document.getElementById("need-swap-line");
+  const title = document.getElementById("need-swap-title");
+  const kasBtn = document.getElementById("need-swap-kas");
   if (!card || !line) return;
+  if (title) title.textContent = "Pay with a swap";
+  if (kasBtn) kasBtn.hidden = true;
   line.textContent = text;
   card.hidden = false;
   swapTold = true;
@@ -3444,20 +3448,40 @@ for (const button of document.querySelectorAll("[data-turn]")) {
   button.addEventListener("pointercancel", up);
   button.addEventListener("lostpointercapture", up);
 }
+function roadsterCents() {
+  const place = SHOPS.find((row) => row.id === "roadster");
+  const keys = place && place.items.find((row) => row.sku === "keys");
+  return keys ? keys.cents : 100;
+}
+
+function railHave(rail) {
+  if (rail === "kas") return BigInt(state.kasSompi || 0);
+  if (rail === "kusdt") return BigInt((state.account && state.account.kusdt) || 0);
+  return BigInt((state.account && state.account.poc) || 0);
+}
+
+function showRoadsterChoice(rail) {
+  const card = document.getElementById("need-swap");
+  const line = document.getElementById("need-swap-line");
+  const title = document.getElementById("need-swap-title");
+  const kasBtn = document.getElementById("need-swap-kas");
+  const note = shortRail(rail, railHave(rail));
+  const text = rail === "kas" ? note : note + " Or buy the roadster in tKAS.";
+  if (title) title.textContent = "Buy a roadster";
+  if (kasBtn) kasBtn.hidden = rail === "kas";
+  if (line) line.textContent = text;
+  if (card) card.hidden = false;
+  say(text, true);
+}
+
 function buyRoadster() {
   if (state.flightStart || state.preRoll || gateIsOpen()) return;
   if (state.account && state.account.roadster) return;
   if (!requireId()) return;
   const rail = payRail(state.shopRail);
-  const place = SHOPS.find((row) => row.id === "roadster");
-  const keys = place && place.items.find((row) => row.sku === "keys");
-  const cents = keys ? keys.cents : 100;
+  const cents = roadsterCents();
   if (canPay(rail, cents) === false) {
-    punch("shake");
-    const have = rail === "kas"
-      ? BigInt(state.kasSompi || 0)
-      : BigInt(rail === "kusdt" ? (state.account && state.account.kusdt) || 0 : (state.account && state.account.poc) || 0);
-    say(shortRail(rail, have), true);
+    showRoadsterChoice(rail);
     return;
   }
   spend(rail, "roadster", "keys").catch((err) => say(err && err.message ? err.message : "The shop refused the payment.", true));
@@ -3496,6 +3520,18 @@ if (needSwapBank) {
     if (needSwapCard) needSwapCard.hidden = true;
     walkInto("bank");
     say(SWAP_PAY);
+  });
+}
+const needSwapKas = document.getElementById("need-swap-kas");
+if (needSwapKas) {
+  needSwapKas.addEventListener("click", () => {
+    if (needSwapCard) needSwapCard.hidden = true;
+    setShopRail("kas");
+    if (canPay("kas", roadsterCents()) === false) {
+      showRoadsterChoice("kas");
+      return;
+    }
+    spend("kas", "roadster", "keys").catch((err) => say(err && err.message ? err.message : "The shop refused the payment.", true));
   });
 }
 const railsNote = document.getElementById("rails-note");

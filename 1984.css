@@ -801,7 +801,7 @@ body.page-1984 main.kw-stage {
   font-weight: 700;
   padding: 0.55rem 0.4rem;
 }
-#ask-ok, #need-swap-bank {
+#ask-ok, #need-swap-bank, #need-swap-kas {
   background: linear-gradient(#e6c98a, #a07838);
   color: #1a1612;
 }

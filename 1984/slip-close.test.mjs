@@ -83,8 +83,8 @@ test("exit to the square is on the shop card", () => {
 test("the balances stay in the top right with Bank", () => {
   const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
   assert.match(html, /<header class="kw-bar" id="bar"><\/header>/);
-  assert.match(html, /1984\.css\?v=52/);
-  assert.match(html, /1984\/client\.mjs\?v=95/);
+  assert.match(html, /1984\.css\?v=53/);
+  assert.match(html, /1984\/client\.mjs\?v=96/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
@@ -118,6 +118,13 @@ test("the lot sells the roadster and launch shows once it is yours", () => {
   assert.match(html, /id="launch" class="kw-launch"/);
   assert.match(client, /lotBuy\.addEventListener\("click", buyRoadster\)/);
   assert.match(sliceFn(client, "buyRoadster"), /spend\(rail, "roadster", "keys"\)/);
+  assert.match(sliceFn(client, "buyRoadster"), /showRoadsterChoice\(rail\)/);
+  assert.match(sliceFn(client, "showRoadsterChoice"), /shortRail\(rail, railHave\(rail\)\)/);
+  assert.match(sliceFn(client, "showRoadsterChoice"), /Or buy the roadster in tKAS/);
+  assert.match(html, /id="need-swap-kas"/);
+  assert.match(html, />Buy in tKAS</);
+  assert.match(client, /spend\("kas", "roadster", "keys"\)/);
+  assert.match(sliceFn(client, "maybeSwapNotice"), /Pay with a swap/);
   const bought = sliceFn(client, "tookPayment");
   assert.match(bought, /state\.aboard = true/);
   assert.match(bought, /Launch into space is the gold button/);
