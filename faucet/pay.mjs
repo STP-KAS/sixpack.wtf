@@ -19,6 +19,17 @@ const SECRET =
   process.env.FAUCET_SECRET ||
   `${homedir().replace(/\\/g, "/")}/Documents/kaspa/groks-wallet/secrets/wallet.txt`;
 const RPC_URL = process.env.FAUCET_RPC || "127.0.0.1:17210";
+/** A refused local port still takes about two seconds. Remember that and do not wait it out on the next send. */
+const LOCAL_WAIT_MS = 400;
+const LOCAL_DOWN_MS = 60_000;
+/** The page rate is already six times the standard. A slow quote must not hold the click. */
+const FEE_WAIT_MS = 400;
+let localDownUntil = 0;
+
+/** Try the desk node until it misses. After that, go straight to a public Testnet-10 node. */
+export function rpcConnectPlan(now, downUntil) {
+  return now < downUntil ? "public" : "local";
+}
 const MAX_INPUTS = 80;
 const COINBASE_MATURITY = 1000n;
 
@@ -94,14 +105,26 @@ async function publicUrls() {
 
 async function connectRpc(kaspa, net, onStep) {
   if (onStep) onStep("Connecting to Testnet-10");
-  try {
-    return await openRpc(kaspa, net, RPC_URL, 2500);
-  } catch (_) {}
-  const urls = await publicUrls();
-  let last = new Error("No public Testnet-10 node answered.");
-  for (const url of urls) {
+  if (rpcConnectPlan(Date.now(), localDownUntil) === "local") {
     try {
-      return await openRpc(kaspa, net, url, 8000);
+      return await openRpc(kaspa, net, RPC_URL, LOCAL_WAIT_MS);
+    } catch {
+      localDownUntil = Date.now() + LOCAL_DOWN_MS;
+    }
+  }
+  let last = new Error("No public Testnet-10 node answered.");
+  for (const url of FALLBACK_WSS) {
+    try {
+      return await openRpc(kaspa, net, url, 2500);
+    } catch (err) {
+      last = err instanceof Error ? err : new Error(String(err));
+    }
+  }
+  const urls = await publicUrls();
+  for (const url of urls) {
+    if (FALLBACK_WSS.includes(url)) continue;
+    try {
+      return await openRpc(kaspa, net, url, 2500);
     } catch (err) {
       last = err instanceof Error ? err : new Error(String(err));
     }
@@ -159,7 +182,7 @@ export function selectCovering(amounts, want, feeReserve, maxInputs) {
 
 async function feeRateFor(rpc, rateOf = payFeeRate) {
   try {
-    const quoted = await withTimeout(rpc.getFeeEstimate({}), 8000, "Reading the Testnet 10 fee took too long.");
+    const quoted = await withTimeout(rpc.getFeeEstimate({}), FEE_WAIT_MS, "Reading the Testnet 10 fee took too long.");
     return rateOf(quoted);
   } catch {
     return rateOf(null);

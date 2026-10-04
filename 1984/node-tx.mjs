@@ -281,6 +281,31 @@ async function pullTip(retried) {
   }
 }
 
+/** One short tip read. A payment uses this. It does not walk back from the sink. */
+async function pullDelta() {
+  if (!cursor) throw notYet();
+  const client = await connect();
+  try {
+    const start = cursor;
+    const chain = await withTimeout(
+      client.getVirtualChainFromBlockV2({
+        startHash: start,
+        dataVerbosityLevel: "Low",
+      }),
+      400,
+      NOT_YET
+    );
+    cursor = applyAcceptedDelta({ byId, blockTxs, cursor: start }, chain);
+    noteChain(chain);
+    refreshedAt = Date.now();
+    return byId;
+  } catch {
+    await dropClient();
+    refreshedAt = Date.now();
+    throw notYet();
+  }
+}
+
 async function refreshTip() {
   if (tipReadPlan(!!cursor, Date.now() - refreshedAt, FRESH_MS, STALE_MS) === "cached") return byId;
   return lockTip(async () => {
@@ -335,7 +360,13 @@ export async function lookupAccepted(txid) {
     if (acceptanceLook({ cachedHit: false, inMempool: inMempool === true }) === "wait") {
       throw new Error("That transaction is not accepted yet. Wait and claim it again.");
     }
-    if (tipReadPlan(!!cursor, Date.now() - refreshedAt, FRESH_MS, STALE_MS) !== "cached") await pullTip(false);
+    if (tipReadPlan(!!cursor, Date.now() - refreshedAt, FRESH_MS, STALE_MS) === "delta") {
+      try {
+        await pullDelta();
+      } catch {
+        /* The follower reads the next block. This click does not walk the chain. */
+      }
+    }
     const hit = byId.get(id);
     if (acceptanceLook({ cachedHit: !!hit, inMempool: false }) === "settled" && hit) return hit;
     throw notYet();

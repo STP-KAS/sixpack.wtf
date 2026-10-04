@@ -71,6 +71,15 @@ test("a tip delta keeps a new payment and drops it when that block leaves", () =
   assert.equal(state.byId.has(id), false);
 });
 
+test("a payment lookup does not walk back from the sink", () => {
+  const source = fs.readFileSync(new URL("./node-tx.mjs", import.meta.url), "utf8");
+  const start = source.indexOf("export async function lookupAccepted");
+  const end = source.indexOf("export function warmNodeWindow");
+  const body = source.slice(start, end);
+  assert.doesNotMatch(body, /walkBack|pullTip/);
+  assert.match(body, /pullDelta/);
+});
+
 test("an old tip cursor starts over instead of reading the whole gap", () => {
   assert.equal(tipReadPlan(true, 10, 80, 1000), "cached");
   assert.equal(tipReadPlan(true, 500, 80, 1000), "delta");
