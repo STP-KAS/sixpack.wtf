@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { extractPayment } from "./chain.mjs";
-import { acceptedToRest } from "./node-tx.mjs";
+import { acceptanceLook, acceptedToRest } from "./node-tx.mjs";
 import { RESERVE } from "./money.mjs";
 
 const USER = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
@@ -26,6 +26,13 @@ test("a node payment becomes the transaction shape the bank already checks", () 
   const pay = extractPayment(rest, { from: USER, to: RESERVE, need: 100_000_000n });
   assert.equal(pay.txid, id);
   assert.equal(pay.paid, 100_000_000n);
+});
+
+test("an accepted payment settles, and a mempool payment still waits", () => {
+  assert.equal(acceptanceLook({ cachedHit: true, inMempool: false }), "settled");
+  assert.equal(acceptanceLook({ cachedHit: true, inMempool: true }), "settled");
+  assert.equal(acceptanceLook({ cachedHit: false, inMempool: true }), "wait");
+  assert.equal(acceptanceLook({ cachedHit: false, inMempool: false }), "scan");
 });
 
 test("a coinbase subnetwork stays visible so the bank can refuse it", () => {

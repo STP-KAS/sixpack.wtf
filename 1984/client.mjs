@@ -14,7 +14,7 @@ import {
   sompiForCents,
 } from "./money.mjs";
 import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
-import { buyAskLine, lockSigner, payKind, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=2";
+import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=3";
 import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=5";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=5";
 import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=48";
@@ -2428,7 +2428,7 @@ function paintGuide() {
     "<li>Need coins: Use a funded test address on the welcome gate, or Who pays, then Test without a wallet. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, take a seat and the menu blinks, or order at the blinking counter. The market opens at the counter. Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Once it is yours, Launch into space is the gold button. The showroom still opens when you click Pike or the sign. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. Kasware and Kastle open on a computer. On a phone, use the funded test address.</li>" +
-    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is six times the standard Testnet 10 rate, and it is extra tKAS. When a payment finishes, the steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate. The same Kasware or Kastle wallet opens its history.</li>" +
+    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is six times the standard Testnet 10 rate, and it is extra tKAS. When a payment settles, it goes through. On a tKAS send, confirmations are still ongoing. The steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate. The same Kasware or Kastle wallet opens its history.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, plays two short films on the tower first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. One tower stands beside it, and the chopsticks stay open. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. After the booster is gone, the ship coasts, then the roadster leaves. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: you hang out with the old roadster. It has been cruising for years. The way there is ten seconds. Out there the two cars race in orbit around the Earth. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>The Moon map is NASA. Mars, Jupiter, Saturn, and the rings are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0.</li>" +
@@ -2772,7 +2772,7 @@ function paySlip(info) {
   const href = tn10TxUrl(chain);
   const receipt = info.receipt ? "Ledger receipt " + info.receipt + ". No Testnet 10 tx." : "";
   if (tx) tx.textContent = chain ? "Tx " + chain : receipt;
-  if (kind) kind.textContent = info.kind || "";
+  if (kind) kind.textContent = info.kind ? settleLine(!!chain) + " " + info.kind : "";
   if (open) {
     if (href) {
       open.hidden = false;
@@ -2854,7 +2854,7 @@ async function lock(rail) {
       let steps;
       if (!txid) {
         const who = walletWord();
-        steps = ["Checking the amount", "Opening " + who, "Approve the send in " + who, "Waiting for Testnet 10", "Adding the tag"];
+        steps = ["Checking the amount", "Opening " + who, "Approve the send in " + who, "Waiting for Testnet 10 to settle", "Adding the tag"];
         showSteps(steps, 1, who === "the wallet" ? "The wallet is opening." : who + " is opening.");
         const plan = await signerForSpend();
         if (plan !== "kit" && plan !== "kasware" && plan !== "kastle") {
@@ -2864,15 +2864,15 @@ async function lock(rail) {
           return;
         }
         const named = walletWord(plan);
-        steps = ["Checking the amount", "Opening " + named, "Approve the send in " + named, "Waiting for Testnet 10", "Adding the tag"];
+        steps = ["Checking the amount", "Opening " + named, "Approve the send in " + named, "Waiting for Testnet 10 to settle", "Adding the tag"];
         showSteps(steps, 2, "Approve the send in " + named + ".");
         swapNote("Approve " + shown + " in " + named + ". The miner fee is six times the standard rate, and it is extra.", "wait");
         rememberWalletKind(plan);
         txid = await sendFromWallet(plan, sompi);
-        showSteps(steps, 3, "Waiting for Testnet 10.");
+        showSteps(steps, 3, "Waiting for Testnet 10 to settle.");
       } else {
-        steps = ["Checking the amount", "Waiting for Testnet 10", "Adding the tag"];
-        showSteps(steps, 1, "Waiting for Testnet 10.");
+        steps = ["Checking the amount", "Waiting for Testnet 10 to settle", "Adding the tag"];
+        showSteps(steps, 1, "Waiting for Testnet 10 to settle.");
       }
       sent = !!txid;
       if (txid) {
@@ -2885,7 +2885,7 @@ async function lock(rail) {
         }
       }
       showSteps(steps, steps.length - 1, "Adding the tag.");
-      swapNote("Waiting for Testnet 10. Adding the " + name + " tag…", "wait");
+      swapNote("Waiting for Testnet 10 to settle. Adding the " + name + " tag…", "wait");
       body = await post("/api/1984/convert", { rail, txid });
       showSteps(steps, steps.length, "Done.");
     }
@@ -2908,7 +2908,7 @@ async function lock(rail) {
     const got = body.cents == null || body.cents === "" ? "" : formatCents(body.cents);
     if (got) putRedeemAmount(got);
     const tx = paid ? " Tx " + paid.slice(0, 10) + "…." : "";
-    swapNote((got ? "Swapped. " + shown + " became " + got + " " + name + "." : "Swapped. " + shown + " locked into " + name + ".") + tx + " " + payKind("lock"), "ok");
+    swapNote(settleLine(!!paid) + " " + (got ? "Swapped. " + shown + " became " + got + " " + name + "." : "Swapped. " + shown + " locked into " + name + ".") + tx + " " + payKind("lock"), "ok");
     await refreshAccount();
   } catch (err) {
     punch("shake");
@@ -2969,7 +2969,7 @@ async function redeem(rail) {
       receipt: body.receipt && body.receipt.id,
       kind: backTx ? payKind("lock") : payKind("shop"),
     });
-    swapNote("Swapped. " + amount + " " + name + " came back as tKAS." + tx + " " + payKind("lock"), "ok");
+    swapNote(settleLine(!!backTx) + " Swapped. " + amount + " " + name + " came back as tKAS." + tx + " " + payKind("lock"), "ok");
     await refreshAccount();
   } catch (err) {
     punch("shake");
@@ -3026,7 +3026,7 @@ async function exchange(from, to) {
       receipt: body.receipt && body.receipt.id,
       kind: payKind("shop"),
     });
-    swapNote("Swapped. " + amount + " " + source + " is now " + dest + ". Locked stayed locked. The purse stayed a purse. " + payKind("shop"), "ok");
+    swapNote(settleLine(false) + " Swapped. " + amount + " " + source + " is now " + dest + ". Locked stayed locked. The purse stayed a purse. " + payKind("shop"), "ok");
     await refreshAccount();
   } catch (err) {
     punch("shake");

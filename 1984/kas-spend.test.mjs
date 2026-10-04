@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
-import { buyAskLine, kasSpendAction, lockSigner, payKind, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs";
+import { buyAskLine, kasSpendAction, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs";
 
 test("a guest shop payment stays on the server, which asks before the key signs", () => {
   assert.equal(kasSpendAction({ kind: "guest", txid: "", needsConfirm: true, ready: false }), "guest");
@@ -17,6 +18,13 @@ test("a shop buy names this square's ledger, and a tKAS swap names the transacti
   assert.match(lock, /txid is the payment/);
   assert.match(lock, /not an Argent or SilverScript covenant/);
   assert.match(lock, /not a vProg/);
+  assert.equal(settleLine(true), "Settled. Confirmations are ongoing.");
+  assert.equal(settleLine(false), "Settled on this ledger.");
+  const client = readFileSync(new URL("./client.mjs", import.meta.url), "utf8");
+  assert.match(client, /info\.kind \? settleLine\(!!chain\)/);
+  assert.match(client, /Waiting for Testnet 10 to settle/);
+  assert.match(client, /confirmations are still ongoing/);
+  assert.match(client, /settleLine\(false\)/);
 });
 
 test("a shop purchase shows a banner, including an ordinary item", () => {

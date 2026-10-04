@@ -231,14 +231,28 @@ async function seenInMempool(id) {
   }
 }
 
+/** A cached hit is settled. A mempool hit is not. Anything else needs one chain read. */
+export function acceptanceLook({ cachedHit, inMempool }) {
+  if (cachedHit) return "settled";
+  if (inMempool) return "wait";
+  return "scan";
+}
+
 /** Accepted transaction in the recent virtual chain, in the REST shape. Throws while it is still unseen. */
 export async function lookupAccepted(txid) {
   const id = String(txid || "").trim().toLowerCase();
   if (!/^[0-9a-f]{64}$/.test(id)) throw new Error("Paste the 64-character transaction id.");
+  const fresh = scan.byId && Date.now() - scan.at < CACHE_MS ? scan.byId : null;
+  const cached = fresh && fresh.get(id);
+  if (acceptanceLook({ cachedHit: !!cached, inMempool: false }) === "settled" && cached) return cached;
+  const inMempool = await seenInMempool(id);
+  if (acceptanceLook({ cachedHit: false, inMempool }) === "wait") {
+    throw new Error("That transaction is not accepted yet. Wait and claim it again.");
+  }
+  if (fresh) scan.at = 0;
   const byId = await scanMap();
   const hit = byId.get(id);
   if (hit) return hit;
-  if (await seenInMempool(id)) throw new Error("That transaction is not accepted yet. Wait and claim it again.");
   throw notYet();
 }
 

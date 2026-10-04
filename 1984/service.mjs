@@ -108,7 +108,7 @@ export function create1984Service(deps) {
         const msg = String((err && err.message) || "");
         if (!/not on Testnet 10 yet|not accepted yet/i.test(msg)) throw err;
         if (i === tries - 1) break;
-        await pause(400);
+        await pause(200);
       }
     }
     if (/not on Testnet 10 yet/i.test(String((last && last.message) || ""))) {

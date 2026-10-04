@@ -3,6 +3,14 @@
  * A shop buy is this square's own ledger. A tKAS swap at the bank is a Testnet 10 transaction.
  * Neither one is an Argent or SilverScript covenant, and neither one is a vProg tic-tac-toe ply.
  */
+export const SETTLED_CHAIN = "Settled. Confirmations are ongoing.";
+export const SETTLED_LEDGER = "Settled on this ledger.";
+
+/** A tKAS send settles when Testnet 10 accepts it. POCencept and KUSDT settle on this ledger. */
+export function settleLine(hasTx) {
+  return hasTx ? SETTLED_CHAIN : SETTLED_LEDGER;
+}
+
 export function payKind(place) {
   if (place === "lock") {
     return "This is a Testnet 10 transaction. The txid is the payment. It is not an Argent or SilverScript covenant, and it is not a vProg tic-tac-toe ply. The toy tag written after it is this square's own ledger.";
