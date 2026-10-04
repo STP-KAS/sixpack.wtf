@@ -22,6 +22,7 @@ test("the rails note is short and points at the public note", () => {
   assert.equal(RAILS_NOTE.title, "Three ways to pay");
   assert.equal(RAILS_NOTE.lines.length, 5);
   assert.match(RAILS_NOTE.lines[0], /tKAS/);
+  assert.match(RAILS_NOTE.lines[0], /miner fee is always KAS/);
   assert.match(RAILS_NOTE.lines[1], /POCencept/);
   assert.match(RAILS_NOTE.lines[1], /KUSDT/);
   assert.match(RAILS_NOTE.lines[2], /ticket/);

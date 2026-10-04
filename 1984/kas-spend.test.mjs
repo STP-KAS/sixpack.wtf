@@ -24,6 +24,8 @@ test("a shop buy names this square's ledger, and a tKAS swap names the transacti
   assert.match(client, /info\.kind \? settleLine\(!!chain\)/);
   assert.match(client, /Waiting for Testnet 10 to settle/);
   assert.match(client, /confirmations are still ongoing/);
+  assert.match(client, /Miner fee is extra KAS/);
+  assert.doesNotMatch(client, /Miner fee is extra tKAS/);
   assert.match(client, /settleLine\(false\)/);
 });
 

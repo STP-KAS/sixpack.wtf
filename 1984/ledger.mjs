@@ -427,7 +427,7 @@ export function applyRedeem(state, input, now) {
     rail: input.rail,
     cents,
     sompi,
-    note: "Redeem at the live quote. Miner fee stays tKAS.",
+    note: "Redeem at the live quote. Miner fee stays KAS.",
   });
   return {
     state: next,

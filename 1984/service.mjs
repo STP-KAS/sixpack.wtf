@@ -38,7 +38,7 @@ import {
 import { HUNTS, SHOPS, itemBySku, shopById } from "./world.mjs";
 
 const DISCLAIMER =
-  "Testnet-10 toys. Not dollars. Not Tether. Not a SEPA rail. Mainnet wallets are refused. Miner fee is always tKAS.";
+  "Testnet-10 toys. Not dollars. Not Tether. Not a SEPA rail. Mainnet wallets are refused. Miner fee is always KAS.";
 
 function clone(state) {
   return structuredClone(state);
