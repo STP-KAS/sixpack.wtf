@@ -879,10 +879,10 @@ function maybeSwapNotice() {
   const card = document.getElementById("need-swap");
   const line = document.getElementById("need-swap-line");
   const title = document.getElementById("need-swap-title");
-  const kasBtn = document.getElementById("need-swap-kas");
   if (!card || !line) return;
+  roadsterCard = false;
+  setRoadsterBuys(false);
   if (title) title.textContent = "Pay with a swap";
-  if (kasBtn) kasBtn.hidden = true;
   line.textContent = text;
   card.hidden = false;
   swapTold = true;
@@ -3460,31 +3460,58 @@ function railHave(rail) {
   return BigInt((state.account && state.account.poc) || 0);
 }
 
-function showRoadsterChoice(rail) {
+let roadsterCard = false;
+
+function setRoadsterBuys(shown) {
+  for (const id of ["need-swap-poc", "need-swap-kusdt", "need-swap-kas"]) {
+    const el = document.getElementById(id);
+    if (el) el.hidden = !shown;
+  }
+}
+
+function roadsterBalanceLine() {
+  const kas = !state.id.address ? "— tKAS" : state.kasSompi == null ? "… tKAS" : formatTkas(state.kasSompi) + " tKAS";
+  const poc = state.account ? formatCents(state.account.poc) + " POCencept" : "— POCencept";
+  const kusdt = state.account ? formatCents(state.account.kusdt) + " KUSDT" : "— KUSDT";
+  return kas + " · " + poc + " · " + kusdt;
+}
+
+function showRoadsterChoice() {
   const card = document.getElementById("need-swap");
   const line = document.getElementById("need-swap-line");
   const title = document.getElementById("need-swap-title");
-  const kasBtn = document.getElementById("need-swap-kas");
-  const note = shortRail(rail, railHave(rail));
-  const text = rail === "kas" ? note : note + " Or buy the roadster in tKAS.";
+  const text = roadsterBalanceLine() + ". The roadster is " + formatCents(roadsterCents()) + " toy dollars. Buy it with POCencept, KUSDT, or tKAS. To convert tKAS, POCencept, or KUSDT, go to the bank.";
+  roadsterCard = true;
+  setRoadsterBuys(true);
   if (title) title.textContent = "Buy a roadster";
-  if (kasBtn) kasBtn.hidden = rail === "kas";
   if (line) line.textContent = text;
   if (card) card.hidden = false;
-  say(text, true);
+  say("Buy the roadster with POCencept, KUSDT, or tKAS. To convert, go to the bank.");
+}
+
+function buyRoadsterOn(rail) {
+  const card = document.getElementById("need-swap");
+  if (card) card.hidden = true;
+  roadsterCard = false;
+  setRoadsterBuys(false);
+  setShopRail(rail);
+  if (rail === "kusdt" && state.account && state.account.kusdtFrozen) {
+    say("KUSDT is frozen. POCencept and tKAS still spend.", true);
+    return;
+  }
+  if (canPay(rail, roadsterCents()) === false) {
+    walkInto("bank");
+    say(shortRail(rail, railHave(rail)) + " Convert tKAS, POCencept, or KUSDT at the bank.", true);
+    return;
+  }
+  spend(rail, "roadster", "keys").catch((err) => say(err && err.message ? err.message : "The shop refused the payment.", true));
 }
 
 function buyRoadster() {
   if (state.flightStart || state.preRoll || gateIsOpen()) return;
   if (state.account && state.account.roadster) return;
   if (!requireId()) return;
-  const rail = payRail(state.shopRail);
-  const cents = roadsterCents();
-  if (canPay(rail, cents) === false) {
-    showRoadsterChoice(rail);
-    return;
-  }
-  spend(rail, "roadster", "keys").catch((err) => say(err && err.message ? err.message : "The shop refused the payment.", true));
+  showRoadsterChoice();
 }
 const rideButton = document.getElementById("ride");
 if (rideButton) rideButton.addEventListener("click", toggleRide);
@@ -3511,28 +3538,27 @@ if (siteTab && siteTab.parentElement) {
 const needSwapCard = document.getElementById("need-swap");
 if (needSwapCard) {
   needSwapCard.addEventListener("click", (ev) => {
-    if (ev.target === needSwapCard || ev.target.closest("#need-swap-ok")) needSwapCard.hidden = true;
+    if (ev.target === needSwapCard || ev.target.closest("#need-swap-ok")) {
+      needSwapCard.hidden = true;
+      roadsterCard = false;
+      setRoadsterBuys(false);
+    }
   });
 }
 const needSwapBank = document.getElementById("need-swap-bank");
 if (needSwapBank) {
   needSwapBank.addEventListener("click", () => {
+    const converting = roadsterCard;
     if (needSwapCard) needSwapCard.hidden = true;
+    roadsterCard = false;
+    setRoadsterBuys(false);
     walkInto("bank");
-    say(SWAP_PAY);
+    say(converting ? "Convert tKAS, POCencept, or KUSDT at the bank." : SWAP_PAY);
   });
 }
-const needSwapKas = document.getElementById("need-swap-kas");
-if (needSwapKas) {
-  needSwapKas.addEventListener("click", () => {
-    if (needSwapCard) needSwapCard.hidden = true;
-    setShopRail("kas");
-    if (canPay("kas", roadsterCents()) === false) {
-      showRoadsterChoice("kas");
-      return;
-    }
-    spend("kas", "roadster", "keys").catch((err) => say(err && err.message ? err.message : "The shop refused the payment.", true));
-  });
+for (const [id, rail] of [["need-swap-poc", "poc"], ["need-swap-kusdt", "kusdt"], ["need-swap-kas", "kas"]]) {
+  const button = document.getElementById(id);
+  if (button) button.addEventListener("click", () => buyRoadsterOn(rail));
 }
 const railsNote = document.getElementById("rails-note");
 if (railsNote) {
