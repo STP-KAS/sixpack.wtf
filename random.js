@@ -41,6 +41,7 @@
     { id: "r40", title: "Liftoff", duration: 46, w: 3840, h: 2160 },
     { id: "r41", title: "What do you think about AI", duration: 70, w: 576, h: 624 },
     { id: "r42", title: "Joint address", duration: 43, w: 576, h: 1024 },
+    { id: "r43", title: "Orbital data centers", duration: 270, w: 1920, h: 1080 },
   ];
 
   const CAPTION = "this desk agrees";

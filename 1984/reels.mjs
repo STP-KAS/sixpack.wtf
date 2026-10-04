@@ -43,6 +43,7 @@ const RANDOM = [
   ["r40", "Liftoff"],
   ["r41", "What do you think about AI"],
   ["r42", "Joint address"],
+  ["r43", "Orbital data centers"],
 ];
 
 const EXTRA = [
@@ -98,6 +99,7 @@ const SHAPE = {
   r40: [3840, 2160],
   r41: [576, 624],
   r42: [576, 1024],
+  r43: [1920, 1080],
   desk: [1920, 1080],
   clip: [1920, 886],
   "phone-a": [1024, 576],
