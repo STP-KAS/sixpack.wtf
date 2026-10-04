@@ -8,7 +8,7 @@ import { planClaim, sompiToTkas, FROM, remainingInWindow, requireTestnetAddress,
 import { listClaims, recordClaim } from "./faucet/ledger.mjs";
 import { payTn10 } from "./faucet/pay.mjs";
 import { handleGrokRequest } from "./grok/http.mjs";
-import { handle1984Request } from "./1984/service.mjs";
+import { handle1984Request, service1984 } from "./1984/service.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 4020);
@@ -302,6 +302,7 @@ http
     });
   })
   .listen(PORT, HOST, () => {
+    service1984();
     console.log(`http://${HOST}:${PORT}/`);
     console.log(`http://${HOST}:${PORT}/faucet.html`);
     console.log(`http://${HOST}:${PORT}/till.html`);

@@ -1,6 +1,6 @@
 /** Read an accepted Testnet-10 payment from a synced node. No keys.
  * The public transaction list at api-tn10 stopped storing new payments on 25 Sep 2026.
- * A synced node still has them. This is the fallback when that list returns 404.
+ * A synced node still has them. The pay path keeps a short tip and drops an old cursor.
  */
 
 import { createRequire } from "node:module";
@@ -20,27 +20,35 @@ const PUBLIC_WSS = [
   "wss://muon-10.kaspa.blue/kaspa/testnet-10/wrpc/borsh",
 ];
 
-/** About a minute of the selected-parent chain at 10 blocks per second. The live path does not walk this. */
-const WINDOW = 500;
-/** A couple of seconds of the tip. A just-sent tKAS payment is accepted inside this. */
+/** Blocks behind the sink when the cursor is cold. About two seconds at ten blocks a second. */
 const TIP = 24;
-/** Reuse a tip read that just finished. The next block is still ahead of this. */
-const FRESH_MS = 30;
-/** Quick misses before one wide read. A live payment is in the tip well before this. */
-const DEEP_AFTER = 20;
+/** Reuse a tip read that just finished. */
+const FRESH_MS = 80;
+/** Older than this, the cursor is dropped and the next read starts at the sink. */
+const STALE_MS = 1000;
+/** Accepting blocks kept in memory. About twenty seconds. */
+const KEEP = 240;
+/** Background tip follow. A payment then reads the map. */
+const FOLLOW_MS = 120;
 const NOT_YET = "That transaction is not on Testnet 10 yet.";
 
 let kaspaPromise = null;
 let rpc = null;
 let localDownUntil = 0;
-let spine = [];
-let spineChain = Promise.resolve();
+let tipChain = Promise.resolve();
 let byId = new Map();
 let blockTxs = new Map();
+let blockOrder = [];
 let cursor = "";
 let refreshedAt = 0;
-let deepAt = 0;
-const missStreak = new Map();
+let followerStarted = false;
+
+/** A fresh cursor is reused. A recent cursor reads the new blocks only. An old cursor starts over at the sink. */
+export function tipReadPlan(hasCursor, ageMs, freshMs, staleMs) {
+  if (hasCursor && ageMs < freshMs) return "cached";
+  if (!hasCursor || ageMs >= staleMs) return "prime";
+  return "delta";
+}
 
 function withTimeout(promise, ms, label) {
   let timer;
@@ -100,9 +108,9 @@ function parentOf(header) {
   return "";
 }
 
-function lockSpine(fn) {
-  const run = spineChain.then(fn, fn);
-  spineChain = run.then(
+function lockTip(fn) {
+  const run = tipChain.then(fn, fn);
+  tipChain = run.then(
     () => {},
     () => {}
   );
@@ -167,31 +175,6 @@ async function dropClient() {
   if (old) await old.disconnect().catch(() => undefined);
 }
 
-async function extendSpine(client) {
-  const dag = await client.getBlockDagInfo();
-  let hash = String((dag && dag.sink) || "").trim();
-  if (!/^[0-9a-f]{64}$/i.test(hash)) throw notYet();
-  const known = new Set(spine);
-  const fresh = [];
-  for (let i = 0; i < WINDOW; i += 1) {
-    fresh.push(hash);
-    if (known.has(hash)) break;
-    const block = await client.getBlock({ hash, includeTransactions: false });
-    const header = (block && (block.block || block) && (block.block || block).header) || {};
-    const next = parentOf(header);
-    if (!/^[0-9a-f]{64}$/i.test(next)) break;
-    hash = next;
-  }
-  if (fresh.length && known.has(fresh[fresh.length - 1])) {
-    const idx = spine.indexOf(fresh[fresh.length - 1]);
-    const older = idx >= 0 ? spine.slice(idx + 1) : [];
-    spine = fresh.concat(older).slice(0, WINDOW);
-  } else {
-    spine = fresh.slice(0, WINDOW);
-  }
-  return spine[spine.length - 1] || "";
-}
-
 function blockKey(hash) {
   const key = String(hash || "").trim().toLowerCase();
   return /^[0-9a-f]{64}$/.test(key) ? key : "";
@@ -229,11 +212,35 @@ export function applyAcceptedDelta(state, chain) {
   return added.length ? added[added.length - 1] : state.cursor;
 }
 
+function resetWindow() {
+  byId = new Map();
+  blockTxs = new Map();
+  blockOrder = [];
+  cursor = "";
+}
+
+function noteChain(chain) {
+  for (const hash of (chain && chain.removedChainBlockHashes) || []) {
+    const key = blockKey(hash);
+    if (key) blockOrder = blockOrder.filter((item) => item !== key);
+  }
+  const added = ((chain && chain.addedChainBlockHashes) || []).map((hash) => blockKey(hash)).filter(Boolean);
+  for (const key of added) {
+    if (!blockOrder.includes(key)) blockOrder.push(key);
+  }
+  while (blockOrder.length > KEEP) {
+    const key = blockOrder.shift();
+    const owned = key && blockTxs.get(key);
+    if (owned) for (const id of owned) byId.delete(id);
+    if (key) blockTxs.delete(key);
+  }
+}
+
 async function walkBack(client, sink, steps) {
   let hash = blockKey(sink);
   if (!hash) throw notYet();
   for (let i = 0; i < steps; i += 1) {
-    const block = await client.getBlock({ hash, includeTransactions: false });
+    const block = await withTimeout(client.getBlock({ hash, includeTransactions: false }), 400, NOT_YET);
     const header = (block && (block.block || block) && (block.block || block).header) || {};
     const next = blockKey(parentOf(header));
     if (!next) break;
@@ -245,21 +252,29 @@ async function walkBack(client, sink, steps) {
 async function pullTip(retried) {
   const client = await connect();
   try {
-    if (!cursor) {
-      const dag = await client.getBlockDagInfo();
+    const plan = tipReadPlan(!!cursor, Date.now() - refreshedAt, FRESH_MS, STALE_MS);
+    if (plan === "prime") {
+      resetWindow();
+      const dag = await withTimeout(client.getBlockDagInfo(), 800, NOT_YET);
       cursor = await walkBack(client, dag && dag.sink, TIP);
     }
     const start = cursor;
-    const chain = await client.getVirtualChainFromBlockV2({
-      startHash: start,
-      dataVerbosityLevel: "Full",
-    });
+    const chain = await withTimeout(
+      client.getVirtualChainFromBlockV2({
+        startHash: start,
+        dataVerbosityLevel: "Low",
+      }),
+      1500,
+      NOT_YET
+    );
     cursor = applyAcceptedDelta({ byId, blockTxs, cursor: start }, chain);
+    noteChain(chain);
     refreshedAt = Date.now();
     return byId;
   } catch (err) {
     await dropClient();
-    cursor = "";
+    resetWindow();
+    refreshedAt = 0;
     if (!retried) return pullTip(true);
     if (err instanceof Error && /not on Testnet 10 yet|not accepted yet/i.test(err.message)) throw err;
     throw notYet();
@@ -267,34 +282,10 @@ async function pullTip(retried) {
 }
 
 async function refreshTip() {
-  if (cursor && Date.now() - refreshedAt < FRESH_MS) return byId;
-  return lockSpine(async () => {
-    if (cursor && Date.now() - refreshedAt < FRESH_MS) return byId;
+  if (tipReadPlan(!!cursor, Date.now() - refreshedAt, FRESH_MS, STALE_MS) === "cached") return byId;
+  return lockTip(async () => {
+    if (tipReadPlan(!!cursor, Date.now() - refreshedAt, FRESH_MS, STALE_MS) === "cached") return byId;
     return pullTip(false);
-  });
-}
-
-async function deepWindow() {
-  return lockSpine(async () => {
-    if (byId.size && Date.now() - deepAt < 1000) return byId;
-    const client = await connect();
-    try {
-      const start = await extendSpine(client);
-      if (!start) throw notYet();
-      const chain = await client.getVirtualChainFromBlockV2({
-        startHash: start,
-        dataVerbosityLevel: "Full",
-      });
-      cursor = applyAcceptedDelta({ byId, blockTxs, cursor: start }, chain) || blockKey(spine[0]) || start;
-      refreshedAt = Date.now();
-      deepAt = Date.now();
-      return byId;
-    } catch (err) {
-      await dropClient();
-      cursor = "";
-      if (err instanceof Error && /not on Testnet 10 yet|not accepted yet/i.test(err.message)) throw err;
-      throw notYet();
-    }
   });
 }
 
@@ -334,36 +325,33 @@ export function acceptanceLook({ cachedHit, inMempool }) {
 export async function lookupAccepted(txid) {
   const id = String(txid || "").trim().toLowerCase();
   if (!/^[0-9a-f]{64}$/.test(id)) throw new Error("Paste the 64-character transaction id.");
+  warmNodeWindow();
   const known = byId.get(id);
-  if (acceptanceLook({ cachedHit: !!known, inMempool: false }) === "settled" && known) {
-    missStreak.delete(id);
-    return known;
-  }
-  const map = await refreshTip();
-  const hit = map.get(id);
-  if (acceptanceLook({ cachedHit: !!hit, inMempool: false }) === "settled" && hit) {
-    missStreak.delete(id);
-    return hit;
-  }
-  const inMempool = await seenInMempool(id);
-  if (acceptanceLook({ cachedHit: false, inMempool: inMempool === true }) === "wait") {
-    missStreak.delete(id);
-    throw new Error("That transaction is not accepted yet. Wait and claim it again.");
-  }
-  if (inMempool === false) {
-    const n = (missStreak.get(id) || 0) + 1;
-    missStreak.set(id, n);
-    if (n >= DEEP_AFTER) {
-      missStreak.set(id, 0);
-      const wide = await deepWindow();
-      const older = wide.get(id);
-      if (older) return older;
+  if (acceptanceLook({ cachedHit: !!known, inMempool: false }) === "settled" && known) return known;
+  return lockTip(async () => {
+    const again = byId.get(id);
+    if (acceptanceLook({ cachedHit: !!again, inMempool: false }) === "settled" && again) return again;
+    const inMempool = await seenInMempool(id);
+    if (acceptanceLook({ cachedHit: false, inMempool: inMempool === true }) === "wait") {
+      throw new Error("That transaction is not accepted yet. Wait and claim it again.");
     }
-  }
-  throw notYet();
+    if (tipReadPlan(!!cursor, Date.now() - refreshedAt, FRESH_MS, STALE_MS) !== "cached") await pullTip(false);
+    const hit = byId.get(id);
+    if (acceptanceLook({ cachedHit: !!hit, inMempool: false }) === "settled" && hit) return hit;
+    throw notYet();
+  });
 }
 
-/** Prime the tip so the first tKAS payment reads a short delta, not the long window. */
+/** Keep a short tip warm so a tKAS payment is already in the map when the click arrives. */
 export function warmNodeWindow() {
-  refreshTip().catch(() => undefined);
+  if (followerStarted) return;
+  followerStarted = true;
+  const tick = () => {
+    refreshTip()
+      .catch(() => undefined)
+      .then(() => {
+        setTimeout(tick, FOLLOW_MS);
+      });
+  };
+  tick();
 }

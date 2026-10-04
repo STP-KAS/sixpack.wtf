@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import test from "node:test";
 import { extractPayment } from "./chain.mjs";
-import { acceptanceLook, acceptedToRest, applyAcceptedDelta, mempoolQuery } from "./node-tx.mjs";
+import { acceptanceLook, acceptedToRest, applyAcceptedDelta, mempoolQuery, tipReadPlan } from "./node-tx.mjs";
 import { RESERVE } from "./money.mjs";
 
 const USER = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
@@ -68,6 +69,16 @@ test("a tip delta keeps a new payment and drops it when that block leaves", () =
   });
   assert.equal(gone, "22".repeat(32));
   assert.equal(state.byId.has(id), false);
+});
+
+test("an old tip cursor starts over instead of reading the whole gap", () => {
+  assert.equal(tipReadPlan(true, 10, 80, 1000), "cached");
+  assert.equal(tipReadPlan(true, 500, 80, 1000), "delta");
+  assert.equal(tipReadPlan(true, 1000, 80, 1000), "prime");
+  assert.equal(tipReadPlan(false, 0, 80, 1000), "prime");
+  const source = fs.readFileSync(new URL("./node-tx.mjs", import.meta.url), "utf8");
+  assert.match(source, /dataVerbosityLevel: "Low"/);
+  assert.doesNotMatch(source, /extendSpine|deepWindow|const WINDOW/);
 });
 
 test("a coinbase subnetwork stays visible so the bank can refuse it", () => {
