@@ -1344,6 +1344,37 @@ function writeJoke(sprite, text) {
   sprite.userData.label = text;
 }
 
+/** Wide gold board over the lot. The same sentence is the buy button. */
+function lotBoard(text) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1024;
+  canvas.height = 180;
+  const g = canvas.getContext("2d");
+  g.fillStyle = "rgba(12,10,8,0.94)";
+  g.fillRect(8, 18, 1008, 144);
+  g.strokeStyle = "#e7c27a";
+  g.lineWidth = 10;
+  g.strokeRect(14, 24, 996, 132);
+  g.fillStyle = "#ffe7a8";
+  g.font = "700 44px Segoe UI, sans-serif";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.fillText(text, 512, 92);
+  const material = new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(canvas),
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+  });
+  material.map.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(6.4, 1.12, 1);
+  sprite.renderOrder = 12;
+  sprite.userData.label = text;
+  sprite.name = "lot-buy-sign";
+  return sprite;
+}
+
 function nameTag(text) {
   const canvas = document.createElement("canvas");
   canvas.width = 256;
@@ -2596,9 +2627,9 @@ function addParkingLot(parent, map) {
       parent.add(line);
     }
   }
-  const sign = nameTag("Lot");
-  const signAt = worldOf(map, PARKING_BAYS[0].x - 0.15, ROADSTER_PARK.y + 1.2, 0);
-  sign.position.set(signAt.x, 1.2, signAt.z);
+  const sign = lotBoard("Buy a roadster. See what happens.");
+  const signAt = worldOf(map, ROADSTER_PARK.x + 0.5, ROADSTER_PARK.y + 0.15, 0);
+  sign.position.set(signAt.x, 2.6, signAt.z);
   parent.add(sign);
 }
 
@@ -4336,6 +4367,16 @@ export function mountWorld(canvas, map, api) {
       if (marked && marked.userData.hit === "seat") satMesh = marked;
       if (api.use) api.use(marked ? marked.userData.hit : "", marked ? marked.userData.rail || "" : "");
       return;
+    }
+    const lotSign = town.getObjectByName("lot-buy-sign");
+    if (lotSign && api.car) {
+      const signHits = raycaster.intersectObject(lotSign, true);
+      if (signHits.length) {
+        marker.visible = false;
+        markTile = null;
+        api.car();
+        return;
+      }
     }
     const car = town.getObjectByName("roadster-car");
     if (car && api.car) {

@@ -64,8 +64,8 @@ test("exit to the square is on the shop card", () => {
 test("the balances stay in the top right with Bank", () => {
   const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
   assert.match(html, /<header class="kw-bar" id="bar"><\/header>/);
-  assert.match(html, /1984\.css\?v=50/);
-  assert.match(html, /1984\/client\.mjs\?v=89/);
+  assert.match(html, /1984\.css\?v=51/);
+  assert.match(html, /1984\/client\.mjs\?v=90/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
@@ -89,4 +89,23 @@ test("closing the pay slip leaves new purchase on that card", () => {
   assert.match(client, /addEventListener\("click", newPurchase\)/);
   assert.match(client, /Close puts that ask away/);
   assert.match(client, /start a new purchase on the card that stays open/);
+});
+
+test("the lot sells the roadster and launch shows once it is yours", () => {
+  const view = readFileSync(new URL("./view3d.mjs", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
+  assert.match(html, /id="lot-buy" class="kw-lot-buy"/);
+  assert.match(html, />Buy a roadster\. See what happens\.<\/button>/);
+  assert.match(html, /id="launch" class="kw-launch"/);
+  assert.match(client, /lotBuy\.addEventListener\("click", buyRoadster\)/);
+  assert.match(sliceFn(client, "buyRoadster"), /spend\(rail, "roadster", "keys"\)/);
+  const bought = sliceFn(client, "tookPayment");
+  assert.match(bought, /state\.aboard = true/);
+  assert.match(bought, /Launch into space is the gold button/);
+  assert.match(sliceFn(client, "syncRide"), /showLot = !owns && outside && !gateIsOpen\(\)/);
+  assert.match(view, /name = "lot-buy-sign"/);
+  assert.match(view, /Buy a roadster\. See what happens\./);
+  assert.match(view, /getObjectByName\("lot-buy-sign"\)/);
+  assert.match(css, /@keyframes lot-pulse/);
+  assert.match(css, /\.kw \.kw-launch \{[\s\S]*animation: lot-pulse/);
 });

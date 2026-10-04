@@ -13,7 +13,7 @@ import {
   publicAccount,
 } from "./ledger.mjs";
 import { RESERVE, assertTestnet, centsForSompi, sompiForCents } from "./money.mjs";
-import { PARKING_BAYS, ROADSTER_PARK, SHOPS, counterFace, findPath, nearShop, shopVisit, standTile, walkable, world } from "./world.mjs";
+import { LOT_LINE, PARKING_BAYS, ROADSTER_PARK, SHOPS, counterFace, findPath, nearShop, shopVisit, standTile, walkable, world } from "./world.mjs";
 
 const USER = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 const USD = 0.05;
@@ -97,7 +97,11 @@ test("the cinema is a dark building west of the lot, and the fountain is still w
   });
   assert.equal(SHOPS.find((item) => item.id === "cafe").items.find((item) => item.sku === "coffee").cents, 250);
   assert.equal(SHOPS.find((item) => item.id === "restaurant").items.find((item) => item.sku === "supper").cents, 1400);
-  assert.equal(SHOPS.find((item) => item.id === "roadster").items.find((item) => item.sku === "keys").cents, 100);
+  assert.equal(LOT_LINE, "Buy a roadster. See what happens.");
+  const roadster = SHOPS.find((item) => item.id === "roadster");
+  assert.match(roadster.line, /Buy a roadster\. See what happens\./);
+  assert.match(roadster.line, /Launch into space/);
+  assert.equal(roadster.items.find((item) => item.sku === "keys").cents, 100);
 });
 
 test("every shop door can be walked from the fountain", () => {

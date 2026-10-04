@@ -20,7 +20,7 @@ test("a shop buy names this square's ledger, and a tKAS swap names the transacti
 });
 
 test("a shop purchase shows a banner, including an ordinary item", () => {
-  assert.equal(shopBanner("keys"), "Parked.");
+  assert.equal(shopBanner("keys"), "Launch into space.");
   assert.equal(shopBanner("lap"), "One lap.");
   assert.equal(shopBanner("coffee"), "Paid.");
   assert.equal(shopBanner("water"), "Paid.");

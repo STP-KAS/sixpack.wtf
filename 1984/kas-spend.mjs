@@ -12,7 +12,7 @@ export function payKind(place) {
 
 /** Banner for a shop purchase. Driving and a lap say what changed. Anything else says paid. */
 export function shopBanner(sku) {
-  if (sku === "keys") return "Parked.";
+  if (sku === "keys") return "Launch into space.";
   if (sku === "lap") return "One lap.";
   return "Paid.";
 }

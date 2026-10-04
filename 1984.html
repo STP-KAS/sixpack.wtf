@@ -7,7 +7,7 @@
   <meta name="description" content="1984 is early development, not the benchmark that was envisioned. The best case is stable money you can spend anywhere, in Kaspa or a stable. It is a Testnet-10 village. Pay a shop with tKAS, POCencept stable, or KUSDT stable. Kasware or Kastle opens that wallet's history. A funded test address is used once. Mainnet wallets are refused.">
   <link rel="canonical" href="https://sixpack.wtf/1984.html">
   <link rel="stylesheet" href="site.css?v=27">
-  <link rel="stylesheet" href="1984.css?v=50">
+  <link rel="stylesheet" href="1984.css?v=51">
 </head>
 <body class="page-1984">
 <header class="top">
@@ -21,8 +21,8 @@
     <canvas id="view"></canvas>
     <div id="veil" class="kw-veil"></div>
     <canvas id="mini" class="kw-mini" width="116" height="88"></canvas>
-    <p class="kw-hint hint-desk">Hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Click a building you are next to and you walk in. The bank card opens when you click a clerk. In the cafe, take a seat and the menu blinks, or order at the counter. The market opens at the counter. Pike's shop opens when you click Pike or the sign. The roadster waits on the lot.</p>
-    <p class="kw-hint hint-phone">Drag a finger to look. Tap the ground to walk or drive. Step moves you. Left and Right turn you. Tap a building you are next to and you walk in. In the cafe, take a seat and the menu blinks, or order at the counter. Tap a clerk in the bank. Square leaves the room. Exit to the square is on the shop card. The roadster waits on the lot. If it is yours, Get in is the large gold button. Tap it to get in. Get out is the gold button. Lux's cinema is the dark building. Take a seat, then the screen.</p>
+    <p class="kw-hint hint-desk">Hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Click a building you are next to and you walk in. The bank card opens when you click a clerk. In the cafe, take a seat and the menu blinks, or order at the counter. The market opens at the counter. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button.</p>
+    <p class="kw-hint hint-phone">Drag a finger to look. Tap the ground to walk or drive. Step moves you. Left and Right turn you. Tap a building you are next to and you walk in. In the cafe, take a seat and the menu blinks, or order at the counter. Tap a clerk in the bank. Square leaves the room. Exit to the square is on the shop card. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out is the other gold button. Lux's cinema is the dark building. Take a seat, then the screen.</p>
     <p id="juice-banner" class="juice-banner" hidden></p>
     <p id="sim-big" class="sim-big" hidden></p>
     <audio id="launch-sound" src="1984/launch.mp3" preload="auto"></audio>
@@ -37,6 +37,7 @@
       <button type="button" class="kw-turn kw-step" data-turn="forward">Step</button>
       <button type="button" class="kw-turn" data-turn="right">Right</button>
     </div>
+    <button type="button" id="lot-buy" class="kw-lot-buy" hidden>Buy a roadster. See what happens.</button>
     <button type="button" id="ride" class="kw-ride" hidden>Drive in your roadster</button>
     <button type="button" id="launch" class="kw-launch" hidden>Launch into space</button>
     <div id="flight" class="flight-card" hidden>
@@ -139,6 +140,6 @@
 </div>
 <script src="nav.js?v=51"></script>
 <script src="wallets/kaspa-wallets.js?v=6"></script>
-<script type="module" src="1984/client.mjs?v=89"></script>
+<script type="module" src="1984/client.mjs?v=90"></script>
 </body>
 </html>

@@ -3,6 +3,8 @@
 export const MAP_W = 42;
 export const MAP_H = 32;
 
+export const LOT_LINE = "Buy a roadster. See what happens.";
+
 export const SHOPS = [
   {
     id: "cafe",
@@ -43,7 +45,7 @@ export const SHOPS = [
     id: "roadster",
     name: "Pike's Roadster",
     keeper: "Pike",
-    line: "The roadster is 1.00 toy dollar. It parks on the lot in front of this shop. Click it, or Get in, to drive. Get out is the gold button. A lap is one paid circuit.",
+    line: LOT_LINE + " It is 1.00 toy dollar, on the lot in front of this shop. Once it is yours, Launch into space is the gold button.",
     items: [
       { sku: "keys", name: "The roadster", cents: 100 },
       { sku: "postcard", name: "Postcard of the car", cents: 100 },
