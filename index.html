@@ -6,16 +6,20 @@
 <style>
 html,body{margin:0;height:100%;background:#000}
 video{position:fixed;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+p{position:fixed;left:0;right:0;bottom:7vh;margin:0;text-align:center;color:#fff;font:600 18px/1 system-ui,sans-serif;letter-spacing:.02em;text-shadow:0 1px 2px #000,0 0 12px #000;pointer-events:none}
 </style>
 </head>
 <body>
-<video src="v.mp4" autoplay muted loop playsinline></video>
+<video src="v.mp4?v=2" autoplay muted loop playsinline></video>
+<p>click for sound</p>
 <script>
 var v=document.querySelector("video");
+var note=document.querySelector("p");
 addEventListener("pointerdown",function(){
   v.muted=false;
   v.currentTime=0;
   v.play();
+  note.remove();
 },{once:true});
 </script>
 </body>
