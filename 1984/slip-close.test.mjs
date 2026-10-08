@@ -35,7 +35,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=104/);
+  assert.match(html, /1984\/client\.mjs\?v=105/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -45,7 +45,16 @@ test("the landing gate takes a funded test address", () => {
   assert.ok(phoneAt > 0);
   const phone = css.slice(phoneAt);
   assert.match(html, /class="phone-fit"/);
-  assert.match(phone, /\.phone-fit \{[\s\S]*width: 1280px;[\s\S]*height: 720px;[\s\S]*scale\(min\([\s\S]*100vw[\s\S]*\/ 1280px,[\s\S]*100dvh[\s\S]*\/ 720px/);
+  assert.match(html, /class="desk-note">Better on a desktop, a PC, or a laptop\./);
+  assert.match(css.slice(0, phoneAt), /\.desk-note \{ display: none; \}/);
+  assert.match(phone, /\.phone-fit \{[\s\S]*width: 100%;[\s\S]*height: 100%;[\s\S]*transform: none/);
+  assert.doesNotMatch(phone, /width: 1280px/);
+  assert.doesNotMatch(phone, /scale\(min\(/);
+  assert.match(phone, /\.desk-note \{[\s\S]*display: block/);
+  assert.match(phone, /body\.page-1984 \.top nav \{[\s\S]*display: none/);
+  assert.match(phone, /\.phone-fit \.kw-launch/);
+  assert.match(phone, /\.phone-fit \.hint-phone/);
+  assert.match(phone, /\.phone-fit \.kw-step \{ display: inline-block; \}/);
   assert.match(phone, /\.phone-fit \.flight-card \{[\s\S]*max-height: calc\(100% - 8px\)/);
   assert.doesNotMatch(phone, /\.kw \.kw-launch/);
   assert.doesNotMatch(phone, /p\.only-phone \{ display: block; \}/);
@@ -93,8 +102,8 @@ test("exit to the square is on the shop card", () => {
 test("the balances stay in the top right with Bank", () => {
   const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
   assert.match(html, /<header class="kw-bar" id="bar"><\/header>/);
-  assert.match(html, /1984\.css\?v=56/);
-  assert.match(html, /1984\/client\.mjs\?v=104/);
+  assert.match(html, /1984\.css\?v=57/);
+  assert.match(html, /1984\/client\.mjs\?v=105/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);

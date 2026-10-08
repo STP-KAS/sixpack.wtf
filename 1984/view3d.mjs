@@ -197,9 +197,38 @@ export function flightLine(beat, ms) {
   return "";
 }
 
+/** Wait this long for launch.mp3. The count stays at T- 00:00:15 until the file is playing. */
+export const COUNT_HOLD_MS = 4000;
+
+/**
+ * Flight milliseconds for the countdown.
+ * heardMs is launch.mp3's position. The 15 second count follows that position,
+ * so the number, the voice, and the liftoff stay together.
+ * Once the recording crosses liftoff, anchor is the wall time minus the heard
+ * time. Later frames use the wall clock, so the shortened flight keeps going
+ * after the file ends. hold keeps the screen at the start until play begins.
+ */
+export function countdownMs(wallMs, heardMs, opts) {
+  const wall = Math.max(0, Number(wallMs) || 0);
+  const heard = Math.max(0, Number(heardMs) || 0);
+  const playing = !!(opts && opts.playing);
+  const ended = !!(opts && opts.ended);
+  const hold = !!(opts && opts.hold);
+  const given = opts && opts.anchored != null && Number.isFinite(Number(opts.anchored)) ? Number(opts.anchored) : null;
+  if (given != null) return { ms: Math.max(0, wall - given), anchor: given };
+  if ((playing || (heard > 0 && !ended)) && heard < FLIGHT_LIFTOFF) return { ms: heard, anchor: null };
+  if (heard >= FLIGHT_LIFTOFF) return { ms: heard, anchor: wall - heard };
+  if (hold && wall < COUNT_HOLD_MS) return { ms: 0, anchor: null };
+  return { ms: wall, anchor: null };
+}
+
+/** The pad reads like the launch recording: T- 00:00:15, then T+ 0:00 at liftoff. */
 export function flightClock(ms) {
-  const t = Math.max(0, ms);
-  if (t < FLIGHT_LIFTOFF) return "T- " + Math.floor((FLIGHT_LIFTOFF - t) / 1000);
+  const t = Math.max(0, Number(ms) || 0);
+  if (t < FLIGHT_LIFTOFF) {
+    const left = Math.ceil((FLIGHT_LIFTOFF - t) / 1000);
+    return "T- 00:00:" + String(left).padStart(2, "0");
+  }
   const s = Math.floor((t - FLIGHT_LIFTOFF) / 1000);
   const m = Math.floor(s / 60);
   const r = s % 60;

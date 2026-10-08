@@ -17,7 +17,7 @@ import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=4";
 import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=8";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=7";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=50";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=51";
 import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=3";
 const TUNNEL = "https://authority-fireplace-earlier-spirit.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -61,6 +61,8 @@ const state = {
   huntNeeds: {},
   huntBook: null,
   flightStart: 0,
+  launchHold: false,
+  liftoffWall: null,
   padPhase: "",
   preRoll: false,
   hotOn: false,
@@ -113,13 +115,35 @@ function say(text, bad, kind) {
 
 function launchSound() {
   const audio = document.getElementById("launch-sound");
-  if (!audio) return;
+  state.liftoffWall = null;
+  if (!audio) {
+    state.launchHold = false;
+    return;
+  }
   claimMedia(audio);
   audio.muted = false;
   audio.volume = 0.9;
+  state.launchHold = true;
   try { audio.currentTime = 0; } catch (err) { /* the file may still be opening */ }
+  const clearHold = () => { state.launchHold = false; };
   const pending = audio.play();
-  if (pending && pending.catch) pending.catch(() => {});
+  if (pending && pending.then) pending.then(clearHold).catch(clearHold);
+  else clearHold();
+}
+
+/** The countdown follows launch.mp3. After liftoff the wall clock carries the shortened flight. */
+function flightElapsed(now) {
+  const wall = state.flightStart ? Math.max(0, now - state.flightStart) : 0;
+  const audio = document.getElementById("launch-sound");
+  const heard = audio && Number.isFinite(audio.currentTime) ? audio.currentTime * 1000 : 0;
+  const step = countdownMs(wall, heard, {
+    playing: !!(audio && !audio.paused && !audio.ended),
+    ended: !!(audio && audio.ended),
+    hold: state.launchHold,
+    anchored: state.liftoffWall,
+  });
+  if (step.anchor != null) state.liftoffWall = step.anchor;
+  return step.ms;
 }
 
 function stopLaunchSound() {
@@ -522,6 +546,8 @@ function startLaunch() {
   state.arrived = null;
   state.lapUntil = 0;
   state.flightStart = 0;
+  state.launchHold = false;
+  state.liftoffWall = null;
   state.preRoll = true;
   state.flightDark = false;
   state.flightEndedAt = 0;
@@ -599,7 +625,7 @@ function startLaunch() {
 function endAllowed(now) {
   if (!state.flightStart || state.flightDark) return false;
   if (state.cruiseStart) return cruiseOfferEnd(now - state.cruiseStart);
-  return flightOfferEnd(now - state.flightStart);
+  return flightOfferEnd(flightElapsed(now));
 }
 
 function endLaunch() {
@@ -644,6 +670,8 @@ function endLaunch() {
 function returnFromFlight() {
   if (!state.flightBackShown) return;
   state.flightStart = 0;
+  state.launchHold = false;
+  state.liftoffWall = null;
   state.preRoll = false;
   state.flightDark = false;
   state.flightEndedAt = 0;
@@ -733,7 +761,8 @@ function paintFlightCard(now) {
     return;
   }
   const cruising = !!state.cruiseStart;
-  const ms = cruising ? now - state.cruiseStart : now - state.flightStart;
+  const flightMs = flightElapsed(now);
+  const ms = cruising ? now - state.cruiseStart : flightMs;
   const progress = cruising ? cruiseProgress(ms) : flightProgress(ms);
   const offer = cruising ? cruiseOfferEnd(ms) : flightOfferEnd(ms);
   const before = !cruising && ms < FLIGHT_LIFTOFF;
@@ -747,8 +776,8 @@ function paintFlightCard(now) {
   const fill = document.getElementById("flight-fill");
   if (fill) fill.style.width = Math.round((before ? ms / FLIGHT_LIFTOFF : progress) * 100) + "%";
   const clock = document.getElementById("flight-clock");
-  if (clock) clock.textContent = flightClock(cruising ? ms : now - state.flightStart);
-  const beat = cruising ? "cruise" : flightBeat(now - state.flightStart);
+  if (clock) clock.textContent = flightClock(ms);
+  const beat = cruising ? "cruise" : flightBeat(flightMs);
   if (beat !== state.flightBeat || cruising || beat === "stage" || beat === "orbit") {
     state.flightBeat = beat;
     const line = document.getElementById("flight-line");
@@ -768,7 +797,7 @@ function paintFlightCard(now) {
           shown.textContent = joke.text;
         }
       } else {
-        const said = flightLine(beat, now - state.flightStart);
+        const said = flightLine(beat, flightMs);
         line.textContent = said;
         line.hidden = !said;
         const shown = document.getElementById("flight-joke");
@@ -787,9 +816,9 @@ function paintFlightCard(now) {
   if (panel) panel.hidden = !offer;
   const end = document.getElementById("flight-end");
   if (end) end.hidden = !offer;
-  if (!cruising && flightBeat(now - state.flightStart) === "liftoff") commsSound();
-  if (!cruising && flightBeat(now - state.flightStart) !== "light") stopPadFilms();
-  if (!cruising) syncFlightFilms(now - state.flightStart);
+  if (!cruising && flightBeat(flightMs) === "liftoff") commsSound();
+  if (!cruising && flightBeat(flightMs) !== "light") stopPadFilms();
+  if (!cruising) syncFlightFilms(flightMs);
   if (state.flightStart && now - (state.koniAt || 0) > 8000) {
     state.koniAt = now;
     readKoni();
@@ -2518,7 +2547,7 @@ async function post(path, body) {
 function tookPayment(body, sku) {
   const trip = tripBySku(sku);
   if (trip && state.flightStart && !state.flightDark) {
-    state.cruiseFrom = performance.now() - state.flightStart;
+    state.cruiseFrom = flightElapsed(performance.now());
     state.cruiseStart = performance.now();
     state.cruiseSku = sku;
     state.jokeSent = -1;
@@ -3304,7 +3333,7 @@ const worldView = mountWorld(view, map, {
     if (state.flightDark) return -1;
     if (state.preRoll) return 1;
     if (!state.flightStart) return 0;
-    const ms = performance.now() - state.flightStart;
+    const ms = flightElapsed(performance.now());
     return ms > 0 ? ms : 0.001;
   },
   cruise() {
