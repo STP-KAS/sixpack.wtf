@@ -1911,7 +1911,10 @@ function openMode(mode) {
     return;
   }
   panel.hidden = false;
-  if (mode === "mint") paintMint();
+  if (mode === "mint") {
+    paintMint();
+    refreshMints();
+  }
   else if (mode === "bank") {
     if (enteringBank && !keepClerk) {
       state.bankClerk = "";
@@ -3206,8 +3209,10 @@ function paintMint() {
     : "<li>None yet.</li>";
   panel.innerHTML =
     '<div class="stall-head"><h2>Mint</h2>' + placeActs("") + "</div>" +
+    "<p><strong>Open mints.</strong> These names are already open on this square. Join mints more of that name. The addresses are the funded wallets that hold it.</p>" +
+    openList(open) +
     "<p><strong>What.</strong> This place writes a token on the square ledger. The rule is KCC-20 Last Call. It is not Final. No covenant is deployed. The token is not tKAS, not a dollar, and not a spendable Layer-1 coin.</p>" +
-    "<p><strong>How.</strong> Pick one option. A new name opens a token and mints your amount. Mint more increases a token that is already open. Send moves some of yours to another kaspatest address. The same name keeps the same extension. A mint has to increase your amount. A send keeps the total.</p>" +
+    "<p><strong>How.</strong> Pick one option. A new name opens a token and mints your amount. Mint more increases a token that is already open. Send moves some of yours to another kaspatest address. The same name keeps the same extension. A mint has to increase your amount. A send keeps the total. Open mints lists every name already opened here, with the funded addresses that hold it. Join fills that name so you mint more.</p>" +
     "<p><strong>Why.</strong> So a funded address can try a mint here on Testnet 10, while KCC-20 is still Last Call. The cap is the most that can be minted. This desk checks it. Type 0 in Cap for no cap. There is no maximum.</p>" +
     "<p><strong>Options.</strong></p>" +
     '<div class="mint-form">' +
@@ -3234,23 +3239,84 @@ function paintMint() {
   }
   for (const input of panel.querySelectorAll('input[name="mint-opt"]')) input.onchange = syncMintOption;
   const capBox = document.getElementById("mint-cap");
+  const amountBox = document.getElementById("mint-amount");
   if (capBox) capBox.oninput = syncCapNote;
+  if (amountBox) amountBox.oninput = syncCapNote;
+  for (const button of panel.querySelectorAll("[data-join]")) {
+    button.onclick = () => joinMint(button.getAttribute("data-join"));
+  }
   document.getElementById("mint-go").onclick = saveMint;
   syncMintOption();
   wirePlaceExit();
 }
 
+const MINT_MAX = 1000000000000000000n;
+
 function capMeaning(value) {
   const text = String(value || "").trim();
+  const amountText = String((document.getElementById("mint-amount") || {}).value || "").trim();
+  const amountOk = /^[0-9]+$/.test(amountText) && amountText !== "0";
+  if (text !== "" && text !== "0" && /^[0-9]+$/.test(text) && amountOk && BigInt(text) < BigInt(amountText)) {
+    return "This cap is below the amount. Type 0 for no cap, or raise the cap to at least the amount.";
+  }
   if (text === "" || text === "0") return "0 means no cap. There is no maximum.";
   if (/^[0-9]+$/.test(text)) return "The most that can be minted is " + text + ".";
   return "Type a whole number. 0 means no cap.";
+}
+
+function mintProblem(option, amount, cap) {
+  const text = String(amount || "").trim();
+  if (!/^[0-9]+$/.test(text) || text === "0") return "Type a whole amount above zero.";
+  const value = BigInt(text);
+  if (value > MINT_MAX) return "That amount is too large. One mint can be at most " + MINT_MAX.toString() + ".";
+  if (option !== "new") return "";
+  const capText = String(cap || "").trim();
+  if (capText === "" || capText === "0") return "";
+  if (!/^[0-9]+$/.test(capText)) return "Type a whole number. 0 means no cap.";
+  if (BigInt(capText) < value) {
+    return "The cap is smaller than this amount. Type 0 for no cap, or raise the cap to at least " + text + ".";
+  }
+  return "";
+}
+
+function openList(rows) {
+  if (!rows.length) return "<p class=\"mint-cap-note\">No open mint yet.</p>";
+  return "<ul class=\"mint-open\">" + rows.map((row) => {
+    const cap = !row.cap || row.cap === "0" ? "no cap" : "cap " + row.cap;
+    const people = (row.holders || []).map((item) => "<li>" + esc(short(item.address)) + " · " + esc(item.amount) + "</li>").join("");
+    const more = row.holderCount > (row.holders || []).length ? "<li>" + esc(String(row.holderCount)) + " addresses hold it.</li>" : "";
+    return "<li><strong>" + esc(row.name) + "</strong> · supply " + esc(row.supply) + " · " + esc(cap) +
+      (people ? "<ul class=\"mint-holders\">" + people + more + "</ul>" : "") +
+      '<button type="button" data-join="' + esc(row.name) + '">Join</button></li>';
+  }).join("") + "</ul>";
+}
+
+function joinMint(name) {
+  const radio = panel.querySelector('input[name="mint-opt"][value="more"]');
+  if (radio) radio.checked = true;
+  syncMintOption();
+  const box = document.getElementById("mint-name");
+  if (box) box.value = name || "";
+  const amount = document.getElementById("mint-amount");
+  if (amount) amount.focus();
 }
 
 function syncCapNote() {
   const box = document.getElementById("mint-cap");
   const note = document.getElementById("mint-cap-note");
   if (box && note) note.textContent = capMeaning(box.value);
+}
+
+async function refreshMints() {
+  const body = await api("/api/1984");
+  if (!body.ok || !body.mints) return;
+  const prev = JSON.stringify((state.home && state.home.mints) || []);
+  if (!state.home) state.home = {};
+  state.home.mints = body.mints;
+  if (prev === JSON.stringify(body.mints)) return;
+  if (state.mode !== "mint") return;
+  if (panel.querySelector("input:focus, select:focus")) return;
+  paintMint();
 }
 
 function syncMintOption() {
@@ -3274,6 +3340,11 @@ async function saveMint() {
   const capRaw = String((document.getElementById("mint-cap") || {}).value || "").trim();
   const cap = capRaw === "" ? "0" : capRaw;
   const to = (document.getElementById("mint-to") || {}).value || "";
+  const problem = mintProblem(option, amount, cap);
+  if (problem) {
+    say(problem, true);
+    return;
+  }
   const body = await post("/api/1984/mint", { option, name, amount, cap, to });
   if (!body.ok) {
     say(body.error || "The mint did not land.", true);

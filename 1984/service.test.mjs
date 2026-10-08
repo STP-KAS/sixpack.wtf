@@ -612,6 +612,19 @@ test("a named token opens, increases, stops at the cap, and a send keeps the tot
   assert.equal(blankMore.status, 200);
   assert.equal(blankMore.body.token.supply, "41");
 
+  const wideCap = await mint({ option: "new", name: "wide", amount: "456345634563456", cap: "1455451454" });
+  assert.equal(wideCap.status, 400);
+  assert.match(wideCap.body.error, /smaller than this amount/);
+
+  const wide = await mint({ option: "new", name: "wide", amount: "456345634563456", cap: "0" });
+  assert.equal(wide.status, 200);
+  assert.equal(wide.body.token.supply, "456345634563456");
+  assert.equal(wide.body.token.cap, "0");
+
+  const huge = await mint({ option: "new", name: "huge", amount: "1000000000000000001", cap: "0" });
+  assert.equal(huge.status, 400);
+  assert.match(huge.body.error, /too large/);
+
   const home = await svc.handle({
     method: "GET",
     pathname: "/api/1984",
@@ -620,7 +633,12 @@ test("a named token opens, increases, stops at the cap, and a send keeps the tot
     ip: "203.0.113.81",
   });
   assert.equal(home.status, 200);
-  assert.equal(home.body.mints[0].supply, "8");
+  const ash = home.body.mints.find((row) => row.name === "ASH");
+  assert.equal(ash.supply, "8");
+  assert.equal(ash.holderCount, 2);
+  assert.equal(ash.holders[0].amount, "6");
+  assert.equal(ash.holders[1].amount, "2");
+  assert.equal(ash.holders[1].address, OTHER);
 
   const other = await svc.handle({
     method: "GET",

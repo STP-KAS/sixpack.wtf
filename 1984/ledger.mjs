@@ -193,14 +193,29 @@ export function publicAccount(state, address) {
 
 export function publicMints(state) {
   const book = (state && state.mints) || {};
+  const accounts = (state && state.accounts) || {};
   return Object.keys(book)
     .map((extension) => {
       const row = book[extension];
+      const holders = Object.keys(accounts)
+        .map((address) => {
+          const bag = accounts[address] && accounts[address].tokens;
+          return { address, amount: String((bag && bag[extension]) || "0") };
+        })
+        .filter((item) => item.amount !== "0")
+        .sort((a, b) => {
+          const left = bi(a.amount);
+          const right = bi(b.amount);
+          if (left === right) return a.address.localeCompare(b.address);
+          return left > right ? -1 : 1;
+        });
       return {
         name: row.name,
         extension,
         supply: String(row.supply || "0"),
         cap: String(row.cap || "0"),
+        holderCount: holders.length,
+        holders: holders.slice(0, 20),
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -219,13 +234,14 @@ function tokenHoldings(state, account) {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-const MAX_MINT = 1_000_000_000_000n;
+const MAX_MINT = 1_000_000_000_000_000_000n;
 
-function wholeAmount(value, label) {
+function wholeAmount(value) {
   const text = String(value ?? "").trim();
-  if (!/^[0-9]+$/.test(text)) throw new Error(label);
+  if (!/^[0-9]+$/.test(text)) throw new Error("Type a whole amount above zero.");
   const amount = BigInt(text);
-  if (amount <= 0n || amount > MAX_MINT) throw new Error(label);
+  if (amount <= 0n) throw new Error("Type a whole amount above zero.");
+  if (amount > MAX_MINT) throw new Error("That amount is too large. One mint can be at most " + MAX_MINT.toString() + ".");
   return amount;
 }
 
@@ -247,14 +263,16 @@ export function applyToken(state, input, now) {
   }
   const name = normalizeTick(input.name);
   const extension = tokenExtension(name);
-  const amount = wholeAmount(input.amount, "Type a whole amount above zero.");
+  const amount = wholeAmount(input.amount);
   const next = clone(state);
   if (!next.mints) next.mints = {};
   const existing = next.mints[extension];
   if (option === "new") {
     if (existing) throw new Error("That token is already open. Mint more of it.");
     const cap = wholeCap(input.cap);
-    if (cap > 0n && cap < amount) throw new Error("The cap has to cover this mint.");
+    if (cap > 0n && cap < amount) {
+      throw new Error("The cap is smaller than this amount. Type 0 for no cap, or raise the cap to at least " + amount.toString() + ".");
+    }
     next.mints[extension] = { name, extension, supply: "0", cap: String(cap) };
   } else if (!existing || existing.name !== name) {
     throw new Error("That token is not open yet. Open it first.");
