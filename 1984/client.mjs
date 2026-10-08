@@ -15,7 +15,7 @@ import {
 } from "./money.mjs";
 import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=3";
-import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=6";
+import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=7";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=6";
 import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=48";
 import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=2";
@@ -426,10 +426,9 @@ function paintChrome() {
   const guestOn = id.kind === "guest";
   you.innerHTML =
     "<h2>Who is paying</h2>" +
-    "<p class=\"fine\">A wallet or a pasted address stays until you change it. A test address dies with this tab. Never a seed.</p>" +
-    '<p class="fine">Testnet 10 only. A mainnet wallet is refused.</p>' +
-    '<div class="kw-row wallet-pc"><button type="button" id="use-kasware">Log in with Kasware</button><button type="button" id="use-kastle">Log in with Kastle</button></div>' +
-    '<button type="button" id="use-guest">Test without a wallet</button>' +
+    "<p class=\"fine\">A funded address only. This money is tKAS, Testnet-10 KAS. With tKAS you can go to the bank. Wallet sign-in comes later.</p>" +
+    '<p class="fine">Testnet 10 only. A mainnet wallet is refused. Never a seed.</p>' +
+    '<button type="button" id="use-guest">Use a funded test address</button>' +
     '<button type="button" id="log-out">Log out</button>' +
     '<p class="warn">' + esc(GUEST_DISCLAIMER) + "</p>" +
     (guestOn
@@ -914,7 +913,7 @@ async function logOut() {
   paintChrome();
   if (state.id.address) refreshAccount();
   say(state.id.address
-    ? "Logged out. The same Kasware or Kastle wallet opens its history."
+    ? "Logged out. A funded address keeps its history. This money is tKAS. With tKAS you can go to the bank."
     : "Logged out. The welcome gate is the landing.");
 }
 
@@ -1118,7 +1117,7 @@ async function startGuest(onStep) {
   if (guestBusy) return;
   guestBusy = true;
   try {
-    say("Making a Testnet-10 address for this tab and putting tKAS on it. " + GUEST_DISCLAIMER);
+    say("Opening a funded test address. This money is tKAS. With tKAS you can go to the bank. " + GUEST_DISCLAIMER);
     const posted = await postGuest();
     let body = posted.body;
     if (body && body.step && onStep) onStep(body.step, body.detail || "");
@@ -1128,11 +1127,11 @@ async function startGuest(onStep) {
     }
     setIdentity({ address: body.address, label: "test tab", kind: "guest", token: body.token });
     if (state.id.kind !== "guest" || state.id.token !== body.token) {
-      return { ok: false, error: "The test wallet opened, but this tab could not keep it. Open Who pays and try Test without a wallet." };
+      return { ok: false, error: "The test wallet opened, but this tab could not keep it. Use a funded test address again." };
     }
     hideGate();
     gateStatus("");
-    say("This tab has " + formatTkas(body.sompi) + " tKAS. The balance can take a moment to show. Each test address is used once. Come back later and that history is gone.");
+    say("This tab has " + formatTkas(body.sompi) + " tKAS. tKAS is Testnet-10 KAS. With tKAS you can go to the bank. Each test address is used once. Come back later and that history is gone.");
     const address = body.address;
     const later = (ms) => {
       setTimeout(() => {
@@ -1265,7 +1264,27 @@ function sessionLine(walletName, loaded) {
     : "Started a session for this address.";
 }
 
+const FUNDED_NEED = "That address has no tKAS. This money is tKAS, Testnet-10 KAS. Use a funded test address. With tKAS you can go to the bank.";
+const FUNDED_UNREAD = "That address could not be read. A funded address already holds tKAS. This money is tKAS. With tKAS you can go to the bank.";
+
+async function fundedEnough(address) {
+  const body = await api("/api/1984/account?address=" + encodeURIComponent(address));
+  if (!body.ok || body.kasSompi == null || body.kasSompi === "") return { ok: false, error: FUNDED_UNREAD };
+  try {
+    if (BigInt(body.kasSompi) <= 0n) return { ok: false, error: FUNDED_NEED };
+  } catch {
+    return { ok: false, error: FUNDED_UNREAD };
+  }
+  return { ok: true };
+}
+
 async function enterAddress(address, walletName) {
+  const check = await fundedEnough(address);
+  if (!check.ok) {
+    say(check.error, true);
+    if (gateIsOpen()) gateStatus(check.error, true);
+    return { ok: false, refused: true, error: check.error };
+  }
   const kind = walletName === "Kasware" ? "kasware" : walletName === "Kastle" ? "kastle" : "address";
   const loaded = await setIdentity({ address, label: walletName || address, kind }, true);
   if (loaded && loaded.refused) {
@@ -1312,6 +1331,12 @@ async function useAddress(from) {
     await enterAddress(address, "");
     return;
   }
+  const check = await fundedEnough(address);
+  if (!check.ok) {
+    say(check.error, true);
+    if (gateIsOpen()) gateStatus(check.error, true);
+    return;
+  }
   setIdentity({ address, label: address, kind: "address" });
 }
 
@@ -1337,6 +1362,12 @@ async function useName(from) {
   } catch (err) {
     say(err.message, true);
     if (gateIsOpen()) gateStatus(err.message, true);
+    return;
+  }
+  const check = await fundedEnough(address);
+  if (!check.ok) {
+    say(check.error, true);
+    if (gateIsOpen()) gateStatus(check.error, true);
     return;
   }
   say(PRIVACY);
@@ -2424,15 +2455,12 @@ function paintGuide() {
   panel.innerHTML =
     '<div class="stall-head"><h2>How to try this on Testnet 10</h2>' + placeActs("") + "</div>" +
     "<ol>" +
-    "<li class=\"only-desk\">Click Kasware or Kastle and approve the login. This page asks the wallet to open on Testnet 10. If the window is black, close it, click the wallet icon, unlock, and try again. A mainnet address is still refused. That login stays on this browser.</li>" +
-    "<li class=\"only-phone\">On a phone, the welcome gate is Use a funded test address. Kasware and Kastle open on a computer.</li>" +
-    "<li class=\"only-desk\">On the welcome gate, Kasware and Kastle are the wallets. The same Kasware or Kastle wallet opens its history. Use a funded test address opens one funded address for this visit. Each test address is used once. Come back later and that history is gone. Close the tab and the leftover tKAS is swept back. It does not replace a wallet you already saved. This tab gets 50000 tKAS from Grok's Testnet-10 wallet. One thousand of these test wallets can be opened in a day. Who pays can open another funded test address after you are in.</li>" +
-    "<li class=\"only-phone\">On a phone, Use a funded test address opens one funded address for this visit. Each test address is used once. Come back later and that history is gone. Close the tab and the leftover tKAS is swept back. Kasware and Kastle open on a computer. Who pays can open another funded test address after you are in.</li>" +
-    "<li>A kaspatest address, or a .kas name that already resolves on TN10, can be pasted in Who pays. That choice stays until you change it.</li>" +
-    "<li>Need coins: Use a funded test address on the welcome gate, or Who pays, then Test without a wallet. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
+    "<li>The welcome gate takes a funded address. This money is tKAS, Testnet-10 KAS. With tKAS you can go to the bank. Use a funded test address opens one funded address for this visit. Each test address is used once. Come back later and that history is gone. Close the tab and the leftover tKAS is swept back. Wallet sign-in comes later. A mainnet address is refused.</li>" +
+    "<li>A kaspatest address, or a .kas name that already resolves on TN10, can be pasted in Who pays. It is accepted when that address already holds tKAS. An empty address stays outside.</li>" +
+    "<li>Need coins: Use a funded test address on the welcome gate, or Who pays. The list of those addresses is on the economics tab. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, take a seat and the menu blinks, or order at the blinking counter. The market opens at the counter. Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Once it is yours, Launch into space is the gold button. The showroom still opens when you click Pike or the sign. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
-    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. Kasware and Kastle open on a computer. On a phone, use the funded test address.</li>" +
-    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. The wallet asks to sign only for a tKAS swap at the bank. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is six times the standard Testnet 10 rate, and it is extra KAS. When a payment settles, it goes through. On a tKAS send, confirmations are still ongoing. The steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate. The same Kasware or Kastle wallet opens its history.</li>" +
+    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. Use a funded test address. This money is tKAS. With tKAS you can go to the bank.</li>" +
+    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is six times the standard Testnet 10 rate, and it is extra KAS. When a payment settles, it goes through. On a tKAS send, confirmations are still ongoing. The steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, plays two short films on the tower first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. One tower stands beside it, and the chopsticks stay open. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. After the booster is gone, the ship coasts, then the roadster leaves. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: you hang out with the old roadster. It has been cruising for years. The way there is ten seconds. Out there the two cars race in orbit around the Earth. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>The Moon map is NASA. Mars, Jupiter, Saturn, and the rings are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0.</li>" +
@@ -2452,7 +2480,7 @@ function paintGuide() {
 
 function requireId() {
   if (!state.id.address) {
-    say("Choose a Testnet-10 wallet, paste an address, or test without a wallet.", true);
+    say("Use a funded test address, or paste one that already holds tKAS. This money is tKAS. With tKAS you can go to the bank.", true);
     return false;
   }
   return true;
@@ -2513,15 +2541,15 @@ function payingLine() {
   if (state.id.kind === "kastle") return "Paying as Kastle. The wallet signs a tKAS swap.";
   if (state.id.kind === "guest") return "Paying as this tab's test address.";
   if (state.id.kind === "name") return "Paying as " + (state.id.label || "a .kas name") + ".";
-  if (state.id.address) return "Paying as a pasted address. Lock uses Kasware or Kastle when that wallet is this same address.";
+  if (state.id.address) return "Paying as a pasted address. This money is tKAS. With tKAS you can go to the bank.";
   return "Choose who pays before locking.";
 }
 
 function signerRefusal(plan) {
   if (plan === "mainnet") return "The wallet is on mainnet. This square takes Testnet 10 only. Nothing moved.";
-  if (plan === "mismatch") return "The wallet is open on a different address than this page. Click Log in with Kasware so this page uses that address. Nothing moved.";
+  if (plan === "mismatch") return "The open wallet is a different address than this page. Nothing moved.";
   if (plan === "absent") return "This page is logged in with the wallet, and the extension is not in this tab. Unlock it, then press Lock again. Nothing moved.";
-  return "Log in with Kasware or Kastle, or paste the txid of tKAS already sent to the reserve. Nothing moved.";
+  return "Use a funded test address. This money is tKAS. With tKAS you can go to the bank. Or paste the txid of tKAS already sent to the reserve. Nothing moved.";
 }
 
 async function signerNow() {
@@ -2825,7 +2853,7 @@ async function lock(rail) {
   const name = tagName(rail);
   if (!requireId()) {
     punch("shake");
-    swapNote("Not swapped. Choose Kasware, Kastle, a test tab, or a kaspatest address first. Nothing moved.", "bad");
+    swapNote("Not swapped. Use a funded test address. This money is tKAS. With tKAS you can go to the bank. Nothing moved.", "bad");
     return;
   }
   let sompi;

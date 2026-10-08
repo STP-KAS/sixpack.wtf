@@ -14,7 +14,7 @@ export function payRail(selected) {
 export const RAILS_NOTE = Object.freeze({
   title: "Three ways to pay",
   lines: Object.freeze([
-    "tKAS is the Testnet 10 label for KAS, the coin that moves. This tab can spend it at a counter, at the cinema, or on a hop. Kasware and Kastle sign only when you lock tKAS at the bank. That lock writes a toy tag. The miner fee is always KAS.",
+    "tKAS is the Testnet 10 label for KAS, the coin that moves. With tKAS you can go to the bank and swap it for a toy tag. This tab can spend tKAS at a counter, at the cinema, or on a hop. The miner fee is always KAS.",
     "POCencept stable is a tag in this village ledger. It is not a dollar. KUSDT stable is the other tag. It can be frozen. A freeze blocks only KUSDT stable.",
     "Pick one rail. The page asks, then OK. The same three are on every counter, the ticket, the snacks, a hop, and every row in Hunt Hall.",
     "Those rails are for a bill a stranger can take: a car, an AI service, a game purchase, and a rented service. This square is the classroom for that bill. A promise here does not buy the car, the service, the game, or the rental.",

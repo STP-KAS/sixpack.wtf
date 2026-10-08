@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sixpack.wtf — funded test addresses</title>
+  <meta name="description" content="One thousand Testnet-10 addresses funded with tKAS, and the transaction for each. tKAS is Testnet-10 KAS. With tKAS you can go to the bank.">
+  <link rel="canonical" href="https://sixpack.wtf/funded.html">
+  <link rel="stylesheet" href="site.css?v=27">
+  <style>
+    .funded-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table.funded { display: table; width: max-content; min-width: 100%; }
+    table.funded th, table.funded td { white-space: nowrap; }
+  </style>
+  <script>
+    try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
+  </script>
+</head>
+<body>
+<header class="top">
+  <a class="wordmark" href="./">sixpack.wtf</a>
+  <nav data-site-nav></nav>
+</header>
+<main>
+  <p class="eyebrow">Testnet 10</p>
+  <h1>Funded test addresses</h1>
+  <p class="lede" id="funded-lead">tKAS is Testnet-10 KAS. With tKAS you can go to the bank.</p>
+  <p>Each line is one address and the transaction that sent its tKAS. Search, or open the list forty at a time. The balance is read again every 12 hours. The same file is <a href="https://github.com/STP-KAS/sixpack.wtf/blob/main/1984/funded-list.json">on GitHub</a>. Economics is <a href="rails.html">the short note</a>.</p>
+  <p><label>Find an address or a transaction <input id="funded-q" spellcheck="false" autocomplete="off" style="width:min(100%,36rem)"></label></p>
+  <p><button type="button" id="funded-more">Show 40</button></p>
+  <p id="funded-count" class="meta"></p>
+  <div class="funded-wrap">
+  <table class="funded">
+    <thead><tr><th>Address</th><th>tKAS sent</th><th>tKAS there now</th><th>Transaction</th></tr></thead>
+    <tbody id="funded-rows"></tbody>
+  </table>
+  </div>
+</main>
+<script src="nav.js?v=51"></script>
+<script type="module" src="1984/funded-list.js?v=2"></script>
+</body>
+</html>

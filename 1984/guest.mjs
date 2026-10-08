@@ -8,8 +8,8 @@ import { GUEST_DISCLAIMER, RESERVE, assertTestnet, dayKey } from "./money.mjs";
 
 export { GUEST_DISCLAIMER };
 export const GUEST_FUND_SOMPI = 50000n * 100_000_000n;
-export const GUEST_PER_IP = 1000;
-export const GUEST_PER_DAY = 1000;
+export const GUEST_PER_IP = 2000;
+export const GUEST_PER_DAY = 2000;
 export const GUEST_BYE_MS = 25_000;
 export const GUEST_STALE_MS = 6 * 60 * 60 * 1000;
 const RETRY_MS = 10 * 60 * 1000;
@@ -103,7 +103,7 @@ export function createGuestDesk(deps) {
     if (!row) return;
     disarm(token);
     try {
-      await deps.sweep({ key: row.key, from: row.address });
+      await deps.sweep({ key: row.key, from: row.address, home: row.home || "" });
     } catch (err) {
       row.sweepAfter = deps.now() + RETRY_MS;
       persist();
@@ -149,23 +149,48 @@ export function createGuestDesk(deps) {
     const used = Number(day.ips[who] || 0);
     if (used >= GUEST_PER_IP) {
       throw new Error(
-        "This network has used today's test wallets. Use Kasware, Kastle, or your own kaspatest address. Those keep their history."
+        "This network has used today's funded test addresses. This money is tKAS. With tKAS you can go to the bank."
       );
     }
     if (Number(day.n) >= GUEST_PER_DAY) {
-      throw new Error("Today's test wallets are used up. Use your own Testnet-10 wallet. That one keeps its history.");
+      throw new Error("Today's funded test addresses are used up. This money is tKAS. With tKAS you can go to the bank.");
     }
-    step("Making a Testnet-10 address");
-    let minted;
-    try {
-      minted = await deps.mint();
-    } catch (err) {
-      throw scrub(err, minted && minted.key);
+    const ready = deps.takeReady ? await deps.takeReady() : null;
+    if (!ready && deps.poolOnly) {
+      throw new Error("The funded test addresses are used up. This money is tKAS. With tKAS you can go to the bank.");
     }
-    const address = assertTestnet(minted.address);
-    if (address.toLowerCase() === RESERVE.toLowerCase()) throw new Error("Test wallet collided with the reserve.");
-    const key = String(minted.key || "").trim().toLowerCase();
-    if (!/^[0-9a-f]{64}$/.test(key)) throw new Error("Test wallet was not created.");
+    let address = "";
+    let key = "";
+    let fundedSompi = GUEST_FUND_SOMPI;
+    let knownTxid = "";
+    let home = "";
+    if (ready) {
+      step("Handing out a funded test address");
+      try {
+        address = assertTestnet(ready.address);
+      } catch (err) {
+        throw scrub(err, ready && ready.key);
+      }
+      if (address.toLowerCase() === RESERVE.toLowerCase()) throw new Error("Test wallet collided with the reserve.");
+      key = String(ready.key || "").trim().toLowerCase();
+      if (!/^[0-9a-f]{64}$/.test(key)) throw new Error("Test wallet was not created.");
+      fundedSompi = BigInt(ready.sompi || ready.funded || 0);
+      if (fundedSompi <= 0n) throw new Error("The test wallet was not funded.");
+      knownTxid = String(ready.txid || ready.fundTxid || "");
+      if (ready.home) home = assertTestnet(ready.home);
+    } else {
+      step("Making a Testnet-10 address");
+      let minted;
+      try {
+        minted = await deps.mint();
+      } catch (err) {
+        throw scrub(err, minted && minted.key);
+      }
+      address = assertTestnet(minted.address);
+      if (address.toLowerCase() === RESERVE.toLowerCase()) throw new Error("Test wallet collided with the reserve.");
+      key = String(minted.key || "").trim().toLowerCase();
+      if (!/^[0-9a-f]{64}$/.test(key)) throw new Error("Test wallet was not created.");
+    }
     const token = crypto.randomBytes(24).toString("hex");
     day.n += 1;
     day.ips[who] = used + 1;
@@ -176,34 +201,38 @@ export function createGuestDesk(deps) {
       life: pageLife,
       created: now,
       touched: now,
-      funded: GUEST_FUND_SOMPI.toString(),
+      funded: fundedSompi.toString(),
+      fundTxid: knownTxid,
+      home,
       byeAt: 0,
       byeLife: "",
     };
     persist();
-    try {
-      const paid = await deps.fund(address, GUEST_FUND_SOMPI, step);
-      const txid = paid && paid.txids && paid.txids[0];
-      const got = BigInt(paid && paid.sompi != null ? paid.sompi : 0);
-      if (!txid || got < GUEST_FUND_SOMPI) throw new Error("The test wallet was not funded.");
-      book.sessions[token].fundTxid = String(txid);
-      persist();
-    } catch (err) {
-      let swept = false;
+    if (!ready) {
       try {
-        await deps.sweep({ key, from: address });
-        swept = true;
-      } catch {
-        if (book.sessions[token]) book.sessions[token].sweepAfter = deps.now() + RETRY_MS;
+        const paid = await deps.fund(address, GUEST_FUND_SOMPI, step);
+        const txid = paid && paid.txids && paid.txids[0];
+        const got = BigInt(paid && paid.sompi != null ? paid.sompi : 0);
+        if (!txid || got < GUEST_FUND_SOMPI) throw new Error("The test wallet was not funded.");
+        book.sessions[token].fundTxid = String(txid);
         persist();
+      } catch (err) {
+        let swept = false;
+        try {
+          await deps.sweep({ key, from: address, home });
+          swept = true;
+        } catch {
+          if (book.sessions[token]) book.sessions[token].sweepAfter = deps.now() + RETRY_MS;
+          persist();
+        }
+        if (swept) {
+          delete book.sessions[token];
+          day.n -= 1;
+          day.ips[who] = used;
+          persist();
+        }
+        throw scrub(err, key);
       }
-      if (swept) {
-        delete book.sessions[token];
-        day.n -= 1;
-        day.ips[who] = used;
-        persist();
-      }
-      throw scrub(err, key);
     }
     const row = book.sessions[token];
     return {
@@ -281,11 +310,12 @@ export function createGuestDesk(deps) {
         throw new Error("This test tab is closing. Open a new one, or use your Testnet-10 wallet.");
       }
       const amount = BigInt(sompi);
-      if (amount <= 0n || amount > GUEST_FUND_SOMPI) {
+      const cap = BigInt(row.funded || 0);
+      if (cap <= 0n || amount <= 0n || amount > cap) {
         throw new Error(
           "This test wallet holds " +
-            (GUEST_FUND_SOMPI / 100_000_000n).toString() +
-            " tKAS. That payment is outside it. Use your own Testnet-10 wallet for a larger one."
+            (cap / 100_000_000n).toString() +
+            " tKAS. That payment is outside it. This money is tKAS. With tKAS you can go to the bank."
         );
       }
       row.touched = now;
@@ -353,7 +383,62 @@ export function createGuestDesk(deps) {
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const guestFile = path.join(dir, "guests.json");
+const poolFile = path.join(dir, "guest-pool.json");
+const issuedFile = path.join(dir, "guest-pool-issued.jsonl");
 let singleton;
+
+function claimPrepared() {
+  if (!fs.existsSync(poolFile)) return null;
+  const parsed = JSON.parse(fs.readFileSync(poolFile, "utf8"));
+  const wallets = parsed && Array.isArray(parsed.wallets) ? parsed.wallets : null;
+  if (!wallets) throw new Error("Funded test wallets could not be read.");
+  const home = parsed.home ? assertTestnet(parsed.home) : "";
+  let changed = false;
+  while (wallets.length) {
+    const row = wallets[0];
+    const key = String((row && row.key) || "").trim().toLowerCase();
+    let address = "";
+    try {
+      address = assertTestnet(row && row.address);
+    } catch {
+      address = "";
+    }
+    let sompi = 0n;
+    try {
+      sompi = BigInt((row && row.sompi) || 0);
+    } catch {
+      sompi = 0n;
+    }
+    if (!row || row.ready !== true || !address || !/^[0-9a-f]{64}$/.test(key) || sompi <= 0n) {
+      wallets.shift();
+      changed = true;
+      continue;
+    }
+    wallets.shift();
+    const tmp = poolFile + ".tmp";
+    fs.writeFileSync(tmp, JSON.stringify(parsed));
+    fs.renameSync(tmp, poolFile);
+    const claimed = {
+      address,
+      key,
+      sompi: sompi.toString(),
+      txid: String(row.txid || ""),
+      home: row.home ? assertTestnet(row.home) : home,
+    };
+    try {
+      fs.appendFileSync(issuedFile, JSON.stringify(claimed) + "\n");
+    } catch {
+      /* The session still holds the key. */
+    }
+    return claimed;
+  }
+  if (changed) {
+    const tmp = poolFile + ".tmp";
+    fs.writeFileSync(tmp, JSON.stringify(parsed));
+    fs.renameSync(tmp, poolFile);
+  }
+  return null;
+}
 
 export function guestDesk() {
   if (singleton) return singleton;
@@ -385,10 +470,15 @@ export function guestDesk() {
       const out = await payFromKey({ privHex: key, fromAddr: from, toAddr: RESERVE, sompi, rateOf: pageFeeRate });
       return { txid: out.txids && out.txids[0], sompi: out.sompi, txids: out.txids };
     },
-    async sweep({ key, from }) {
+    poolOnly: true,
+    takeReady() {
+      return claimPrepared();
+    },
+    async sweep({ key, from, home }) {
       const { payFromKey } = await import("../faucet/pay.mjs");
       const { pageFeeRate } = await import("../faucet/fee-rate.mjs");
-      return payFromKey({ privHex: key, fromAddr: from, toAddr: RESERVE, sompi: 0n, drain: true, rateOf: pageFeeRate });
+      const toAddr = home ? assertTestnet(home) : RESERVE;
+      return payFromKey({ privHex: key, fromAddr: from, toAddr, sompi: 0n, drain: true, rateOf: pageFeeRate });
     },
   });
   return singleton;

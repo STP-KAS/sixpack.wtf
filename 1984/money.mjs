@@ -14,7 +14,7 @@ export const GLOBAL_REDEEM_CAP = 1_000_000n * SOMPI;
 export const MIN_REDEEM_SOMPI = 1_000_000n;
 
 export const GUEST_DISCLAIMER =
-  "This test address exists only in this browser tab. Close the tab and it is gone from this browser. Leftover tKAS is swept back and is not yours to recover. Kasware, Kastle, a pasted kaspatest address, or a .kas name stays on this browser and keeps its history.";
+  "This test address exists only in this browser tab. Close the tab and it is gone from this browser. Leftover tKAS is swept back and is not yours to recover. This money is tKAS, Testnet-10 KAS. With tKAS you can go to the bank.";
 
 /** Body chars after the prefix. A wrap is joined until the body is long enough, then a space ends it. */
 function takeBechBody(raw, start) {

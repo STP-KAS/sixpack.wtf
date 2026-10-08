@@ -8,6 +8,11 @@ faucet/ledger.json
 1984/ledger.json.tmp
 1984/guests.json
 1984/guests.json.tmp
+1984/guest-pool.json
+1984/guest-pool.json.tmp
+1984/guest-pool-issued.jsonl
+1984/guest-fund-log.jsonl
+1984/funded-list-refresh.log
 faucet/.local/
 .env
 grok/logs/

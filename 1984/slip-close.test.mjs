@@ -24,18 +24,21 @@ test("the buy ask closes without starting a purchase", () => {
   assert.doesNotMatch(ask, /newPurchase|openMode/);
 });
 
-test("the landing gate keeps wallet history and a one-time funded address", () => {
+test("the landing gate takes a funded test address", () => {
   const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
   const faucet = readFileSync(new URL("../faucet.html", import.meta.url), "utf8");
-  assert.match(html, /id="gate-kasware">Log in with Kasware<\/button>/);
-  assert.match(html, /id="gate-kastle">Log in with Kastle<\/button>/);
+  const rails = readFileSync(new URL("../rails.html", import.meta.url), "utf8");
   assert.match(html, /id="gate-guest">Use a funded test address<\/button>/);
-  assert.match(html, /class="kw-gate-row kw-wallets wallet-pc"/);
-  assert.match(html, /The same Kasware or Kastle wallet opens its history\./);
+  assert.match(html, /This money is tKAS\. tKAS is Testnet-10 KAS/);
+  assert.match(html, /With tKAS you can go to the bank and swap\./);
+  assert.doesNotMatch(html, /id="gate-kasware"/);
+  assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /Each test address is used once\. Come back later and that history is gone\./);
-  assert.match(html, /On a phone, use a funded test address\. Kasware and Kastle open on a computer\./);
-  assert.match(client, /class="kw-row wallet-pc"/);
-  assert.match(client, /Kasware and Kastle open on a computer/);
+  assert.match(client, /Use a funded test address/);
+  assert.match(client, /With tKAS you can go to the bank/);
+  assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
+  assert.match(rails, /the funded list/);
+  assert.match(rails, /funded-list\.json/);
   const phoneAt = css.indexOf("@media (max-width: 980px)");
   assert.ok(phoneAt > 0);
   const phone = css.slice(phoneAt);
@@ -84,7 +87,7 @@ test("the balances stay in the top right with Bank", () => {
   const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
   assert.match(html, /<header class="kw-bar" id="bar"><\/header>/);
   assert.match(html, /1984\.css\?v=54/);
-  assert.match(html, /1984\/client\.mjs\?v=98/);
+  assert.match(html, /1984\/client\.mjs\?v=99/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);

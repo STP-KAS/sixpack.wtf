@@ -17,7 +17,7 @@ function addr(i) {
   return "kaspatest:" + "p".repeat(i + 1) + "q".repeat(60 - i);
 }
 
-function harness(seed) {
+function harness(seed, extra = {}) {
   let now = Date.UTC(2026, 8, 29, 12, 0, 0);
   let book = seed || emptyBook();
   let n = 0;
@@ -53,10 +53,15 @@ function harness(seed) {
       if (!input.key || input.to) throw new Error("pay shape");
       return { txid: "22".repeat(32), sompi: input.sompi.toString() };
     },
+    poolOnly: extra.poolOnly === true,
+    async takeReady() {
+      if (!extra.usePool) return null;
+      return (extra.ready || []).shift() || null;
+    },
     async sweep(input) {
       if (failSweep) throw failSweep();
       swept.push(input.from);
-      return { sompi: "1", ok: true };
+      return { sompi: "1", ok: true, home: input.home || "" };
     },
   });
   desk.onGone = (address) => gone.push(address);
@@ -154,13 +159,13 @@ test("one network can open only today's allowance", async () => {
     () => null,
     (error) => error
   );
-  assert.match(blocked.message, /keep their history/);
+  assert.match(blocked.message, /funded test addresses/);
   const other = await h.desk.open({ ip: "203.0.113.5", life: "other" }).then(
     (row) => row,
     (error) => error
   );
   if (GUEST_PER_IP < GUEST_PER_DAY) assert.equal(other.ok, true);
-  else assert.match(other.message, /keeps its history/);
+  else assert.match(other.message, /funded test addresses/);
 });
 
 test("the day's global cap stops new test wallets", async () => {
@@ -171,7 +176,7 @@ test("the day's global cap stops new test wallets", async () => {
     () => null,
     (error) => error
   );
-  assert.match(blocked.message, /keeps its history/);
+  assert.match(blocked.message, /funded test addresses/);
   assert.equal(h.funded.length, 0);
 });
 
@@ -283,6 +288,28 @@ test("a failed opening keeps the test wallet when the coins cannot be swept back
   const row = Object.values(h.book().sessions)[0];
   assert.equal(row.key, h.key());
   assert.equal(row.sweepAfter > 0, true);
+});
+
+test("a prepared wallet is handed out with its own tKAS and no new send", async () => {
+  const key = "ef".repeat(32);
+  const home = addr(9);
+  const ready = [{ address: addr(8), key, sompi: (2000n * 100_000_000n).toString(), txid: "44".repeat(32), home }];
+  const h = harness(emptyBook(), { usePool: true, poolOnly: true, ready });
+  const opened = await h.desk.open({ ip: "203.0.113.9", life: "pool" });
+  assert.equal(opened.ok, true);
+  assert.equal(opened.sompi, (2000n * 100_000_000n).toString());
+  assert.equal(opened.disclaimer, GUEST_DISCLAIMER);
+  assert.equal(JSON.stringify(opened).includes(key), false);
+  assert.equal(h.funded.length, 0);
+  assert.equal(h.book().sessions[opened.token].home, home);
+  assert.equal(h.book().sessions[opened.token].key, key);
+  const empty = harness(emptyBook(), { usePool: true, poolOnly: true, ready: [] });
+  const blocked = await empty.desk.open({ ip: "203.0.113.10", life: "none" }).then(
+    () => null,
+    (error) => error
+  );
+  assert.match(blocked.message, /funded test addresses are used up/);
+  assert.equal(empty.funded.length, 0);
 });
 
 test("a wrong token cannot spend the test wallet", async () => {
