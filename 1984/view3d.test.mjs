@@ -228,9 +228,10 @@ test("a room opens the card only from the counter, a clerk, or a seat", () => {
   assert.equal(roomUse("cafe", false, "counter").sit, false);
   assert.equal(roomUse("cafe", true, "menu").open, "cafe");
   assert.equal(roomUse("cafe", true, "qr").open, "cafe");
-  assert.equal(roomUse("restaurant", false, "").say, "Take a seat, or order at the counter.");
-  assert.equal(roomUse("restaurant", false, "counter").open, "restaurant");
-  assert.equal(roomUse("restaurant", true, "counter").open, "restaurant");
+  assert.equal(roomUse("mint", false, "").say, "Click the counter.");
+  assert.equal(roomUse("mint", false, "counter").open, "mint");
+  assert.equal(roomUse("mint", false, "keeper").open, "mint");
+  assert.equal(roomUse("mint", true, "seat").open, "");
   assert.equal(roomUse("groceries", false, "").say, "Click the counter.");
   assert.equal(roomUse("groceries", false, "counter").open, "groceries");
   assert.equal(roomUse("groceries", false, "seat").open, "");
@@ -260,7 +261,7 @@ test("a room opens the card only from the counter, a clerk, or a seat", () => {
 test("the room glows only the next step", () => {
   assert.equal(ENTRY_HINT.bank, "Click a clerk.");
   assert.equal(ENTRY_HINT.cafe, "Take a seat, or order at the counter.");
-  assert.equal(ENTRY_HINT.restaurant, "Take a seat, or order at the counter.");
+  assert.equal(ENTRY_HINT.mint, "Click the counter.");
   assert.equal(ENTRY_HINT.groceries, "Click the counter.");
   assert.equal(ENTRY_HINT.roadster, "Click Pike or the sign.");
   assert.equal(ENTRY_HINT.cinema, "Take a seat. The screen starts the reel.");
@@ -268,8 +269,8 @@ test("the room glows only the next step", () => {
   assert.deepEqual(invite("bank", false), ["clerk"]);
   assert.deepEqual(invite("cafe", false), ["seat", "counter", "keeper"]);
   assert.deepEqual(invite("cafe", true), ["menu", "qr"]);
-  assert.deepEqual(invite("restaurant", false), ["seat", "counter", "keeper"]);
-  assert.deepEqual(invite("restaurant", true), ["menu", "qr"]);
+  assert.deepEqual(invite("mint", false), ["counter", "keeper"]);
+  assert.deepEqual(invite("mint", true), ["counter", "keeper"]);
   assert.deepEqual(invite("groceries", false), ["counter", "keeper"]);
   assert.deepEqual(invite("roadster", false), ["keeper", "sign"]);
   assert.deepEqual(invite("cinema", false), ["seat", "screen", "counter", "keeper"]);
@@ -312,7 +313,8 @@ test("the rooms contain clerks, seats, a menu, and a scan card", () => {
   assert.ok(rooms.cafeSeats >= 4);
   assert.ok(rooms.cafeCards >= 2);
   assert.ok(rooms.cafeMenu >= 1);
-  assert.ok(rooms.tableSeats >= 2);
+  assert.ok(rooms.mintKeeper >= 1);
+  assert.ok(rooms.mintCounter >= 2);
   assert.ok(rooms.marketCounter >= 1);
   assert.ok(rooms.showroomSign >= 1);
   assert.ok(rooms.showroomKeeper >= 1);
@@ -322,7 +324,7 @@ test("the rooms contain clerks, seats, a menu, and a scan card", () => {
   assert.ok(rooms.cinemaFaceZ > 0.9, "picture faces the seats " + rooms.cinemaFaceZ);
   assert.equal(rooms.cinemaPictureScaleX, 1);
   assert.equal(rooms.cinemaPictureScaleY, 1);
-  assert.equal(rooms.invites, 39);
+  assert.equal(rooms.invites, 35);
   assert.equal(rooms.huntKeeper, 1);
   assert.equal(rooms.huntBoard, 1);
   assert.ok(rooms.huntNoseZ > 0.05, "Reed faces into the hall " + rooms.huntNoseZ);

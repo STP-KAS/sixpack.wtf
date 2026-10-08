@@ -596,6 +596,22 @@ test("a named token opens, increases, stops at the cap, and a send keeps the tot
   assert.equal(sent.body.mints[0].supply, "8");
   assert.match(sent.body.receipt.note, /Not a covenant/);
 
+  const openCap = await mint({ option: "new", name: "free", amount: "5", cap: "0" });
+  assert.equal(openCap.status, 200);
+  assert.equal(openCap.body.token.cap, "0");
+  assert.match(openCap.body.receipt.note, /Cap 0 means no cap/);
+  const past = await mint({ option: "more", name: "FREE", amount: "100" });
+  assert.equal(past.status, 200);
+  assert.equal(past.body.token.supply, "105");
+  assert.equal(past.body.account.tokens.find((row) => row.name === "FREE").amount, "105");
+
+  const blank = await mint({ option: "new", name: "bare", amount: "1", cap: "" });
+  assert.equal(blank.status, 200);
+  assert.equal(blank.body.token.cap, "0");
+  const blankMore = await mint({ option: "more", name: "BARE", amount: "40" });
+  assert.equal(blankMore.status, 200);
+  assert.equal(blankMore.body.token.supply, "41");
+
   const home = await svc.handle({
     method: "GET",
     pathname: "/api/1984",

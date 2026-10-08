@@ -17,8 +17,8 @@ import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=4";
 import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=8";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=7";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, HOT_STAGE_MS, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=54";
-import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=3";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, HOT_STAGE_MS, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=55";
+import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=4";
 const TUNNEL = "https://authority-fireplace-earlier-spirit.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 const map = world();
@@ -471,11 +471,10 @@ function paintChrome() {
   const buttons = [
     ["world", "Square"],
     ["cafe", "Cafe"],
-    ["restaurant", "Table"],
+    ["mint", "Mint"],
     ["groceries", "Market"],
     ["hunt", "Hunt"],
     ["bank", "Bank"],
-    ["mint", "Mint"],
     ["roadster", "Roadster"],
     ["cinema", "Cinema"],
     ["rules", "Rules"],
@@ -946,6 +945,7 @@ function paintBooks() {
   const face = counterFace(state.mode);
   if (face === "bank") paintBank();
   else if (face === "hunt") paintHunt();
+  else if (face === "mint") paintMint();
   else if (face === "shop") paintShop(state.mode);
 }
 
@@ -2556,18 +2556,18 @@ function paintGuide() {
     "<li>A funded wallet is prefunded with tKAS. Spend it at will. There is no risk. tKAS is worthless. The welcome gate takes that address. This money is tKAS, Testnet-10 KAS. With tKAS you can go to the bank. The same browser gets the same funded wallet. If this desk cannot tell it is the same browser, it says so. A mainnet address is refused.</li>" +
     "<li>A kaspatest address, or a .kas name that already resolves on TN10, is accepted when that address already holds tKAS. An empty address stays outside. The welcome gate takes a funded address.</li>" +
     "<li>Need coins: Use a funded test address on the welcome gate. The list of those addresses is on the economics tab. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
-    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, take a seat and the menu blinks, or order at the blinking counter. The market opens at the counter. Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Once it is yours, Launch into space is the gold button. The showroom still opens when you click Pike or the sign. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
-    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The bank opens when you tap a clerk. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. Use a funded test address. This money is tKAS. With tKAS you can go to the bank.</li>" +
+    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe, take a seat and the menu blinks, or order at the blinking counter. The mint opens when you click the counter. The market opens at the counter. Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Once it is yours, Launch into space is the gold button. The showroom still opens when you click Pike or the sign. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
+    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The mint opens when you tap the counter. The bank opens when you tap a clerk. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. Use a funded test address. This money is tKAS. With tKAS you can go to the bank.</li>" +
     "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is six times the standard Testnet 10 rate, and it is extra KAS. When a payment settles, it goes through. On a tKAS send, confirmations are still ongoing. The steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate.</li>" +
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
-    "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe or at the table, take a seat and the menu blinks, or order at the counter. Launch, while you are in the car and outside, plays two short films beside the rocket first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. After the booster is gone, the ship coasts, then the roadster leaves. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: you hang out with the old roadster. It has been cruising for years. The way there is ten seconds. Out there the two cars race in orbit around the Earth. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
+    "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe, take a seat and the menu blinks, or order at the counter. The mint opens when you click the counter. Launch, while you are in the car and outside, plays two short films beside the rocket first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. After the booster is gone, the ship coasts, then the roadster leaves. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: you hang out with the old roadster. It has been cruising for years. The way there is ten seconds. Out there the two cars race in orbit around the Earth. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>The Moon map is NASA. Mars, Jupiter, Saturn, and the rings are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0.</li>" +
     "<li>The balances stay in the top right, on the square, in a shop, in the cinema, and on a flight. Bank is on that card.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Every film is labeled this desk agrees. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends. Exit to the square leaves the cinema.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Peer to peer is the payment. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled. This square is still the classroom.</li>" +
-    "<li>Mint is on the side rail. What: a token on this ledger, under KCC-20 Last Call. It is not Final, and no covenant is deployed. How: open a new name, mint more, or send it. Why: so you can try a mint on Testnet 10. A cap of 0 means no cap.</li>" +
+    "<li>Mint is the building with the Mint sign. Walk in and click the counter. What: a token on this ledger, under KCC-20 Last Call. It is not Final, and no covenant is deployed. How: open a new name, mint more, or send it. Why: so you can try a mint on Testnet 10. Type 0 in Cap for no cap. There is no maximum.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +
@@ -3198,7 +3198,7 @@ function paintMint() {
   const open = (state.home && state.home.mints) || [];
   const mine = (state.account && state.account.tokens) || [];
   const names = open.map((row) => {
-    const cap = row.cap && row.cap !== "0" ? " · cap " + row.cap : "";
+    const cap = !row.cap || row.cap === "0" ? " · no cap" : " · cap " + row.cap;
     return '<option value="' + esc(row.name) + '">' + esc(row.name) + " · supply " + esc(row.supply) + esc(cap) + "</option>";
   }).join("");
   const held = mine.length
@@ -3208,16 +3208,21 @@ function paintMint() {
     '<div class="stall-head"><h2>Mint</h2>' + placeActs("") + "</div>" +
     "<p><strong>What.</strong> This place writes a token on the square ledger. The rule is KCC-20 Last Call. It is not Final. No covenant is deployed. The token is not tKAS, not a dollar, and not a spendable Layer-1 coin.</p>" +
     "<p><strong>How.</strong> Pick one option. A new name opens a token and mints your amount. Mint more increases a token that is already open. Send moves some of yours to another kaspatest address. The same name keeps the same extension. A mint has to increase your amount. A send keeps the total.</p>" +
-    "<p><strong>Why.</strong> So a funded address can try a mint here on Testnet 10, while that covenant is still Last Call. The cap stands in for the minter's remaining supply. This desk checks it. A cap of 0 means no cap.</p>" +
+    "<p><strong>Why.</strong> So a funded address can try a mint here on Testnet 10, while KCC-20 is still Last Call. The cap is the most that can be minted. This desk checks it. Type 0 in Cap for no cap. There is no maximum.</p>" +
     "<p><strong>Options.</strong></p>" +
-    '<label><input type="radio" name="mint-opt" value="new" checked> Open a new token</label>' +
-    '<label><input type="radio" name="mint-opt" value="more"> Mint more of an open token</label>' +
-    '<label><input type="radio" name="mint-opt" value="send"> Send to another address</label>' +
-    (names ? '<label>Open tokens<select id="mint-pick"><option value="">Choose</option>' + names + "</select></label>" : "") +
-    '<label>Name<input id="mint-name" maxlength="12" spellcheck="false" autocomplete="off"></label>' +
-    '<label>Amount<input id="mint-amount" inputmode="numeric" spellcheck="false" autocomplete="off"></label>' +
-    '<label id="mint-cap-row">Cap, 0 for none<input id="mint-cap" inputmode="numeric" value="0" spellcheck="false" autocomplete="off"></label>' +
-    '<label id="mint-to-row" hidden>kaspatest address<input id="mint-to" spellcheck="false" autocomplete="off"></label>' +
+    '<div class="mint-form">' +
+    '<label class="mint-choice"><input type="radio" name="mint-opt" value="new" checked><span>Open a new token</span></label>' +
+    '<label class="mint-choice"><input type="radio" name="mint-opt" value="more"><span>Mint more of an open token</span></label>' +
+    '<label class="mint-choice"><input type="radio" name="mint-opt" value="send"><span>Send to another address</span></label>' +
+    (names ? '<label class="mint-line"><span>Open tokens</span><select id="mint-pick"><option value="">Choose</option>' + names + "</select></label>" : "") +
+    '<label class="mint-line"><span>Name</span><input id="mint-name" maxlength="12" spellcheck="false" autocomplete="off"></label>' +
+    '<label class="mint-line"><span>Amount</span><input id="mint-amount" inputmode="numeric" spellcheck="false" autocomplete="off"></label>' +
+    '<div id="mint-cap-row">' +
+    '<label class="mint-line"><span>Cap</span><input id="mint-cap" inputmode="numeric" value="0" spellcheck="false" autocomplete="off"></label>' +
+    '<p id="mint-cap-note" class="mint-cap-note">0 means no cap. There is no maximum.</p>' +
+    "</div>" +
+    '<label class="mint-line" id="mint-to-row" hidden><span>To</span><input id="mint-to" spellcheck="false" autocomplete="off" placeholder="kaspatest address"></label>' +
+    "</div>" +
     '<button type="button" id="mint-go">Mint</button>' +
     "<p><strong>Yours.</strong></p><ul>" + held + "</ul>";
   const pick = document.getElementById("mint-pick");
@@ -3228,9 +3233,24 @@ function paintMint() {
     };
   }
   for (const input of panel.querySelectorAll('input[name="mint-opt"]')) input.onchange = syncMintOption;
+  const capBox = document.getElementById("mint-cap");
+  if (capBox) capBox.oninput = syncCapNote;
   document.getElementById("mint-go").onclick = saveMint;
   syncMintOption();
   wirePlaceExit();
+}
+
+function capMeaning(value) {
+  const text = String(value || "").trim();
+  if (text === "" || text === "0") return "0 means no cap. There is no maximum.";
+  if (/^[0-9]+$/.test(text)) return "The most that can be minted is " + text + ".";
+  return "Type a whole number. 0 means no cap.";
+}
+
+function syncCapNote() {
+  const box = document.getElementById("mint-cap");
+  const note = document.getElementById("mint-cap-note");
+  if (box && note) note.textContent = capMeaning(box.value);
 }
 
 function syncMintOption() {
@@ -3242,6 +3262,7 @@ function syncMintOption() {
   if (cap) cap.hidden = option !== "new";
   if (to) to.hidden = option !== "send";
   if (go) go.textContent = option === "send" ? "Send" : "Mint";
+  syncCapNote();
 }
 
 async function saveMint() {
@@ -3250,7 +3271,8 @@ async function saveMint() {
   const option = picked ? picked.value : "new";
   const name = (document.getElementById("mint-name") || {}).value || "";
   const amount = (document.getElementById("mint-amount") || {}).value || "";
-  const cap = (document.getElementById("mint-cap") || {}).value || "";
+  const capRaw = String((document.getElementById("mint-cap") || {}).value || "").trim();
+  const cap = capRaw === "" ? "0" : capRaw;
   const to = (document.getElementById("mint-to") || {}).value || "";
   const body = await post("/api/1984/mint", { option, name, amount, cap, to });
   if (!body.ok) {

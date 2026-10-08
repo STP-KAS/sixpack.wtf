@@ -919,7 +919,7 @@ export function seat(owns, aboard, tile) {
 export const ENTRY_HINT = {
   bank: "Click a clerk.",
   cafe: "Take a seat, or order at the counter.",
-  restaurant: "Take a seat, or order at the counter.",
+  mint: "Click the counter.",
   groceries: "Click the counter.",
   roadster: "Click Pike or the sign.",
   cinema: "Take a seat. The screen starts the reel.",
@@ -929,7 +929,8 @@ export const ENTRY_HINT = {
 /** Hits that glow. A seat and the counter, or the menu once you sit. */
 export function invite(venue, seated) {
   if (venue === "bank") return ["clerk"];
-  if (venue === "cafe" || venue === "restaurant") return seated ? ["menu", "qr"] : ["seat", "counter", "keeper"];
+  if (venue === "mint") return ["counter", "keeper"];
+  if (venue === "cafe") return seated ? ["menu", "qr"] : ["seat", "counter", "keeper"];
   if (venue === "groceries") return ["counter", "keeper"];
   if (venue === "roadster") return ["keeper", "sign"];
   if (venue === "cinema") return seated ? ["screen", "counter"] : ["seat", "screen", "counter", "keeper"];
@@ -949,7 +950,11 @@ export function roomUse(venue, seated, hit) {
     if (hit === "books") return { open: "bank", sit: false, say: "", clerk: "books" };
     return { ...none, say: "Click a clerk." };
   }
-  if (venue === "cafe" || venue === "restaurant") {
+  if (venue === "mint") {
+    if (hit === "counter" || hit === "keeper") return { open: "mint", sit: false, say: "", clerk: "" };
+    return { ...none, say: "Click the counter." };
+  }
+  if (venue === "cafe") {
     if (hit === "seat") {
       return { open: "", sit: true, say: "You are seated. The menu is blinking.", clerk: "" };
     }
@@ -3085,7 +3090,7 @@ function buildBankRoom(maps) {
 
 const STALLS = [
   { id: "cafe", color: "#e7b3c2", title: "Cafe", tint: "#8d3b2f", wash: "#3a2420" },
-  { id: "restaurant", color: "#e6c15a", title: "Table", tint: "#8a5a2a", wash: "#3a2c1c" },
+  { id: "mint", color: "#e6c15a", title: "Mint", tint: "#8a5a2a", wash: "#3a2c1c" },
   { id: "groceries", color: "#b7e38d", title: "Market", tint: "#3d6b45", wash: "#243028" },
   { id: "roadster", color: "#f0a36a", title: "Roadster", tint: "#6e2430", wash: "#321820" },
 ];
@@ -3116,24 +3121,12 @@ function stallGoods(id) {
     );
     glass.position.set(0.02, 0.16, 0.02);
     group.add(milk, coffee, bun, glass);
-  } else if (id === "restaurant") {
-    const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.03, 16), stone("#f4efe6", 0.35));
-    plate.position.set(-0.22, 0.02, 0);
-    const supper = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), stone("#c45a28", 0.5));
-    supper.position.set(-0.22, 0.08, 0);
-    const cake = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.22), stone("#e7c27a", 0.55));
-    cake.position.set(0.28, 0.08, 0);
-    const candle = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.02, 0.02, 0.12, 6),
-      new THREE.MeshStandardMaterial({ color: "#f4efe6", emissive: "#ffb15a", emissiveIntensity: 0.35, roughness: 0.5 }),
-    );
-    candle.position.set(0.02, 0.1, 0.12);
-    const flame = new THREE.Mesh(
-      new THREE.SphereGeometry(0.025, 6, 5),
-      new THREE.MeshStandardMaterial({ color: "#ffe14a", emissive: "#ff8a2a", emissiveIntensity: 1.4, roughness: 0.3 }),
-    );
-    flame.position.set(0.02, 0.18, 0.12);
-    group.add(plate, supper, cake, candle, flame);
+  } else if (id === "mint") {
+    for (const [x, y] of [[-0.28, 0.05], [0, 0.05], [0.28, 0.05], [0, 0.14]]) {
+      const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.035, 14), stone("#e6c15a", 0.32));
+      coin.position.set(x, y, 0);
+      group.add(coin);
+    }
   } else if (id === "groceries") {
     const crate = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.18, 0.24), stone("#8a5a32", 0.75));
     crate.position.set(-0.22, 0.1, 0);
@@ -3163,7 +3156,9 @@ function stallGoods(id) {
 }
 
 function menuBoard(shopId, title, tint, foot, hit) {
-  const lines = menuLines(shopId);
+  const lines = shopId === "mint"
+    ? ["Open a new token", "Mint more of an open token", "Send to another address", "0 means no cap"]
+    : menuLines(shopId);
   const map = paintTex(512, (g, s) => {
     g.fillStyle = "#241910";
     g.fillRect(0, 0, s, s);
@@ -3179,10 +3174,15 @@ function menuBoard(shopId, title, tint, foot, hit) {
     const step = many ? 46 : 62;
     const start = many ? 132 : 156;
     lines.forEach((line, i) => {
+      const y = start + i * step;
+      if (shopId === "mint") {
+        g.textAlign = "center";
+        g.fillText(line, s / 2, y);
+        return;
+      }
       const cut = line.lastIndexOf(" ");
       const name = cut > 0 ? line.slice(0, cut) : line;
       const price = cut > 0 ? line.slice(cut + 1) : "";
-      const y = start + i * step;
       g.textAlign = "left";
       g.fillText(name, 48, y);
       g.textAlign = "right";
@@ -3385,11 +3385,11 @@ function buildStallRoom(maps) {
   const picks = {};
   const feet = {
     cafe: ["Sit, then this menu", "menu"],
-    restaurant: ["Sit, then this menu", "menu"],
+    mint: ["Click the counter", "counter"],
     groceries: ["Click the counter", "counter"],
     roadster: ["Click the sign", "sign"],
   };
-  const names = { cafe: "Nia", restaurant: "Orin", groceries: "Mara", roadster: "Pike" };
+  const names = { cafe: "Nia", mint: "Orin", groceries: "Mara", roadster: "Pike" };
   for (const stall of STALLS) {
     const keeper = figure(stall.color);
     keeper.position.set(-1.15, 0, -3.45);
@@ -3412,43 +3412,32 @@ function buildStallRoom(maps) {
     boards[stall.id] = board;
     const set = new THREE.Group();
     set.visible = false;
-    if (stall.id === "cafe" || stall.id === "restaurant") {
+    if (stall.id === "cafe") {
       const rug = new THREE.Mesh(
-        new THREE.BoxGeometry(stall.id === "cafe" ? 5.4 : 6.2, 0.03, 3.4),
+        new THREE.BoxGeometry(5.4, 0.03, 3.4),
         new THREE.MeshStandardMaterial({ color: stall.tint, roughness: 0.82 }),
       );
       rug.position.set(0, 0.02, 0.1);
       set.add(rug);
-      const spots = stall.id === "cafe" ? [[-1.7, -0.35], [1.6, 0.25]] : [[0, 0.05]];
-      for (const [x, z] of spots) {
-        if (stall.id === "cafe") {
-          const table = roundTable(maps, "#f4efe6");
-          table.position.set(x, 0, z);
-          const card = qrCard();
-          card.position.set(0.16, 0.79, 0.12);
-          table.add(card);
-          set.add(table);
-        }
+      for (const [x, z] of [[-1.7, -0.35], [1.6, 0.25]]) {
+        const table = roundTable(maps, "#f4efe6");
+        table.position.set(x, 0, z);
+        const card = qrCard();
+        card.position.set(0.16, 0.79, 0.12);
+        table.add(card);
+        set.add(table);
         const here = chair(maps, stall.color, headingYaw(0, -1));
-        here.position.set(x, 0, z + (stall.id === "cafe" ? 0.95 : 0.95));
+        here.position.set(x, 0, z + 0.95);
         const far = chair(maps, stall.color, headingYaw(0, 1));
         far.position.set(x, 0, z - 0.95);
         set.add(here, far);
       }
-      if (stall.id === "restaurant") {
-        const table = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.08, 1.15), stone("#f4efe6", 0.4));
-        table.position.set(0, 0.76, 0.05);
-        const legL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.76, 0.1), stone("#ffffff", 0.75, maps.wood));
-        legL.position.set(-1.4, 0.38, 0.05);
-        const legR = legL.clone();
-        legR.position.x = 1.4;
-        const card = qrCard();
-        card.position.set(0.4, 0.8, 0.05);
-        set.add(table, legL, legR, card);
-        const sideSeat = chair(maps, stall.color, headingYaw(-1, 0));
-        sideSeat.position.set(2.15, 0, 0.05);
-        set.add(sideSeat);
-      }
+    } else if (stall.id === "mint") {
+      const press = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.7, 0.9), stone("#8a5a32", 0.7, maps.wood));
+      press.position.set(0, 0.35, 0.2);
+      const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.08, 16), stone("#e6c15a", 0.32));
+      coin.position.set(0, 0.74, 0.2);
+      set.add(press, coin);
     } else if (stall.id === "groceries") {
       const left = groceryShelf(maps);
       left.position.set(-5.15, 0, 0.2);
@@ -4203,7 +4192,7 @@ export function mountWorld(canvas, map, api) {
       if (stallId && stall.keepers[stallId].visible) pose(stall.keepers[stallId], now, false);
       if (cinema.room.visible) pose(cinema.keeper, now, false);
       if (hunt.room.visible) pose(hunt.keeper, now, false);
-      stall.guest.visible = sitting && (stallId === "cafe" || stallId === "restaurant");
+      stall.guest.visible = sitting && stallId === "cafe";
       if (stall.guest.visible) {
         stall.guest.position.set(satMesh.position.x, 0, satMesh.position.z);
         stall.guest.rotation.y = satMesh.userData.yaw || 0;
@@ -4611,7 +4600,8 @@ export function assembleInteriors() {
     cafeSeats: hits(stall.picks.cafe, "seat"),
     cafeCards: hits(stall.picks.cafe, "qr"),
     cafeMenu: hits(stall.picks.cafe, "menu"),
-    tableSeats: hits(stall.picks.restaurant, "seat"),
+    mintKeeper: hits(stall.picks.mint, "keeper"),
+    mintCounter: hits(stall.picks.mint, "counter"),
     marketCounter: hits(stall.picks.groceries, "counter"),
     showroomSign: hits(stall.picks.roadster, "sign"),
     showroomKeeper: hits(stall.picks.roadster, "keeper"),

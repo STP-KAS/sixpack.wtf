@@ -48,7 +48,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=111/);
+  assert.match(html, /1984\/client\.mjs\?v=112/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -131,8 +131,8 @@ test("exit to the square is on the shop card", () => {
 test("the balances stay in the top right with Bank", () => {
   const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
   assert.match(html, /<header class="kw-bar" id="bar"><\/header>/);
-  assert.match(html, /1984\.css\?v=63/);
-  assert.match(html, /1984\/client\.mjs\?v=111/);
+  assert.match(html, /1984\.css\?v=64/);
+  assert.match(html, /1984\/client\.mjs\?v=112/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
@@ -149,7 +149,10 @@ test("the balances stay in the top right with Bank", () => {
   assert.match(mintCard, /value="new"/);
   assert.match(mintCard, /value="more"/);
   assert.match(mintCard, /value="send"/);
-  assert.match(mintCard, /A cap of 0 means no cap/);
+  assert.match(mintCard, /Type 0 in Cap for no cap/);
+  assert.match(mintCard, /0 means no cap\. There is no maximum/);
+  assert.match(mintCard, /class="mint-choice"/);
+  assert.match(mintCard, /class="mint-line"><span>Name<\/span>/);
   assert.match(css, /\.kw-bar \{[\s\S]*?right: 8px;/);
   assert.match(css, /\.kw\.flight \.kw-bar,\s*\.kw\.watching \.kw-bar,\s*\.kw\.room \.kw-bar \{ display: block; \}/);
   assert.doesNotMatch(css, /\.kw\.flight \.kw-bar \{ display: none/);

@@ -255,7 +255,12 @@ test("the roadster stops on a path and never indoors", () => {
 
 test("a shop or the bank is the indoor room, and the rules are not", () => {
   assert.equal(shopVisit("cafe"), true);
-  assert.equal(shopVisit("restaurant"), true);
+  assert.equal(shopVisit("mint"), true);
+  assert.equal(shopVisit("restaurant"), false);
+  const mint = world().buildings.find((item) => item.shop === "mint");
+  assert.equal(mint.sign, "Mint");
+  assert.equal(mint.x, 28);
+  assert.equal(mint.y, 2);
   assert.equal(shopVisit("groceries"), true);
   assert.equal(shopVisit("roadster"), true);
   assert.equal(shopVisit("bank"), true);
@@ -269,7 +274,8 @@ test("a shop or the bank is the indoor room, and the rules are not", () => {
 
 test("a payment redraws the open counter and leaves the square alone", () => {
   assert.equal(counterFace("cafe"), "shop");
-  assert.equal(counterFace("restaurant"), "shop");
+  assert.equal(counterFace("mint"), "mint");
+  assert.equal(counterFace("restaurant"), "");
   assert.equal(counterFace("groceries"), "shop");
   assert.equal(counterFace("roadster"), "shop");
   assert.equal(counterFace("bank"), "bank");

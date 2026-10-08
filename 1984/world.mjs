@@ -107,7 +107,7 @@ export function huntById(id) {
 
 const BUILDINGS = [
   { id: "cafe", shop: "cafe", x: 2, y: 2, w: 12, h: 8, door: { x: 8, y: 9 }, npc: { x: 8, y: 10 }, roof: "#8d3b2f", sign: "Cafe" },
-  { id: "restaurant", shop: "restaurant", x: 28, y: 2, w: 12, h: 8, door: { x: 34, y: 9 }, npc: { x: 34, y: 10 }, roof: "#8a5a2a", sign: "Table" },
+  { id: "mint", shop: "mint", x: 28, y: 2, w: 12, h: 8, door: { x: 34, y: 9 }, npc: { x: 34, y: 10 }, roof: "#8a5a2a", sign: "Mint" },
   { id: "bank", shop: "bank", x: 2, y: 14, w: 10, h: 8, door: { x: 11, y: 18 }, npc: { x: 12, y: 18 }, roof: "#2f4d6a", sign: "Bank" },
   { id: "groceries", shop: "groceries", x: 30, y: 14, w: 10, h: 8, door: { x: 30, y: 18 }, npc: { x: 29, y: 18 }, roof: "#3d6b45", sign: "Market" },
   { id: "roadster", shop: "roadster", x: 14, y: 23, w: 14, h: 7, door: { x: 21, y: 23 }, npc: { x: 21, y: 22 }, roof: "#6e2430", sign: "Roadster" },
@@ -117,7 +117,7 @@ const BUILDINGS = [
 
 const KEEPERS = {
   cafe: { name: "Nia", color: "#e7b3c2" },
-  restaurant: { name: "Orin", color: "#e6c15a" },
+  mint: { name: "Orin", color: "#e6c15a" },
   bank: { name: "Venn", color: "#9ecbff" },
   groceries: { name: "Mara", color: "#b7e38d" },
   roadster: { name: "Pike", color: "#f0a36a" },
@@ -153,7 +153,7 @@ export const ROADSTER_PARK = PARKING_BAYS[1];
 
 /** Bank and shop panels are the indoor room. Rules, the bench, and the guide are not. */
 export function shopVisit(mode) {
-  return mode === "bank" || mode === "cafe" || mode === "restaurant" || mode === "groceries" || mode === "roadster" || mode === "cinema" || mode === "hunt";
+  return mode === "bank" || mode === "cafe" || mode === "mint" || mode === "groceries" || mode === "roadster" || mode === "cinema" || mode === "hunt";
 }
 
 /** Which open card to redraw after a payment. An empty string means no card is open. */
@@ -161,6 +161,7 @@ export function counterFace(mode) {
   if (!shopVisit(mode)) return "";
   if (mode === "bank") return "bank";
   if (mode === "hunt") return "hunt";
+  if (mode === "mint") return "mint";
   return "shop";
 }
 
@@ -289,7 +290,9 @@ function build() {
         ? "Push a clerk. Each window swaps into the other two."
         : b.shop === "hunt"
           ? "Promise a month if others do. I will not tell you how many already did."
-          : shopById(b.shop).line,
+          : b.shop === "mint"
+            ? "Open a name, mint more, or send it. Type 0 in Cap for no cap."
+            : shopById(b.shop).line,
   }));
 
   return {

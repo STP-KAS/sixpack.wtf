@@ -232,7 +232,7 @@ function wholeAmount(value, label) {
 function wholeCap(value) {
   const text = String(value ?? "").trim();
   if (text === "" || text === "0") return 0n;
-  if (!/^[0-9]+$/.test(text)) throw new Error("A cap is a whole number, or 0 for no cap.");
+  if (!/^[0-9]+$/.test(text)) throw new Error("Type a whole number. 0 means no cap.");
   const cap = BigInt(text);
   if (cap > MAX_MINT) throw new Error("That cap is too large.");
   return cap;
@@ -304,7 +304,7 @@ export function applyToken(state, input, now) {
     rail: "poc",
     cents: 0n,
     note: opened
-      ? "Opened " + name + " on this ledger. KCC-20 is Last Call, not Final. No covenant."
+      ? "Opened " + name + " on this ledger." + (cap === 0n ? " Cap 0 means no cap." : "") + " KCC-20 is Last Call, not Final. No covenant."
       : "Minted " + amount.toString() + " more " + name + ". The amount increased.",
   });
   return {
