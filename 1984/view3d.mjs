@@ -77,6 +77,14 @@ export function portraitDistance(distance, aspect) {
   return Math.min(40, d * Math.min(1.55, 0.86 / a));
 }
 
+/** Screen pixels onto the desk picture. A scaled phone turns as far as the same fraction of the desk. */
+export function pointerScale(layout, visual) {
+  const frame = Number(layout);
+  const box = Number(visual);
+  if (!(frame > 0) || !(box > 0)) return 1;
+  return frame / box;
+}
+
 /** Scale the picture mesh. scale 1 fills the glass, which is only right for that exact shape. */
 export function fitScreen(mesh, videoW, videoH) {
   const fit = screenFit(videoW, videoH);
@@ -1960,8 +1968,11 @@ export function buildFlight() {
     if (film && typeof film.play === "function") {
       film.playsInline = true;
       film.preload = "auto";
+      film.muted = false;
       film.volume = 0.85;
       film.setAttribute("playsinline", "");
+      film.setAttribute("webkit-playsinline", "");
+      film.src = side < 0 ? PAD_LEFT : PAD_RIGHT;
       film.style.cssText = "position:fixed;left:0;top:0;width:480px;height:360px;transform:translateX(-120vw);pointer-events:none;opacity:1";
       if (document.body) document.body.appendChild(film);
       const map = new THREE.VideoTexture(film);
@@ -4322,9 +4333,12 @@ export function mountWorld(canvas, map, api) {
       hoverCursor(ev);
       return;
     }
-    const dx = ev.clientX - drag.x;
-    const dy = ev.clientY - drag.y;
-    if (Math.abs(dx) + Math.abs(dy) > 5) drag.moved = true;
+    const rawX = ev.clientX - drag.x;
+    const rawY = ev.clientY - drag.y;
+    if (Math.abs(rawX) + Math.abs(rawY) > 5) drag.moved = true;
+    const box = canvas.getBoundingClientRect();
+    const dx = rawX * pointerScale(canvas.clientWidth, box.width);
+    const dy = rawY * pointerScale(canvas.clientHeight, box.height);
     const flightMs = api.flight ? api.flight() : 0;
     if (api.watching && api.watching()) {
       drag.x = ev.clientX;

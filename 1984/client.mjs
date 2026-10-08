@@ -17,7 +17,7 @@ import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=4";
 import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=8";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=6";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=49";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=50";
 import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=3";
 const TUNNEL = "https://authority-fireplace-earlier-spirit.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -161,13 +161,22 @@ function armMedia(el) {
   if (!el) return;
   const stamp = {};
   el._arm = stamp;
-  el.muted = true;
+  // A phone allows a later play() only after this tap already started the clip with sound.
+  el.muted = false;
+  if (typeof el.playsInline === "boolean") {
+    el.playsInline = true;
+    el.setAttribute("playsinline", "");
+    el.setAttribute("webkit-playsinline", "");
+  }
+  if (el.tagName === "VIDEO") {
+    el.hidden = false;
+    el.style.cssText = "position:fixed;left:0;top:0;width:320px;height:180px;transform:translateX(-120vw);opacity:1;pointer-events:none";
+  }
   const finish = () => {
     if (el._arm !== stamp) return;
     el._arm = null;
     try { el.pause(); } catch (err) { /* already quiet */ }
     try { el.currentTime = 0; } catch (err) { /* the file may still be opening */ }
-    el.muted = false;
   };
   const pending = el.play();
   if (pending && pending.then) pending.then(finish).catch(() => { if (el._arm === stamp) el._arm = null; });
@@ -201,7 +210,7 @@ function playFlightFilm(el) {
   el.hidden = false;
   el.muted = false;
   el.volume = 0.9;
-  el.style.cssText = "position:fixed;left:0;top:0;width:320px;height:180px;transform:translateX(-120vw);opacity:0;pointer-events:none";
+  el.style.cssText = "position:fixed;left:0;top:0;width:320px;height:180px;transform:translateX(-120vw);opacity:1;pointer-events:none";
   const pending = el.play();
   if (pending && pending.catch) pending.catch(() => {});
 }
@@ -276,7 +285,13 @@ function startLeftFilm() {
     return;
   }
   cuePad(slots[0], PAD_LEFT);
-  if (slots[1]) armMedia(slots[1]);
+  if (slots[1]) {
+    cuePad(slots[1], PAD_RIGHT);
+    armMedia(slots[1]);
+  }
+  claimMedia(slots[0]);
+  slots[0].muted = false;
+  slots[0].volume = 0.85;
   const pending = slots[0].play();
   if (pending && pending.catch) pending.catch(() => startRightFilm());
 }
@@ -524,7 +539,6 @@ function startLaunch() {
   armMedia(document.getElementById("launch-sound"));
   armMedia(document.getElementById("comms-sound"));
   armMedia(flightFilm("hotstage-film"));
-  armMedia(flightFilm("release-film"));
   const space = worldView.spaceVideo && worldView.spaceVideo();
   if (space) {
     space.muted = true;

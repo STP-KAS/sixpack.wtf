@@ -35,7 +35,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=101/);
+  assert.match(html, /1984\/client\.mjs\?v=102/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -44,8 +44,11 @@ test("the landing gate takes a funded test address", () => {
   const phoneAt = css.indexOf("@media (max-width: 980px)");
   assert.ok(phoneAt > 0);
   const phone = css.slice(phoneAt);
-  assert.match(phone, /p\.only-phone \{ display: block; \}/);
-  assert.match(phone, /\.kw-wallets, \.wallet-pc \{ display: none; \}/);
+  assert.match(html, /class="phone-fit"/);
+  assert.match(phone, /\.phone-fit \{[\s\S]*width: 1280px;[\s\S]*height: 720px;[\s\S]*scale\(min\([\s\S]*100vw[\s\S]*\/ 1280px,[\s\S]*100dvh[\s\S]*\/ 720px/);
+  assert.match(phone, /\.phone-fit \.flight-card \{[\s\S]*max-height: calc\(100% - 8px\)/);
+  assert.doesNotMatch(phone, /\.kw \.kw-launch/);
+  assert.doesNotMatch(phone, /p\.only-phone \{ display: block; \}/);
   assert.doesNotMatch(css.slice(0, phoneAt), /\.kw-wallets, \.wallet-pc \{ display: none; \}/);
   const town = html.match(/window\.TOWN_API = "([^"]+)"/);
   const tunnel = client.match(/const TUNNEL = "([^"]+)"/);
@@ -90,8 +93,8 @@ test("exit to the square is on the shop card", () => {
 test("the balances stay in the top right with Bank", () => {
   const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
   assert.match(html, /<header class="kw-bar" id="bar"><\/header>/);
-  assert.match(html, /1984\.css\?v=54/);
-  assert.match(html, /1984\/client\.mjs\?v=101/);
+  assert.match(html, /1984\.css\?v=55/);
+  assert.match(html, /1984\/client\.mjs\?v=102/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
@@ -147,4 +150,22 @@ test("the lot sells the roadster and launch shows once it is yours", () => {
   assert.match(view, /getObjectByName\("lot-buy-sign"\)/);
   assert.match(css, /@keyframes lot-pulse/);
   assert.match(css, /\.kw \.kw-launch \{[\s\S]*animation: lot-pulse/);
+  const arm = sliceFn(client, "armMedia");
+  assert.match(arm, /el\.muted = false/);
+  assert.doesNotMatch(arm, /muted = true/);
+  assert.match(arm, /webkit-playsinline/);
+  assert.match(arm, /opacity:1/);
+  assert.match(arm, /translateX\(-120vw\)/);
+  const playFilm = sliceFn(client, "playFlightFilm");
+  assert.match(playFilm, /opacity:1/);
+  assert.doesNotMatch(playFilm, /opacity:0/);
+  assert.match(playFilm, /translateX\(-120vw\)/);
+  const left = sliceFn(client, "startLeftFilm");
+  assert.match(left, /cuePad\(slots\[0\], PAD_LEFT\)/);
+  assert.match(left, /cuePad\(slots\[1\], PAD_RIGHT\)/);
+  assert.match(left, /armMedia\(slots\[1\]\)/);
+  assert.match(left, /slots\[0\]\.muted = false/);
+  assert.match(view, /webkit-playsinline/);
+  assert.match(view, /film\.src = side < 0 \? PAD_LEFT : PAD_RIGHT/);
+  assert.match(css, /\.flight-film \{[\s\S]*opacity: 1;/);
 });

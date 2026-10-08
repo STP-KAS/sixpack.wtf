@@ -7,6 +7,16 @@ body.page-1984 {
   color: #f3e6c8;
   color-scheme: dark;
 }
+.phone-fit {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 body.page-1984 .top {
   background: #241e18;
   color: #f3e6c8;
@@ -278,7 +288,7 @@ body.page-1984 main.kw-stage {
   width: 320px;
   height: 180px;
   transform: translateX(-120vw);
-  opacity: 0;
+  opacity: 1;
   pointer-events: none;
 }
 .flight-film[hidden] { display: none; }
@@ -1135,385 +1145,37 @@ a { color: #f2d48a; }
   font-weight: 700;
 }
 
+/* A phone shows the same 1280 by 720 desk, scaled to fit. Launch and sound stay that copy. */
 @media (max-width: 980px) {
   body.page-1984 {
     height: 100dvh;
     overflow: hidden;
-    overscroll-behavior: none;
-  }
-  body.page-1984 .top {
-    flex-wrap: nowrap;
-    overflow: hidden;
-    align-items: stretch;
-    gap: 0.45rem;
-    padding-top: max(0.28rem, env(safe-area-inset-top));
-    padding-left: max(0.4rem, env(safe-area-inset-left));
-    padding-right: max(0.4rem, env(safe-area-inset-right));
-  }
-  body.page-1984 .wordmark {
-    flex: 0 0 auto;
-    align-self: center;
-    font-size: clamp(0.82rem, 3.4vw, 0.95rem);
-  }
-  body.page-1984 .tabs {
-    flex: 1 1 auto;
-    min-width: 0;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  body.page-1984 .tabs::-webkit-scrollbar { display: none; }
-  body.page-1984 .tabs a {
-    flex: 0 0 auto;
-    min-height: clamp(30px, 4.4dvh, 36px);
-    font-size: clamp(0.68rem, 2.8vw, 0.78rem);
-    display: inline-flex;
     align-items: center;
-  }
-  .hint-desk, .only-desk, .hint-phone { display: none; }
-  li.only-phone { display: list-item; }
-  p.only-phone { display: block; }
-  .kw-wallets, .wallet-pc { display: none; }
-  .kw-step { display: inline-block; }
-  .kw {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    height: auto;
-    flex: 1;
-  }
-  .kw.room .kw-mini { display: none; }
-  .kw-stage {
-    position: relative;
-    inset: auto;
-    flex: 1 1 auto;
-    height: auto;
-    min-height: 0;
-  }
-  .kw-stage canvas#view { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .kw-mini {
-    width: clamp(58px, 16vw, 84px);
-    height: clamp(44px, 12vw, 64px);
-  }
-  .kw-side {
-    position: relative;
-    top: auto;
-    bottom: auto;
-    width: auto;
-    flex: 0 0 auto;
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    overflow: visible;
-    gap: 0.22rem;
-    padding: 0.22rem 0.28rem 0.24rem;
-  }
-  .kw-side button {
-    min-width: 0;
-    width: 100%;
-    text-align: center;
-    font-size: clamp(0.68rem, 2.7vw, 0.8rem);
-    line-height: 1.15;
-    padding: 0.16rem 0.1rem;
-    min-height: clamp(32px, 4.6dvh, 40px);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .kw-side button, .kw-panel button, .kw-you button, .kw-gate-row button, .kw-turn, .kw-pay-toggle, .kw-launch, .kw-ride, .kw-lot-buy, .flight-card button, .show-card button {
-    white-space: nowrap;
-    min-height: clamp(40px, 5.6dvh, 46px);
-    font-size: clamp(0.84rem, 3.3vw, 1rem);
-    padding: 0.4rem 0.55rem;
-    touch-action: manipulation;
-  }
-  .kw-bar {
-    position: absolute;
-    left: auto;
-    right: max(8px, env(safe-area-inset-right));
-    top: max(8px, env(safe-area-inset-top));
-    z-index: 12;
-    width: min(200px, calc(100% - 16px));
-    white-space: normal;
-    overflow: visible;
-    text-align: right;
-    font-size: clamp(0.72rem, 2.8vw, 0.82rem);
-    line-height: 1.3;
-  }
-  .kw-hint.hint-phone { display: none; }
-  .kw-pay-toggle {
-    top: auto;
-    left: auto;
-    right: max(6px, env(safe-area-inset-right));
-    bottom: max(6px, env(safe-area-inset-bottom));
-    width: clamp(72px, 22vw, 92px);
-    min-height: clamp(40px, 5.6dvh, 46px);
-    z-index: 7;
-    text-align: center;
-  }
-  .kw-logout {
-    top: 8px;
-    left: 8px;
-    right: auto;
-    min-width: 0;
-    min-height: clamp(36px, 5.2dvh, 44px);
-    padding: 0.2rem 0.55rem;
-    font-size: clamp(0.82rem, 3.2vw, 1rem);
-    z-index: 7;
-  }
-  .kw-turns {
-    left: 6px;
-    right: calc(clamp(72px, 22vw, 92px) + 14px);
-    bottom: max(6px, env(safe-area-inset-bottom));
-    transform: none;
-    justify-content: stretch;
-    gap: 6px;
-  }
-  .kw-turn {
-    flex: 1 1 0;
-    min-width: 0;
-    min-height: clamp(40px, 5.6dvh, 46px);
-    font-size: clamp(0.84rem, 3.3vw, 1rem);
-  }
-  .kw .kw-launch,
-  .kw-lot-buy {
-    bottom: calc(clamp(40px, 5.6dvh, 46px) + 22px + env(safe-area-inset-bottom));
-    min-width: min(20rem, calc(100% - 20px));
-    max-width: calc(100% - 16px);
-    min-height: clamp(3.6rem, 11dvh, 5rem);
-    padding: 0.55rem 0.8rem;
-    font-size: clamp(1.25rem, 5.4vw, 1.7rem);
-    line-height: 1.15;
-    letter-spacing: 0.02em;
-    white-space: normal;
-  }
-  .kw-lot-buy {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-  }
-  .kw-ride,
-  .kw.driving .kw-ride {
-    left: 8px;
-    right: auto;
-    bottom: calc(clamp(40px, 5.6dvh, 46px) + 22px + env(safe-area-inset-bottom));
-    transform: none;
-    min-width: 7.2rem;
-  }
-  .kw.owns:not(.driving) .kw-ride {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    min-width: min(18rem, calc(100% - 20px));
-    max-width: calc(100% - 16px);
-    min-height: clamp(2.7rem, 7dvh, 3.5rem);
-    padding: 0.45rem 0.7rem;
-    font-size: clamp(1rem, 4.6vw, 1.25rem);
-    line-height: 1.15;
-    white-space: normal;
-    border-width: 4px;
-  }
-  .flight-film {
-    width: 320px;
-    height: 180px;
-    max-height: none;
-    transform: translateX(-120vw);
-    opacity: 0;
-  }
-  .kw.driving .kw-launch {
-    left: auto;
-    right: 8px;
-    transform: none;
-  }
-  .flight-card {
-    right: max(8px, env(safe-area-inset-right));
-    left: max(8px, env(safe-area-inset-left));
-    top: auto;
-    bottom: max(8px, env(safe-area-inset-bottom));
-    transform: none;
-    width: auto;
-    max-height: min(58dvh, calc(100% - 8px));
-    padding: 0.55rem 0.6rem 0.6rem;
-  }
-  .flight-clock { font-size: clamp(1rem, 4.2vw, 1.2rem); margin-bottom: 0.08rem; }
-  .flight-bar-label { font-size: clamp(0.95rem, 3.8vw, 1.15rem); margin-bottom: 0.2rem; }
-  #flight-line { font-size: clamp(1rem, 4.4vw, 1.28rem); }
-  .flight-bar { height: clamp(18px, 3.6dvh, 28px); margin-bottom: 0.35rem; }
-  .flight-card p { margin: 0 0 0.32rem; }
-  .flight-card .flight-joke {
-    font-size: clamp(0.92rem, 3.8vw, 1.05rem);
-    padding: 0.35rem 0.45rem;
-  }
-  .flight-note { font-size: clamp(0.72rem, 3vw, 0.82rem); }
-  .show-card {
-    left: max(8px, env(safe-area-inset-left));
-    right: max(8px, env(safe-area-inset-right));
-    top: auto;
-    bottom: max(8px, env(safe-area-inset-bottom));
-    width: auto;
-    max-height: min(52dvh, calc(100% - 8px));
-    padding: 0.45rem 0.55rem 0.5rem;
-  }
-  .ask-shade {
-    align-items: flex-end;
-    padding: 0.6rem 0.55rem max(0.6rem, env(safe-area-inset-bottom));
-  }
-  .ask-card {
-    width: 100%;
-    max-height: min(72dvh, calc(100% - 0.5rem));
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 0.7rem 0.7rem 0.6rem;
-  }
-  .ask-card p { font-size: clamp(0.92rem, 3.6vw, 1.05rem); margin-bottom: 0.55rem; }
-  .ask-head { align-items: center; margin-bottom: 0.55rem; }
-  .ask-row { flex-direction: column; }
-  .ask-row button, .ask-row a {
-    min-height: clamp(42px, 6dvh, 48px);
-    width: 100%;
-  }
-  .pay-slip {
-    left: max(8px, env(safe-area-inset-left));
-    right: max(8px, env(safe-area-inset-right));
-    top: auto;
-    bottom: max(8px, env(safe-area-inset-bottom));
-    transform: none;
-    width: auto;
-    max-height: min(58dvh, calc(100% - 12px));
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 0.55rem 0.6rem;
-  }
-  .show-list button { white-space: normal; text-align: left; }
-  .kw-gate {
-    display: flex;
-    align-items: flex-start;
     justify-content: center;
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 0.6rem 0.35rem calc(0.6rem + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    padding:
+      env(safe-area-inset-top)
+      env(safe-area-inset-left)
+      env(safe-area-inset-bottom)
+      env(safe-area-inset-right);
   }
-  .kw-gate h1 { font-size: clamp(1.25rem, 6vw, 1.55rem); }
-  .kw-gate-card {
-    width: min(460px, calc(100% - 0.4rem));
-    margin: auto;
-    padding: clamp(0.65rem, 2.4vw, 0.9rem) clamp(0.55rem, 2.2vw, 0.75rem);
-    font-size: clamp(0.86rem, 3.5vw, 0.98rem);
-  }
-  .kw-gate-row { flex-direction: column; }
-  .kw-you input, .kw-panel input, .kw-panel select, .gate-paste input { font-size: 16px; }
-  .kw-chat {
-    position: relative;
-    left: auto;
-    right: auto;
-    top: auto;
-    bottom: auto;
-    flex: 0 0 auto;
-    width: auto;
-    height: clamp(64px, 12dvh, 96px);
-    max-height: none;
-    margin: 0;
-    font-size: 0.88rem;
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  .kw-chat p.sim { font-size: clamp(0.95rem, 3.6vw, 1.15rem); }
-  .sim-big { top: auto; bottom: 12px; transform: translateX(-50%); font-size: 1.25rem; }
-  .kw-you, .kw-panel {
-    position: absolute;
-    left: 8px;
-    right: 8px;
-    top: auto;
-    bottom: 8px;
-    width: auto;
-    max-height: 72%;
-    margin: 0;
-    z-index: 6;
-  }
-  .kw-you {
-    top: calc(0.46rem + 0.22rem + 2 * clamp(32px, 4.6dvh, 40px) + 1.7rem + 8px + clamp(36px, 5.2dvh, 44px) + 6px);
-    bottom: calc(clamp(64px, 12dvh, 96px) + clamp(40px, 5.6dvh, 46px) + 14px + env(safe-area-inset-bottom));
-    max-height: none;
-  }
-  .kw.owns:not(.driving) .kw-you,
-  .kw.driving .kw-you,
-  .kw.lot .kw-you {
-    bottom: calc(clamp(64px, 12dvh, 96px) + clamp(40px, 5.6dvh, 46px) + clamp(2.7rem, 7dvh, 3.5rem) + 36px + env(safe-area-inset-bottom));
-  }
-  .show-card { background: #10141c; }
-  .booth-tabs { flex-wrap: nowrap; overflow-x: auto; }
-  .booth-tabs button { min-height: clamp(36px, 5dvh, 44px); font-size: clamp(0.78rem, 3vw, 0.92rem); }
-  .show-list { max-height: 22dvh; }
-  .stall-badge, .good-mark { width: 44px; height: 44px; }
-  .swap-bals { grid-template-columns: 1fr; gap: 0.28rem; margin: 0.35rem 0 0.2rem; }
-  button.swap-bal { padding: 0.28rem 0.3rem 0.32rem; }
-  button.swap-bal strong { margin: 0.05rem 0; font-size: 1.05rem; }
-  .swap-status { min-height: 0; margin: 0.25rem 0 0.05rem; padding: 0.28rem 0.4rem; }
-  .swap-step { margin: 0.35rem 0 0; }
-  .swap-preview { min-height: 0; margin: 0.05rem 0 0.15rem; }
-  button.clerk-push { min-height: clamp(2.6rem, 7dvh, 3.2rem); padding: 0.35rem 0.5rem; }
-  button.clerk-push strong { font-size: clamp(0.95rem, 3.8vw, 1.1rem); }
-  .clerk-bal strong { font-size: clamp(1.05rem, 4.5vw, 1.35rem); }
-  .kw-panel.swap-pop, .kw-panel.stall-pop {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    right: auto;
-    bottom: auto;
-    width: min(520px, calc(100% - 0.6rem));
-    max-height: min(88%, calc(100% - 8px));
-    margin: 0;
-    z-index: 6;
-    transform: translate(-50%, -50%);
-  }
-  .kw-side button {
-    min-width: 0;
-    width: 100%;
-    text-align: center;
-    font-size: clamp(0.68rem, 2.7vw, 0.8rem);
-    line-height: 1.15;
-    padding: 0.16rem 0.1rem;
-    min-height: clamp(32px, 4.6dvh, 40px);
-    white-space: nowrap;
+  .phone-fit {
+    flex: none;
+    width: 1280px;
+    height: 720px;
     overflow: hidden;
-    text-overflow: ellipsis;
+    transform: scale(min(
+      (100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)) / 1280px,
+      (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) / 720px
+    ));
+    transform-origin: center center;
   }
-  .flight-card button {
-    white-space: normal;
-    line-height: 1.2;
-    min-height: clamp(36px, 5.2dvh, 44px);
-    font-size: clamp(0.78rem, 3.2vw, 0.92rem);
-    padding: 0.32rem 0.4rem;
+  .phone-fit .flight-card {
+    max-height: calc(100% - 8px);
   }
-  .flight-planets button:last-child { grid-column: 1 / -1; }
-  .stall-head,
-  .swap-head,
-  .show-head { flex-wrap: wrap; }
-  .stall-acts { width: 100%; margin-left: 0; }
-  .stall-acts button { flex: 1 1 0; text-align: center; white-space: normal; line-height: 1.15; }
-  #place-exit { flex: 1.6 1 0; }
-  #show-exit { width: 100%; white-space: normal; line-height: 1.15; }
-  .flight-card.ended {
-    left: max(8px, env(safe-area-inset-left));
-    right: max(8px, env(safe-area-inset-right));
-    width: auto;
-  }
-  @media (max-height: 700px) {
-    .kw-chat {
-      height: 64px;
-      font-size: 0.82rem;
-    }
-    .kw-side button {
-      min-height: 32px;
-      font-size: 0.68rem;
-      padding: 0.12rem 0.08rem;
-    }
-    .flight-card { max-height: min(52dvh, calc(100% - 8px)); }
-    .kw .kw-launch,
-    .kw-lot-buy,
-    .kw.owns:not(.driving) .kw-ride {
-      min-height: 3.2rem;
-      font-size: 1.15rem;
-    }
-    .kw-gate h1 { font-size: 1.25rem; }
+  .phone-fit input,
+  .phone-fit textarea,
+  .phone-fit select {
+    font-size: 16px;
   }
 }
