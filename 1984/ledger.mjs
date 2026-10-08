@@ -209,16 +209,64 @@ export function publicMints(state) {
           if (left === right) return a.address.localeCompare(b.address);
           return left > right ? -1 : 1;
         });
+      const cap = bi(row.cap);
+      const supply = bi(row.supply);
       return {
         name: row.name,
         extension,
         supply: String(row.supply || "0"),
         cap: String(row.cap || "0"),
+        done: cap > 0n && supply >= cap,
         holderCount: holders.length,
         holders,
+        txs: mintTxs(state, row),
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function mintTxs(state, row) {
+  const logged = Array.isArray(row.moves) ? row.moves : [];
+  const source = logged.length
+    ? logged
+    : ((state && state.receipts) || []).filter((item) => item.kind === "mint" && item.sku === row.name);
+  return source.slice(-40).map((item) => ({
+    id: String(item.id || ""),
+    at: item.at || 0,
+    address: item.address || "",
+    to: item.to || "",
+    amount: item.amount != null && item.amount !== "" ? String(item.amount) : "",
+    op: item.op || "",
+    note: item.note || "",
+  }));
+}
+
+function rememberMint(state, book, receipt, move) {
+  if (!Array.isArray(book.moves)) book.moves = [];
+  if (!book.moves.length) {
+    book.moves = ((state && state.receipts) || [])
+      .filter((item) => item.kind === "mint" && item.sku === book.name && item.id !== receipt.id)
+      .slice(-39)
+      .map((item) => ({
+        id: item.id,
+        at: item.at,
+        address: item.address,
+        to: "",
+        amount: "",
+        op: "",
+        note: item.note || "",
+      }));
+  }
+  book.moves.push({
+    id: receipt.id,
+    at: receipt.at,
+    address: move.address,
+    to: move.to || "",
+    amount: move.amount,
+    op: move.op,
+    note: receipt.note || "",
+  });
+  if (book.moves.length > 40) book.moves.splice(0, book.moves.length - 40);
 }
 
 function tokenHoldings(state, account) {
@@ -303,6 +351,7 @@ export function applyToken(state, input, now) {
       cents: 0n,
       note: "Sent " + amount.toString() + " " + name + " on this ledger. Not a covenant.",
     });
+    rememberMint(next, book, receipt, { address, to, amount: amount.toString(), op: "send" });
     return {
       state: next,
       result: { ok: true, receipt, account: publicAccount(next, address), mints: publicMints(next) },
@@ -325,6 +374,7 @@ export function applyToken(state, input, now) {
       ? "Opened " + name + " on this ledger." + (cap === 0n ? " Cap 0 means no cap." : "") + " KCC-20 is Last Call, not Final. No covenant."
       : "Minted " + amount.toString() + " more " + name + ". The amount increased.",
   });
+  rememberMint(next, book, receipt, { address, to: "", amount: amount.toString(), op: opened ? "new" : "more" });
   return {
     state: next,
     result: { ok: true, receipt, account: publicAccount(next, address), mints: publicMints(next), token: book },

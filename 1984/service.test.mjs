@@ -665,11 +665,20 @@ test("a named token opens, increases, stops at the cap, and a send keeps the tot
   assert.equal(ash.holders[0].amount, "6");
   assert.equal(ash.holders[1].amount, "2");
   assert.equal(ash.holders[1].address, OTHER);
+  assert.equal(ash.done, true);
+  assert.equal(ash.txs.length, 3);
+  assert.equal(ash.txs[0].op, "new");
+  assert.equal(ash.txs[1].op, "more");
+  assert.equal(ash.txs[2].op, "send");
+  assert.equal(ash.txs[2].amount, "2");
+  assert.equal(ash.txs[2].to, OTHER);
   const crowdRow = home.body.mints.find((row) => row.name === "CROWD");
   assert.equal(crowdRow.holderCount, 22);
   assert.equal(crowdRow.holders.length, 22);
   const freeRow = home.body.mints.find((row) => row.name === "FREE");
   assert.equal(freeRow.holders.length, 2);
+  assert.equal(freeRow.done, false);
+  assert.equal(freeRow.txs.length, 3);
 
   const other = await svc.handle({
     method: "GET",
