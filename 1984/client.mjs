@@ -17,7 +17,7 @@ import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=4";
 import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=8";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=7";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=53";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, HOT_STAGE_MS, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=54";
 import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=3";
 const TUNNEL = "https://authority-fireplace-earlier-spirit.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -75,6 +75,7 @@ const state = {
   cruiseSku: "",
   cruiseFrom: 0,
   jokeSent: -1,
+  destOpen: false,
   watching: false,
   showPaid: false,
   ticketAsk: false,
@@ -239,20 +240,45 @@ function playFlightFilm(el) {
   if (pending && pending.catch) pending.catch(() => {});
 }
 
+function phoneLayout() {
+  return window.matchMedia("(max-width: 980px)").matches;
+}
+
+/** On a phone the only joke is the abyss line about the old roadster and the Gulf of America. */
+function jokeForScreen(text, sku) {
+  if (!text) return "";
+  if (!phoneLayout()) return text;
+  if (sku !== "abyss") return "";
+  if (!/old roadster/i.test(text) || !/gulf/i.test(text)) return "";
+  return text;
+}
+
 function syncFlightFilms(ms) {
   const hot = flightFilm("hotstage-film");
   const comms = document.getElementById("comms-sound");
-  const letGo = FLIGHT_STAGE + 2500;
+  const sepEnd = FLIGHT_STAGE + HOT_STAGE_MS;
   if (ms >= FLIGHT_RELEASE) {
-    hideFlightFilm(hot);
     hideFlightFilm(flightFilm("release-film"));
     if (comms) {
       comms.volume = 0;
       try { comms.pause(); } catch (err) { /* already quiet */ }
     }
+    if (hot && !state.releasePlayed) {
+      state.releasePlayed = true;
+      state.hotOn = false;
+      try { hot.currentTime = 0.49; } catch (err) { /* the file may still be opening */ }
+      playFlightFilm(hot);
+    }
     return;
   }
-  if (ms >= letGo && hot && !state.hotOn) {
+  if (ms >= sepEnd) {
+    if (state.hotOn) {
+      state.hotOn = false;
+      hideFlightFilm(hot);
+    }
+    return;
+  }
+  if (ms >= FLIGHT_STAGE && hot && !state.hotOn) {
     state.hotOn = true;
     if (comms) comms.volume = 0.12;
     try { hot.currentTime = 0; } catch (err) { /* the file may still be opening */ }
@@ -557,6 +583,7 @@ function startLaunch() {
   state.cruiseSku = "";
   state.cruiseFrom = 0;
   state.jokeSent = -1;
+  state.destOpen = false;
   state.releasePlayed = false;
   state.commsPlayed = false;
   state.hotOn = false;
@@ -654,6 +681,9 @@ function endLaunch() {
   if (note) note.hidden = true;
   if (end) end.hidden = true;
   if (planets) planets.hidden = true;
+  state.destOpen = false;
+  const dest = document.getElementById("flight-dest");
+  if (dest) dest.hidden = true;
   if (offer) offer.hidden = false;
   const back = document.getElementById("flight-back");
   if (back) back.hidden = false;
@@ -681,6 +711,7 @@ function returnFromFlight() {
   state.cruiseSku = "";
   state.cruiseFrom = 0;
   state.jokeSent = -1;
+  state.destOpen = false;
   state.releasePlayed = false;
   state.commsPlayed = false;
   state.aboard = true;
@@ -714,7 +745,6 @@ function returnFromFlight() {
 function paintPlanets() {
   const box = document.getElementById("flight-planets");
   if (!box) return;
-  box.hidden = false;
   const rail = payRail(state.shopRail);
   const shop = ((state.home && state.home.shops) || []).find((item) => item.id === "orbit");
   const items = shop && shop.items ? shop.items : [];
@@ -722,8 +752,16 @@ function paintPlanets() {
   const sig = rail + ":" + items.map((trip) => trip.sku + "@" + trip.cents).join(",") + ":" + (state.oracle || "") + ":" + (state.kasSompi || "") + ":" + (state.account && state.account.kusdtFrozen ? "f" : "");
   if (box.dataset.sig !== sig) {
     box.dataset.sig = sig;
-    box.innerHTML = '<p class="fine">' + esc(SWAP_PAY) + "</p>" + railBarHtml(rail) + '<p class="fine rail-bar">' + esc("Go into the abyss: " + ABYSS_HANG) + "</p>" + items.map((trip) => saleButton(rail, "orbit", trip.sku, trip.cents, trip.name, true)).join("");
+    box.innerHTML = '<p class="flight-dest-title">Choose destination</p><p class="fine">' + esc(SWAP_PAY) + "</p>" + railBarHtml(rail) + items.map((trip) => saleButton(rail, "orbit", trip.sku, trip.cents, trip.name, true)).join("");
   }
+}
+
+function showDestList(open) {
+  state.destOpen = !!open;
+  const box = document.getElementById("flight-planets");
+  const button = document.getElementById("flight-dest");
+  if (box) box.hidden = !state.destOpen;
+  if (button) button.hidden = state.destOpen;
 }
 
 function filmLaunchProgress() {
@@ -787,14 +825,15 @@ function paintFlightCard(now) {
         line.hidden = false;
         line.textContent = cruiseLine(progress, trip ? trip.name : "that world");
         const joke = spaceJoke(ms, state.cruiseSku);
+        const lineJoke = jokeForScreen(joke.text, state.cruiseSku);
         const shown = document.getElementById("flight-joke");
         if (joke.index !== state.jokeSent) {
           state.jokeSent = joke.index;
-          if (joke.text) say(joke.text);
+          if (lineJoke) say(lineJoke);
         }
         if (shown) {
-          shown.hidden = !joke.text;
-          shown.textContent = joke.text;
+          shown.hidden = !lineJoke;
+          shown.textContent = lineJoke;
         }
       } else {
         const said = flightLine(beat, flightMs);
@@ -823,10 +862,16 @@ function paintFlightCard(now) {
     state.koniAt = now;
     readKoni();
   }
-  if (offer) paintPlanets();
-  else {
-    const planets = document.getElementById("flight-planets");
+  const dest = document.getElementById("flight-dest");
+  const planets = document.getElementById("flight-planets");
+  if (offer) {
+    paintPlanets();
+    if (dest) dest.hidden = !!state.destOpen;
+    if (planets) planets.hidden = !state.destOpen;
+  } else {
+    state.destOpen = false;
     if (planets) planets.hidden = true;
+    if (dest) dest.hidden = true;
   }
 }
 
@@ -2551,6 +2596,7 @@ function tookPayment(body, sku) {
     state.cruiseStart = performance.now();
     state.cruiseSku = sku;
     state.jokeSent = -1;
+    state.destOpen = false;
     state.flightBeat = "";
     showBanner("Paid.");
     punch("nod");
@@ -3719,6 +3765,11 @@ if (railsNote) {
     if (ev.target === railsNote || ev.target.closest("#rails-close")) closeRailsNote();
   });
 }
+const flightDest = document.getElementById("flight-dest");
+if (flightDest) flightDest.addEventListener("click", () => {
+  paintPlanets();
+  showDestList(true);
+});
 const flightPlanets = document.getElementById("flight-planets");
 if (flightPlanets) flightPlanets.addEventListener("click", (ev) => {
   const pick = ev.target.closest("[data-rail-pick]");
@@ -3738,6 +3789,7 @@ if (flightPlanets) flightPlanets.addEventListener("click", (ev) => {
   }
   const btn = ev.target.closest("[data-pay]");
   if (!btn || btn.disabled) return;
+  showDestList(false);
   spend(btn.getAttribute("data-pay"), "orbit", btn.getAttribute("data-sku"));
 });
 const gateAddr = document.getElementById("gate-addr");

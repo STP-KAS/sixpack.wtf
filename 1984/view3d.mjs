@@ -119,12 +119,14 @@ export const DRIVE_MS = 75;
 /** A ship ride. Times are from the moment Launch is pressed. Up is +Y. The count on the pad runs to zero before the ship leaves. */
 export const FLIGHT_LIFTOFF = 15000;
 export const FLIGHT_CLIMB = 21000;
-/** Most booster engines cut. Flight 14 did this at 2:20. */
+/** Most booster engines cut. Flight 14 did this at 2:20. The hot-staging clip starts here. */
 export const FLIGHT_STAGE = 28000;
-/** The camera leaves the booster and stays with the ship. */
-export const FLIGHT_ORBIT = 39000;
-/** Ship engine cutoff. Flight 14 did this at 8:11, then coasted. */
-export const FLIGHT_SECO = 46000;
+/** Length of 1984/hotstage.mp4. The separation runs for this whole clip. */
+export const HOT_STAGE_MS = 65493;
+/** The camera leaves the booster and stays with the ship, when that clip ends. */
+export const FLIGHT_ORBIT = FLIGHT_STAGE + HOT_STAGE_MS;
+/** Ship engine cutoff after the hot-staging clip, then the coast. */
+export const FLIGHT_SECO = FLIGHT_ORBIT + 7000;
 /** Unpowered float before the bay opens. */
 export const FLIGHT_COAST = 10000;
 export const FLIGHT_RELEASE = FLIGHT_SECO + FLIGHT_COAST;
@@ -420,17 +422,23 @@ function stackPoint(originX, originY, localX, localY, roll) {
   };
 }
 
-/** Separation clock. letGo stays 2.5s after MECO so T+ 0:15 is still one stack. */
+/**
+ * Separation clock, matched to hotstage.mp4.
+ * The file opens at webcast T+ 2:12 with the stack still together.
+ * Outer engines cut near 7.5s, the ship's Raptors light, the ship pulls clear, the booster flips, and boostback runs to the end of the file.
+ */
 function stageMarks() {
-  const letGo = FLIGHT_STAGE + 2500;
-  const flipStart = letGo + 2200;
-  const flipEnd = flipStart + 2000;
+  const letGo = FLIGHT_STAGE + 10500;
+  const flipStart = FLIGHT_STAGE + 14500;
+  const flipEnd = FLIGHT_STAGE + 24500;
   return {
+    meco: FLIGHT_STAGE + 7500,
+    light: FLIGHT_STAGE + 9000,
     letGo,
     flipStart,
     flipEnd,
-    boostStart: flipEnd - 500,
-    boostEnd: flipEnd + 4000,
+    boostStart: FLIGHT_STAGE + 21000,
+    boostEnd: FLIGHT_STAGE + HOT_STAGE_MS,
   };
 }
 
@@ -446,21 +454,26 @@ export function flightPose(ms) {
   const t = Math.max(0, ms);
   const beat = flightBeat(t);
   const marks = stageMarks();
-  const burnUp = flightSmooth(t, FLIGHT_LIFTOFF, FLIGHT_SECO);
+  // Hot staging is already above the blue. Most of the climb is done by then.
+  // The ship's engines add the rest until SECO.
+  const rise = flightSmooth(t, FLIGHT_LIFTOFF, FLIGHT_STAGE);
+  const late = flightSmooth(t, FLIGHT_STAGE, FLIGHT_SECO);
+  const burnUp = rise * 0.8 + late * 0.2;
   const drift = flightSmooth(t, FLIGHT_SECO, FLIGHT_SECO + 4000) * 2.4;
   const coastU = t <= FLIGHT_SECO || t >= FLIGHT_RELEASE ? 0 : (t - FLIGHT_SECO) / FLIGHT_COAST;
   const bob = Math.sin(coastU * Math.PI) * 1.8;
   const stackY = burnUp * 50 + drift + bob;
   const lean = 0.42 * flightSmooth(t, FLIGHT_LIFTOFF + 2000, FLIGHT_STAGE) * (1 - flightSmooth(t, FLIGHT_RELEASE - 2500, FLIGHT_RELEASE));
   const shipRoll = -lean;
-  const pull = 14 * flightSmooth(t, marks.letGo, marks.letGo + 1600);
-  const slip = flightSmooth(t, marks.letGo, FLIGHT_ORBIT) * 24;
+  const pull = 14 * flightSmooth(t, marks.letGo, marks.letGo + 4000);
+  const slip = flightSmooth(t, marks.letGo, marks.flipEnd) * 18;
   const aside = flightSmooth(t, marks.flipEnd, marks.flipEnd + 1200) * 1.3;
   const along = 11.2 + pull;
   const shipAt = stackPoint(0, stackY, 0, along, shipRoll);
   const boostAt = stackPoint(0, stackY, -aside, -slip, shipRoll);
   const peel = flightSmooth(t, marks.flipEnd, marks.flipEnd + 900);
-  const drop = flightSmooth(t, marks.flipEnd, marks.flipEnd + 1600) * 14 + flightSmooth(t, marks.boostEnd, marks.boostEnd + 2500) * 10;
+  // The booster keeps falling away for the rest of the hot-staging clip, then a bit more once the camera leaves.
+  const drop = flightSmooth(t, marks.flipEnd, marks.boostEnd) * 14 + flightSmooth(t, marks.boostEnd, marks.boostEnd + 2500) * 10;
   const flip = flightSmooth(t, marks.flipStart, marks.flipEnd) * Math.PI;
   const boosterRoll = shipRoll - flip;
   const shipX = shipAt.x;
@@ -485,10 +498,10 @@ export function flightPose(ms) {
   if (t < FLIGHT_LIFTOFF) {
     plume = flightSmooth(t, FLIGHT_LIFTOFF - 8000, FLIGHT_LIFTOFF);
     litJets = plume > 0.02 ? 33 : 0;
-  } else if (t < FLIGHT_STAGE) {
+  } else if (t < marks.meco) {
     plume = 1;
     litJets = 33;
-  } else if (t < marks.letGo + 200) {
+  } else if (t < marks.letGo) {
     plume = 0.18;
     litJets = 3;
   } else if (t >= marks.boostStart && t < marks.boostEnd) {
@@ -498,13 +511,13 @@ export function flightPose(ms) {
     litJets = plume > 0.02 ? 31 : 0;
   }
   let shipPlume = 0;
-  if (t >= FLIGHT_STAGE - 700 && t < FLIGHT_SECO) {
-    shipPlume = t >= FLIGHT_STAGE ? 1 : flightSmooth(t, FLIGHT_STAGE - 700, FLIGHT_STAGE);
+  if (t >= marks.light - 400 && t < FLIGHT_SECO) {
+    shipPlume = t >= marks.light ? 1 : flightSmooth(t, marks.light - 400, marks.light);
   } else if (t >= FLIGHT_SECO && t < FLIGHT_SECO + 700) {
     shipPlume = 1 - flightSmooth(t, FLIGHT_SECO, FLIGHT_SECO + 700);
   }
-  const hot = flightSmooth(t, FLIGHT_STAGE - 700, FLIGHT_STAGE) * (1 - flightSmooth(t, marks.letGo, marks.letGo + 1600));
-  const sky = flightSmooth(t, FLIGHT_CLIMB, FLIGHT_ORBIT);
+  const hot = flightSmooth(t, marks.light - 400, marks.light) * (1 - flightSmooth(t, marks.letGo, marks.letGo + 2000));
+  const sky = flightSmooth(t, FLIGHT_CLIMB, FLIGHT_STAGE);
   return {
     beat,
     stackY,
@@ -2083,8 +2096,9 @@ export function buildFlight() {
   shipBody.position.y = 3.1;
   const belly = new THREE.Mesh(new THREE.CylinderGeometry(0.97, 1.04, 2.2, 16), dark);
   belly.position.y = 1.3;
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.95, 2.4, 16), dark);
-  nose.position.y = 7.4;
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.95, 3.2, 16), steel);
+  nose.name = "ship-nose";
+  nose.position.y = 7.8;
   ship.add(shipBody, belly, nose);
   const flapMat = dark;
   for (const side of [-1, 1]) {

@@ -366,12 +366,25 @@ body.page-1984 main.kw-stage {
   line-height: 1.35;
 }
 .flight-planets {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.35rem;
-  margin-top: 0.45rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  margin-top: 0.35rem;
+  max-height: 240px;
+  overflow-y: auto;
 }
-.flight-planets .rail-bar { grid-column: 1 / -1; }
+.flight-dest-title {
+  margin: 0;
+  color: #f2d48a;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.flight-planets .buy {
+  width: 100%;
+  font-size: 0.82rem;
+  padding: 0.32rem 0.4rem;
+}
+.flight-planets .rail-bar { width: 100%; }
 .flight-card .booth-tabs button,
 .show-card .booth-tabs button { width: auto; flex: 1 1 0; }
 .rails-open {
@@ -1273,6 +1286,31 @@ a { color: #f2d48a; }
   .phone-fit #flight-line { font-size: 0.82rem; line-height: 1.2; margin-bottom: 0.25rem; }
   .phone-fit .flight-bar { height: 1.15rem; }
   .phone-fit .flight-bar-label { font-size: 0.82rem; }
+  .phone-fit #flight-dest {
+    font-size: 0.82rem;
+    padding: 0.32rem 0.4rem;
+    min-height: 2.2rem;
+  }
+  .phone-fit .flight-planets {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    z-index: 30;
+    max-height: 46dvh;
+    margin: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.4rem 0.45rem 0.5rem;
+    background: rgba(12, 14, 18, 0.94);
+    border: 2px solid #e7c27a;
+  }
+  .phone-fit .flight-planets .buy,
+  .phone-fit .flight-planets .booth-tabs button {
+    font-size: 0.78rem;
+    padding: 0.28rem 0.35rem;
+    min-height: 2.1rem;
+  }
   .phone-fit .show-card {
     left: 8px;
     right: 8px;
@@ -1364,5 +1402,6 @@ a { color: #f2d48a; }
   .phone-fit .flight-bar { height: 0.55rem; margin-bottom: 0.15rem; }
   .phone-fit .flight-bar-label { font-size: 0.68rem; margin-bottom: 0.08rem; }
   .phone-fit .flight-card p { margin-bottom: 0.18rem; }
+  .phone-fit .flight-card:has(#flight-offer:not([hidden])) { max-height: 46%; }
   .phone-fit .kw-panel { max-height: 72%; }
 }
