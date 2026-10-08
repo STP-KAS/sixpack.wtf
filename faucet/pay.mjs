@@ -341,6 +341,7 @@ async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep
         step("Broadcasting");
         const txid = await withTimeout(pending.submit(rpc), 20000, "The Testnet-10 node did not take the send.");
         txids.push(String(txid));
+        step("Broadcasting", { txids: txids.slice() });
       }
       return { ok: true, from, to, sompi: chunk.toString(), txids };
     }
@@ -396,6 +397,7 @@ async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep
         step("Broadcasting", { detail: guard + " of " + guardMax });
         const txid = await withTimeout(pending.submit(rpc), 20000, "The Testnet-10 node did not take the send.");
         txids.push(String(txid));
+        step("Broadcasting", { detail: guard + " of " + guardMax, txids: txids.slice() });
       }
       sent += chunk;
     }

@@ -1,3 +1,5 @@
+import { classifyFaucetJob } from "./faucet/job-view.mjs?v=1";
+
 (function () {
   const form = document.getElementById("form");
   const out = document.getElementById("out");
@@ -26,7 +28,9 @@
   const modalBody = document.getElementById("fmodal-body");
   const modalClose = document.getElementById("fmodal-close");
   const modalX = document.getElementById("fmodal-x");
+  let popupTicket = 0;
   function hideModal() {
+    popupTicket += 1;
     if (modal) modal.hidden = true;
   }
   function popup(kind, title, html) {
@@ -58,11 +62,12 @@
     }
     try {
       const j = JSON.parse(trimmed);
-      j.status = res.status;
-      j.ok = res.ok;
+      j.httpStatus = res.status;
+      if (typeof j.status !== "string") j.status = "";
+      if (typeof j.ok !== "boolean") j.ok = res.ok;
       return j;
     } catch (err) {
-      return { html: true, status: res.status, ok: false, parseError: String(err) };
+      return { html: true, httpStatus: res.status, ok: false, parseError: String(err) };
     }
   }
   function bases() {
@@ -292,17 +297,22 @@
     );
   }
   function showResult(j, address) {
-    if (j && (j.status === "done" || (j.ok && j.txids && j.txids.length))) {
+    const kind = classifyFaucetJob(j);
+    if (kind.kind === "success") {
+      if (j && !Array.isArray(j.txids)) j.txids = kind.txids;
       popup("success", "Success", successHtml(j, address));
       loadPublicBalance();
       return true;
     }
-    if (j && j.code === "POOL") {
+    if (kind.kind === "pool") {
       poolPopup(j);
       return true;
     }
-    if (j && j.status === "error") {
-      popup("error", "Error", "<p>" + esc(j.error || "Unable to send funds.") + "</p>");
+    if (kind.kind === "error") {
+      const ids = kind.txids || [];
+      const first = ids[0] ? "<p>TXID: <code>" + esc(ids[0]) + "</code></p>" : "";
+      const extra = ids.length > 1 ? "<p>" + ids.length + " transactions were already broadcast.</p>" : "";
+      popup("error", "Error", "<p>" + esc(kind.error || "Unable to send funds.") + "</p>" + first + extra);
       return true;
     }
     return false;
@@ -325,6 +335,7 @@
       return;
     }
     const amount = choice.text;
+    const mine = ++popupTicket;
     go.disabled = true;
     popup("wait", "Loading", loadingHtml(amount, address, "Checking the address", choice.downgrade));
     fetch(apiBase + "/api/faucet", {
@@ -335,6 +346,7 @@
     })
       .then(readJson)
       .then(async function (j) {
+        if (popupTicket !== mine) return;
         if (j.html) {
           popup("error", "Error", "<p>" + downHtml() + "</p>");
           return;
@@ -342,27 +354,39 @@
         if (j.pending && j.job) {
           const started = Date.now();
           let misses = 0;
+          let step = j.step || "Checking the address";
           while (Date.now() - started < 180000) {
             await sleep(1200);
+            if (popupTicket !== mine) return;
             let cur = null;
             try {
-              const res = await fetch(apiBase + "/api/faucet?job=" + encodeURIComponent(j.job), { headers: hdr() });
+              const res = await fetch(apiBase + "/api/faucet?job=" + encodeURIComponent(j.job) + "&t=" + Date.now(), {
+                headers: hdr(),
+                cache: "no-store",
+                signal: AbortSignal.timeout(8000),
+              });
               cur = await readJson(res);
             } catch (_) {
               misses += 1;
-              popup("wait", "Loading", loadingHtml(amount, address, (cur && cur.step) || j.step || "Checking the address", choice.downgrade) + "<p class=\"fnote\">Still loading. Checking the payout again.</p>");
+              popup("wait", "Loading", loadingHtml(amount, address, step, choice.downgrade) + "<p class=\"fnote\">Still loading. Checking the payout again.</p>");
               continue;
             }
+            if (popupTicket !== mine) return;
             if (cur && cur.html) {
               misses += 1;
+              if (misses >= 4) {
+                popup("error", "Error", "<p>" + downHtml() + "</p>");
+                return;
+              }
               continue;
             }
             misses = 0;
             if (showResult(cur, address)) return;
-            const step = (cur && cur.step) || j.step || "Checking the address";
+            step = (cur && cur.step) || step;
             const detail = cur && cur.detail ? "<p class=\"fnote\">" + esc(cur.detail) + "</p>" : "";
             popup("wait", "Loading", loadingHtml(amount, address, step, choice.downgrade) + detail);
           }
+          if (popupTicket !== mine) return;
           popup("error", "Error", "<p>Still loading after three minutes. The send may still finish. Refresh this page in a moment and check the address.</p>");
           return;
         }

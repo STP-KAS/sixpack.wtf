@@ -206,6 +206,7 @@ http
     if (url.pathname === "/api/faucet" && req.method === "POST") {
       faucetLock = faucetLock.then(async () => {
         let jobId = "";
+        let published = false;
         try {
           const body = JSON.parse((await readBody(req)) || "{}");
           const ip = clientIp(req);
@@ -227,14 +228,16 @@ http
           });
           sendJson(res, 202, started, req);
           const paid = await payTn10(plan.address, plan.sompi, (step, extra) => {
-            rememberJob(jobId, {
+            const patch = {
               step,
               detail: extra && extra.detail ? String(extra.detail).slice(0, 80) : "",
-            });
+            };
+            if (extra && Array.isArray(extra.txids) && extra.txids.length) {
+              patch.txids = extra.txids.slice(0, 80).map((id) => String(id));
+            }
+            rememberJob(jobId, patch);
           });
           const at = Date.now();
-          recordClaim({ key: plan.addrKey, address: plan.address, sompi: paid.sompi, txids: paid.txids, at, ip });
-          recordClaim({ key: plan.ipKey, address: plan.address, sompi: paid.sompi, txids: paid.txids, at, ip });
           rememberJob(jobId, {
             ok: true,
             pending: false,
@@ -248,7 +251,15 @@ http
             explorerHome: EXPLORER_HOME,
             txids: paid.txids,
           });
+          published = true;
+          recordClaim({ key: plan.addrKey, address: plan.address, sompi: paid.sompi, txids: paid.txids, at, ip });
+          recordClaim({ key: plan.ipKey, address: plan.address, sompi: paid.sompi, txids: paid.txids, at, ip });
         } catch (err) {
+          if (published) {
+            console.error("faucet ledger", err?.message || err);
+            return;
+          }
+          console.error("faucet pay", err?.code || "", err?.message || err);
           const payload = faucetErrBody(err, { step: "Stopped" });
           if (jobId) {
             rememberJob(jobId, payload);
