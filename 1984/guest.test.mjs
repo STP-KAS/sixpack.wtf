@@ -100,6 +100,12 @@ test("fifty thousand tKAS needs more than one batch when the coins are small", (
   const dust = Array.from({ length: 10 }, () => 1n);
   const short = selectCovering(dust, 50000n * 100_000_000n, 50_000_000n, 80);
   assert.equal(short.ok, false);
+  const piles = Array.from({ length: 1000 }, () => 10n * 100_000_000n);
+  const stopped = selectCovering(piles, 5000n * 100_000_000n, 50_000_000n, 80, 2);
+  assert.equal(stopped.ok, false);
+  assert.equal(stopped.count, 160);
+  const open = selectCovering(piles, 5000n * 100_000_000n, 50_000_000n, 80, 20);
+  assert.equal(open.ok, true);
   assert.match(splitSendMessage(983929122383296n, 16119100000000n), /9839291\.22383296 tKAS/);
   assert.match(splitSendMessage(983929122383296n, 16119100000000n), /161191 tKAS/);
   assert.match(splitSendMessage(1n, 1n), /too small to send this amount/);

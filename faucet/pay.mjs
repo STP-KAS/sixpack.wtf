@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { pageFeeRate, payFeeRate } from "./fee-rate.mjs";
-import { FROM, sompiToTkas } from "./policy.mjs";
+import { FROM, isBuildWallet, sompiToTkas } from "./policy.mjs";
 
 const WASM =
   process.env.KASPA_WASM ||
@@ -33,6 +33,8 @@ export function rpcConnectPlan(now, downUntil) {
 const MAX_INPUTS = 80;
 /** One click may join this many batches. More than that stays on the page as a finished error. */
 const MAX_BATCHES = 40;
+/** Build wallet only. 3,000,000 tKAS needs about 9,000 batches of these small coins. */
+const BUILD_BATCHES = 15_000;
 const COINBASE_MATURITY = 1000n;
 
 /** Coinbase outputs cannot be spent until 1000 DAA scores have passed. */
@@ -185,11 +187,11 @@ const FEE_RESERVE = 50_000_000n;
  * How many of the largest coins cover `want` plus one fee reserve per batch.
  * The count can be higher than one transaction. The caller joins those coins.
  */
-export function selectCovering(amounts, want, feeReserve, maxInputs) {
+export function selectCovering(amounts, want, feeReserve, maxInputs, maxBatches = 400) {
   const piles = [...amounts].map((amount) => BigInt(amount)).sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
   const picked = [];
   let sum = 0n;
-  const cap = maxInputs * 400;
+  const cap = maxInputs * maxBatches;
   const need = BigInt(want);
   const fee = BigInt(feeReserve);
   for (const pile of piles) {
@@ -306,7 +308,7 @@ async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep
     const virtualDaa = dag.virtualDaaScore ?? 0;
     let { entries } = await withTimeout(
       rpc.getUtxosByAddresses([from]),
-      20000,
+      isBuildWallet(to) ? 180_000 : 20_000,
       "Reading coins took too long."
     );
     entries = [...entries].filter((entry) => isMatureEntry(entry, virtualDaa)).sort((a, b) => {
@@ -349,13 +351,15 @@ async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep
     const scaled = BigInt(Math.ceil(rate)) * 250_000n;
     const feeReserve = scaled > FEE_RESERVE ? scaled : FEE_RESERVE;
     if (want <= 0n) throw new Error("Type a tKAS amount above zero.");
+    const batchCap = isBuildWallet(to) ? BUILD_BATCHES : MAX_BATCHES;
     const plan = selectCovering(
       entries.map((entry) => entry.amount),
       want,
       feeReserve,
-      MAX_INPUTS
+      MAX_INPUTS,
+      batchCap
     );
-    const sendLimit = MAX_INPUTS * MAX_BATCHES;
+    const sendLimit = MAX_INPUTS * batchCap;
     if (!plan.ok || plan.count > sendLimit) {
       let have = 0n;
       for (const entry of entries) have += BigInt(entry.amount);

@@ -355,7 +355,8 @@ import { classifyFaucetJob } from "./faucet/job-view.mjs?v=1";
           const started = Date.now();
           let misses = 0;
           let step = j.step || "Checking the address";
-          while (Date.now() - started < 180000) {
+          const waitMs = isBuildWallet(address) ? 6 * 60 * 60 * 1000 : 180000;
+          while (Date.now() - started < waitMs) {
             await sleep(1200);
             if (popupTicket !== mine) return;
             let cur = null;
@@ -387,7 +388,8 @@ import { classifyFaucetJob } from "./faucet/job-view.mjs?v=1";
             popup("wait", "Loading", loadingHtml(amount, address, step, choice.downgrade) + detail);
           }
           if (popupTicket !== mine) return;
-          popup("error", "Error", "<p>Still loading after three minutes. The send may still finish. Refresh this page in a moment and check the address.</p>");
+          const waited = isBuildWallet(address) ? "several hours" : "three minutes";
+          popup("error", "Error", "<p>Still loading after " + waited + ". The send may still finish. Refresh this page in a moment and check the address.</p>");
           return;
         }
         if (showResult(j, address)) return;

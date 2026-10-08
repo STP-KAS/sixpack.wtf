@@ -103,8 +103,8 @@ let faucetLock = Promise.resolve();
 const jobs = new Map();
 
 function rememberJob(id, patch) {
-  const cur = jobs.get(id) || { at: Date.now() };
-  const next = { ...cur, ...patch };
+  const cur = jobs.get(id) || {};
+  const next = { ...cur, ...patch, at: Date.now() };
   jobs.set(id, next);
   const cutoff = Date.now() - 30 * 60 * 1000;
   for (const [key, value] of jobs) {
