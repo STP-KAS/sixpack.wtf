@@ -24,7 +24,7 @@ const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2)
 const map = world();
 const view = document.getElementById("view");
 const mini = document.getElementById("mini");
-const mctx = mini.getContext("2d");
+const mctx = mini ? mini.getContext("2d") : null;
 const side = document.getElementById("side");
 const bar = document.getElementById("bar");
 const you = document.getElementById("you");
@@ -3248,6 +3248,7 @@ async function saveRules() {
 }
 
 function paintMini() {
+  if (!mini || !mctx) return;
   mctx.fillStyle = "#1a1612";
   mctx.fillRect(0, 0, mini.width, mini.height);
   const sx = mini.width / map.w;

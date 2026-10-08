@@ -31,6 +31,7 @@ test("the landing gate takes a funded test address", () => {
   assert.match(html, /id="gate-guest">Use a funded test address<\/button>/);
   assert.doesNotMatch(html, /id="pay-toggle"/);
   assert.doesNotMatch(html, />Who pays</);
+  assert.doesNotMatch(html, /id="mini"/);
   assert.match(html, /This money is tKAS\. tKAS is Testnet-10 KAS/);
   assert.match(html, /A funded wallet is prefunded with tKAS\. Spend it at will\. There is no risk\. tKAS is worthless\./);
   assert.match(html, /Testnet 10 · LUMBRIDGE/);
@@ -47,7 +48,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=108/);
+  assert.match(html, /1984\/client\.mjs\?v=109/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -122,8 +123,8 @@ test("exit to the square is on the shop card", () => {
 test("the balances stay in the top right with Bank", () => {
   const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
   assert.match(html, /<header class="kw-bar" id="bar"><\/header>/);
-  assert.match(html, /1984\.css\?v=60/);
-  assert.match(html, /1984\/client\.mjs\?v=108/);
+  assert.match(html, /1984\.css\?v=61/);
+  assert.match(html, /1984\/client\.mjs\?v=109/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
