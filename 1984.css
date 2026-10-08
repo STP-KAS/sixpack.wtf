@@ -1182,6 +1182,7 @@ a { color: #f2d48a; }
     line-height: 1.25;
     color: #f2d48a;
   }
+  body.page-1984:has(#gate:not([hidden])) .desk-note { display: none; }
   .phone-fit .kw-hint { display: none; }
   .phone-fit .kw-step { display: inline-block; }
   .phone-fit .kw-side {

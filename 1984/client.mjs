@@ -466,7 +466,7 @@ function paintChrome() {
   const guestOn = id.kind === "guest";
   you.innerHTML =
     "<h2>Who is paying</h2>" +
-    "<p class=\"fine\">A funded address only. This money is tKAS, Testnet-10 KAS. With tKAS you can go to the bank. Wallet sign-in comes later.</p>" +
+    "<p class=\"fine\">A funded wallet is prefunded with tKAS. Spend it at will. There is no risk. tKAS is worthless. This money is tKAS, Testnet-10 KAS. With tKAS you can go to the bank.</p>" +
     '<p class="fine">Testnet 10 only. A mainnet wallet is refused. Never a seed.</p>' +
     '<button type="button" id="use-guest">Use a funded test address</button>' +
     '<button type="button" id="log-out">Log out</button>' +
@@ -2508,7 +2508,7 @@ function paintGuide() {
   panel.innerHTML =
     '<div class="stall-head"><h2>How to try this on Testnet 10</h2>' + placeActs("") + "</div>" +
     "<ol>" +
-    "<li>The welcome gate takes a funded address. This money is tKAS, Testnet-10 KAS. With tKAS you can go to the bank. The same browser gets the same funded wallet. If this desk cannot tell it is the same browser, it says so. Wallet sign-in comes later. A mainnet address is refused.</li>" +
+    "<li>A funded wallet is prefunded with tKAS. Spend it at will. There is no risk. tKAS is worthless. The welcome gate takes that address. This money is tKAS, Testnet-10 KAS. With tKAS you can go to the bank. The same browser gets the same funded wallet. If this desk cannot tell it is the same browser, it says so. A mainnet address is refused.</li>" +
     "<li>A kaspatest address, or a .kas name that already resolves on TN10, can be pasted in Who pays. It is accepted when that address already holds tKAS. An empty address stays outside.</li>" +
     "<li>Need coins: Use a funded test address on the welcome gate, or Who pays. The list of those addresses is on the economics tab. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, take a seat and the menu blinks, or order at the blinking counter. The market opens at the counter. Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Once it is yours, Launch into space is the gold button. The showroom still opens when you click Pike or the sign. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
