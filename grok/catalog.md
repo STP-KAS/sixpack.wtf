@@ -42,7 +42,7 @@ A catalog row is not a pin. Chip is the honest label. Recheck the URL before quo
 - **kaspa.stream** [explore] https://kaspa.stream/
   Explorer for ordinary reading of blocks and transactions.
 - **Testnet-10 faucet** [tn10] https://faucet-testnet.kaspanet.io
-  Toy coins. Never mainnet.
+  Test coins. Never mainnet.
 - **kaspa.org/build** [official] https://kaspa.org/build
   Official builder door: WASM, node, docs, faucet.
 - **Grok share (build notes)** [share] https://grok.com/share/bGVnYWN5_13075cb2-2ed7-48ac-9e88-861102ca4b4b
@@ -357,7 +357,7 @@ A catalog row is not a pin. Chip is the honest label. Recheck the URL before quo
 - **mixer-concept** [mix] https://github.com/STP-KAS/mixer-concept
   Parker GitHub models + STP doors + PegLab classroom. Education. Not a token. Not kaspaexplained.com.
 - **peglab-stp** [tn10] https://github.com/STP-KAS/peglab-stp
-  Toy that WILL depeg. Not USD. Not Gramlane grams.
+  A peg that WILL depeg. Not USD. Not Gramlane grams.
 - **gramlanepeglab** [darwin] https://github.com/STP-KAS/gramlanepeglab
   Parker mix Darwin battletest. Sequencing PoC vs a depeg lab vs MIX doors.
 - **peglab-poc** [poc] https://github.com/STP-KAS/peglab-poc

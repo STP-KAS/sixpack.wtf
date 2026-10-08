@@ -13,7 +13,7 @@ export function settleLine(hasTx) {
 
 export function payKind(place) {
   if (place === "lock") {
-    return "This is a Testnet 10 transaction. The txid is the payment. It is not an Argent or SilverScript covenant, and it is not a vProg tic-tac-toe ply. The toy tag written after it is this square's own ledger.";
+    return "This is a Testnet 10 transaction. The txid is the payment. It is not an Argent or SilverScript covenant, and it is not a vProg tic-tac-toe ply. The tag written after it is this square's own ledger.";
   }
   return "This buy is this square's own ledger. No covenant is attached, so there is no covenant tx. It is not Argent or SilverScript, and it is not a vProg tic-tac-toe ply.";
 }

@@ -14,11 +14,11 @@ import {
   sompiForCents,
 } from "./money.mjs";
 import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
-import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=3";
-import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=7";
+import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=4";
+import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=8";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=6";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=48";
-import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=2";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=49";
+import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=3";
 const TUNNEL = "https://authority-fireplace-earlier-spirit.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 const map = world();
@@ -1549,7 +1549,7 @@ function paintShow() {
   const ticket = shop && shop.items ? shop.items.find((item) => item.sku === "reel") : null;
   const pay = document.getElementById("show-pay");
   if (pay && ticket) {
-    pay.innerHTML = "<p>The ticket is " + esc(formatCents(ticket.cents)) + " toy dollars.</p><p class=\"fine\">" + esc(SWAP_PAY) + "</p>" + saleButton(rail, "cinema", "reel", ticket.cents, ticket.name, false);
+    pay.innerHTML = "<p>The ticket is " + esc(formatCents(ticket.cents)) + " on this ledger.</p><p class=\"fine\">" + esc(SWAP_PAY) + "</p>" + saleButton(rail, "cinema", "reel", ticket.cents, ticket.name, false);
   }
   const box = document.getElementById("show-snacks");
   if (!box || !shop) return;
@@ -1856,7 +1856,7 @@ function balanceSheet() {
   const kas = !state.id.address ? "—" : state.kasSompi == null ? "…" : formatTkas(state.kasSompi) + " tKAS";
   const poc = splitCents(state.account && state.account.poc, state.account && state.account.pocBacked);
   const kusdt = splitCents(state.account && state.account.kusdt, state.account && state.account.kusdtBacked);
-  const lockedKas = state.account ? formatTkas(state.account.liability) + " tKAS is locked behind the toys" : "";
+  const lockedKas = state.account ? formatTkas(state.account.liability) + " tKAS is locked behind the tags" : "";
   const frozen = state.account && state.account.kusdtFrozen ? " · frozen" : "";
   return (
     '<div class="balances">' +
@@ -1993,7 +1993,7 @@ function paintShop(shopId) {
       return (
         '<article class="good">' + goodsMark(item.sku) +
         "<div><strong>" + esc(item.name) + "</strong><span>" + esc(formatCents(item.cents)) +
-        " toy dollars · " + esc(kas) + "</span></div>" + button + "</article>"
+        " on this ledger · " + esc(kas) + "</span></div>" + button + "</article>"
       );
     })
     .join("");
@@ -2125,8 +2125,8 @@ function hideSteps() {
   }
 }
 
-function paintToyPreview() {
-  const el = document.getElementById("toy-preview");
+function paintLedgerPreview() {
+  const el = document.getElementById("ledger-preview");
   if (!el) return;
   const raw = fieldValue("redeem-amt").trim();
   if (!raw) {
@@ -2134,7 +2134,7 @@ function paintToyPreview() {
     return;
   }
   try {
-    el.textContent = formatCents(parseDollars(raw)) + " toy dollars.";
+    el.textContent = formatCents(parseDollars(raw)) + " on this ledger.";
   } catch (err) {
     el.textContent = err.message;
   }
@@ -2164,12 +2164,12 @@ function paintBank() {
       '<div class="swap-bal"><span>' + esc(title) + "</span><strong>" + esc(amount) + "</strong><small>" + esc(detail) + "</small></div>";
     body =
       '<div class="swap-head"><h2>The books</h2>' + back + "</div>" +
-      "<p>Locked toy dollars came from a real tKAS send. That part can come back as tKAS.</p>" +
+      "<p>Locked tags came from a real tKAS send. That part can come back as tKAS.</p>" +
       "<p>The purse is practice coins. Shops spend the purse first. The purse does not come back as tKAS.</p>" +
       "<p>A swap between POCencept and KUSDT moves each pile as itself. Locked stays locked. The purse stays a purse. No extra tKAS is locked or freed.</p>" +
       "<p>KUSDT can be frozen. POCencept cannot. A freeze blocks any swap that touches KUSDT.</p>" +
       "<p>The miner fee is always KAS. On a tKAS send it is extra. It is six times the standard Testnet 10 rate. The price is not reduced to pay the miner.</p>" +
-      "<p>A tKAS payment smaller than the quote does not buy the item and does not mint toy dollars.</p>" +
+      "<p>A tKAS payment smaller than the quote does not buy the item and does not mint a tag.</p>" +
       "<p>Sending the same accepted txid again, for the same address and the same purchase, returns the receipt already written. A different item or a different address with that txid is refused.</p>" +
       "<p>A lock has to increase the amount. A negative threshold counts as zero. POCencept and KUSDT keep different extension commitments, so they do not mix. A freeze changes the KUSDT commitment. This counter did not compile a covenant. The tags stay on this square. KCC-20 is Last Call, not Final.</p>" +
       '<div class="swap-bals">' +
@@ -2203,8 +2203,8 @@ function paintBank() {
       '<p class="clerk-bal"><span>You have</span><strong>' + esc(clerkFigure(clerk)) + "</strong></p>" +
       '<p class="fine">Only the part that came from tKAS can come back. Practice stays a shop coin.</p>' +
       (blocked ? '<p class="fine">KUSDT is frozen. Thaw it in the books before these swaps.</p>' : "") +
-      '<label class="amt">Toy dollars<input id="redeem-amt" value="' + esc(redeemDraft) + '" placeholder="1.00" inputmode="decimal" autocomplete="off"></label>' +
-      '<p class="swap-preview" id="toy-preview"></p>' +
+      '<label class="amt">Amount<input id="redeem-amt" value="' + esc(redeemDraft) + '" placeholder="1.00" inputmode="decimal" autocomplete="off"></label>' +
+      '<p class="swap-preview" id="ledger-preview"></p>' +
       '<div class="kw-row"><button type="button" id="redeem-' + clerk + '" data-act' + (blocked ? ' data-hold="1" disabled' : "") + ">Swap to tKAS</button>" +
       '<button type="button" id="x-' + clerk + "-" + other + '" data-act' + (blocked || otherBlocked ? ' data-hold="1" disabled' : "") + ">Swap to " + esc(otherName) + "</button></div>" +
       swapLoadHtml() + statusLine() + bankFine();
@@ -2223,10 +2223,10 @@ function paintBank() {
     document.getElementById("lock-poc").onclick = () => lock("poc");
     document.getElementById("lock-kusdt").onclick = () => lock("kusdt");
   } else if (clerk === "poc" || clerk === "kusdt") {
-    paintToyPreview();
+    paintLedgerPreview();
     document.getElementById("redeem-amt").addEventListener("input", () => {
       redeemDraft = fieldValue("redeem-amt");
-      paintToyPreview();
+      paintLedgerPreview();
     });
     const other = clerk === "poc" ? "kusdt" : "poc";
     document.getElementById("redeem-" + clerk).onclick = () => redeem(clerk);
@@ -2299,7 +2299,7 @@ function paintHunt() {
     const drop = mine && mine.promise ? '<button type="button" class="buy short" data-drop="' + row.id + '">Drop promise</button>' : "";
     return (
       '<article class="good"><div><strong>' + esc(row.name) + "</strong><span>" + esc(formatCents(row.cents)) +
-      " toy dollars</span></div><p>" + picks + "</p>" +
+      " on this ledger</span></div><p>" + picks + "</p>" +
       '<label>Threshold is yours. <input class="hunt-need" data-need="' + row.id + '" type="number" min="2" max="20" value="' + esc(need) + '"></label>' +
       button + drop + status +
       "<p class=\"fine\">Hidden pack. Pays if enough promises clear. This square's ledger. Not that company.</p></article>"
@@ -2438,13 +2438,13 @@ function paintRules() {
   panel.innerHTML =
     '<div class="stall-head"><h2>Spending rules</h2>' + placeActs("") + "</div>" +
     "<p>These are the square's rules for this address. An empty list means every shop and every rail. They are a stand-in for a covenant: a limit you chose, checked before the payment.</p>" +
-    '<label>Daily cap in toy dollars, 0 for none<input id="cap" value="' + esc((Number(rules.dailyCapCents) / 100).toFixed(2)) + '"></label>' +
-    '<label>Ask again above this many toy dollars, 0 for never<input id="confirm" value="' + esc((Number(rules.confirmOverCents) / 100).toFixed(2)) + '"></label>' +
+    '<label>Daily cap on this ledger, 0 for none<input id="cap" value="' + esc((Number(rules.dailyCapCents) / 100).toFixed(2)) + '"></label>' +
+    '<label>Ask again above this amount, 0 for never<input id="confirm" value="' + esc((Number(rules.confirmOverCents) / 100).toFixed(2)) + '"></label>' +
     "<p>Shops you allow. Leave all off to allow every shop.</p>" + shops +
     "<p>Rails you allow. Leave all off to allow every rail.</p>" + rails +
     '<button type="button" id="save-rules">Save rules</button>' +
-    '<p class="fine">PegLab: this quote is an outside price. If it moves, a redeem can fail because the lock no longer covers the toy dollars. That is a peg failing. It is not a promise of dollars. Grams are not this dollar. BitCoffee\'s covenant KUSD is a different object and is not minted here.</p>' +
-    '<p class="fine">A real covenant would enforce this on Testnet-10 without trusting this page. SilverScript and the Kaspero freelancer sheet are on the bench. This page checks the rule before it moves a toy balance. A vProg guest can sequence a step. This square does not claim the shop spend is that step.</p>';
+    '<p class="fine">PegLab: this quote is an outside price. If it moves, a redeem can fail because the lock no longer covers the tagged amount. That is a peg failing. It is not a promise of dollars. Grams are not this dollar. BitCoffee\'s covenant KUSD is a different object and is not minted here.</p>' +
+    '<p class="fine">A real covenant would enforce this on Testnet-10 without trusting this page. SilverScript and the Kaspero freelancer sheet are on the bench. This page checks the rule before it moves a ledger balance. A vProg guest can sequence a step. This square does not claim the shop spend is that step.</p>';
   document.getElementById("save-rules").onclick = saveRules;
   wirePlaceExit();
 }
@@ -3106,7 +3106,7 @@ async function saveRules() {
   if (!requireId()) return;
   const dollars = (id) => {
     const n = Number(document.getElementById(id).value);
-    if (!Number.isFinite(n) || n < 0) throw new Error("Use a zero or a positive toy-dollar amount.");
+    if (!Number.isFinite(n) || n < 0) throw new Error("Use a zero or a positive amount.");
     return Math.round(n * 100);
   };
   let rules;
@@ -3516,7 +3516,7 @@ function showRoadsterChoice() {
   const card = document.getElementById("need-swap");
   const line = document.getElementById("need-swap-line");
   const title = document.getElementById("need-swap-title");
-  const text = roadsterBalanceLine() + ". The roadster is " + formatCents(roadsterCents()) + " toy dollars. Buy it with POCencept, KUSDT, or tKAS. To convert tKAS, POCencept, or KUSDT, go to the bank.";
+  const text = roadsterBalanceLine() + ". The roadster is " + formatCents(roadsterCents()) + " on this ledger. Buy it with POCencept, KUSDT, or tKAS. To convert tKAS, POCencept, or KUSDT, go to the bank.";
   roadsterCard = true;
   setRoadsterBuys(true);
   if (title) title.textContent = "Buy a roadster";
@@ -3804,7 +3804,7 @@ api("/api/1984").then((body) => {
   state.oracle = body.oracle;
   state.oracleError = body.oracleError || "";
   state.reserve = body.reserve || RESERVE;
-  if (state.oracle) say("Live KAS $" + Number(state.oracle).toFixed(4) + ". Shop tags stay in toy dollars.");
+  if (state.oracle) say("Live KAS $" + Number(state.oracle).toFixed(4) + ". Shop tags stay on this ledger.");
   else if (state.oracleError) say(state.oracleError, true);
   paintChrome();
   if (state.mode !== "world") openMode(state.mode);

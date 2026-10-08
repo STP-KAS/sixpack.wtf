@@ -1,4 +1,4 @@
-/** 1984 HTTP. Testnet-10 only. Toy ledger on disk. tKAS reads and payouts go through the node. */
+/** 1984 HTTP. Testnet-10 only. Village ledger on disk. tKAS reads and payouts go through the node. */
 
 import fs from "node:fs";
 import path from "node:path";
@@ -38,7 +38,7 @@ import {
 import { HUNTS, SHOPS, itemBySku, shopById } from "./world.mjs";
 
 const DISCLAIMER =
-  "Testnet-10 toys. Not dollars. Not Tether. Not a SEPA rail. Mainnet wallets are refused. Miner fee is always KAS.";
+  "Testnet-10 tags. Not dollars. Not Tether. Not a SEPA rail. Mainnet wallets are refused. Miner fee is always KAS.";
 
 function clone(state) {
   return structuredClone(state);
@@ -542,7 +542,7 @@ export function create1984Service(deps) {
             } catch (err) {
               state = before;
               deps.save(state);
-              throw new Error((err && err.message) || "Redeem did not broadcast. The toy balance was put back.");
+              throw new Error((err && err.message) || "Redeem did not broadcast. The ledger balance was put back.");
             }
           });
         }

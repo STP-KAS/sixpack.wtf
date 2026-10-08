@@ -45,11 +45,11 @@
     '<li><a class="name" href="https://github.com/STP-KAS/Xai.Kaspa.node">STP-KAS/Xai.Kaspa.node</a><span class="desc">Archival Kaspa node on the Grok Bot Linux sandbox — not your phone, not Windows. Retired on this sandbox 25 Sep 2026 (node stopped and wiped); the sandbox runs Testnet-10 only. Paste START.md into kaspa bot. TN10 mining is tn10 bot. Experimental; not Kaspa core.</span></li>' +
     '<li><a class="name" href="https://github.com/STP-KAS/Xai.Kaspa.node/blob/main/START.md">START.md</a><span class="desc">The one paste. New Bot → name kaspa bot → send. Do not paste TN10 into kaspa bot.</span></li>' +
     "</ul>" +
-    "<h3>Testnet toys</h3>" +
+    "<h3>Testnet</h3>" +
     '<ul class="keep">' +
     '<li><a class="name" href="faucet.html">Grok bot sandbox faucet</a><span class="desc">Pays from one locked address. Miners rotate randomly; top up when main is under 1M tKAS. Never a seed.</span></li>' +
     '<li><a class="name" href="https://faucet-tn10.kaspanet.io/">faucet-tn10.kaspanet.io</a><span class="desc">Official TN10 faucet. Often 403.</span></li>' +
-    '<li><a class="name" href="https://explorer-tn10.kaspa.org/">explorer-tn10.kaspa.org</a><span class="desc">Testnet-10 explorer. Toy/test coins.</span></li>' +
+    '<li><a class="name" href="https://explorer-tn10.kaspa.org/">explorer-tn10.kaspa.org</a><span class="desc">Testnet-10 explorer. Test coins.</span></li>' +
     "</ul>" +
     '<div class="box"><p><strong>Experimental only. Not a product.</strong></p><p>Someone posts a Kaspa GitHub link and says it shipped. Open the link. Does it show a proposal, a development branch, a release, or an activation announcement? Then check the software you use. If the feature needs wallet support, a node release alone will not put it in your wallet.</p><p>Do not use wallet integrations on this GitHub. STP remains a clown. This is a delusional desk, not a wallet kit. Kasware, Kastle, and any in-page inject here are withdrawn. Never a seed.</p></div>' +
     '<p class="clown meta">stp is a professional clown · <a href="https://x.com/StppStp">x.com/StppStp</a> · <a href="https://github.com/STP-KAS">github.com/STP-KAS</a></p>';

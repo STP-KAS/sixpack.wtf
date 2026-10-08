@@ -124,7 +124,7 @@ export function createGuestDesk(deps) {
       try {
         desk.onGone(address);
       } catch {
-        /* The coins are already swept. The toy row can wait. */
+        /* The coins are already swept. The row can wait. */
       }
     }
   }

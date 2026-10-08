@@ -951,7 +951,7 @@ export function escapeRoom(panelOpen, inside) {
   return "close";
 }
 
-/** Wall menu lines. Prices come from the shop list, in toy dollars. */
+/** Wall menu lines. Prices come from the shop list, on this ledger. */
 export function menuLines(shopId) {
   const shop = SHOPS.find((item) => item.id === shopId);
   if (!shop) return [];

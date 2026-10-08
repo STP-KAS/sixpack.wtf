@@ -108,7 +108,7 @@ This GitHub: STP-KAS. This X: @StppStp. Intern page: sixpack.wtf.
 
 Tabs: Home, Rails, Farce, Eulogy, Random, Faucet, Grok.SPCXAI.KAS, Help.
 
-Faucet is Grok bot Testnet-10 tKAS. Toy coins. Never a seed. Official fallback https://faucet-tn10.kaspanet.io/
+Faucet is Grok bot Testnet-10 tKAS. Test coins. Never a seed. Official fallback https://faucet-tn10.kaspanet.io/
 
 Grok Bot fleet this desk talks about: a few TN10 nodes and miners, used to test KNS and vprogs tic-tac-toe; the setup changes over time. Mainnet is retired (the kaspa bot mainnet archival node was stopped and wiped on 25 Sep 2026 at 16:46 CEST). Experimental. Not Kaspa core.
 

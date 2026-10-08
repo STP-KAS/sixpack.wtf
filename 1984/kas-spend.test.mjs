@@ -68,7 +68,7 @@ test("a bank lock signs with Kasware when that wallet is the page address", () =
   assert.equal(txidFromWallet({ id: "cd" }), "cd");
 });
 
-test("a shop buy and a toy swap ask on the page", () => {
+test("a shop buy and a swap ask on the page", () => {
   assert.equal(buyAskLine("Coffee", "2.50 POCencept"), "You want to buy Coffee for 2.50 POCencept?");
   assert.equal(swapAskLine("1.00", "POCencept", "KUSDT"), "You want to swap 1.00 POCencept for KUSDT?");
   assert.equal(swapAskLine("1.00", "KUSDT", "tKAS"), "You want to swap 1.00 KUSDT for tKAS?");

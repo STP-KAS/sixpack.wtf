@@ -33,7 +33,7 @@ export function extractPayment(tx, { from, to, need }) {
   if (!body || typeof body !== "object") throw new Error("Transaction not found on Testnet 10.");
   if (body.is_accepted === false) throw new Error("That transaction is not accepted yet. Wait and claim it again.");
   const sub = String(body.subnetwork_id || "");
-  if (sub === COINBASE) throw new Error("A coinbase cannot pay a shop or mint a toy dollar.");
+  if (sub === COINBASE) throw new Error("A coinbase cannot pay a shop or mint a ledger tag.");
   const txid = String(body.transaction_id || body.transactionId || "").trim().toLowerCase();
   if (!/^[0-9a-f]{64}$/.test(txid)) throw new Error("Missing transaction id.");
   const inputs = Array.isArray(body.inputs) ? body.inputs : [];

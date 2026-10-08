@@ -160,7 +160,7 @@ test("a locked redeem burns backed coins, not the practice purse", () => {
   assert.throws(() => applyRedeem(state, { address: USER, rail: "poc", cents: 100n, usdPerKas: USD }, NOW));
 });
 
-test("a toy swap keeps locked cents locked and purse cents in the purse", () => {
+test("a purse swap keeps locked cents locked and purse cents in the purse", () => {
   let state = freshState();
   state = applyPractice(state, { address: USER }, NOW).state;
   const locked = pay(2_000_000_000n, 4);
@@ -222,7 +222,7 @@ test("spending rules can block a shop and ask for a confirm", () => {
   assert.equal(paid.result.ok, true);
 });
 
-test("the roadster costs one toy dollar and another buy charges again", () => {
+test("the roadster costs one ledger unit and another buy charges again", () => {
   let state = freshState();
   state = applyPractice(state, { address: USER }, NOW).state;
   const extra = pay(2_000_000_000n, 9);

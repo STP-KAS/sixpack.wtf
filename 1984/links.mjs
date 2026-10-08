@@ -64,7 +64,7 @@ export const BENCH = [
   {
     id: "money",
     title: "The three rails, in the repos",
-    text: "Grams are prepaid mass, not a dollar. PegLab is the classroom where a thin peg breaks. Ishum quotes a price and settles KAS. BitCoffee is a TN10 covenant dollar this desk did not re-mint. KUSDT here is a labeled toy so the freeze switch can be seen.",
+    text: "Grams are prepaid mass, not a dollar. PegLab is the classroom where a thin peg breaks. Ishum quotes a price and settles KAS. BitCoffee is a TN10 covenant dollar this desk did not re-mint. KUSDT here is a labeled tag so the freeze switch can be seen.",
     hrefs: [
       ["gramlane", "https://github.com/STP-KAS/gramlane"],
       ["gramlanepeglab", "https://github.com/STP-KAS/gramlanepeglab"],
@@ -168,7 +168,7 @@ Walk in. Cafe, restaurant, groceries, a bank, and a roadster that does not leave
 
 Three ways to pay, labeled:
 tKAS, the volatile test coin.
-POCencept, a toy dollar with no freeze switch.
+POCencept, a ledger tag with no freeze switch.
 KUSDT, a tether-style test coin that can be frozen, so the difference is visible.
 
 Not dollars. Not Tether. Not mainnet. Not a SEPA rail.
@@ -177,5 +177,5 @@ Kasware or Kastle on Testnet 10 only. A plain kaspatest address, or a .kas name 
 
 https://sixpack.wtf/1984.html
 
-Faucet, if you need toy coins: https://sixpack.wtf/faucet.html
+Faucet, if you need test coins: https://sixpack.wtf/faucet.html
 `;

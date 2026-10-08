@@ -10,7 +10,7 @@ export const SHOPS = [
     id: "cafe",
     name: "Nia's Cafe",
     keeper: "Nia",
-    line: "Coffee is a toy-dollar tag. tKAS moves. This tag does not.",
+    line: "Coffee is a ledger tag. tKAS moves. This tag does not.",
     items: [
       { sku: "water", name: "Water", cents: 10 },
       { sku: "coffee", name: "Coffee", cents: 250 },
@@ -22,7 +22,7 @@ export const SHOPS = [
     id: "restaurant",
     name: "Orin's Table",
     keeper: "Orin",
-    line: "Supper is quoted in toy dollars. You pick the rail.",
+    line: "Supper is quoted on this ledger. You pick the rail.",
     items: [
       { sku: "soup", name: "Soup", cents: 800 },
       { sku: "supper", name: "Supper", cents: 1400 },
@@ -45,7 +45,7 @@ export const SHOPS = [
     id: "roadster",
     name: "Pike's Roadster",
     keeper: "Pike",
-    line: LOT_LINE + " It is 1.00 toy dollar, on the lot in front of this shop. Once it is yours, Launch into space is the gold button.",
+    line: LOT_LINE + " It is 1.00 on this ledger, on the lot in front of this shop. Once it is yours, Launch into space is the gold button.",
     items: [
       { sku: "keys", name: "The roadster", cents: 100 },
       { sku: "postcard", name: "Postcard of the car", cents: 100 },
@@ -63,8 +63,8 @@ export const SHOPS = [
       { sku: "popcorn", name: "Popcorn", cents: 150 },
       { sku: "beer", name: "Beer", cents: 200 },
       { sku: "vodka", name: "Vodka", cents: 350 },
-      { sku: "cocaine", name: "Cocaine, toy", cents: 600 },
-      { sku: "xanax", name: "Xanax, toy", cents: 400 },
+      { sku: "cocaine", name: "Cocaine", cents: 600 },
+      { sku: "xanax", name: "Xanax", cents: 400 },
     ],
   },
   {
@@ -98,7 +98,7 @@ export const HUNTS = [
   { id: "stream", name: "A video month", cents: 500, need: 5, rails: PAY_RAILS },
   { id: "music", name: "A music month", cents: 500, need: 5, rails: PAY_RAILS },
   { id: "basket", name: "A week of food", cents: 1400, need: 3, rails: PAY_RAILS },
-  { id: "liquidity", name: "Deepen the toy dollar", cents: 2000, need: 2, rails: PAY_RAILS },
+  { id: "liquidity", name: "Deepen the ledger", cents: 2000, need: 2, rails: PAY_RAILS },
 ];
 
 export function huntById(id) {

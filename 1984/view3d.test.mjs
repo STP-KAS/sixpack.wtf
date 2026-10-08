@@ -207,8 +207,8 @@ test("the wall menu uses the shop prices", () => {
   assert.equal(menuLines("roadster")[0], "The roadster 1.00");
   assert.equal(menuLines("cinema")[0], "The reel 5.00");
   assert.equal(menuLines("cinema")[1], "Popcorn 1.50");
-  assert.equal(menuLines("cinema")[4], "Cocaine, toy 6.00");
-  assert.equal(menuLines("cinema")[5], "Xanax, toy 4.00");
+  assert.equal(menuLines("cinema")[4], "Cocaine 6.00");
+  assert.equal(menuLines("cinema")[5], "Xanax 4.00");
 });
 
 test("a room opens the card only from the counter, a clerk, or a seat", () => {

@@ -1,4 +1,4 @@
-/** Toy-dollar math for the 1984 square. No keys. No mainnet. */
+/** Ledger math for the 1984 square. No keys. No mainnet. */
 
 export const RESERVE =
   "kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx";
@@ -124,10 +124,10 @@ export function parseTkas(text) {
 
 export function parseDollars(text) {
   const s = String(text || "").trim();
-  if (!/^\d+(\.\d{1,2})?$/.test(s)) throw new Error("Type a toy-dollar amount like 2.50.");
+  if (!/^\d+(\.\d{1,2})?$/.test(s)) throw new Error("Type an amount like 2.50.");
   const [w, f = ""] = s.split(".");
   const cents = BigInt(w) * 100n + BigInt(f.padEnd(2, "0"));
-  if (cents <= 0n) throw new Error("Type a toy-dollar amount above zero.");
+  if (cents <= 0n) throw new Error("Type an amount above zero.");
   return cents;
 }
 

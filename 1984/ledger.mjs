@@ -1,4 +1,4 @@
-/** Village ledger. Toy balances. The chain check happens before these functions run. */
+/** Village ledger. Tag balances. The chain check happens before these functions run. */
 
 import {
   GLOBAL_REDEEM_CAP,
@@ -405,7 +405,7 @@ export function applyRedeem(state, input, now) {
   }
   if (input.rail !== "poc" && input.rail !== "kusdt") throw new Error("Redeem POCencept or KUSDT.");
   const cents = BigInt(input.cents);
-  if (cents <= 0n) throw new Error("Type a toy-dollar amount above zero.");
+  if (cents <= 0n) throw new Error("Type an amount above zero.");
   const sompi = sompiForCents(cents, input.usdPerKas);
   if (sompi < MIN_REDEEM_SOMPI) throw new Error("That redeem is too small to broadcast on Testnet-10.");
   if (sompi > MAX_REDEEM_SOMPI) throw new Error("One redeem is capped at 10000 tKAS so the broadcast stays a normal transaction. Split it.");
@@ -450,7 +450,7 @@ export function applyExchange(state, input, now) {
     throw new Error("Swap POCencept and KUSDT with each other.");
   }
   const cents = BigInt(input.cents);
-  if (cents <= 0n) throw new Error("Type a toy-dollar amount above zero.");
+  if (cents <= 0n) throw new Error("Type an amount above zero.");
   const next = clone(state);
   const account = ensure(next, address);
   if ((from === "kusdt" || to === "kusdt") && account.kusdtFrozen) {
@@ -478,7 +478,7 @@ export function applyExchange(state, input, now) {
     kind: "exchange",
     rail: to,
     cents,
-    note: "Swapped toy tags. Locked stayed locked. The purse stayed a purse. No tKAS moved.",
+    note: "Swapped ledger tags. Locked stayed locked. The purse stayed a purse. No tKAS moved.",
   });
   return { state: next, result: { ok: true, receipt, account: publicAccount(next, address) } };
 }

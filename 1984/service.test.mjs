@@ -54,7 +54,7 @@ test("a tKAS wait polls the tip instead of pausing a fifth of a second", () => {
   assert.doesNotMatch(source, /await pause\(200\)/);
 });
 
-test("one tKAS locks five cents, and redeeming one toy dollar does not", async () => {
+test("one tKAS locks five cents, and redeeming one ledger tag does not", async () => {
   const txid = "ab".repeat(32);
   const sompi = 100_000_000;
   const { svc, read } = harness(async () => ({ txids: ["zz"] }), {
@@ -104,7 +104,7 @@ test("one tKAS locks five cents, and redeeming one toy dollar does not", async (
   assert.equal(read().accounts[USER].pocBacked, "0");
 });
 
-test("a purse swap does not create locked toy dollars", async () => {
+test("a purse swap does not create locked tags", async () => {
   const { svc, read } = harness(async () => ({ txids: ["zz"] }));
   const purse = await svc.handle({
     method: "POST",
@@ -129,7 +129,7 @@ test("a purse swap does not create locked toy dollars", async () => {
   assert.equal(read().accounts[USER].liability, "0");
 });
 
-test("a failed redeem puts the toy balance back", async () => {
+test("a failed redeem puts the ledger balance back", async () => {
   const { svc, read } = harness(async () => {
     throw new Error("node down");
   });
