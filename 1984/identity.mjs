@@ -2,6 +2,7 @@
 
 export const SAVED_KEY = "1984-id-v1";
 export const GUEST_KEY = "1984-guest-v1";
+export const BROWSER_KEY = "1984-browser-v1";
 const OLD_SAVED_KEY = "kworld-id-v1";
 const OLD_GUEST_KEY = "kworld-guest-v1";
 
@@ -36,6 +37,24 @@ export function readIdentity(storage) {
     return { address: saved.address, label: saved.label || "", kind: saved.kind || "address" };
   }
   return { address: "", label: "", kind: "" };
+}
+
+/** A random id for this browser. It is not a key. Storage that refuses the write cannot be matched later. */
+export function browserMarker(storage) {
+  migrateAll(storage);
+  try {
+    const current = String(storage.local.getItem(BROWSER_KEY) || "");
+    if (/^[0-9a-f]{32}$/.test(current)) return current;
+    const cryptoObj = globalThis.crypto;
+    if (!cryptoObj || typeof cryptoObj.getRandomValues !== "function") return "";
+    const bytes = new Uint8Array(16);
+    cryptoObj.getRandomValues(bytes);
+    const id = [...bytes].map((part) => part.toString(16).padStart(2, "0")).join("");
+    storage.local.setItem(BROWSER_KEY, id);
+    return id;
+  } catch {
+    return "";
+  }
 }
 
 /** Guest writes session only. A recurring wallet writes local and clears the test tab. */

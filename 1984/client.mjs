@@ -1,4 +1,4 @@
-import { clearGuest, readIdentity, writeIdentity } from "./identity.mjs";
+import { browserMarker, clearGuest, readIdentity, writeIdentity } from "./identity.mjs";
 import { BENCH, REPOS } from "./links.mjs?v=4";
 import {
   GUEST_DISCLAIMER,
@@ -432,7 +432,7 @@ function paintChrome() {
     '<button type="button" id="log-out">Log out</button>' +
     '<p class="warn">' + esc(GUEST_DISCLAIMER) + "</p>" +
     (guestOn
-      ? '<p class="warn">You are on a test address for this tab only: ' + esc(short(id.address)) + ". Close the tab and it is gone. A saved Testnet-10 wallet on this browser keeps its history.</p>"
+      ? '<p class="warn">This funded wallet stays with this browser: ' + esc(short(id.address)) + ". Another browser cannot be matched. This desk says so.</p>"
       : "") +
     '<label>kaspatest address<input id="addr" spellcheck="false" autocomplete="off" value="' + esc(id.kind === "name" || guestOn ? "" : id.address) + '"></label>' +
     '<button type="button" id="use-addr">Use this address</button>' +
@@ -930,7 +930,7 @@ function setIdentity(next, quiet) {
   paintChrome();
   const pending = refreshAccount(!!quiet);
   if (!quiet) {
-    if (next.kind === "guest") say("Paying as a test address for this tab only. " + GUEST_DISCLAIMER);
+    if (next.kind === "guest") say("Paying as this browser's funded wallet. " + GUEST_DISCLAIMER);
     else say("Paying as " + (next.label || next.address) + ". This one keeps its history on this browser.");
   }
   return pending;
@@ -1072,7 +1072,7 @@ async function postGuest() {
       const res = await fetch(base + "/api/1984/guest", {
         method: "POST",
         headers: ledgerHeaders({ "content-type": "application/json" }),
-        body: JSON.stringify({ network: "testnet-10", life: PAGE_LIFE, progress: true }),
+        body: JSON.stringify({ network: "testnet-10", life: PAGE_LIFE, progress: true, browser: browserMarker(boxes()) }),
         signal: AbortSignal.timeout(20000),
       });
       const text = await res.text();
@@ -1113,6 +1113,14 @@ async function pollGuest(base, job, onStep) {
   return { ok: false, error: last };
 }
 
+function guestReturnLine(body) {
+  const amount = formatTkas(body.sompi) + " tKAS. This money is tKAS. With tKAS you can go to the bank.";
+  if (body.same) return "Same funded wallet. This browser already had this address. " + amount;
+  if (body.replaced) return "The earlier funded wallet for this browser is gone. This desk cannot give that same wallet back. This is a new one. " + amount;
+  if (body.remembered) return "This browser had no earlier funded wallet. This address stays with this browser. " + amount;
+  return "This desk cannot tell this browser from a new one. This is a new funded wallet. " + amount;
+}
+
 async function startGuest(onStep) {
   if (guestBusy) return;
   guestBusy = true;
@@ -1131,7 +1139,7 @@ async function startGuest(onStep) {
     }
     hideGate();
     gateStatus("");
-    say("This tab has " + formatTkas(body.sompi) + " tKAS. tKAS is Testnet-10 KAS. With tKAS you can go to the bank. Each test address is used once. Come back later and that history is gone.");
+    say(guestReturnLine(body));
     const address = body.address;
     const later = (ms) => {
       setTimeout(() => {
@@ -2455,7 +2463,7 @@ function paintGuide() {
   panel.innerHTML =
     '<div class="stall-head"><h2>How to try this on Testnet 10</h2>' + placeActs("") + "</div>" +
     "<ol>" +
-    "<li>The welcome gate takes a funded address. This money is tKAS, Testnet-10 KAS. With tKAS you can go to the bank. Use a funded test address opens one funded address for this visit. Each test address is used once. Come back later and that history is gone. Close the tab and the leftover tKAS is swept back. Wallet sign-in comes later. A mainnet address is refused.</li>" +
+    "<li>The welcome gate takes a funded address. This money is tKAS, Testnet-10 KAS. With tKAS you can go to the bank. The same browser gets the same funded wallet. If this desk cannot tell it is the same browser, it says so. Wallet sign-in comes later. A mainnet address is refused.</li>" +
     "<li>A kaspatest address, or a .kas name that already resolves on TN10, can be pasted in Who pays. It is accepted when that address already holds tKAS. An empty address stays outside.</li>" +
     "<li>Need coins: Use a funded test address on the welcome gate, or Who pays. The list of those addresses is on the economics tab. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe or at the table, take a seat and the menu blinks, or order at the blinking counter. The market opens at the counter. Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Once it is yours, Launch into space is the gold button. The showroom still opens when you click Pike or the sign. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
@@ -2716,7 +2724,7 @@ async function spend(rail, shop, sku) {
     if (!agreed) return;
     paySlip({ title: "Payment", steps: paySteps, index: 1, place: shop, kind: "" });
     if (rail === "kas" && state.id.kind === "guest") {
-      say("Paying from this tab's test address. Close the tab and it is gone.");
+      say("Paying from this browser's funded wallet.");
       const body = await post("/api/1984/guest/spend", { token: state.id.token, shop, sku, confirmed: true });
       if (!body.ok) {
         punch("shake");

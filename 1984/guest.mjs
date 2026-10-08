@@ -52,6 +52,9 @@ export function createGuestDesk(deps) {
       out.token = job.result.token;
       out.sompi = job.result.sompi;
       out.txid = job.result.txid;
+      out.same = job.result.same === true;
+      out.remembered = job.result.remembered === true;
+      out.replaced = job.result.replaced === true;
       out.disclaimer = job.result.disclaimer;
     }
     return out;
@@ -111,6 +114,10 @@ export function createGuestDesk(deps) {
       return;
     }
     const address = row.address;
+    if (row.browser) {
+      if (!book.lost || typeof book.lost !== "object") book.lost = {};
+      book.lost[row.browser] = { address, at: deps.now() };
+    }
     delete book.sessions[token];
     persist();
     if (desk.onGone) {
@@ -126,6 +133,7 @@ export function createGuestDesk(deps) {
     const due = [];
     for (const [token, row] of Object.entries(book.sessions)) {
       if (row.sweepAfter && now < Number(row.sweepAfter)) continue;
+      if (row.browser && !row.sweepAfter) continue;
       const bye = Number(row.byeAt || 0);
       const touched = Number(row.touched || row.created || 0);
       const byeDue = bye && now - bye >= GUEST_BYE_MS && (!row.life || !row.byeLife || row.life === row.byeLife);
@@ -134,14 +142,50 @@ export function createGuestDesk(deps) {
     for (const token of due.slice(0, REAP_BATCH)) await drop(token);
   }
 
-  async function openInside({ ip, life, onStep }) {
+  function browserKey(value) {
+    const id = String(value || "").trim().toLowerCase();
+    return /^[0-9a-f]{32}$/.test(id) ? id : "";
+  }
+
+  function findBrowser(id) {
+    if (!id) return null;
+    for (const [token, row] of Object.entries(book.sessions)) {
+      if (row && row.browser === id) return { token, row };
+    }
+    return null;
+  }
+
+  function resume(found, pageLife, now) {
+    found.row.life = pageLife;
+    found.row.byeAt = 0;
+    found.row.byeLife = "";
+    found.row.touched = now;
+    disarm(found.token);
+    persist();
+    return {
+      ok: true,
+      same: true,
+      remembered: true,
+      replaced: false,
+      address: found.row.address,
+      token: found.token,
+      sompi: found.row.funded,
+      txid: found.row.fundTxid || "",
+      disclaimer: GUEST_DISCLAIMER,
+    };
+  }
+
+  async function openInside({ ip, life, browser, onStep }) {
     const step = (name, extra) => {
       if (onStep) onStep(name, extra);
     };
     const pageLife = String(life || "");
+    const marker = browserKey(browser);
     const now = deps.now();
     step("Checking today's test wallets");
     await reap(now);
+    const returning = findBrowser(marker);
+    if (returning) return resume(returning, pageLife, now);
     const dayName = dayKey(now);
     if (!book.days[dayName]) book.days[dayName] = { n: 0, ips: {} };
     const day = book.days[dayName];
@@ -192,6 +236,7 @@ export function createGuestDesk(deps) {
       if (!/^[0-9a-f]{64}$/.test(key)) throw new Error("Test wallet was not created.");
     }
     const token = crypto.randomBytes(24).toString("hex");
+    const replaced = !!(marker && book.lost && book.lost[marker]);
     day.n += 1;
     day.ips[who] = used + 1;
     book.sessions[token] = {
@@ -204,6 +249,7 @@ export function createGuestDesk(deps) {
       funded: fundedSompi.toString(),
       fundTxid: knownTxid,
       home,
+      browser: marker,
       byeAt: 0,
       byeLife: "",
     };
@@ -235,8 +281,13 @@ export function createGuestDesk(deps) {
       }
     }
     const row = book.sessions[token];
+    if (replaced && book.lost) delete book.lost[marker];
+    persist();
     return {
       ok: true,
+      same: false,
+      remembered: !!marker,
+      replaced,
       address: row.address,
       token,
       sompi: row.funded,
@@ -245,7 +296,7 @@ export function createGuestDesk(deps) {
     };
   }
 
-  desk.open = ({ ip, life }) => queue(() => openInside({ ip, life }));
+  desk.open = ({ ip, life, browser }) => queue(() => openInside({ ip, life, browser }));
 
   desk.job = (id) => {
     pruneJobs();
@@ -254,7 +305,7 @@ export function createGuestDesk(deps) {
     return publicJob(job);
   };
 
-  desk.start = ({ ip, life }) => {
+  desk.start = ({ ip, life, browser }) => {
     pruneJobs();
     const id = crypto.randomBytes(8).toString("hex");
     const job = {
@@ -272,6 +323,7 @@ export function createGuestDesk(deps) {
         const opened = await openInside({
           ip,
           life,
+          browser,
           onStep: (name, extra) => {
             job.step = String(name || job.step);
             job.detail = extra && extra.detail ? String(extra.detail).slice(0, 80) : "";
@@ -357,6 +409,14 @@ export function createGuestDesk(deps) {
       const row = book.sessions[key];
       if (!row) return { ok: true, closing: false, gone: true, disclaimer: GUEST_DISCLAIMER };
       if (address && row.address !== assertTestnet(address)) throw new Error("This test tab does not match that address.");
+      if (row.browser) {
+        row.byeAt = 0;
+        row.byeLife = "";
+        row.touched = deps.now();
+        disarm(key);
+        persist();
+        return { ok: true, closing: false, kept: true, disclaimer: GUEST_DISCLAIMER };
+      }
       const stamp = String(life || "");
       if (row.life && stamp && stamp !== row.life) {
         return { ok: true, closing: false, stale: true, disclaimer: GUEST_DISCLAIMER };

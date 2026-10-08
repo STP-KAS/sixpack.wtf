@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { GUEST_KEY, SAVED_KEY, clearGuest, clearIdentity, readIdentity, writeIdentity } from "./identity.mjs";
+import { BROWSER_KEY, GUEST_KEY, SAVED_KEY, browserMarker, clearGuest, clearIdentity, readIdentity, writeIdentity } from "./identity.mjs";
 
 function mem() {
   const local = new Map();
@@ -15,6 +15,21 @@ function mem() {
 
 const WALLET = "kaspatest:" + "q".repeat(61);
 const GUEST = "kaspatest:" + "p".repeat(61);
+
+test("this browser keeps one marker and a blocked store cannot be matched", () => {
+  const storage = mem();
+  const first = browserMarker(storage);
+  assert.match(first, /^[0-9a-f]{32}$/);
+  assert.equal(browserMarker(storage), first);
+  assert.equal(storage.raw.local.get(BROWSER_KEY), first);
+  clearIdentity(storage);
+  assert.equal(browserMarker(storage), first);
+  const blocked = mem();
+  blocked.local.setItem = () => {
+    throw new Error("blocked");
+  };
+  assert.equal(browserMarker(blocked), "");
+});
 
 test("a test tab does not replace the saved Testnet wallet", () => {
   const storage = mem();

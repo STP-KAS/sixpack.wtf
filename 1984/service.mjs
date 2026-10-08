@@ -132,11 +132,11 @@ export function create1984Service(deps) {
     const guests = guestApi();
     if (pathname === "/api/1984/guest") {
       if (body && body.progress === true && typeof guests.start === "function") {
-        const started = guests.start({ ip, life: body.life });
+        const started = guests.start({ ip, life: body.life, browser: body.browser });
         if (!started || started.key || started.privateKey) throw new Error("Test login refused to start.");
         return { status: 202, body: started };
       }
-      const opened = await guests.open({ ip, life: body.life });
+      const opened = await guests.open({ ip, life: body.life, browser: body.browser });
       if (!opened || opened.key || opened.privateKey) throw new Error("Test login refused to start.");
       return { status: 200, body: opened };
     }

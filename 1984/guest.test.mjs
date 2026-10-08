@@ -312,6 +312,55 @@ test("a prepared wallet is handed out with its own tKAS and no new send", async 
   assert.equal(empty.funded.length, 0);
 });
 
+test("the same browser gets the same funded wallet and a stranger does not", async () => {
+  const ready = [
+    { address: addr(8), key: "ab".repeat(32), sompi: (2000n * 100_000_000n).toString(), txid: "44".repeat(32), home: addr(9) },
+    { address: addr(7), key: "cd".repeat(32), sompi: (2000n * 100_000_000n).toString(), txid: "55".repeat(32), home: addr(9) },
+    { address: addr(6), key: "ef".repeat(32), sompi: (2000n * 100_000_000n).toString(), txid: "66".repeat(32), home: addr(9) },
+  ];
+  const h = harness(emptyBook(), { usePool: true, poolOnly: true, ready });
+  const marker = "a1".repeat(16);
+  const opened = await h.desk.open({ ip: "203.0.113.9", life: "pool", browser: marker });
+  assert.equal(opened.same, false);
+  assert.equal(opened.remembered, true);
+  assert.equal(opened.replaced, false);
+  assert.equal(JSON.stringify(opened).includes("ab".repeat(32)), false);
+  const closed = await h.desk.close({ token: opened.token, address: opened.address, life: "pool" });
+  assert.equal(closed.kept, true);
+  assert.equal(closed.closing, false);
+  h.setNow(h.now() + GUEST_STALE_MS + GUEST_BYE_MS);
+  await h.desk.reapNow();
+  assert.equal(h.swept.length, 0);
+  const again = await h.desk.open({ ip: "198.51.100.9", life: "later", browser: marker });
+  assert.equal(again.same, true);
+  assert.equal(again.address, opened.address);
+  assert.equal(again.token, opened.token);
+  const stranger = await h.desk.open({ ip: "203.0.113.9", life: "other", browser: "b2".repeat(16) });
+  assert.equal(stranger.same, false);
+  assert.equal(stranger.remembered, true);
+  assert.notEqual(stranger.address, opened.address);
+  const notAUser = "99".repeat(32);
+  const unknown = await h.desk.open({ ip: "203.0.113.9", life: "plain", browser: notAUser });
+  assert.equal(unknown.remembered, false);
+  assert.equal(unknown.same, false);
+  assert.equal(JSON.stringify(h.book()).includes(notAUser), false);
+  assert.equal(ready.length, 0);
+});
+
+test("a swept wallet is not handed back, and the desk says it was replaced", async () => {
+  const marker = "d4".repeat(16);
+  const book = emptyBook();
+  book.lost = { [marker]: { address: addr(4), at: 1 } };
+  const ready = [{ address: addr(5), key: "12".repeat(32), sompi: (2000n * 100_000_000n).toString(), txid: "77".repeat(32), home: addr(9) }];
+  const h = harness(book, { usePool: true, poolOnly: true, ready });
+  const opened = await h.desk.open({ ip: "203.0.113.12", life: "new", browser: marker });
+  assert.equal(opened.replaced, true);
+  assert.equal(opened.same, false);
+  assert.equal(opened.remembered, true);
+  assert.notEqual(opened.address, addr(4));
+  assert.equal(h.book().lost[marker], undefined);
+});
+
 test("a wrong token cannot spend the test wallet", async () => {
   const h = harness();
   const opened = await h.desk.open({ ip: "203.0.113.4", life: "page-a" });
