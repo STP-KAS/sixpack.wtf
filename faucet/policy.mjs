@@ -19,6 +19,9 @@ export const EXPLORER_HOME = "https://tn10.kaspa.stream/";
 /** Desk-only unlimited withdrawals. Address + desk IP must both match. */
 export const DESK_UNLIMITED_ADDR =
   "kaspatest:qzpvdakagvwfm95g8pv9ndpupjtndgjfhmve08cg3tv5wgfytjzf7cudwwzv0";
+/** Grok Build treasury. Pays the typed amount. Every other address stays at 0.6 tKAS. */
+export const BUILD_WALLET_ADDR =
+  "kaspatest:qp4jge54eztxewf8r53rtjdvxakmatsu6tjd0nn9sjhgvzxknsfvjvmwurqhd";
 /** Loopback plus the desk's public IP(s) from FAUCET_DESK_IPS (comma-separated). Kept out of git. */
 export const DESK_IPS = new Set([
   "127.0.0.1",
@@ -42,6 +45,10 @@ export function normalizeIp(ip) {
 export function isDeskUnlimited(address, ip) {
   const dest = String(address || "").trim().toLowerCase();
   return dest === DESK_UNLIMITED_ADDR.toLowerCase() && DESK_IPS.has(normalizeIp(ip));
+}
+
+export function isBuildWallet(address) {
+  return String(address || "").trim().toLowerCase() === BUILD_WALLET_ADDR.toLowerCase();
 }
 
 const HALL_FILE = fileURLToPath(new URL("./.local/hallpass.txt", import.meta.url));
@@ -130,6 +137,7 @@ export function remainingInWindow(claims, key, now = Date.now()) {
 }
 
 function countsTowardPool(row) {
+  if (isBuildWallet(row?.address)) return false;
   return String(row?.key || "").startsWith("addr:");
 }
 
@@ -138,6 +146,7 @@ export function usedIpInWindow(claims, ipKey, now = Date.now()) {
   let used = 0n;
   for (const c of claims || []) {
     if (c.key !== ipKey) continue;
+    if (isBuildWallet(c.address)) continue;
     if (Number(c.at) < start) continue;
     used += BigInt(c.sompi || 0);
   }
@@ -253,6 +262,21 @@ export function planClaim({ address, ip, claims, now = Date.now(), amountTkas, e
   const leftIp = remainingIp(claims, ipKey, now);
   const personal = leftAddr < leftIp ? leftAddr : leftIp;
   const raw = tkasToSompi(amountTkas == null || amountTkas === "" ? sompiToTkas(DRIP_SOMPI) : amountTkas);
+  if (isBuildWallet(dest)) {
+    return {
+      address: dest,
+      sompi: raw,
+      remainingAfter: 0n,
+      leftAddr: raw,
+      leftIp,
+      tkas: sompiToTkas(raw),
+      capTkas: sompiToTkas(CAP_SOMPI),
+      windowHours: WINDOW_HOURS,
+      addrKey,
+      ipKey,
+      unlimited: true,
+    };
+  }
   const sompi = raw > CAP_SOMPI ? CAP_SOMPI : raw;
   if (personal < sompi) {
     throw rateLimitError({ claims, addrKey, ipKey, now });

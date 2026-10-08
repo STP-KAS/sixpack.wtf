@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  BUILD_WALLET_ADDR,
   CAP_SOMPI,
   DESK_UNLIMITED_ADDR,
   DRIP_SOMPI,
@@ -11,6 +12,7 @@ import {
   WINDOW_HOURS,
   dripAmount,
   formatWait,
+  isBuildWallet,
   isHallPass,
   planClaim,
   remainingInWindow,
@@ -212,6 +214,82 @@ describe("stp tn10 faucet policy", () => {
     assert.throws(
       () => planClaim({ address: addrN(1), ip: "1.1.1.2", claims: almost, now: now + 90 * 60 * 1000 }),
       /Rest for 23 hours/
+    );
+  });
+
+  it("pays the Build wallet the typed amount and leaves every other ask at 0.6", () => {
+    const now = 1_000_000_000_000;
+    assert.equal(isBuildWallet(BUILD_WALLET_ADDR), true);
+    assert.equal(isBuildWallet(BUILD_WALLET_ADDR.toUpperCase()), true);
+    assert.equal(isBuildWallet(ADDR), false);
+    const first = planClaim({
+      address: BUILD_WALLET_ADDR,
+      ip: "81.243.19.34",
+      claims: [],
+      now,
+      amountTkas: "50000",
+    });
+    assert.equal(first.unlimited, true);
+    assert.equal(first.tkas, "50000");
+    assert.equal(first.capTkas, "0.6");
+    const again = planClaim({
+      address: "KASPATEST:" + BUILD_WALLET_ADDR.slice("kaspatest:".length),
+      ip: "81.243.19.34",
+      claims: paid(first, now, "81.243.19.34"),
+      now: now + 3,
+      amountTkas: "1250.5",
+    });
+    assert.equal(again.tkas, "1250.5");
+    const blank = planClaim({
+      address: BUILD_WALLET_ADDR,
+      ip: "81.243.19.34",
+      claims: paid(first, now, "81.243.19.34").concat(paid(again, now + 3, "81.243.19.34")),
+      now: now + 6,
+    });
+    assert.equal(blank.tkas, "0.6");
+    const neighbor = planClaim({
+      address: ADDR,
+      ip: "81.243.19.34",
+      claims: paid(first, now, "81.243.19.34"),
+      now: now + 9,
+      amountTkas: "10000",
+    });
+    assert.equal(neighbor.tkas, "0.6");
+    assert.equal(neighbor.unlimited, false);
+    const buildOnly = paid(first, now, "203.0.113.9");
+    const afterBuild = planClaim({
+      address: addrN(5),
+      ip: "203.0.113.10",
+      claims: buildOnly,
+      now: now + 15,
+    });
+    assert.equal(afterBuild.tkas, "0.6");
+    const sameIp = planClaim({
+      address: addrN(7),
+      ip: "203.0.113.9",
+      claims: buildOnly,
+      now: now + 16,
+      amountTkas: "2",
+    });
+    assert.equal(sameIp.tkas, "0.6");
+    const filled = [{
+      key: "addr:" + addrN(4).toLowerCase(),
+      address: addrN(4),
+      sompi: String(POOL_SOMPI),
+      at: now,
+      ip: "9.9.9.4",
+    }];
+    const throughPool = planClaim({
+      address: BUILD_WALLET_ADDR,
+      ip: "203.0.113.11",
+      claims: filled,
+      now: now + 12,
+      amountTkas: "1000",
+    });
+    assert.equal(throughPool.tkas, "1000");
+    assert.throws(
+      () => planClaim({ address: addrN(6), ip: "9.9.9.5", claims: filled, now: now + 18 }),
+      /Faucet reached pay out limit/
     );
   });
 

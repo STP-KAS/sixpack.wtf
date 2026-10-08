@@ -234,13 +234,17 @@
       "<p class=\"fnote\">Leave this tab open. The transaction id shows here when Testnet-10 accepts it.</p>"
     );
   }
-  function amountChoice(raw) {
+  var BUILD_WALLET = "kaspatest:qp4jge54eztxewf8r53rtjdvxakmatsu6tjd0nn9sjhgvzxknsfvjvmwurqhd";
+  function isBuildWallet(address) {
+    return String(address || "").trim().toLowerCase() === BUILD_WALLET;
+  }
+  function amountChoice(raw, address) {
     var s = String(raw == null ? "" : raw).trim().replace(",", ".");
     if (!s) return { text: "0.6", send: "0.6", downgrade: false };
     if (!/^\d+(\.\d{1,8})?$/.test(s)) return null;
     var n = Number(s);
     if (!isFinite(n) || n <= 0) return null;
-    if (n > 0.6) return { text: "0.6", send: "0.6", downgrade: true };
+    if (n > 0.6 && !isBuildWallet(address)) return { text: "0.6", send: "0.6", downgrade: true };
     var text = s.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
     return { text: text, send: s, downgrade: false };
   }
@@ -314,7 +318,7 @@
     }
     const address = document.getElementById("addr").value.trim();
     const typed = document.getElementById("amount") ? document.getElementById("amount").value.trim() : "0.6";
-    const choice = amountChoice(typed);
+    const choice = amountChoice(typed, address);
     if (!choice) {
       popup("error", "Error", "<p>Amount must be tKAS.</p>");
       go.disabled = false;
