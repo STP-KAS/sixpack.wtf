@@ -5,7 +5,6 @@
     { id: "r03", title: "No Kings rally", duration: 23, w: 576, h: 768 },
     { id: "r04", title: "2024", duration: 77, w: 576, h: 566 },
     { id: "r05", title: "Epstein files", duration: 18, w: 1280, h: 720 },
-    { id: "r06", title: "Wedding", duration: 19, w: 1080, h: 1080 },
     { id: "r07", title: "Fire", duration: 15, w: 1276, h: 720 },
     { id: "r09", title: "I didn't vote for this", duration: 54, w: 1440, h: 1440 },
     { id: "r10", title: "Never bet against Elon", duration: 23, w: 720, h: 638 },
@@ -32,7 +31,6 @@
     { id: "r31", title: "I voted for this again", duration: 46, w: 720, h: 962 },
     { id: "r32", title: "Car", duration: 25, w: 1280, h: 1706 },
     { id: "r33", title: "Trump", duration: 25, w: 1558, h: 720 },
-    { id: "r34", title: "I didn't vote for this either", duration: 69, w: 720, h: 1280 },
     { id: "r35", title: "Still didn't vote for this", duration: 507, w: 720, h: 1280 },
     { id: "r36", title: "I voted for this four", duration: 17, w: 720, h: 720 },
     { id: "r37", title: "Silly Walks", duration: 166, w: 1920, h: 1080 },
@@ -42,6 +40,8 @@
     { id: "r41", title: "What do you think about AI", duration: 70, w: 576, h: 624 },
     { id: "r42", title: "Joint address", duration: 43, w: 576, h: 1024 },
     { id: "r43", title: "Orbital data centers", duration: 270, w: 1920, h: 1080 },
+    { id: "r44", title: "Is not an option", duration: 14, w: 720, h: 1280 },
+    { id: "r45", title: "They don't make comedy like this anymore", duration: 92, w: 720, h: 708 },
   ];
 
   const CAPTION = "this desk agrees";
