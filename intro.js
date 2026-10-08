@@ -29,7 +29,8 @@
       '<div class="intro-copy">' +
       "<p>-Bitcoin started as proof of work: scarce money, and ownership that does not depend on who already holds the coins.</p>" +
       "<p>-Proof of stake replaced that work with capital. That is a different system.</p>" +
-      "<p>-Kaspa kept Bitcoin’s proof of work and made it programmable high-frequency proof of work: 10 blocks per second on average.</p><p><a href=\"https://x.com/michaelsuttonil/status/2108234606738604166\">https://x.com/michaelsuttonil/status/2108234606738604166</a></p>" +
+      "<p>-Kaspa kept Bitcoin’s proof of work and made it programmable high-frequency proof of work.</p>" +
+      "<p><a href=\"https://x.com/michaelsuttonil/status/2108234606738604166\">https://x.com/michaelsuttonil/status/2108234606738604166</a></p>" +
       "</div>" +
       '<button type="button" class="intro-proceed">Proceed</button>' +
       "</div>";
