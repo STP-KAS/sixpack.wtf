@@ -27,9 +27,9 @@
       '<source src="kaspa-explained.mp4" type="video/mp4">' +
       "</video>" +
       '<div class="intro-copy">' +
-      "<p>-Bitcoin started as proof of work: scarce money and ownership that does not depend on who already holds the coins. One block about every 10 minutes, a few transactions per second.</p>" +
-      "<p>-Proof of stake replaced work with capital. That is a different system.</p>" +
-      "<p>-Kaspa kept that proof of work and made it high-frequency: 10 blocks per second on average, not one every 10 minutes. Sutton: a continuous composition of highly responsive mini programs. Now programmable.</p>" +
+      "<p>-Kaspa is programmable high-frequency proof of work. Not a new consensus. Bitcoin’s work, at 10 blocks per second instead of one block about every 10 minutes.</p>" +
+      "<p>-High frequency is the point. Sutton: it makes Kaspa a continuous composition of highly responsive mini programs.</p>" +
+      "<p>-Full context: https://x.com/michaelsuttonil/status/2108234606738604166</p>" +
       "</div>" +
       '<button type="button" class="intro-proceed">Proceed</button>' +
       "</div>";
