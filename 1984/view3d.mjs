@@ -1,4 +1,4 @@
-/** Ashfields in 3D. Original meshes. The camera turns around the player through a full circle. */
+/** LUMBRIDGE in 3D. Original meshes. The camera turns around the player through a full circle. */
 
 import * as THREE from "./vendor/three.module.js";
 import { HUNTS, PARKING_BAYS, ROADSTER_PARK, SHOPS, standTile, tripBySku } from "./world.mjs";
@@ -2782,7 +2782,7 @@ function addDressing(parent, map, maps) {
   const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.2, 6), stone("#5c3a22", 0.8));
   const plaza = worldOf(map, 18, 13.2, 0);
   post.position.set(plaza.x, 0.6, plaza.z);
-  const plaque = nameTag("Ashfields");
+  const plaque = nameTag("LUMBRIDGE");
   plaque.position.set(plaza.x, 1.35, plaza.z);
   parent.add(post, plaque);
   for (const side of [-1, 1]) {

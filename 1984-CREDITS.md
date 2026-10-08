@@ -1,6 +1,6 @@
 # 1984 credits
 
-Ashfields is drawn in this repository. This pass did not copy code or pictures out of another game.
+LUMBRIDGE is drawn in this repository. This pass did not copy code or pictures out of another game.
 
 ## Kept, not imported
 
