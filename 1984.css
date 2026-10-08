@@ -1207,16 +1207,15 @@ a { color: #f2d48a; }
     min-height: 2.15rem;
     margin-top: 0.2rem;
   }
-  .phone-fit .kw-pay-toggle,
   .phone-fit .kw-logout {
     top: 7.35rem;
+    right: 6px;
+    width: 4.4rem;
     min-height: 2.15rem;
     padding: 0.15rem 0.25rem;
     font-size: 0.72rem;
     text-align: center;
   }
-  .phone-fit .kw-logout { right: 6px; width: 4.4rem; }
-  .phone-fit .kw-pay-toggle { right: calc(6px + 4.6rem); width: 5.2rem; }
   .phone-fit .kw-mini {
     top: 9.8rem;
     right: 6px;
