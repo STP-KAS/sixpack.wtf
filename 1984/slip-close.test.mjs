@@ -48,7 +48,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=119/);
+  assert.match(html, /1984\/client\.mjs\?v=120/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -133,7 +133,7 @@ test("the balances stay in the top right with Bank", () => {
   const rails = readFileSync(new URL("../rails.html", import.meta.url), "utf8");
   assert.match(html, /<header class="kw-bar" id="bar"><\/header>/);
   assert.match(html, /1984\.css\?v=70/);
-  assert.match(html, /1984\/client\.mjs\?v=119/);
+  assert.match(html, /1984\/client\.mjs\?v=120/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);

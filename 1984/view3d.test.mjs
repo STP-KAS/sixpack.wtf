@@ -925,7 +925,10 @@ test("the roadster leaves the ship nose-first on +X", () => {
   assert.ok(padRight.position.x > 8, "right film right of the rocket");
   const column = flight.tower.getObjectByName("launch-tower");
   assert.ok(column && column.position.x < -4, "tower mesh stays beside the stack");
-  assert.equal(column.visible, false);
+  assert.equal(column.visible, true);
+  const catchTower = flight.tower.getObjectByName("catch-tower");
+  assert.ok(catchTower && catchTower.position.x > 6, "catch tower stands off to the right");
+  assert.equal(catchTower.visible, true);
   let towers = 0;
   flight.tower.traverse((node) => {
     if (node.name === "launch-tower") towers += 1;
@@ -951,10 +954,25 @@ test("the roadster leaves the ship nose-first on +X", () => {
       }
     }
   };
+  const sticks = [];
   flight.tower.traverse((node) => {
-    if (node.name === "chopstick" || node.name === "qd-arm") assert.equal(node.visible, false, node.name);
-    if (node.name === "chopstick" || node.name === "qd-arm" || node.name === "launch-tower" || node.name === "pad-left" || node.name === "pad-right") clearOfStack(node, 2.2);
+    if (node.name === "chopstick") sticks.push(node);
+    if (node.name === "launch-tower" || node.name === "pad-left" || node.name === "pad-right") clearOfStack(node, 2.2);
   });
+  assert.equal(sticks.length, 2);
+  for (const arm of sticks) {
+    assert.equal(arm.visible, true);
+    arm.geometry.computeBoundingBox();
+    const tip = new THREE.Vector3(arm.geometry.boundingBox.max.x, 0, 0).applyMatrix4(arm.matrixWorld);
+    assert.ok(tip.x > 0.2 && tip.x < 1.2, "chopstick reaches over the nose " + tip.x);
+    assert.ok(arm.position.y > 20, "chopsticks sit by the nose");
+  }
+  const qd = flight.tower.getObjectByName("qd-arm");
+  assert.equal(qd.visible, true);
+  qd.geometry.computeBoundingBox();
+  const qdTip = new THREE.Vector3(qd.geometry.boundingBox.max.x, 0, 0).applyMatrix4(qd.matrixWorld);
+  assert.ok(qdTip.x > -1.6 && qdTip.x < -0.7, "qd reaches the ship " + qdTip.x);
+  assert.ok(qd.position.y > 11 && qd.position.y < 16);
   flight.mount.traverse((node) => {
     if (node.name === "hold-down") clearOfStack(node, 1.35);
   });
@@ -996,7 +1014,11 @@ test("the roadster leaves the ship nose-first on +X", () => {
   placeFlight(flight, flightPose(FLIGHT_ORBIT));
   const shipNose = flight.ship.getObjectByName("ship-nose");
   assert.ok(shipNose && shipNose.visible);
-  assert.equal(shipNose.material.color.getHexString(), "e4e7ec");
+  assert.equal(shipNose.material.color.getHexString(), "ffffff");
+  assert.ok(shipNose.material.map, "the nose carries the tile picture");
+  const shield = flight.ship.getObjectByName("heat-shield");
+  assert.ok(shield && shield.visible);
+  assert.equal(shield.material.map, shipNose.material.map);
   assert.ok(shipNose.position.y > 7, "nose stays on the ship");
   assert.equal(flight.mount.visible, false);
   assert.equal(flight.tower.visible, false);

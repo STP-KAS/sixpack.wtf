@@ -1940,7 +1940,7 @@ export function buildFlight() {
   const dark = new THREE.MeshStandardMaterial({ color: "#1c1f24", metalness: 0.55, roughness: 0.4 });
   const pad = new THREE.Mesh(new THREE.CylinderGeometry(8, 8.4, 0.35, 8), stone("#6e6256", 0.9));
   pad.position.y = -0.15;
-  // The booster stands in the mount. The tower, chopsticks, and quick-disconnect arm stay off the screen so the films have the room.
+  // The booster stands in the mount. The lattice tower stands to the left, the way the Flight 14 rehearsal photo shows it, with the arms open beside the ship.
   const mount = new THREE.Group();
   mount.name = "olm";
   const deck = new THREE.Mesh(
@@ -1979,24 +1979,79 @@ export function buildFlight() {
   trench.position.set(0, -0.02, 1.6);
   mount.add(trench);
   const tower = new THREE.Group();
-  const column = new THREE.Mesh(new THREE.BoxGeometry(1.15, 26, 1.15), steel);
-  column.name = "launch-tower";
-  column.position.set(-6.6, 13, -2.4);
-  column.visible = false;
-  tower.add(column);
-  const armGeo = new THREE.BoxGeometry(8.2, 0.32, 0.38);
-  for (const [y, z] of [[21.4, -3.15], [19.0, -1.65]]) {
-    const arm = new THREE.Mesh(armGeo, steel);
+  const towerSteel = new THREE.MeshStandardMaterial({ color: "#d7dee6", metalness: 0.58, roughness: 0.38 });
+  const towerDark = new THREE.MeshStandardMaterial({ color: "#4e575f", metalness: 0.5, roughness: 0.46 });
+  // Pad camera sits on +Z. The launch tower is left of the stack. The second tower is the far catch tower on the right.
+  const addTruss = (ox, oz, height, span, legName) => {
+    const hx = span * 0.5;
+    const hz = span * 0.72;
+    const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+    for (let i = 0; i < corners.length; i++) {
+      const [sx, sz] = corners[i];
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.16, height, 0.16), towerSteel);
+      leg.position.set(ox + sx * hx, height * 0.5, oz + sz * hz);
+      if (i === 1 && legName) leg.name = legName;
+      tower.add(leg);
+    }
+    const bays = Math.max(4, Math.round(height / 2.15));
+    const bayH = height / bays;
+    const diagX = Math.hypot(span, bayH);
+    const diagZ = Math.hypot(hz * 2, bayH);
+    const tiltX = Math.atan2(span, bayH);
+    const tiltZ = Math.atan2(hz * 2, bayH);
+    const braceX = new THREE.BoxGeometry(0.05, diagX, 0.05);
+    const braceZ = new THREE.BoxGeometry(0.05, diagZ, 0.05);
+    for (let i = 0; i <= bays; i++) {
+      const y = (i / bays) * height;
+      for (const sz of [-1, 1]) {
+        const girt = new THREE.Mesh(new THREE.BoxGeometry(span, 0.07, 0.07), towerSteel);
+        girt.position.set(ox, y, oz + sz * hz);
+        tower.add(girt);
+      }
+      for (const sx of [-1, 1]) {
+        const girt = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, hz * 2), towerSteel);
+        girt.position.set(ox + sx * hx, y, oz);
+        tower.add(girt);
+      }
+      if (i === bays) continue;
+      const mid = y + bayH * 0.5;
+      for (const sign of [-1, 1]) {
+        const onCamera = new THREE.Mesh(braceX, towerDark);
+        onCamera.position.set(ox, mid, oz + hz);
+        onCamera.rotation.z = sign * tiltX;
+        const onRocket = new THREE.Mesh(braceZ, towerDark);
+        onRocket.position.set(ox + hx, mid, oz);
+        onRocket.rotation.x = sign * tiltZ;
+        tower.add(onCamera, onRocket);
+      }
+    }
+    const crown = new THREE.Mesh(new THREE.BoxGeometry(span + 0.35, 0.22, hz * 2 + 0.28), towerSteel);
+    crown.position.set(ox, height + 0.12, oz);
+    tower.add(crown);
+  };
+  addTruss(-7.4, 0, 28, 1.7, "launch-tower");
+  addTruss(10.5, -8, 18, 1.2, "catch-tower");
+  const stickGeo = new THREE.BoxGeometry(7.2, 0.16, 0.22);
+  for (const z of [-1.05, 1.05]) {
+    const arm = new THREE.Mesh(stickGeo, towerDark);
     arm.name = "chopstick";
-    arm.position.set(-10.4, y, z);
-    arm.rotation.z = 2.35;
-    arm.visible = false;
+    arm.position.set(-2.95, 22.4, z);
+    const chord = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.1, 0.12), towerDark);
+    chord.position.y = 0.28;
+    arm.add(chord);
+    for (let k = -2; k <= 2; k++) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.3, 0.08), towerDark);
+      post.position.set(k * 0.9, 0.14, 0);
+      arm.add(post);
+    }
     tower.add(arm);
   }
-  const qd = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.2, 0.22), steel);
+  const qd = new THREE.Mesh(new THREE.BoxGeometry(5.5, 0.16, 0.2), towerDark);
   qd.name = "qd-arm";
-  qd.position.set(-5.35, 16.4, -2.4);
-  qd.visible = false;
+  qd.position.set(-3.8, 12.8, 0);
+  const qdChord = new THREE.Mesh(new THREE.BoxGeometry(5.5, 0.08, 0.1), towerDark);
+  qdChord.position.y = 0.22;
+  qd.add(qdChord);
   tower.add(qd);
   const padScreens = [];
   const padVideos = [];
@@ -2038,12 +2093,22 @@ export function buildFlight() {
   root.add(pad, mount, tower);
 
   const booster = new THREE.Group();
-  const boosterBody = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.08, 11, 16), steel);
+  const hull = new THREE.MeshStandardMaterial({ color: "#f4f7fb", metalness: 0.42, roughness: 0.28 });
+  const boosterBody = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.08, 11, 24), hull);
   boosterBody.position.y = 5.5;
   booster.add(boosterBody);
-  const band = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.35, 16), dark);
-  band.position.y = 10.5;
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(1.12, 1.12, 0.72, 24), dark);
+  band.position.y = 10.45;
   booster.add(band);
+  for (let i = 1; i <= 7; i++) {
+    const weld = new THREE.Mesh(new THREE.TorusGeometry(1.09, 0.028, 6, 20), steel);
+    weld.rotation.x = Math.PI / 2;
+    weld.position.y = 0.7 + i * 1.25;
+    booster.add(weld);
+  }
+  const raceway = new THREE.Mesh(new THREE.BoxGeometry(0.09, 9.4, 0.09), dark);
+  raceway.position.set(-1.12, 5.3, 0.15);
+  booster.add(raceway);
   const skirt = new THREE.Mesh(new THREE.TorusGeometry(1.42, 0.1, 8, 18), dark);
   skirt.name = "aft-skirt";
   skirt.rotation.x = Math.PI / 2;
@@ -2052,9 +2117,13 @@ export function buildFlight() {
   const fins = [];
   for (const side of [-1, 1]) {
     for (const z of [-1, 1]) {
-      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.08, 0.7), dark);
+      const fin = new THREE.Group();
       fin.name = "grid-fin";
-      fin.position.set(side * 1.35, 10.2, z * 0.2);
+      fin.position.set(side * 1.55, 10.15, z * 0.62);
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.07, 0.95), dark);
+      const ribA = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.12, 0.06), dark);
+      const ribB = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.12, 0.95), dark);
+      fin.add(plate, ribA, ribB);
       booster.add(fin);
       fins.push(fin);
     }
@@ -2097,23 +2166,53 @@ export function buildFlight() {
   root.add(booster);
 
   const ship = new THREE.Group();
-  const shipBody = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.02, 6.2, 16), steel);
-  shipBody.position.y = 3.1;
-  const belly = new THREE.Mesh(new THREE.CylinderGeometry(0.97, 1.04, 2.2, 16), dark);
-  belly.position.y = 1.3;
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.95, 3.2, 16), steel);
+  const tileTex = paintTex(128, (g, s) => {
+    g.fillStyle = "#1a1e24";
+    g.fillRect(0, 0, s, s);
+    g.strokeStyle = "#8d96a3";
+    g.lineWidth = 3;
+    const step = 18;
+    for (let row = 0; row < s / step + 2; row++) {
+      const ox = (row % 2) * (step / 2);
+      for (let col = -1; col < s / step + 2; col++) g.strokeRect(col * step + ox, row * step, step - 3, step - 3);
+    }
+  });
+  tileTex.repeat.set(2, 3);
+  const tile = new THREE.MeshStandardMaterial({ map: tileTex, color: "#ffffff", metalness: 0.22, roughness: 0.78 });
+  const shipBody = new THREE.Mesh(new THREE.CylinderGeometry(0.96, 1.0, 6.4, 24), hull);
+  shipBody.position.y = 3.2;
+  // Windward tiles face +Z. The pad camera sits on +Z, so the black side is the side it sees.
+  const shield = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.0, 1.04, 6.15, 24, 1, true, -Math.PI / 2, Math.PI),
+    tile,
+  );
+  shield.name = "heat-shield";
+  shield.position.y = 3.25;
+  const lee = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.005, 1.045, 6.05, 24, 1, true, Math.PI / 2, Math.PI),
+    hull,
+  );
+  lee.name = "lee-side";
+  lee.position.y = 3.25;
+  const belly = new THREE.Mesh(new THREE.CylinderGeometry(1.01, 1.05, 1.2, 24), tile);
+  belly.position.y = 0.72;
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.96, 3.15, 24), tile);
   nose.name = "ship-nose";
-  nose.position.y = 7.8;
-  ship.add(shipBody, belly, nose);
-  const flapMat = dark;
+  nose.position.y = 7.85;
+  ship.add(shipBody, shield, lee, belly, nose);
   for (const side of [-1, 1]) {
-    const fwd = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.08, 0.85), flapMat);
-    fwd.position.set(side * 1.25, 5.6, 0);
-    fwd.rotation.z = side * -0.5;
-    const aft = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.08, 0.7), flapMat);
-    aft.position.set(side * 1.2, 1.1, 0);
-    aft.rotation.z = side * 0.35;
-    ship.add(fwd, aft);
+    const fwd = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.07, 0.95), tile);
+    fwd.name = "forward-flap";
+    fwd.position.set(side * 1.38, 6.05, 0);
+    fwd.rotation.z = side * -0.55;
+    const aft = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.08, 0.92), tile);
+    aft.name = "aft-flap";
+    aft.position.set(side * 1.32, 1.35, 0);
+    aft.rotation.z = side * 0.4;
+    const hinge = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.7, 8), dark);
+    hinge.rotation.z = Math.PI / 2;
+    hinge.position.set(side * 1.02, 1.35, 0);
+    ship.add(fwd, aft, hinge);
   }
   const door = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.5, 1.1), new THREE.MeshStandardMaterial({ color: "#2a2e33", metalness: 0.4, roughness: 0.45 }));
   door.position.set(1.02, 4.2, 0);
