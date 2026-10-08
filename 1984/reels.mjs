@@ -44,6 +44,7 @@ const RANDOM = [
   ["r43", "Orbital data centers"],
   ["r44", "Is not an option"],
   ["r45", "They don't make comedy like this anymore"],
+  ["r46", "10,000 subscribers"],
 ];
 
 const EXTRA = [
@@ -100,6 +101,7 @@ const SHAPE = {
   r43: [1920, 1080],
   r44: [720, 1280],
   r45: [720, 708],
+  r46: [1920, 1080],
   desk: [1920, 1080],
   clip: [1920, 886],
   "phone-a": [1024, 576],
