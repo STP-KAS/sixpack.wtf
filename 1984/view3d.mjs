@@ -1922,7 +1922,7 @@ export function buildFlight() {
   const dark = new THREE.MeshStandardMaterial({ color: "#1c1f24", metalness: 0.55, roughness: 0.4 });
   const pad = new THREE.Mesh(new THREE.CylinderGeometry(8, 8.4, 0.35, 8), stone("#6e6256", 0.9));
   pad.position.y = -0.15;
-  // The booster stands in the mount. One tower stands beside it. The chopsticks stay open.
+  // The booster stands in the mount. The tower, chopsticks, and quick-disconnect arm stay off the screen so the films have the room.
   const mount = new THREE.Group();
   mount.name = "olm";
   const deck = new THREE.Mesh(
@@ -1964,6 +1964,7 @@ export function buildFlight() {
   const column = new THREE.Mesh(new THREE.BoxGeometry(1.15, 26, 1.15), steel);
   column.name = "launch-tower";
   column.position.set(-6.6, 13, -2.4);
+  column.visible = false;
   tower.add(column);
   const armGeo = new THREE.BoxGeometry(8.2, 0.32, 0.38);
   for (const [y, z] of [[21.4, -3.15], [19.0, -1.65]]) {
@@ -1971,24 +1972,26 @@ export function buildFlight() {
     arm.name = "chopstick";
     arm.position.set(-10.4, y, z);
     arm.rotation.z = 2.35;
+    arm.visible = false;
     tower.add(arm);
   }
   const qd = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.2, 0.22), steel);
   qd.name = "qd-arm";
   qd.position.set(-5.35, 16.4, -2.4);
+  qd.visible = false;
   tower.add(qd);
   const padScreens = [];
   const padVideos = [];
   for (const side of [-1, 1]) {
-    // Left film is 576 by 738. Right film is 1920 by 1080. Twice the earlier boards, one left of the rocket and one right.
-    const wide = side < 0 ? 9.6 : 12.4;
-    const tall = side < 0 ? 9.6 * (738 / 576) : 7;
+    // Left film is 576 by 738. Right film is 1920 by 1080. Larger boards, closer to the pad camera, one each side of the rocket.
+    const wide = side < 0 ? 18 : 24;
+    const tall = side < 0 ? 18 * (738 / 576) : 13.5;
     const screen = new THREE.Mesh(
       new THREE.PlaneGeometry(wide, tall),
       new THREE.MeshBasicMaterial({ color: "#ffffff", toneMapped: false }),
     );
     screen.name = side < 0 ? "pad-left" : "pad-right";
-    screen.position.set(side < 0 ? -11.2 : 12.6, 9, 2);
+    screen.position.set(side < 0 ? -14 : 15.6, 11, 20);
     tower.add(screen);
     // Countdown camera stays at (0, 4.6, 64). PlaneGeometry faces local +Z, and lookAt points that +Z at the camera.
     screen.lookAt(0, 4.6, 64);
@@ -2414,7 +2417,7 @@ export function paintKoni(flight, lines) {
   screen.material.map.needsUpdate = true;
 }
 
-/** Both films are done. The last frame leaves the tower. */
+/** Both films are done. The last frame leaves the screens. */
 export function erasePadFilms(flight) {
   if (!flight) return;
   flight.padFilmsDone = true;

@@ -911,12 +911,15 @@ test("the roadster leaves the ship nose-first on +X", () => {
   const padLeft = flight.tower.getObjectByName("pad-left");
   const padRight = flight.tower.getObjectByName("pad-right");
   assert.ok(padLeft && padRight);
-  assert.equal(padLeft.geometry.parameters.width, 9.6);
-  assert.equal(padRight.geometry.parameters.width, 12.4);
+  assert.equal(padLeft.geometry.parameters.width, 18);
+  assert.equal(padRight.geometry.parameters.width, 24);
+  assert.ok(padLeft.position.z > 12, "films sit closer to the pad camera");
+  assert.ok(padRight.position.z > 12, "films sit closer to the pad camera");
   assert.ok(padLeft.position.x < -8, "left film left of the rocket");
   assert.ok(padRight.position.x > 8, "right film right of the rocket");
   const column = flight.tower.getObjectByName("launch-tower");
-  assert.ok(column && column.position.x < -4, "tower beside the stack");
+  assert.ok(column && column.position.x < -4, "tower mesh stays beside the stack");
+  assert.equal(column.visible, false);
   let towers = 0;
   flight.tower.traverse((node) => {
     if (node.name === "launch-tower") towers += 1;
@@ -943,6 +946,7 @@ test("the roadster leaves the ship nose-first on +X", () => {
     }
   };
   flight.tower.traverse((node) => {
+    if (node.name === "chopstick" || node.name === "qd-arm") assert.equal(node.visible, false, node.name);
     if (node.name === "chopstick" || node.name === "qd-arm" || node.name === "launch-tower" || node.name === "pad-left" || node.name === "pad-right") clearOfStack(node, 2.2);
   });
   flight.mount.traverse((node) => {

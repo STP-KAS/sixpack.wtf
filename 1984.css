@@ -1269,10 +1269,10 @@ a { color: #f2d48a; }
     max-height: 52%;
     transform: none;
   }
-  .phone-fit .flight-clock { font-size: 1.2rem; }
-  .phone-fit #flight-line { font-size: 1.1rem; }
-  .phone-fit .flight-bar { height: 1.6rem; }
-  .phone-fit .flight-bar-label { font-size: 1rem; }
+  .phone-fit .flight-clock { font-size: 1.05rem; }
+  .phone-fit #flight-line { font-size: 0.82rem; line-height: 1.2; margin-bottom: 0.25rem; }
+  .phone-fit .flight-bar { height: 1.15rem; }
+  .phone-fit .flight-bar-label { font-size: 0.82rem; }
   .phone-fit .show-card {
     left: 8px;
     right: 8px;
@@ -1353,7 +1353,16 @@ a { color: #f2d48a; }
 }
 @media (max-width: 980px) and (max-height: 560px) {
   .phone-fit .kw-chat { height: 2.4rem; }
-  .phone-fit .show-card,
-  .phone-fit .flight-card { max-height: 54%; }
+  .phone-fit .show-card { max-height: 54%; }
+  .phone-fit .flight-card,
+  .phone-fit .flight-card.ended {
+    max-height: 30%;
+    padding: 0.28rem 0.45rem 0.32rem;
+  }
+  .phone-fit .flight-clock { font-size: 0.82rem; margin-bottom: 0; }
+  .phone-fit #flight-line { font-size: 0.68rem; line-height: 1.15; margin-bottom: 0.12rem; }
+  .phone-fit .flight-bar { height: 0.55rem; margin-bottom: 0.15rem; }
+  .phone-fit .flight-bar-label { font-size: 0.68rem; margin-bottom: 0.08rem; }
+  .phone-fit .flight-card p { margin-bottom: 0.18rem; }
   .phone-fit .kw-panel { max-height: 72%; }
 }
