@@ -13,6 +13,7 @@ import {
   railName,
   sompiForCents,
 } from "./money.mjs";
+import { extensionFor, requireIncrease } from "./kcc20.mjs";
 import { SHOPS, huntById, itemBySku, shopById } from "./world.mjs";
 
 export function freshState() {
@@ -379,7 +380,9 @@ export function applyConvert(state, input, now) {
   }
   const field = input.rail === "poc" ? "poc" : "kusdt";
   const backedField = input.rail === "poc" ? "pocBacked" : "kusdtBacked";
-  account[field] = String(bi(account[field]) + cents);
+  const before = bi(account[field]);
+  requireIncrease(before, before + cents);
+  account[field] = String(before + cents);
   account[backedField] = String(bi(account[backedField]) + cents);
   account.liability = String(bi(account.liability) + input.payment.paid);
   const receipt = pushReceipt(next, account, {
@@ -455,15 +458,20 @@ export function applyExchange(state, input, now) {
   }
   const [fromField, fromBacked] = fields(from);
   const [toField, toBacked] = fields(to);
+  if (extensionFor(from, false) === extensionFor(to, false)) {
+    throw new Error("POCencept and KUSDT stay different tokens.");
+  }
   const have = bi(account[fromField]);
   if (have < cents) throw new Error("Not enough " + railName(from) + ".");
   const backed = bi(account[fromBacked]);
   const practice = have - backed;
   const fromPractice = practice >= cents ? cents : practice;
   const fromLocked = cents - fromPractice;
+  const toHave = bi(account[toField]);
+  requireIncrease(toHave, toHave + cents);
   account[fromField] = String(have - cents);
   account[fromBacked] = String(backed - fromLocked);
-  account[toField] = String(bi(account[toField]) + cents);
+  account[toField] = String(toHave + cents);
   account[toBacked] = String(bi(account[toBacked]) + fromLocked);
   const receipt = pushReceipt(next, account, {
     at: now,

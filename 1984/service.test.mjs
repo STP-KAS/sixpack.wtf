@@ -50,7 +50,7 @@ function harness(pay, extra = {}) {
 
 test("a tKAS wait polls the tip instead of pausing a fifth of a second", () => {
   const source = readFileSync(new URL("./service.mjs", import.meta.url), "utf8");
-  assert.match(source, /await pause\(50\)/);
+  assert.match(source, /await pause\(20\)/);
   assert.doesNotMatch(source, /await pause\(200\)/);
 });
 

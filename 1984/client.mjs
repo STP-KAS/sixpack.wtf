@@ -19,7 +19,7 @@ import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swap
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=6";
 import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=48";
 import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=2";
-const TUNNEL = "https://approve-announced-ali-bras.trycloudflare.com";
+const TUNNEL = "https://authority-fireplace-earlier-spirit.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 const map = world();
 const view = document.getElementById("view");
@@ -2132,7 +2132,7 @@ function paintBank() {
       "<p>The miner fee is always KAS. On a tKAS send it is extra. It is six times the standard Testnet 10 rate. The price is not reduced to pay the miner.</p>" +
       "<p>A tKAS payment smaller than the quote does not buy the item and does not mint toy dollars.</p>" +
       "<p>Sending the same accepted txid again, for the same address and the same purchase, returns the receipt already written. A different item or a different address with that txid is refused.</p>" +
-      "<p>This counter did not compile a covenant. POCencept and KUSDT stay tags on this square.</p>" +
+      "<p>A lock has to increase the amount. A negative threshold counts as zero. POCencept and KUSDT keep different extension commitments, so they do not mix. A freeze changes the KUSDT commitment. This counter did not compile a covenant. The tags stay on this square. KCC-20 is Last Call, not Final.</p>" +
       '<div class="swap-bals">' +
       card("POCencept", formatCents(poc.have), "locked " + formatCents(poc.lock) + " · purse " + formatCents(poc.purse)) +
       card("KUSDT", formatCents(kusdt.have), "locked " + formatCents(kusdt.lock) + " · purse " + formatCents(kusdt.purse) + (frozen ? " · frozen" : "")) +

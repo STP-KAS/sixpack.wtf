@@ -151,10 +151,10 @@ async function connect() {
   const net = new kaspa.NetworkId("testnet-10");
   if (Date.now() > localDownUntil) {
     try {
-      rpc = await openRpc(kaspa, net, LOCAL_RPC, 800);
+      rpc = await openRpc(kaspa, net, LOCAL_RPC, 1500);
       return rpc;
     } catch {
-      localDownUntil = Date.now() + 60_000;
+      localDownUntil = Date.now() + 3_000;
     }
   }
   let last = notYet();

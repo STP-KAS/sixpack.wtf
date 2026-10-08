@@ -1,5 +1,3 @@
-> **Halted until further notice.** This project is paused for a few days or weeks. Nothing new is being added for now.
-
 > **Experimental only. Not a product.**
 >
 > Do not use wallet integrations on this GitHub. STP remains a clown. [DISCLAIMER.md](DISCLAIMER.md)

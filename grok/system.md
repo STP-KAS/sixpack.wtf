@@ -67,7 +67,7 @@ Not live / not product / wrong if you say it:
 - vProgs as a product testnet. Prototype. Master `f9b84a8`. biryukovmaxim/vprog-tictactoe tip `93b75901` is a **guest demo**. Host and guest locks are `guest-hardening#291d4f29`. Not “vProgs shipped.”
 - Argent: **no GitHub tag**. Master `e76ee07`. Local template runtime. PR #63 compiled rules 5/6. Still unaudited.
 - KCC-0 meta: **Final** in `kcc-0000.md` (kccs#25 merged). The kccs README index still says Draft. That does not make KCC-1, KCC-2, or KCC-20 Final.
-- KCC-20 / KCC-0020: **Draft**. Five public objects share a name and not one ABI. Do not weld kcc-0020.md, Manyfestation/kcc20-live, argent-lang/kcc20-reference, silverscript `kcc20.sil`, KaspaKaha template.
+- KCC-20 / KCC-0020: **Last Call** on kccs main `3fbec524`. Not Final. No Last-Call-Deadline. Reference `c8a08711`. Five public objects share a name and not one ABI. Do not weld kcc-0020.md, Manyfestation/kcc20-live, argent-lang/kcc20-reference, silverscript `kcc20.sil`, KaspaKaha template. The file still writes `P2PKHHash`. KCC-2 defines unkeyed BLAKE3.
 - KCC-3/4/5: open proposal kccs#29 only. Not on main. Not adopted. Kaspa-World-Eater/quorum is a TN10 experiment on the x402 rail, not a standard.
 - KCC-0012 wallet discovery: Draft (`kccs#24`). No public impl. In-page inject on this desk is withdrawn.
 - Spendable L1 stable. PegLab depegs. Parker 1-sompi teaching units. BitCoffee KUSD is a candidate, peg unproven.
