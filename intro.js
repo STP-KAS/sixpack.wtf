@@ -22,14 +22,14 @@
     overlay.setAttribute("aria-labelledby", "intro-title");
     overlay.innerHTML =
       '<div class="intro-card">' +
-      '<p id="intro-title" class="intro-title">“kaspa is programmable high-frequency proof of work.”<br><cite>Michael Sutton</cite></p>' +
+      '<p id="intro-title" class="intro-title">“Talent hits a target no one else can hit. Genius hits a target no one else can see.”<br><cite>Arthur Schopenhauer</cite></p>' +
       '<video class="intro-video" controls playsinline webkit-playsinline preload="metadata" poster="kaspa-explained.jpg">' +
       '<source src="kaspa-explained.mp4" type="video/mp4">' +
       "</video>" +
       '<div class="intro-copy">' +
-      "<p>-Bitcoin started as proof of work: scarce money and ownership that does not depend on who already holds the coins.</p>" +
+      "<p>-Bitcoin started as proof of work: scarce money and ownership that does not depend on who already holds the coins. One block about every 10 minutes, a few transactions per second.</p>" +
       "<p>-Proof of stake replaced work with capital. That is a different system.</p>" +
-      "<p>-Kaspa kept Bitcoin’s proof of work and made it high-frequency: 10 blocks per second on average, a continuous composition of highly responsive mini programs.</p>" +
+      "<p>-Kaspa kept that proof of work and made it high-frequency: 10 blocks per second on average, not one every 10 minutes. Sutton: a continuous composition of highly responsive mini programs. Now programmable.</p>" +
       "</div>" +
       '<button type="button" class="intro-proceed">Proceed</button>' +
       "</div>";
