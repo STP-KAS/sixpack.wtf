@@ -3209,10 +3209,10 @@ function paintMint() {
     : "<li>None yet.</li>";
   panel.innerHTML =
     '<div class="stall-head"><h2>Mint</h2>' + placeActs("") + "</div>" +
-    "<p><strong>Open mints.</strong> These names are already open on this square. Join mints more of that name. The addresses are the funded wallets that hold it.</p>" +
+    "<p><strong>Open mints.</strong> Every name anyone opened is here. Any funded address can mint more of it. Join fills that name. The addresses are the funded wallets that hold it.</p>" +
     openList(open) +
     "<p><strong>What.</strong> This place writes a token on the square ledger. The rule is KCC-20 Last Call. It is not Final. No covenant is deployed. The token is not tKAS, not a dollar, and not a spendable Layer-1 coin.</p>" +
-    "<p><strong>How.</strong> Pick one option. A new name opens a token and mints your amount. Mint more increases a token that is already open. Send moves some of yours to another kaspatest address. The same name keeps the same extension. A mint has to increase your amount. A send keeps the total. Open mints lists every name already opened here, with the funded addresses that hold it. Join fills that name so you mint more.</p>" +
+    "<p><strong>How.</strong> Pick one option. A new name opens a token and mints your amount. Mint more increases a token that is already open. Any funded address can mint more of a name someone else opened. Send moves some of yours to another kaspatest address. The same name keeps the same extension. A mint has to increase your amount. A send keeps the total. Open mints lists every name and every funded address that holds it. Join fills that name so you mint more.</p>" +
     "<p><strong>Why.</strong> So a funded address can try a mint here on Testnet 10, while KCC-20 is still Last Call. The cap is the most that can be minted. This desk checks it. Type 0 in Cap for no cap. There is no maximum.</p>" +
     "<p><strong>Options.</strong></p>" +
     '<div class="mint-form">' +

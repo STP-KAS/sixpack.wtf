@@ -215,7 +215,7 @@ export function publicMints(state) {
         supply: String(row.supply || "0"),
         cap: String(row.cap || "0"),
         holderCount: holders.length,
-        holders: holders.slice(0, 20),
+        holders,
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));

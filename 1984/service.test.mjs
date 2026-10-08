@@ -625,6 +625,32 @@ test("a named token opens, increases, stops at the cap, and a send keeps the tot
   assert.equal(huge.status, 400);
   assert.match(huge.body.error, /too large/);
 
+  const stranger = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/mint",
+    query: new URLSearchParams(),
+    body: { address: OTHER, network: "testnet-10", option: "more", name: "FREE", amount: "7" },
+    ip: "203.0.113.83",
+  });
+  assert.equal(stranger.status, 200);
+  assert.equal(stranger.body.account.tokens.find((row) => row.name === "FREE").amount, "7");
+  assert.equal(stranger.body.token.supply, "112");
+
+  const alphabet = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+  const crowd = await mint({ option: "new", name: "crowd", amount: "1", cap: "0" });
+  assert.equal(crowd.status, 200);
+  for (let i = 1; i <= 21; i += 1) {
+    const address = "kaspatest:" + alphabet[i] + "q".repeat(60);
+    const joined = await svc.handle({
+      method: "POST",
+      pathname: "/api/1984/mint",
+      query: new URLSearchParams(),
+      body: { address, network: "testnet-10", option: "more", name: "CROWD", amount: "1" },
+      ip: "203.0.113.84",
+    });
+    assert.equal(joined.status, 200, joined.body && joined.body.error);
+  }
+
   const home = await svc.handle({
     method: "GET",
     pathname: "/api/1984",
@@ -639,6 +665,11 @@ test("a named token opens, increases, stops at the cap, and a send keeps the tot
   assert.equal(ash.holders[0].amount, "6");
   assert.equal(ash.holders[1].amount, "2");
   assert.equal(ash.holders[1].address, OTHER);
+  const crowdRow = home.body.mints.find((row) => row.name === "CROWD");
+  assert.equal(crowdRow.holderCount, 22);
+  assert.equal(crowdRow.holders.length, 22);
+  const freeRow = home.body.mints.find((row) => row.name === "FREE");
+  assert.equal(freeRow.holders.length, 2);
 
   const other = await svc.handle({
     method: "GET",
@@ -648,6 +679,6 @@ test("a named token opens, increases, stops at the cap, and a send keeps the tot
     ip: "203.0.113.82",
   });
   assert.equal(other.status, 200);
-  assert.equal(other.body.account.tokens[0].name, "ASH");
-  assert.equal(other.body.account.tokens[0].amount, "2");
+  assert.equal(other.body.account.tokens.find((row) => row.name === "ASH").amount, "2");
+  assert.equal(other.body.account.tokens.find((row) => row.name === "FREE").amount, "7");
 });

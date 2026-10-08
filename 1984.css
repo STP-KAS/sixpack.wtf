@@ -549,7 +549,15 @@ body.page-1984 main.kw-stage {
   line-height: 1.35;
   color: #f2d48a;
 }
-.mint-open { margin: 0.2rem 0 0.4rem; padding: 0; list-style: none; }
+.mint-open {
+  margin: 0.2rem 0 0.4rem;
+  padding: 0.15rem 0.35rem 0.15rem 0;
+  list-style: none;
+  max-height: 11rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #8a7040;
+}
 .mint-open > li { margin: 0.45rem 0; }
 .mint-holders { margin: 0.15rem 0 0.25rem; padding-left: 1rem; }
 .mint-holders li { margin: 0.1rem 0; font-size: 0.75rem; }
