@@ -1,6 +1,6 @@
 {
   "network": "testnet-10",
-  "updated": "2026-10-08T07:11:21.761Z",
+  "updated": "2026-10-08T16:00:02.579Z",
   "count": 1000,
   "note": "tKAS is Testnet-10 KAS. With tKAS you can go to the bank.",
   "rows": [
@@ -2420,7 +2420,7 @@
       "address": "kaspatest:qqk7z0ynr9vgqgt5nctzhhvs569te6ertr7wfvnuzshcwzdajgvaz4gctxc0n",
       "txid": "dfd7cfb91b8fcf2e5ff24808bb6fa9efd506adfaf6cb3c3b29d7f716ca86c915",
       "sompi": "200000000000",
-      "balanceSompi": "200000000000"
+      "balanceSompi": "147099751374"
     },
     {
       "address": "kaspatest:qqk83kq3k64hqt65r05ufn5t6dly7jhusd66anfw6zrevu4etwp47su83gw9f",
@@ -4652,7 +4652,7 @@
       "address": "kaspatest:qz2np4tqe9fja3lkszw820gp2hur6c3rxt9z9er8takzsvfx4ewyvwgpcyqxd",
       "txid": "dfd7cfb91b8fcf2e5ff24808bb6fa9efd506adfaf6cb3c3b29d7f716ca86c915",
       "sompi": "200000000000",
-      "balanceSompi": "200000000000"
+      "balanceSompi": "99997556800"
     },
     {
       "address": "kaspatest:qz2v5rt25q23wdq3thzfqzgzyx0c8h965a0xkfg089z7uf45huhuzvedaf03v",
