@@ -4,6 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { fetchBalance, fetchKoni, fetchPrice, fetchTx, paymentFromTx, resolveName } from "./chain.mjs";
+import { applyAccept, applyHandshake, applyMessage, publicChat } from "./kachat.mjs";
+import { applyClaim, applyOfferBuy, applySite, publicSites } from "./layer.mjs";
 import { lookupAccepted, warmNodeWindow } from "./node-tx.mjs";
 import { guestDesk, GUEST_FUND_SOMPI } from "./guest.mjs";
 import {
@@ -267,6 +269,7 @@ export function create1984Service(deps) {
         guestDisclaimer: GUEST_DISCLAIMER,
         guestFundSompi: GUEST_FUND_SOMPI.toString(),
         mints: publicMints(state),
+        sites: publicSites(state),
       },
     };
   }
@@ -326,6 +329,10 @@ export function create1984Service(deps) {
           }
         }
         if (method === "GET" && pathname === "/api/1984/account") return await accountOf(query.get("address"));
+        if (method === "GET" && pathname === "/api/1984/chat") {
+          const who = assertTestnet(query.get("address"));
+          return { status: 200, body: { ok: true, ...publicChat(state, who) } };
+        }
         if (method === "GET" && pathname === "/api/1984/hunts") {
           const raw = query.get("address") || "";
           const who = raw ? assertTestnet(raw) : "";
@@ -562,6 +569,65 @@ export function create1984Service(deps) {
               deps.save(state);
               throw new Error((err && err.message) || "Redeem did not broadcast. The ledger balance was put back.");
             }
+          });
+        }
+        if (pathname === "/api/1984/layer/claim") {
+          let kns = "square";
+          try {
+            const found = await resolveName(String(body.name || ""), deps.fetch);
+            if (found && found.address.toLowerCase() !== address.toLowerCase()) {
+              throw new Error("That name is already on the KNS testnet index for another address.");
+            }
+            if (found) kns = "tn10";
+          } catch (err) {
+            const msg = String((err && err.message) || "");
+            if (/another address|mainnet/i.test(msg)) throw err;
+          }
+          return await queue(async () => {
+            const out = applyClaim(state, { address, name: body.name, kns }, now);
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: out.result };
+          });
+        }
+        if (pathname === "/api/1984/layer/save") {
+          return await queue(async () => {
+            const out = applySite(state, { address, name: body.name, title: body.title, about: body.about, offers: body.offers }, now);
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: out.result };
+          });
+        }
+        if (pathname === "/api/1984/layer/buy") {
+          return await queue(async () => {
+            const out = applyOfferBuy(state, { address, name: body.name, offer: body.offer, rail: body.rail }, now);
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: { ...out.result, account: publicAccount(state, address) } };
+          });
+        }
+        if (pathname === "/api/1984/chat/handshake") {
+          return await queue(async () => {
+            const out = applyHandshake(state, { address, to: body.to }, now);
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: { ...out.result, account: publicAccount(state, address) } };
+          });
+        }
+        if (pathname === "/api/1984/chat/accept") {
+          return await queue(async () => {
+            const out = applyAccept(state, { address, from: body.from }, now);
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: { ...out.result, account: publicAccount(state, address) } };
+          });
+        }
+        if (pathname === "/api/1984/chat/send") {
+          return await queue(async () => {
+            const out = applyMessage(state, { address, to: body.to, text: body.text }, now);
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: { ...out.result, account: publicAccount(state, address) } };
           });
         }
         return { status: 404, body: { ok: false, error: "Not found." } };

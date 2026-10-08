@@ -472,6 +472,8 @@ function paintChrome() {
     ["world", "Square"],
     ["cafe", "Cafe"],
     ["mint", "Mint"],
+    ["layer", "Layer"],
+    ["kachat", "Kachat"],
     ["groceries", "Market"],
     ["hunt", "Hunt"],
     ["bank", "Bank"],
@@ -1902,9 +1904,10 @@ function openMode(mode) {
   markRoom();
   paintChrome();
   const shade = document.getElementById("bank-shade");
+  const sheet = mode === "mint" || mode === "layer" || mode === "kachat";
   panel.classList.toggle("swap-pop", mode === "bank");
-  panel.classList.toggle("stall-pop", (isVisit(mode) && mode !== "bank") || mode === "mint");
-  if (shade) shade.hidden = !(isVisit(mode) || mode === "mint");
+  panel.classList.toggle("stall-pop", (isVisit(mode) && mode !== "bank") || sheet);
+  if (shade) shade.hidden = !(isVisit(mode) || sheet);
   if (mode === "world") {
     panel.hidden = true;
     panel.innerHTML = "";
@@ -1914,6 +1917,14 @@ function openMode(mode) {
   if (mode === "mint") {
     paintMint();
     refreshMints();
+  }
+  else if (mode === "layer") {
+    paintLayer();
+    refreshLayer();
+  }
+  else if (mode === "kachat") {
+    paintKachat();
+    refreshChat();
   }
   else if (mode === "bank") {
     if (enteringBank && !keepClerk) {
@@ -2571,6 +2582,8 @@ function paintGuide() {
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Peer to peer is the payment. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled. This square is still the classroom.</li>" +
     "<li>Mint is the building with the Mint sign. Walk in and click the counter. What: a token on this ledger, under KCC-20 Last Call. It is not Final, and no covenant is deployed. How: open a new name, mint more, or send it. Why: so you can try a mint on Testnet 10. Type 0 in Cap for no cap. There is no maximum.</li>" +
+    "<li>Layer-Kaspa is on the side rail. Claim a name, write the site, and list products and services. Buyers pay POCencept or KUSDT. The bank is on that card. The name lives on this square. A real .kas registration is the KNS app. This layer does not hide the path. It is not Tor.</li>" +
+    "<li>Kachat is on the side rail. Paste the other kaspatest address and send a handshake. They accept it. Then you send messages. Each step is 0.01 POCencept. Messages only. The KaChat app on the chain is a different program.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +
@@ -3195,6 +3208,224 @@ async function freeze() {
   }
   swapNote(next ? "KUSDT is frozen. POCencept and tKAS still move." : "KUSDT is thawed.", "ok");
   await refreshAccount();
+}
+
+let layerVisit = "";
+let chatPeer = "";
+
+function moneyLabel(cents) {
+  return formatCents(cents);
+}
+
+function paintLayer() {
+  const sites = (state.home && state.home.sites) || [];
+  const mine = sites.find((row) => state.id.address && row.owner.toLowerCase() === state.id.address.toLowerCase());
+  const open = layerVisit ? sites.find((row) => row.name === layerVisit) : null;
+  const directory = sites.length
+    ? "<ul class=\"layer-scroll\">" + sites.map((row) => {
+      const mark = row.kns === "tn10" ? " · on the KNS index" : " · this square";
+      return "<li><button type=\"button\" data-visit=\"" + esc(row.name) + "\">" + esc(row.host) + "</button> " + esc(row.title) + esc(mark) + "</li>";
+    }).join("") + "</ul>"
+    : "<p class=\"mint-cap-note\">No site yet. Claim a name and publish one.</p>";
+  const visit = open
+    ? "<p><strong>" + esc(open.host) + "</strong> · " + esc(open.title) + "</p><p>" + esc(open.about || "No description yet.") + "</p>" +
+      (open.offers.length ? open.offers.map((item) =>
+        "<p>" + esc(item.name) + " · " + esc(item.kind) + " · " + esc(moneyLabel(item.cents)) +
+        " <button type=\"button\" data-buy=\"" + esc(open.name) + "|" + esc(item.id) + "|poc\">POCencept</button>" +
+        " <button type=\"button\" data-buy=\"" + esc(open.name) + "|" + esc(item.id) + "|kusdt\">KUSDT</button></p>"
+      ).join("") : "<p>No offer yet.</p>") +
+      "<button type=\"button\" id=\"layer-back\">All sites</button>"
+    : "";
+  const offers = [0, 1, 2].map((i) => {
+    const row = mine && mine.offers[i];
+    return "<div class=\"mint-line\" data-offer><input class=\"offer-name\" maxlength=\"40\" placeholder=\"Offer\" value=\"" + esc(row ? row.name : "") + "\">" +
+      "<input class=\"offer-cents\" inputmode=\"numeric\" placeholder=\"cents\" value=\"" + esc(row ? row.cents : "") + "\">" +
+      "<select class=\"offer-kind\"><option value=\"product\"" + (row && row.kind === "service" ? "" : " selected") + ">Product</option>" +
+      "<option value=\"service\"" + (row && row.kind === "service" ? " selected" : "") + ">Service</option></select></div>";
+  }).join("");
+  panel.innerHTML =
+    '<div class="stall-head"><h2>Layer-Kaspa</h2>' + placeActs("") + "</div>" +
+    "<p><strong>What.</strong> Layer-Kaspa is a site layer on this square. A funded address claims a name and publishes a page. Buyers pay with the same rails as the shops. It is not Tor, and it does not hide the path. It is not a new chain.</p>" +
+    "<p><strong>How.</strong> Type a name. Write a title and a line about the place. Add up to three offers, with a price in cents. Publish. The bank on this card swaps tKAS into POCencept or KUSDT. A real .kas name is registered in the <a href=\"https://app.knsdomains.org\" target=\"_blank\" rel=\"noopener\">KNS app</a>. If this address already owns that name on the testnet index, the site says so.</p>" +
+    "<p><strong>Why.</strong> So a funded wallet can put a name and a till on this square while KCC-20 is still Last Call. No covenant is deployed.</p>" +
+    "<p><strong>Sites.</strong> Scroll the list. Open one to buy.</p>" +
+    directory +
+    visit +
+    "<p><strong>Your site.</strong></p>" +
+    '<label class="mint-line"><span>Name</span><input id="layer-name" maxlength="32" spellcheck="false" autocomplete="off" value="' + esc(mine ? mine.name : "") + '"></label>' +
+    '<label class="mint-line"><span>Title</span><input id="layer-title" maxlength="48" value="' + esc(mine ? mine.title : "") + '"></label>' +
+    '<label class="mint-line"><span>About</span><input id="layer-about" maxlength="280" value="' + esc(mine ? mine.about : "") + '"></label>' +
+    offers +
+    '<button type="button" id="layer-publish">Publish</button> ' +
+    '<button type="button" id="layer-bank">Bank</button>';
+  const back = document.getElementById("layer-back");
+  if (back) back.onclick = () => { layerVisit = ""; paintLayer(); };
+  for (const button of panel.querySelectorAll("[data-visit]")) {
+    button.onclick = () => { layerVisit = button.getAttribute("data-visit"); paintLayer(); };
+  }
+  for (const button of panel.querySelectorAll("[data-buy]")) {
+    button.onclick = () => buyOffer(button.getAttribute("data-buy"));
+  }
+  document.getElementById("layer-publish").onclick = publishSite;
+  document.getElementById("layer-bank").onclick = () => openMode("bank");
+  wirePlaceExit();
+}
+
+async function refreshLayer() {
+  const body = await api("/api/1984");
+  if (!body.ok || !body.sites) return;
+  if (!state.home) state.home = {};
+  const prev = JSON.stringify(state.home.sites || []);
+  state.home.sites = body.sites;
+  if (prev === JSON.stringify(body.sites)) return;
+  if (state.mode !== "layer") return;
+  if (panel.querySelector("input:focus, textarea:focus, select:focus")) return;
+  paintLayer();
+}
+
+async function publishSite() {
+  if (!requireId()) return;
+  const name = (document.getElementById("layer-name") || {}).value || "";
+  const title = (document.getElementById("layer-title") || {}).value || "";
+  const about = (document.getElementById("layer-about") || {}).value || "";
+  const offers = [...panel.querySelectorAll("[data-offer]")].map((row) => ({
+    name: (row.querySelector(".offer-name") || {}).value || "",
+    cents: (row.querySelector(".offer-cents") || {}).value || "",
+    kind: (row.querySelector(".offer-kind") || {}).value || "product",
+  })).filter((row) => String(row.name).trim());
+  const claimed = await post("/api/1984/layer/claim", { name });
+  if (!claimed.ok) {
+    say(claimed.error || "The name was not claimed.", true);
+    return;
+  }
+  const saved = await post("/api/1984/layer/save", { name, title, about, offers });
+  if (!saved.ok) {
+    say(saved.error || "The site was not published.", true);
+    return;
+  }
+  if (!state.home) state.home = {};
+  state.home.sites = saved.sites || claimed.sites || [];
+  say(saved.note || claimed.note || "Published.");
+  paintLayer();
+}
+
+async function buyOffer(spec) {
+  if (!requireId()) return;
+  const [name, offer, rail] = String(spec || "").split("|");
+  const body = await post("/api/1984/layer/buy", { name, offer, rail });
+  if (!body.ok) {
+    say(body.error || "The offer was not bought.", true);
+    return;
+  }
+  if (body.account) state.account = body.account;
+  if (body.sites && state.home) state.home.sites = body.sites;
+  say(body.note || "Bought.");
+  paintChrome();
+  paintLayer();
+}
+
+function paintKachat() {
+  const book = state.chat || { hands: [], notes: [] };
+  const me = (state.id.address || "").toLowerCase();
+  const incoming = (book.hands || []).filter((row) => row.status === "open" && row.to.toLowerCase() === me);
+  const ready = (book.hands || []).filter((row) => row.status === "done" && (row.from.toLowerCase() === me || row.to.toLowerCase() === me));
+  const thread = (book.notes || []).filter((row) => {
+    if (!chatPeer) return false;
+    const peer = chatPeer.toLowerCase();
+    return (row.from.toLowerCase() === me && row.to.toLowerCase() === peer) || (row.to.toLowerCase() === me && row.from.toLowerCase() === peer);
+  });
+  const asks = incoming.length
+    ? "<ul class=\"chat-scroll\">" + incoming.map((row) => "<li>" + esc(short(row.from)) + " <button type=\"button\" data-accept=\"" + esc(row.from) + "\">Accept</button></li>").join("") + "</ul>"
+    : "<p class=\"mint-cap-note\">No handshake is waiting.</p>";
+  const people = ready.length
+    ? "<ul class=\"chat-scroll\">" + ready.map((row) => {
+      const other = row.from.toLowerCase() === me ? row.to : row.from;
+      return "<li><button type=\"button\" data-peer=\"" + esc(other) + "\">" + esc(short(other)) + "</button></li>";
+    }).join("") + "</ul>"
+    : "<p class=\"mint-cap-note\">No connection yet.</p>";
+  const lines = thread.length
+    ? "<ul class=\"chat-scroll\">" + thread.map((row) => "<li><strong>" + esc(short(row.from)) + "</strong> " + esc(row.text) + "</li>").join("") + "</ul>"
+    : "<p class=\"mint-cap-note\">No message in this thread yet.</p>";
+  panel.innerHTML =
+    '<div class="stall-head"><h2>Kachat</h2>' + placeActs("") + "</div>" +
+    "<p><strong>What.</strong> Messages on this square's ledger. A handshake first, then text. Each step is 0.01 POCencept. Messages only. This desk does not seal a payload into a Kaspa transaction.</p>" +
+    "<p><strong>How to connect.</strong> Your kaspatest address is in the box below. Copy it and give it to the other person. Paste their kaspatest address in To and press Send handshake. They open Kachat and press Accept. Then pick the connection and send a message. Swap tKAS at the bank if you have no POCencept, or take the practice purse in the bank books.</p>" +
+    "<p><strong>Why.</strong> So two funded addresses can pass a note here for a small fee. The chain app is <a href=\"https://kachat.app/home\" target=\"_blank\" rel=\"noopener\">KaChat</a>. That one encrypts on the device and rides in a transaction. This one does not.</p>" +
+    '<label class="mint-line"><span>You</span><input id="chat-me" readonly spellcheck="false" value="' + esc(state.id.address || "") + '"></label>' +
+    '<label class="mint-line"><span>To</span><input id="chat-to" spellcheck="false" autocomplete="off" placeholder="kaspatest address" value="' + esc(chatPeer) + '"></label>' +
+    '<button type="button" id="chat-hand">Send handshake</button> ' +
+    '<button type="button" id="chat-bank">Bank</button>' +
+    "<p><strong>Waiting.</strong></p>" + asks +
+    "<p><strong>Connected.</strong></p>" + people +
+    "<p><strong>Messages.</strong></p>" + lines +
+    '<label class="mint-line"><span>Text</span><input id="chat-text" maxlength="240" autocomplete="off"></label>' +
+    '<button type="button" id="chat-send">Send message</button>';
+  document.getElementById("chat-hand").onclick = sendHandshake;
+  document.getElementById("chat-send").onclick = sendChat;
+  document.getElementById("chat-bank").onclick = () => openMode("bank");
+  for (const button of panel.querySelectorAll("[data-accept]")) {
+    button.onclick = () => acceptHandshake(button.getAttribute("data-accept"));
+  }
+  for (const button of panel.querySelectorAll("[data-peer]")) {
+    button.onclick = () => { chatPeer = button.getAttribute("data-peer") || ""; paintKachat(); };
+  }
+  wirePlaceExit();
+}
+
+async function refreshChat() {
+  if (!state.id.address) return;
+  const body = await api("/api/1984/chat?address=" + encodeURIComponent(state.id.address));
+  if (!body.ok) return;
+  state.chat = body;
+  if (state.mode !== "kachat") return;
+  if (panel.querySelector("input:focus, textarea:focus")) return;
+  paintKachat();
+}
+
+function takeChat(body) {
+  if (body.account) state.account = body.account;
+  if (body.hands) state.chat = body;
+  paintChrome();
+  paintKachat();
+}
+
+async function sendHandshake() {
+  if (!requireId()) return;
+  const to = (document.getElementById("chat-to") || {}).value || "";
+  chatPeer = to.trim();
+  const body = await post("/api/1984/chat/handshake", { to: chatPeer });
+  if (!body.ok) {
+    say(body.error || "The handshake did not send.", true);
+    return;
+  }
+  say(body.note || "Handshake sent.");
+  takeChat(body);
+}
+
+async function acceptHandshake(from) {
+  if (!requireId()) return;
+  const body = await post("/api/1984/chat/accept", { from });
+  if (!body.ok) {
+    say(body.error || "The handshake was not accepted.", true);
+    return;
+  }
+  chatPeer = from || chatPeer;
+  say(body.note || "Accepted.");
+  takeChat(body);
+}
+
+async function sendChat() {
+  if (!requireId()) return;
+  const to = chatPeer || (document.getElementById("chat-to") || {}).value || "";
+  const text = (document.getElementById("chat-text") || {}).value || "";
+  const body = await post("/api/1984/chat/send", { to, text });
+  if (!body.ok) {
+    say(body.error || "The message did not send.", true);
+    return;
+  }
+  chatPeer = to;
+  say(body.note || "Sent.");
+  takeChat(body);
 }
 
 function paintMint() {

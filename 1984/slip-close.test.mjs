@@ -48,7 +48,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=114/);
+  assert.match(html, /1984\/client\.mjs\?v=115/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -115,7 +115,7 @@ test("exit to the square is on the shop card", () => {
   assert.match(client, /Exit to the square is on the shop, the bank, Hunt Hall, and the cinema/);
   const wire = sliceFn(client, "wirePlaceExit");
   assert.match(wire, /openMode\("world"\)/);
-  for (const name of ["paintShop", "paintBank", "paintHunt", "paintRules", "paintBench", "paintGuide", "paintMint"]) {
+  for (const name of ["paintShop", "paintBank", "paintHunt", "paintRules", "paintBench", "paintGuide", "paintMint", "paintLayer", "paintKachat"]) {
     assert.match(sliceFn(client, name), /placeActs\(/);
     assert.match(sliceFn(client, name), /wirePlaceExit\(\)/);
   }
@@ -130,9 +130,10 @@ test("exit to the square is on the shop card", () => {
 
 test("the balances stay in the top right with Bank", () => {
   const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
+  const rails = readFileSync(new URL("../rails.html", import.meta.url), "utf8");
   assert.match(html, /<header class="kw-bar" id="bar"><\/header>/);
-  assert.match(html, /1984\.css\?v=66/);
-  assert.match(html, /1984\/client\.mjs\?v=114/);
+  assert.match(html, /1984\.css\?v=67/);
+  assert.match(html, /1984\/client\.mjs\?v=115/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
@@ -156,7 +157,13 @@ test("the balances stay in the top right with Bank", () => {
   assert.match(mintCard, /Open mints/);
   assert.match(mintCard, /Any funded address can mint more/);
   assert.match(mintCard, /data-join/);
-  assert.match(css, /\.mint-open \{[\s\S]*?overflow-y: auto/);
+  assert.match(css, /\.mint-open, \.layer-scroll, \.chat-scroll \{[\s\S]*?overflow-y: auto/);
+  assert.match(client, /\["layer", "Layer"\]/);
+  assert.match(client, /\["kachat", "Kachat"\]/);
+  assert.match(client, /Layer-Kaspa/);
+  assert.match(rails, /<h2>The stag<\/h2>/);
+  assert.match(rails, /Layer-Kaspa/);
+  assert.match(rails, /kachat\.app\/home/);
   assert.match(css, /\.kw-bar \{[\s\S]*?right: 8px;/);
   assert.match(css, /\.kw\.flight \.kw-bar,\s*\.kw\.watching \.kw-bar,\s*\.kw\.room \.kw-bar \{ display: block; \}/);
   assert.doesNotMatch(css, /\.kw\.flight \.kw-bar \{ display: none/);

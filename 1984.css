@@ -549,7 +549,7 @@ body.page-1984 main.kw-stage {
   line-height: 1.35;
   color: #f2d48a;
 }
-.mint-open {
+.mint-open, .layer-scroll, .chat-scroll {
   margin: 0.2rem 0 0.4rem;
   padding: 0.15rem 0.35rem 0.15rem 0;
   list-style: none;
