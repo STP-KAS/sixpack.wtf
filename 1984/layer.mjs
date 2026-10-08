@@ -54,6 +54,22 @@ function clip(value, max) {
   return String(value || "").replace(/[\u0000-\u001f]/g, "").trim().slice(0, max);
 }
 
+const ACCENTS = new Set(["stone", "gold", "green", "blue"]);
+
+function accentOf(raw) {
+  const value = String(raw || "stone").toLowerCase().trim();
+  return ACCENTS.has(value) ? value : "stone";
+}
+
+function cleanLink(labelRaw, urlRaw) {
+  const label = clip(labelRaw, 32);
+  const url = clip(urlRaw, 180);
+  if (!label && !url) return { label: "", url: "" };
+  if (!label || !url) throw new Error("A link needs a label and an https address.");
+  if (!/^https:\/\/\S+$/.test(url) || url.length < 12) throw new Error("A link starts with https://.");
+  return { label, url };
+}
+
 function cleanOffers(raw) {
   const list = Array.isArray(raw) ? raw : [];
   if (list.length > 8) throw new Error("A site can list 8 offers.");
@@ -79,7 +95,12 @@ export function publicSites(state) {
         host: name + ".kas",
         owner: row.owner,
         title: row.title || name,
+        tagline: row.tagline || "",
         about: row.about || "",
+        welcome: row.welcome || "",
+        accent: accentOf(row.accent),
+        linkLabel: row.linkLabel || "",
+        linkUrl: row.linkUrl || "",
         kns: row.kns === "tn10" ? "tn10" : "square",
         offers: (row.offers || []).map((item) => ({
           id: item.id,
@@ -118,28 +139,36 @@ function receipt(state, account, note, rail, cents, now) {
 export function applyClaim(state, input, now) {
   const address = assertTestnet(input.address);
   const name = normalizeLabel(input.name);
+  if (input.kns !== "tn10") {
+    throw new Error("Own this name on the KNS testnet index before you customize it. The KNS app registers it. This desk does not.");
+  }
   const next = clone(state);
   const sites = book(next);
   const existing = sites[name];
-  if (existing && existing.owner.toLowerCase() !== address.toLowerCase()) {
-    throw new Error("That Layer-Kaspa name is already taken.");
-  }
-  const kns = input.kns === "tn10" ? "tn10" : "square";
   if (!existing) {
-    sites[name] = { owner: address, title: name, about: "", offers: [], kns };
+    sites[name] = {
+      owner: address,
+      title: name,
+      tagline: "",
+      about: "",
+      welcome: "",
+      accent: "stone",
+      linkLabel: "",
+      linkUrl: "",
+      offers: [],
+      kns: "tn10",
+    };
   } else {
-    existing.kns = kns;
+    existing.owner = address;
+    existing.kns = "tn10";
   }
-  const where = kns === "tn10"
-    ? " This address already owns " + name + ".kas on the KNS testnet index."
-    : " This name is on Layer-Kaspa. It is not a registration at the KNS index. The KNS app does that.";
   return {
     state: next,
     result: {
       ok: true,
       site: publicSites(next).find((row) => row.name === name),
       sites: publicSites(next),
-      note: "Claimed " + name + ".kas on Layer-Kaspa." + where,
+      note: "This address owns " + name + ".kas on the KNS testnet index. This desk did not register it.",
       at: now,
     },
   };
@@ -150,11 +179,20 @@ export function applySite(state, input, now) {
   const name = normalizeLabel(input.name);
   const next = clone(state);
   const row = book(next)[name];
-  if (!row || row.owner.toLowerCase() !== address.toLowerCase()) {
-    throw new Error("Claim that name before you build on it.");
+  if (!row || row.kns !== "tn10") {
+    throw new Error("Own this name on the KNS testnet index before you customize it. The KNS app registers it. This desk does not.");
   }
+  if (row.owner.toLowerCase() !== address.toLowerCase()) {
+    throw new Error("Only the owner of this name on the KNS testnet index can change the page.");
+  }
+  const link = cleanLink(input.linkLabel, input.linkUrl);
   row.title = clip(input.title, 48) || name;
+  row.tagline = clip(input.tagline, 80);
   row.about = clip(input.about, 280);
+  row.welcome = clip(input.welcome, 400);
+  row.accent = accentOf(input.accent);
+  row.linkLabel = link.label;
+  row.linkUrl = link.url;
   row.offers = cleanOffers(input.offers);
   return {
     state: next,
@@ -162,7 +200,7 @@ export function applySite(state, input, now) {
       ok: true,
       site: publicSites(next).find((item) => item.name === name),
       sites: publicSites(next),
-      note: "Published " + name + ".kas on Layer-Kaspa.",
+      note: "Published " + name + ".kas. Visitors can open the page. Only this owner can change it. No covenant is deployed.",
       at: now,
     },
   };

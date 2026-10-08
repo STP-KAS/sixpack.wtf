@@ -1532,6 +1532,7 @@ function hidePanel() {
   panel.innerHTML = "";
   panel.classList.remove("swap-pop", "stall-pop");
   stopMintWatch();
+  hideLayerPop();
   const shade = document.getElementById("bank-shade");
   if (shade) shade.hidden = true;
 }
@@ -1904,6 +1905,7 @@ function openMode(mode) {
   }
   state.mode = mode;
   if (mode !== "mint") stopMintWatch();
+  if (mode !== "layer") hideLayerPop();
   markRoom();
   paintChrome();
   const shade = document.getElementById("bank-shade");
@@ -2589,7 +2591,7 @@ function paintGuide() {
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Peer to peer is the payment. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled. This square is still the classroom.</li>" +
     "<li>Mint is the building with the Mint sign. Walk in and click the counter. What: a token on this ledger, under KCC-20 Last Call. It is not Final, and no covenant is deployed. How: open a new name, mint more, or send it. Open names sit in the list next to the card and update when a name opens. A name that has reached its cap is in the tall list. Click a name to see the addresses, the amounts, and the ledger lines. Why: so you can try a mint on Testnet 10. Type 0 in Cap for no cap. There is no maximum.</li>" +
-    "<li>Layer-Kaspa is on the side rail. Claim a name, write the site, and list products and services. Buyers pay POCencept or KUSDT. The bank is on that card. The name lives on this square. A real .kas registration is the KNS app. This layer does not hide the path. It is not Tor.</li>" +
+    "<li>Layer-Kaspa is on the side rail. Open a .kas name. Visitors see the page. Only the address that owns that name on the KNS testnet index can change it. The window has the title, a tagline, the welcome, a color, a link, and offers. Register the name in the KNS app. This desk does not register it. This layer does not hide the path. It is not Tor.</li>" +
     "<li>Kachat is on the side rail. Paste the other kaspatest address and send a handshake. They accept it. Then you send messages. Each step is 0.01 POCencept. Messages only. The KaChat app on the chain is a different program.</li>" +
     "<li>Vault is on the side rail. It keeps a note on this square ledger and a rule for who may read it and when. The labels are a note, an NDA, an enterprise file, or other. A real secret does not belong here. This page checks the readers and the time. A covenant mark is a label. No covenant is deployed. Seal keeps the note and the rule.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
@@ -3219,6 +3221,8 @@ async function freeze() {
 }
 
 let layerVisit = "";
+let layerOwns = false;
+let layerKns = "";
 let chatPeer = "";
 let vaultFocus = "";
 
@@ -3226,96 +3230,198 @@ function moneyLabel(cents) {
   return formatCents(cents);
 }
 
+function layerKey(value) {
+  return String(value || "").trim().toLowerCase().replace(/\.kas$/, "");
+}
+
+function layerSite(name) {
+  const key = layerKey(name);
+  return ((state.home && state.home.sites) || []).find((row) => row.name === key) || null;
+}
+
+function hideLayerPop() {
+  layerVisit = "";
+  layerOwns = false;
+  layerKns = "";
+  const pop = document.getElementById("layer-pop");
+  if (!pop) return;
+  pop.hidden = true;
+  pop.innerHTML = "";
+  pop.className = "kw-panel layer-pop";
+}
+
 function paintLayer() {
   const sites = (state.home && state.home.sites) || [];
-  const mine = sites.find((row) => state.id.address && row.owner.toLowerCase() === state.id.address.toLowerCase());
-  const open = layerVisit ? sites.find((row) => row.name === layerVisit) : null;
   const directory = sites.length
     ? "<ul class=\"layer-scroll\">" + sites.map((row) => {
-      const mark = row.kns === "tn10" ? " · on the KNS index" : " · this square";
+      const mark = row.kns === "tn10" ? " · KNS index" : " · earlier square page";
       return "<li><button type=\"button\" data-visit=\"" + esc(row.name) + "\">" + esc(row.host) + "</button> " + esc(row.title) + esc(mark) + "</li>";
     }).join("") + "</ul>"
-    : "<p class=\"mint-cap-note\">No site yet. Claim a name and publish one.</p>";
-  const visit = open
-    ? "<p><strong>" + esc(open.host) + "</strong> · " + esc(open.title) + "</p><p>" + esc(open.about || "No description yet.") + "</p>" +
-      (open.offers.length ? open.offers.map((item) =>
-        "<p>" + esc(item.name) + " · " + esc(item.kind) + " · " + esc(moneyLabel(item.cents)) +
-        " <button type=\"button\" data-buy=\"" + esc(open.name) + "|" + esc(item.id) + "|poc\">POCencept</button>" +
-        " <button type=\"button\" data-buy=\"" + esc(open.name) + "|" + esc(item.id) + "|kusdt\">KUSDT</button></p>"
-      ).join("") : "<p>No offer yet.</p>") +
-      "<button type=\"button\" id=\"layer-back\">All sites</button>"
-    : "";
-  const offers = [0, 1, 2].map((i) => {
-    const row = mine && mine.offers[i];
+    : "<p class=\"mint-cap-note\">No page yet. Open a name that is owned on the KNS testnet index.</p>";
+  panel.innerHTML =
+    '<div class="stall-head"><h2>Layer-Kaspa</h2>' + placeActs("") + "</div>" +
+    "<p><strong>What.</strong> Layer-Kaspa opens a .kas name from the KNS testnet index. Visitors can open a published page. Only the address that owns the name can change it.</p>" +
+    "<p><strong>How.</strong> Register the name in the <a href=\"https://app.knsdomains.org\" target=\"_blank\" rel=\"noopener\">KNS app</a>. The testnet index is <a href=\"https://tn10.knsdomains.org\" target=\"_blank\" rel=\"noopener\">tn10.knsdomains.org</a>. Open the name here. If this address owns it, a window opens with the page options. Visitors get the page without those controls. This desk does not register the name.</p>" +
+    "<p><strong>Why.</strong> So a name you already own on the Kaspa testnet index can have a page on this square. It is not Tor, and it does not hide the path. No covenant is deployed.</p>" +
+    '<label class="mint-line"><span>Name</span><input id="layer-name" maxlength="32" spellcheck="false" autocomplete="off" placeholder="name.kas"></label>' +
+    '<button type="button" id="layer-open">Open</button> ' +
+    '<button type="button" id="layer-bank">Bank</button>' +
+    "<p><strong>Pages.</strong> Open one to visit. The owner is the only one who can change it.</p>" +
+    directory;
+  document.getElementById("layer-open").onclick = () => openLayer((document.getElementById("layer-name") || {}).value || "");
+  document.getElementById("layer-bank").onclick = () => openMode("bank");
+  for (const button of panel.querySelectorAll("[data-visit]")) {
+    button.onclick = () => openLayer(button.getAttribute("data-visit"));
+  }
+  wirePlaceExit();
+}
+
+function layerOfferRows(site) {
+  return [0, 1, 2, 3, 4, 5].map((i) => {
+    const row = site && site.offers[i];
     return "<div class=\"mint-line\" data-offer><input class=\"offer-name\" maxlength=\"40\" placeholder=\"Offer\" value=\"" + esc(row ? row.name : "") + "\">" +
       "<input class=\"offer-cents\" inputmode=\"numeric\" placeholder=\"cents\" value=\"" + esc(row ? row.cents : "") + "\">" +
       "<select class=\"offer-kind\"><option value=\"product\"" + (row && row.kind === "service" ? "" : " selected") + ">Product</option>" +
       "<option value=\"service\"" + (row && row.kind === "service" ? " selected" : "") + ">Service</option></select></div>";
   }).join("");
-  panel.innerHTML =
-    '<div class="stall-head"><h2>Layer-Kaspa</h2>' + placeActs("") + "</div>" +
-    "<p><strong>What.</strong> Layer-Kaspa is a site layer on this square. A funded address claims a name and publishes a page. Buyers pay with the same rails as the shops. It is not Tor, and it does not hide the path. It is not a new chain.</p>" +
-    "<p><strong>How.</strong> Type a name. Write a title and a line about the place. Add up to three offers, with a price in cents. Publish. The bank on this card swaps tKAS into POCencept or KUSDT. A real .kas name is registered in the <a href=\"https://app.knsdomains.org\" target=\"_blank\" rel=\"noopener\">KNS app</a>. If this address already owns that name on the testnet index, the site says so.</p>" +
-    "<p><strong>Why.</strong> So a funded wallet can put a name and a till on this square while KCC-20 is still Last Call. No covenant is deployed.</p>" +
-    "<p><strong>Sites.</strong> Scroll the list. Open one to buy.</p>" +
-    directory +
-    visit +
-    "<p><strong>Your site.</strong></p>" +
-    '<label class="mint-line"><span>Name</span><input id="layer-name" maxlength="32" spellcheck="false" autocomplete="off" value="' + esc(mine ? mine.name : "") + '"></label>' +
-    '<label class="mint-line"><span>Title</span><input id="layer-title" maxlength="48" value="' + esc(mine ? mine.title : "") + '"></label>' +
-    '<label class="mint-line"><span>About</span><input id="layer-about" maxlength="280" value="' + esc(mine ? mine.about : "") + '"></label>' +
-    offers +
-    '<button type="button" id="layer-publish">Publish</button> ' +
-    '<button type="button" id="layer-bank">Bank</button>';
-  const back = document.getElementById("layer-back");
-  if (back) back.onclick = () => { layerVisit = ""; paintLayer(); };
-  for (const button of panel.querySelectorAll("[data-visit]")) {
-    button.onclick = () => { layerVisit = button.getAttribute("data-visit"); paintLayer(); };
+}
+
+function layerVisitHtml(site) {
+  if (!site) {
+    if (layerKns === "") return "<p>Checking the KNS testnet index.</p>";
+    if (layerKns === "error") return "<p>The KNS testnet index did not answer. Open the name again in a moment.</p>";
+    if (layerKns === "other") return "<p>This name is on the KNS testnet index for another address. That owner has not published a page here. Visitors cannot change it.</p>";
+    return "<p>This name is not on the KNS testnet index. Register it in the <a href=\"https://app.knsdomains.org\" target=\"_blank\" rel=\"noopener\">KNS app</a>. This desk does not register it.</p>";
   }
-  for (const button of panel.querySelectorAll("[data-buy]")) {
+  const link = site.linkUrl ? "<p><a href=\"" + esc(site.linkUrl) + "\" target=\"_blank\" rel=\"noopener\">" + esc(site.linkLabel || site.linkUrl) + "</a></p>" : "";
+  const offers = site.offers.length
+    ? site.offers.map((item) =>
+      "<p>" + esc(item.name) + " · " + esc(item.kind) + " · " + esc(moneyLabel(item.cents)) +
+      " <button type=\"button\" data-buy=\"" + esc(site.name) + "|" + esc(item.id) + "|poc\">POCencept</button>" +
+      " <button type=\"button\" data-buy=\"" + esc(site.name) + "|" + esc(item.id) + "|kusdt\">KUSDT</button></p>"
+    ).join("")
+    : "<p>No offer yet.</p>";
+  return "<p class=\"mint-cap-note\">You are visiting. Only the owner on the KNS testnet index can change this page.</p>" +
+    (site.tagline ? "<p><strong>" + esc(site.tagline) + "</strong></p>" : "") +
+    "<p>" + esc(site.about || "No description yet.") + "</p>" +
+    (site.welcome ? "<p>" + esc(site.welcome) + "</p>" : "") +
+    link +
+    offers;
+}
+
+function paintLayerPop() {
+  const pop = document.getElementById("layer-pop");
+  if (!pop) return;
+  if (!layerVisit) {
+    hideLayerPop();
+    return;
+  }
+  const site = layerSite(layerVisit);
+  const accent = site ? site.accent : "stone";
+  pop.className = "kw-panel layer-pop layer-accent-" + accent;
+  pop.hidden = false;
+  const host = layerKey(layerVisit) + ".kas";
+  if (layerOwns) {
+    const picked = (value) => (site && site.accent === value ? " selected" : (!site && value === "stone" ? " selected" : ""));
+    pop.innerHTML =
+      '<div class="stall-head"><h2>' + esc(host) + '</h2><div class="stall-acts"><button type="button" id="layer-pop-close">Close</button></div></div>' +
+      "<p>You own this name on the KNS testnet index. Visitors can open the page. They cannot change it. This desk did not register the name.</p>" +
+      '<label class="mint-line"><span>Title</span><input id="layer-title" maxlength="48" value="' + esc(site ? site.title : "") + '"></label>' +
+      '<label class="mint-line"><span>Tagline</span><input id="layer-tagline" maxlength="80" value="' + esc(site ? site.tagline : "") + '"></label>' +
+      '<label class="mint-line"><span>About</span><input id="layer-about" maxlength="280" value="' + esc(site ? site.about : "") + '"></label>' +
+      '<label class="mint-line"><span>Welcome</span><textarea id="layer-welcome" class="layer-field" maxlength="400" rows="4">' + esc(site ? site.welcome : "") + "</textarea></label>" +
+      '<label class="mint-line"><span>Color</span><select id="layer-accent">' +
+      '<option value="stone"' + picked("stone") + ">Stone</option>" +
+      '<option value="gold"' + picked("gold") + ">Gold</option>" +
+      '<option value="green"' + picked("green") + ">Green</option>" +
+      '<option value="blue"' + picked("blue") + ">Blue</option>" +
+      "</select></label>" +
+      '<label class="mint-line"><span>Link</span><input id="layer-link-label" maxlength="32" placeholder="Label" value="' + esc(site ? site.linkLabel : "") + '"></label>' +
+      '<label class="mint-line"><span>https</span><input id="layer-link-url" maxlength="180" spellcheck="false" placeholder="https://" value="' + esc(site ? site.linkUrl : "") + '"></label>' +
+      "<p><strong>Offers.</strong> Up to six. A price is whole cents. Visitors can buy. They cannot edit.</p>" +
+      layerOfferRows(site) +
+      '<button type="button" id="layer-publish">Save page</button>';
+    document.getElementById("layer-publish").onclick = publishSite;
+  } else {
+    pop.innerHTML =
+      '<div class="stall-head"><h2>' + esc(host) + '</h2><div class="stall-acts"><button type="button" id="layer-pop-close">Close</button></div></div>' +
+      layerVisitHtml(site);
+  }
+  document.getElementById("layer-pop-close").onclick = () => hideLayerPop();
+  for (const button of pop.querySelectorAll("[data-buy]")) {
     button.onclick = () => buyOffer(button.getAttribute("data-buy"));
   }
-  document.getElementById("layer-publish").onclick = publishSite;
-  document.getElementById("layer-bank").onclick = () => openMode("bank");
-  wirePlaceExit();
 }
 
 async function refreshLayer() {
   const body = await api("/api/1984");
   if (!body.ok || !body.sites) return;
   if (!state.home) state.home = {};
-  const prev = JSON.stringify(state.home.sites || []);
   state.home.sites = body.sites;
-  if (prev === JSON.stringify(body.sites)) return;
   if (state.mode !== "layer") return;
-  if (panel.querySelector("input:focus, textarea:focus, select:focus")) return;
+  const pop = document.getElementById("layer-pop");
+  const focus = document.activeElement;
+  if (focus && panel.contains(focus)) return;
   paintLayer();
+  if (focus && pop && pop.contains(focus)) return;
+  if (layerVisit) paintLayerPop();
+}
+
+async function openLayer(name) {
+  const raw = String(name || "").trim();
+  if (!raw) {
+    say("Type a .kas name.", true);
+    return;
+  }
+  layerVisit = raw;
+  layerOwns = false;
+  layerKns = "";
+  paintLayerPop();
+  const body = await api("/api/1984/resolve?name=" + encodeURIComponent(raw));
+  if (state.mode !== "layer" || layerVisit !== raw) return;
+  const found = body.ok ? body.found : null;
+  if (!body.ok) layerKns = "error";
+  else if (found && found.address && state.id.address && found.address.toLowerCase() === state.id.address.toLowerCase()) {
+    layerOwns = true;
+    layerKns = "tn10";
+  } else if (found && found.address) layerKns = "other";
+  else layerKns = "none";
+  paintLayerPop();
 }
 
 async function publishSite() {
   if (!requireId()) return;
-  const name = (document.getElementById("layer-name") || {}).value || "";
-  const title = (document.getElementById("layer-title") || {}).value || "";
-  const about = (document.getElementById("layer-about") || {}).value || "";
-  const offers = [...panel.querySelectorAll("[data-offer]")].map((row) => ({
+  if (!layerOwns) {
+    say("Only the owner of this name on the KNS testnet index can change the page.", true);
+    return;
+  }
+  const pop = document.getElementById("layer-pop");
+  const read = (id) => (document.getElementById(id) || {}).value || "";
+  const offers = [...pop.querySelectorAll("[data-offer]")].map((row) => ({
     name: (row.querySelector(".offer-name") || {}).value || "",
     cents: (row.querySelector(".offer-cents") || {}).value || "",
     kind: (row.querySelector(".offer-kind") || {}).value || "product",
   })).filter((row) => String(row.name).trim());
-  const claimed = await post("/api/1984/layer/claim", { name });
-  if (!claimed.ok) {
-    say(claimed.error || "The name was not claimed.", true);
-    return;
-  }
-  const saved = await post("/api/1984/layer/save", { name, title, about, offers });
+  const saved = await post("/api/1984/layer/save", {
+    name: layerVisit,
+    title: read("layer-title"),
+    tagline: read("layer-tagline"),
+    about: read("layer-about"),
+    welcome: read("layer-welcome"),
+    accent: read("layer-accent") || "stone",
+    linkLabel: read("layer-link-label"),
+    linkUrl: read("layer-link-url"),
+    offers,
+  });
   if (!saved.ok) {
-    say(saved.error || "The site was not published.", true);
+    say(saved.error || "The page was not saved.", true);
     return;
   }
   if (!state.home) state.home = {};
-  state.home.sites = saved.sites || claimed.sites || [];
-  say(saved.note || claimed.note || "Published.");
+  state.home.sites = saved.sites || [];
+  say(saved.note || "Saved.");
   paintLayer();
+  paintLayerPop();
 }
 
 async function buyOffer(spec) {
@@ -3331,6 +3437,7 @@ async function buyOffer(spec) {
   say(body.note || "Bought.");
   paintChrome();
   paintLayer();
+  if (layerVisit) paintLayerPop();
 }
 
 function paintKachat() {

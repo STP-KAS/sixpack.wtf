@@ -90,6 +90,23 @@ export function create1984Service(deps) {
     return assertTestnet(body && body.address);
   }
 
+  async function layerGate(name, address) {
+    let found = null;
+    try {
+      found = await resolveName(String(name || ""), deps.fetch);
+    } catch (err) {
+      const msg = String((err && err.message) || "");
+      if (/mainnet|Type a \.kas name/i.test(msg)) throw err;
+      throw new Error("The KNS testnet index did not confirm this address owns that name.");
+    }
+    if (!found) {
+      throw new Error("Own this name on the KNS testnet index before you customize it. The KNS app registers it. This desk does not.");
+    }
+    if (found.address.toLowerCase() !== address.toLowerCase()) {
+      throw new Error("That name is already on the KNS testnet index for another address.");
+    }
+  }
+
   async function payment(address, txid, need, opts) {
     const lastTry = !!(opts && opts.publicList);
     if (deps.lookupTx) {
@@ -577,27 +594,30 @@ export function create1984Service(deps) {
           });
         }
         if (pathname === "/api/1984/layer/claim") {
-          let kns = "square";
-          try {
-            const found = await resolveName(String(body.name || ""), deps.fetch);
-            if (found && found.address.toLowerCase() !== address.toLowerCase()) {
-              throw new Error("That name is already on the KNS testnet index for another address.");
-            }
-            if (found) kns = "tn10";
-          } catch (err) {
-            const msg = String((err && err.message) || "");
-            if (/another address|mainnet/i.test(msg)) throw err;
-          }
+          await layerGate(body.name, address);
           return await queue(async () => {
-            const out = applyClaim(state, { address, name: body.name, kns }, now);
+            const out = applyClaim(state, { address, name: body.name, kns: "tn10" }, now);
             state = out.state;
             deps.save(state);
             return { status: 200, body: out.result };
           });
         }
         if (pathname === "/api/1984/layer/save") {
+          await layerGate(body.name, address);
           return await queue(async () => {
-            const out = applySite(state, { address, name: body.name, title: body.title, about: body.about, offers: body.offers }, now);
+            const claimed = applyClaim(state, { address, name: body.name, kns: "tn10" }, now);
+            const out = applySite(claimed.state, {
+              address,
+              name: body.name,
+              title: body.title,
+              tagline: body.tagline,
+              about: body.about,
+              welcome: body.welcome,
+              accent: body.accent,
+              linkLabel: body.linkLabel,
+              linkUrl: body.linkUrl,
+              offers: body.offers,
+            }, now);
             state = out.state;
             deps.save(state);
             return { status: 200, body: out.result };

@@ -155,7 +155,12 @@ export async function resolveName(name, fetchImpl) {
   const domain = normalizeKasName(name);
   if (!domain) throw new Error("Type a .kas name, letters and numbers, or keep the kaspatest address.");
   const url = KNS + "/" + encodeURIComponent(domain) + "/owner";
-  const res = await fetchImpl(url, { headers: { accept: "application/json" } });
+  let res;
+  try {
+    res = await fetchImpl(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(8000) });
+  } catch {
+    throw new Error("The KNS testnet index did not answer.");
+  }
   if (res.status === 404) return null;
   const body = await res.json().catch(() => null);
   if (!res.ok && !body) throw new Error("KNS did not answer.");
