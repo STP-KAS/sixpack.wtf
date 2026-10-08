@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { pageFeeRate, payFeeRate } from "./fee-rate.mjs";
-import { FROM } from "./policy.mjs";
+import { FROM, sompiToTkas } from "./policy.mjs";
 
 const WASM =
   process.env.KASPA_WASM ||
@@ -20,7 +20,7 @@ const SECRET =
   `${homedir().replace(/\\/g, "/")}/Documents/kaspa/groks-wallet/secrets/wallet.txt`;
 const RPC_URL = process.env.FAUCET_RPC || "127.0.0.1:17210";
 /** A refused local port still takes about two seconds. Remember that and do not wait it out on the next send. */
-const LOCAL_WAIT_MS = 400;
+const LOCAL_WAIT_MS = 1500;
 const LOCAL_DOWN_MS = 60_000;
 /** The page rate is already six times the standard. A slow quote must not hold the click. */
 const FEE_WAIT_MS = 400;
@@ -31,6 +31,8 @@ export function rpcConnectPlan(now, downUntil) {
   return now < downUntil ? "public" : "local";
 }
 const MAX_INPUTS = 80;
+/** One click may join this many batches. More than that stays on the page as a finished error. */
+const MAX_BATCHES = 40;
 const COINBASE_MATURITY = 1000n;
 
 /** Coinbase outputs cannot be spent until 1000 DAA scores have passed. */
@@ -61,6 +63,26 @@ function withTimeout(promise, ms, label) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
+async function closeRpc(rpc) {
+  if (!rpc) return;
+  await withTimeout(rpc.disconnect(), 2000, "The Testnet-10 node stayed open.").catch(() => undefined);
+}
+
+/** The balance is there, but the pieces are too small for this request. */
+export function splitSendMessage(have, fit) {
+  return (
+    "The faucet holds " +
+    sompiToTkas(have) +
+    " tKAS. The coins are too small to send this amount. One request can gather " +
+    sompiToTkas(fit) +
+    " tKAS."
+  );
+}
+
+export function shortSendMessage(have) {
+  return "The faucet holds " + sompiToTkas(have) + " tKAS. That is less than this send.";
+}
+
 async function openRpc(kaspa, net, url, ms) {
   const rpc = new kaspa.RpcClient({
     url,
@@ -77,7 +99,7 @@ async function openRpc(kaspa, net, url, ms) {
     if (!info.isSynced) throw new Error("Testnet-10 node is not synced.");
     return rpc;
   } catch (err) {
-    await rpc.disconnect().catch(() => undefined);
+    await closeRpc(rpc);
     throw err;
   }
 }
@@ -197,7 +219,7 @@ export async function quotedPayFeeRate() {
   try {
     return await feeRateFor(rpc);
   } finally {
-    await rpc.disconnect().catch(() => undefined);
+    await closeRpc(rpc);
   }
 }
 
@@ -209,7 +231,7 @@ export async function quotedPageFeeRate() {
   try {
     return await feeRateFor(rpc, pageFeeRate);
   } finally {
-    await rpc.disconnect().catch(() => undefined);
+    await closeRpc(rpc);
   }
 }
 
@@ -284,7 +306,7 @@ async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep
     const virtualDaa = dag.virtualDaaScore ?? 0;
     let { entries } = await withTimeout(
       rpc.getUtxosByAddresses([from]),
-      45000,
+      20000,
       "Reading coins took too long."
     );
     entries = [...entries].filter((entry) => isMatureEntry(entry, virtualDaa)).sort((a, b) => {
@@ -332,38 +354,22 @@ async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep
       feeReserve,
       MAX_INPUTS
     );
-    if (!plan.ok) throw new Error("No mature UTXOs large enough. Miner is still stacking dust.");
-    if (plan.count > MAX_INPUTS) {
-      step("Putting the coins together", { detail: "Joining the small coins" });
-      const { transactions } = await kaspa.createTransactions({
-        entries: entries.slice(0, plan.count),
-        outputs: [{ address: to, amount: want }],
-        priorityFee: 0n,
-        feeRate: rate,
-        changeAddress: from,
-        networkId: net,
-      });
-      const batch = transactions || [];
-      if (!batch.length) throw new Error("The send did not cover the amount.");
-      for (let i = 0; i < batch.length; i++) {
-        const pending = batch[i];
-        const outputs = [...pending.transaction.outputs];
-        const pays = outputs.some((output) => BigInt(output.value) === want);
-        const detail = `${i + 1} of ${batch.length}`;
-        if (pays) step("Signing the send", { detail });
-        else step("Putting the coins together", { detail });
-        await pending.sign([privateKey]);
-        if (pays) step("Broadcasting", { detail });
-        const txid = await withTimeout(pending.submit(rpc), 20000, "The Testnet-10 node did not take the send.");
-        txids.push(String(txid));
-        if (pays) sent += want;
-      }
-      if (sent < want) throw new Error("The send did not cover the amount.");
-      return { ok: true, from, to, sompi: sent.toString(), txids };
+    const sendLimit = MAX_INPUTS * MAX_BATCHES;
+    if (!plan.ok || plan.count > sendLimit) {
+      let have = 0n;
+      for (const entry of entries) have += BigInt(entry.amount);
+      if (have < want) throw new Error(shortSendMessage(have));
+      const picked = entries.slice(0, Math.min(entries.length, sendLimit));
+      let fit = 0n;
+      for (const entry of picked) fit += BigInt(entry.amount);
+      const batches = BigInt(Math.max(1, Math.ceil(picked.length / MAX_INPUTS) || 1));
+      fit = fit > feeReserve * batches ? fit - feeReserve * batches : 0n;
+      throw new Error(splitSendMessage(have, fit));
     }
     let cursor = 0;
     let guard = 0;
-    while (sent < want && cursor < entries.length && guard < 160) {
+    const guardMax = Math.max(1, Math.ceil(plan.count / MAX_INPUTS));
+    while (sent < want && cursor < entries.length && guard < guardMax) {
       guard += 1;
       const need = want - sent + feeReserve;
       const picked = [];
@@ -376,7 +382,7 @@ async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep
       if (!picked.length || acc <= feeReserve) break;
       const chunk = acc - feeReserve > want - sent ? want - sent : acc - feeReserve;
       if (chunk <= 0n) break;
-      step("Signing the send");
+      step("Signing the send", { detail: guard + " of " + guardMax });
       const { transactions } = await kaspa.createTransactions({
         entries: picked,
         outputs: [{ address: to, amount: chunk }],
@@ -387,16 +393,16 @@ async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep
       });
       for (const pending of transactions) {
         await pending.sign([privateKey]);
-        step("Broadcasting");
+        step("Broadcasting", { detail: guard + " of " + guardMax });
         const txid = await withTimeout(pending.submit(rpc), 20000, "The Testnet-10 node did not take the send.");
         txids.push(String(txid));
       }
       sent += chunk;
     }
-    if (!txids.length) throw new Error("No mature UTXOs large enough. Miner is still stacking dust.");
+    if (!txids.length) throw new Error(splitSendMessage(0n, 0n));
     return { ok: true, from, to, sompi: sent.toString(), txids };
   } finally {
-    await rpc.disconnect().catch(() => undefined);
+    await closeRpc(rpc);
   }
 }
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { payFromKey, selectCovering } from "../faucet/pay.mjs";
+import { payFromKey, selectCovering, shortSendMessage, splitSendMessage } from "../faucet/pay.mjs";
 import {
   GUEST_BYE_MS,
   GUEST_DISCLAIMER,
@@ -100,6 +100,11 @@ test("fifty thousand tKAS needs more than one batch when the coins are small", (
   const dust = Array.from({ length: 10 }, () => 1n);
   const short = selectCovering(dust, 50000n * 100_000_000n, 50_000_000n, 80);
   assert.equal(short.ok, false);
+  assert.match(splitSendMessage(983929122383296n, 16119100000000n), /9839291\.22383296 tKAS/);
+  assert.match(splitSendMessage(983929122383296n, 16119100000000n), /161191 tKAS/);
+  assert.match(splitSendMessage(1n, 1n), /too small to send this amount/);
+  assert.match(shortSendMessage(100000000n), /holds 1 tKAS/);
+  assert.match(shortSendMessage(100000000n), /less than this send/);
 });
 
 test("payFromKey refuses mainnet and a self payment before it talks to a node", async () => {

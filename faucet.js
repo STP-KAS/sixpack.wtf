@@ -331,6 +331,7 @@
       method: "POST",
       headers: { "content-type": "application/json", "Bypass-Tunnel-Reminder": "true" },
       body: JSON.stringify({ address: address, amount: choice.send }),
+      signal: AbortSignal.timeout(45000),
     })
       .then(readJson)
       .then(async function (j) {
@@ -349,11 +350,7 @@
               cur = await readJson(res);
             } catch (_) {
               misses += 1;
-              if (misses >= 4) {
-                popup("error", "Error", "<p>Loading paused. The payout API stopped answering. Stay on this page and refresh.</p>");
-                return;
-              }
-              popup("wait", "Loading", loadingHtml(amount, address, j.step || "Checking the address", choice.downgrade) + "<p class=\"fnote\">Still loading. Checking the payout again.</p>");
+              popup("wait", "Loading", loadingHtml(amount, address, (cur && cur.step) || j.step || "Checking the address", choice.downgrade) + "<p class=\"fnote\">Still loading. Checking the payout again.</p>");
               continue;
             }
             if (cur && cur.html) {
@@ -363,7 +360,8 @@
             misses = 0;
             if (showResult(cur, address)) return;
             const step = (cur && cur.step) || j.step || "Checking the address";
-            popup("wait", "Loading", loadingHtml(amount, address, step, choice.downgrade));
+            const detail = cur && cur.detail ? "<p class=\"fnote\">" + esc(cur.detail) + "</p>" : "";
+            popup("wait", "Loading", loadingHtml(amount, address, step, choice.downgrade) + detail);
           }
           popup("error", "Error", "<p>Still loading after three minutes. The send may still finish. Refresh this page in a moment and check the address.</p>");
           return;
@@ -381,7 +379,14 @@
         loadPublicBalance();
       })
       .catch(function (err) {
-        popup("error", "Error", "<p>Loading failed. The payout API did not answer. Stay on this page and refresh.</p>");
+        const timedOut = err && (err.name === "TimeoutError" || err.name === "AbortError");
+        popup(
+          "error",
+          "Error",
+          timedOut
+            ? "<p>The payout took too long to answer. Stay on this page and try a smaller amount.</p>"
+            : "<p>Loading failed. The payout API did not answer. Stay on this page and refresh.</p>"
+        );
         console.error(err);
       })
       .finally(function () {

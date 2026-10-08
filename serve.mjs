@@ -226,7 +226,12 @@ http
             address: plan.address,
           });
           sendJson(res, 202, started, req);
-          const paid = await payTn10(plan.address, plan.sompi, (step) => rememberJob(jobId, { step }));
+          const paid = await payTn10(plan.address, plan.sompi, (step, extra) => {
+            rememberJob(jobId, {
+              step,
+              detail: extra && extra.detail ? String(extra.detail).slice(0, 80) : "",
+            });
+          });
           const at = Date.now();
           recordClaim({ key: plan.addrKey, address: plan.address, sompi: paid.sompi, txids: paid.txids, at, ip });
           recordClaim({ key: plan.ipKey, address: plan.address, sompi: paid.sompi, txids: paid.txids, at, ip });
