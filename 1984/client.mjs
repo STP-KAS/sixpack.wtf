@@ -474,6 +474,7 @@ function paintChrome() {
     ["mint", "Mint"],
     ["layer", "Layer"],
     ["kachat", "Kachat"],
+    ["vault", "Vault"],
     ["groceries", "Market"],
     ["hunt", "Hunt"],
     ["bank", "Bank"],
@@ -1906,7 +1907,7 @@ function openMode(mode) {
   markRoom();
   paintChrome();
   const shade = document.getElementById("bank-shade");
-  const sheet = mode === "mint" || mode === "layer" || mode === "kachat";
+  const sheet = mode === "mint" || mode === "layer" || mode === "kachat" || mode === "vault";
   panel.classList.toggle("swap-pop", mode === "bank");
   panel.classList.toggle("stall-pop", (isVisit(mode) && mode !== "bank") || sheet);
   if (shade) shade.hidden = !(isVisit(mode) || sheet);
@@ -1927,6 +1928,10 @@ function openMode(mode) {
   else if (mode === "kachat") {
     paintKachat();
     refreshChat();
+  }
+  else if (mode === "vault") {
+    paintVault();
+    refreshVault();
   }
   else if (mode === "bank") {
     if (enteringBank && !keepClerk) {
@@ -2586,6 +2591,7 @@ function paintGuide() {
     "<li>Mint is the building with the Mint sign. Walk in and click the counter. What: a token on this ledger, under KCC-20 Last Call. It is not Final, and no covenant is deployed. How: open a new name, mint more, or send it. Open names sit in the list next to the card and update when a name opens. A name that has reached its cap is in the tall list. Click a name to see the addresses, the amounts, and the ledger lines. Why: so you can try a mint on Testnet 10. Type 0 in Cap for no cap. There is no maximum.</li>" +
     "<li>Layer-Kaspa is on the side rail. Claim a name, write the site, and list products and services. Buyers pay POCencept or KUSDT. The bank is on that card. The name lives on this square. A real .kas registration is the KNS app. This layer does not hide the path. It is not Tor.</li>" +
     "<li>Kachat is on the side rail. Paste the other kaspatest address and send a handshake. They accept it. Then you send messages. Each step is 0.01 POCencept. Messages only. The KaChat app on the chain is a different program.</li>" +
+    "<li>Vault is on the side rail. It keeps a note on this square ledger and a rule for who may read it and when. The labels are a note, an NDA, an enterprise file, or other. A real secret does not belong here. This page checks the readers and the time. A covenant mark is a label. No covenant is deployed. Seal keeps the note and the rule.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +
@@ -3214,6 +3220,7 @@ async function freeze() {
 
 let layerVisit = "";
 let chatPeer = "";
+let vaultFocus = "";
 
 function moneyLabel(cents) {
   return formatCents(cents);
@@ -3428,6 +3435,164 @@ async function sendChat() {
   chatPeer = to;
   say(body.note || "Sent.");
   takeChat(body);
+}
+
+function vaultStamp(ms) {
+  const n = Number(ms || 0);
+  if (!n) return "";
+  const date = new Date(n);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (part) => String(part).padStart(2, "0");
+  return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) + "T" + pad(date.getHours()) + ":" + pad(date.getMinutes());
+}
+
+function vaultName(row) {
+  const purpose = { note: "Note", nda: "NDA", enterprise: "Enterprise", other: "Other" }[row.purpose] || "Note";
+  if (!row.readable) return "Waiting · " + purpose;
+  return purpose + " · " + (row.title || "Note");
+}
+
+function vaultRows() {
+  return state.vaultBook || [];
+}
+
+function paintVault() {
+  const me = (state.id.address || "").toLowerCase();
+  const rows = vaultRows();
+  const focus = rows.find((row) => row.id === vaultFocus) || null;
+  const own = !!(focus && focus.owner && focus.owner.toLowerCase() === me && focus.readable);
+  const sealed = !!(own && focus.sealed);
+  const purpose = own ? focus.purpose : "note";
+  const basis = own ? focus.basis : "desk";
+  const title = own ? (focus.title || "") : "";
+  const note = own ? (focus.body || "") : "";
+  const readers = own ? (focus.readers || []).join("\n") : "";
+  const openAt = own ? vaultStamp(focus.openAt) : "";
+  const lock = sealed ? " disabled" : "";
+  const picked = (value, current) => (value === current ? " selected" : "");
+  const mine = rows.filter((row) => row.owner && row.owner.toLowerCase() === me);
+  const shared = rows.filter((row) => !row.owner || row.owner.toLowerCase() !== me);
+  const list = (items) => items.length
+    ? "<ul class=\"vault-scroll\">" + items.map((row) => "<li><button type=\"button\" data-vault=\"" + esc(row.id) + "\">" + esc(vaultName(row)) + "</button></li>").join("") + "</ul>"
+    : "<p class=\"mint-cap-note\">None yet.</p>";
+  const waiting = focus && !focus.readable
+    ? "<p class=\"mint-cap-note\">The open time has not arrived. This page is still holding the note.</p>"
+    : "";
+  const sharedNote = focus && focus.readable && focus.owner && focus.owner.toLowerCase() !== me
+    ? "<p><strong>Note.</strong> " + esc(focus.body || "") + "</p>"
+    : "";
+  const actions = sealed
+    ? '<button type="button" id="vault-new">New note</button>'
+    : (own
+      ? '<button type="button" id="vault-save">Save</button> <button type="button" id="vault-seal">Seal</button>'
+      : '<button type="button" id="vault-save">Save</button>');
+  const sealedLine = sealed ? "<p class=\"mint-cap-note\">Sealed. The note and the rule stay. This page still checks who may read it.</p>" : "";
+  panel.innerHTML =
+    '<div class="stall-head"><h2>Vault</h2>' + placeActs("") + "</div>" +
+    "<p><strong>What.</strong> A note on this square ledger, with a rule for who may read it and when. The labels are a note, an NDA, an enterprise file, or other. Those names are for this classroom. A real NDA, a real enterprise secret, and an intelligence file do not belong here. This page shows the note only to the owner, and to a listed reader after the open time. The note sits in this square's book. It is not encrypted, so this desk can read it. It is not a worldwide vault.</p>" +
+    "<p><strong>How.</strong> Write a title and a note. List the kaspatest addresses that may read it, one on each line. Leave that list empty and only this address can read it. An open time can wait. This page checks the list and the time. Mark the rule as this page, or mark it covenant-shaped. A covenant mark is a label. No covenant is deployed. Seal keeps the note and the rule. After that they stay.</p>" +
+    "<p><strong>Why.</strong> So a funded address can try a rule for a note on Testnet 10. The chain does not hold the note, and it does not enforce the rule.</p>" +
+    '<label class="mint-line"><span>Label</span><select id="vault-purpose"' + lock + '>' +
+    '<option value="note"' + picked("note", purpose) + ">Note</option>" +
+    '<option value="nda"' + picked("nda", purpose) + ">NDA</option>" +
+    '<option value="enterprise"' + picked("enterprise", purpose) + ">Enterprise</option>" +
+    '<option value="other"' + picked("other", purpose) + ">Other</option>" +
+    "</select></label>" +
+    '<label class="mint-line"><span>Rule</span><select id="vault-basis"' + lock + '>' +
+    '<option value="desk"' + picked("desk", basis) + ">This page checks the rule</option>" +
+    '<option value="covenant"' + picked("covenant", basis) + ">Covenant-shaped label</option>" +
+    "</select></label>" +
+    '<p class="mint-cap-note">A covenant-shaped label does not deploy a covenant. This page still checks the readers and the time.</p>' +
+    '<label class="mint-line"><span>Title</span><input id="vault-title" maxlength="80" autocomplete="off"' + lock + ' value="' + esc(title) + '"></label>' +
+    '<label class="mint-line"><span>Note</span><textarea id="vault-body" class="vault-field" maxlength="2000" rows="5"' + lock + ">" + esc(note) + "</textarea></label>" +
+    '<label class="mint-line"><span>Readers</span><textarea id="vault-readers" class="vault-field" maxlength="800" rows="3" spellcheck="false" autocomplete="off" placeholder="One kaspatest address on each line"' + lock + ">" + esc(readers) + "</textarea></label>" +
+    '<p class="mint-cap-note">Empty means only this address can read it. At most 8 readers.</p>' +
+    '<label class="mint-line"><span>Opens</span><input id="vault-open" type="datetime-local"' + lock + ' value="' + esc(openAt) + '"></label>' +
+    '<p class="mint-cap-note">Leave the time empty and a listed reader can read it now.</p>' +
+    actions +
+    sealedLine +
+    waiting +
+    sharedNote +
+    "<p><strong>On this address.</strong></p>" + list(mine) +
+    "<p><strong>You may read.</strong></p>" + list(shared);
+  const save = document.getElementById("vault-save");
+  if (save) save.onclick = saveVault;
+  const seal = document.getElementById("vault-seal");
+  if (seal) seal.onclick = sealVault;
+  const fresh = document.getElementById("vault-new");
+  if (fresh) fresh.onclick = () => { vaultFocus = ""; paintVault(); };
+  for (const button of panel.querySelectorAll("[data-vault]")) {
+    button.onclick = () => {
+      vaultFocus = button.getAttribute("data-vault") || "";
+      paintVault();
+    };
+  }
+  wirePlaceExit();
+}
+
+async function refreshVault() {
+  if (!state.id.address) return;
+  const body = await api("/api/1984/vault?address=" + encodeURIComponent(state.id.address));
+  if (!body.ok) return;
+  if (state.mode !== "vault") return;
+  state.vaultBook = body.vaults || [];
+  if (panel.querySelector("input:focus, textarea:focus, select:focus")) return;
+  paintVault();
+}
+
+function takeVault(body) {
+  state.vaultBook = body.vaults || [];
+  if (body.focus) vaultFocus = body.focus;
+  paintChrome();
+  paintVault();
+}
+
+async function saveVault() {
+  if (!requireId()) return;
+  const purpose = (document.getElementById("vault-purpose") || {}).value || "note";
+  const basis = (document.getElementById("vault-basis") || {}).value || "desk";
+  const title = (document.getElementById("vault-title") || {}).value || "";
+  const text = (document.getElementById("vault-body") || {}).value || "";
+  const readers = (document.getElementById("vault-readers") || {}).value || "";
+  const when = (document.getElementById("vault-open") || {}).value || "";
+  const openAt = when ? new Date(when).getTime() : 0;
+  if (when && !Number.isFinite(openAt)) {
+    say("That open time is not a time.", true);
+    return;
+  }
+  const row = vaultRows().find((item) => item.id === vaultFocus);
+  const own = row && state.id.address && row.owner && row.owner.toLowerCase() === state.id.address.toLowerCase() && !row.sealed;
+  const body = await post("/api/1984/vault/save", {
+    id: own ? row.id : "",
+    purpose,
+    basis,
+    title,
+    body: text,
+    readers,
+    openAt,
+  });
+  if (!body.ok) {
+    say(body.error || "The note was not saved.", true);
+    return;
+  }
+  say(body.note || "Saved.");
+  takeVault(body);
+}
+
+async function sealVault() {
+  if (!requireId()) return;
+  const row = vaultRows().find((item) => item.id === vaultFocus);
+  if (!row) {
+    say("Save the note before you seal it.", true);
+    return;
+  }
+  const body = await post("/api/1984/vault/seal", { id: row.id });
+  if (!body.ok) {
+    say(body.error || "The note was not sealed.", true);
+    return;
+  }
+  say(body.note || "Sealed.");
+  takeVault(body);
 }
 
 function paintMint() {

@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { fetchBalance, fetchKoni, fetchPrice, fetchTx, paymentFromTx, resolveName } from "./chain.mjs";
 import { applyAccept, applyHandshake, applyMessage, publicChat } from "./kachat.mjs";
+import { applyVaultSave, applyVaultSeal, publicVaults } from "./vault.mjs";
 import { applyClaim, applyOfferBuy, applySite, publicSites } from "./layer.mjs";
 import { lookupAccepted, warmNodeWindow } from "./node-tx.mjs";
 import { guestDesk, GUEST_FUND_SOMPI } from "./guest.mjs";
@@ -333,6 +334,10 @@ export function create1984Service(deps) {
           const who = assertTestnet(query.get("address"));
           return { status: 200, body: { ok: true, ...publicChat(state, who) } };
         }
+        if (method === "GET" && pathname === "/api/1984/vault") {
+          const who = assertTestnet(query.get("address"));
+          return { status: 200, body: { ok: true, ...publicVaults(state, who, deps.now()) } };
+        }
         if (method === "GET" && pathname === "/api/1984/hunts") {
           const raw = query.get("address") || "";
           const who = raw ? assertTestnet(raw) : "";
@@ -628,6 +633,31 @@ export function create1984Service(deps) {
             state = out.state;
             deps.save(state);
             return { status: 200, body: { ...out.result, account: publicAccount(state, address) } };
+          });
+        }
+        if (pathname === "/api/1984/vault/save") {
+          return await queue(async () => {
+            const out = applyVaultSave(state, {
+              address,
+              id: body.id,
+              title: body.title,
+              body: body.body,
+              readers: body.readers,
+              openAt: body.openAt,
+              purpose: body.purpose,
+              basis: body.basis,
+            }, now);
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: out.result };
+          });
+        }
+        if (pathname === "/api/1984/vault/seal") {
+          return await queue(async () => {
+            const out = applyVaultSeal(state, { address, id: body.id }, now);
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: out.result };
           });
         }
         return { status: 404, body: { ok: false, error: "Not found." } };

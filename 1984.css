@@ -549,7 +549,7 @@ body.page-1984 main.kw-stage {
   line-height: 1.35;
   color: #f2d48a;
 }
-.mint-open, .layer-scroll, .chat-scroll {
+.mint-open, .layer-scroll, .chat-scroll, .vault-scroll {
   margin: 0.2rem 0 0.4rem;
   padding: 0.15rem 0.35rem 0.15rem 0;
   list-style: none;
@@ -569,6 +569,17 @@ body.page-1984 main.kw-stage {
   color: #f3e6c8;
   border: 1px solid #8a7040;
   padding: 0.25rem;
+}
+.kw-panel textarea.vault-field {
+  width: 100%;
+  font: inherit;
+  font-size: 0.8rem;
+  background: #1a1612;
+  color: #f3e6c8;
+  border: 1px solid #8a7040;
+  padding: 0.25rem;
+  min-height: 4.5rem;
+  resize: vertical;
 }
 .kw-chat {
   position: absolute;
