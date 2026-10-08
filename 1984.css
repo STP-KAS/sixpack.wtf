@@ -512,6 +512,7 @@ body.page-1984 main.kw-stage {
 .kw.room .kw-hint { display: none; }
 .kw-you h2, .kw-panel h2 { margin: 0 0 0.25rem; font-size: 0.95rem; color: #f2d48a; }
 .kw-you label, .kw-panel label { display: block; font-size: 0.75rem; margin: 0.35rem 0; }
+.kw-you label[hidden], .kw-panel label[hidden] { display: none; }
 .kw-you input, .kw-panel input, .kw-panel select {
   width: 100%;
   font: inherit;

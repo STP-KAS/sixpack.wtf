@@ -425,6 +425,7 @@ function paintChrome() {
     ["groceries", "Market"],
     ["hunt", "Hunt"],
     ["bank", "Bank"],
+    ["mint", "Mint"],
     ["roadster", "Roadster"],
     ["cinema", "Cinema"],
     ["rules", "Rules"],
@@ -1828,15 +1829,16 @@ function openMode(mode) {
   paintChrome();
   const shade = document.getElementById("bank-shade");
   panel.classList.toggle("swap-pop", mode === "bank");
-  panel.classList.toggle("stall-pop", isVisit(mode) && mode !== "bank");
-  if (shade) shade.hidden = !isVisit(mode);
+  panel.classList.toggle("stall-pop", (isVisit(mode) && mode !== "bank") || mode === "mint");
+  if (shade) shade.hidden = !(isVisit(mode) || mode === "mint");
   if (mode === "world") {
     panel.hidden = true;
     panel.innerHTML = "";
     return;
   }
   panel.hidden = false;
-  if (mode === "bank") {
+  if (mode === "mint") paintMint();
+  else if (mode === "bank") {
     if (enteringBank && !keepClerk) {
       state.bankClerk = "";
       state.bankShutter = performance.now();
@@ -2491,6 +2493,7 @@ function paintGuide() {
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Peer to peer is the payment. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled. This square is still the classroom.</li>" +
+    "<li>Mint is on the side rail. What: a token on this ledger, under KCC-20 Last Call. It is not Final, and no covenant is deployed. How: open a new name, mint more, or send it. Why: so you can try a mint on Testnet 10. A cap of 0 means no cap.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
     "<li>The freeze switch is only on KUSDT.</li>" +
     "</ol>" +
@@ -3114,6 +3117,76 @@ async function freeze() {
   }
   swapNote(next ? "KUSDT is frozen. POCencept and tKAS still move." : "KUSDT is thawed.", "ok");
   await refreshAccount();
+}
+
+function paintMint() {
+  const open = (state.home && state.home.mints) || [];
+  const mine = (state.account && state.account.tokens) || [];
+  const names = open.map((row) => {
+    const cap = row.cap && row.cap !== "0" ? " · cap " + row.cap : "";
+    return '<option value="' + esc(row.name) + '">' + esc(row.name) + " · supply " + esc(row.supply) + esc(cap) + "</option>";
+  }).join("");
+  const held = mine.length
+    ? mine.map((row) => "<li>" + esc(row.amount) + " " + esc(row.name) + "</li>").join("")
+    : "<li>None yet.</li>";
+  panel.innerHTML =
+    '<div class="stall-head"><h2>Mint</h2>' + placeActs("") + "</div>" +
+    "<p><strong>What.</strong> This place writes a token on the square ledger. The rule is KCC-20 Last Call. It is not Final. No covenant is deployed. The token is not tKAS, not a dollar, and not a spendable Layer-1 coin.</p>" +
+    "<p><strong>How.</strong> Pick one option. A new name opens a token and mints your amount. Mint more increases a token that is already open. Send moves some of yours to another kaspatest address. The same name keeps the same extension. A mint has to increase your amount. A send keeps the total.</p>" +
+    "<p><strong>Why.</strong> So a funded address can try a mint here on Testnet 10, while that covenant is still Last Call. The cap stands in for the minter's remaining supply. This desk checks it. A cap of 0 means no cap.</p>" +
+    "<p><strong>Options.</strong></p>" +
+    '<label><input type="radio" name="mint-opt" value="new" checked> Open a new token</label>' +
+    '<label><input type="radio" name="mint-opt" value="more"> Mint more of an open token</label>' +
+    '<label><input type="radio" name="mint-opt" value="send"> Send to another address</label>' +
+    (names ? '<label>Open tokens<select id="mint-pick"><option value="">Choose</option>' + names + "</select></label>" : "") +
+    '<label>Name<input id="mint-name" maxlength="12" spellcheck="false" autocomplete="off"></label>' +
+    '<label>Amount<input id="mint-amount" inputmode="numeric" spellcheck="false" autocomplete="off"></label>' +
+    '<label id="mint-cap-row">Cap, 0 for none<input id="mint-cap" inputmode="numeric" value="0" spellcheck="false" autocomplete="off"></label>' +
+    '<label id="mint-to-row" hidden>kaspatest address<input id="mint-to" spellcheck="false" autocomplete="off"></label>' +
+    '<button type="button" id="mint-go">Mint</button>' +
+    "<p><strong>Yours.</strong></p><ul>" + held + "</ul>";
+  const pick = document.getElementById("mint-pick");
+  if (pick) {
+    pick.onchange = () => {
+      const box = document.getElementById("mint-name");
+      if (box && pick.value) box.value = pick.value;
+    };
+  }
+  for (const input of panel.querySelectorAll('input[name="mint-opt"]')) input.onchange = syncMintOption;
+  document.getElementById("mint-go").onclick = saveMint;
+  syncMintOption();
+  wirePlaceExit();
+}
+
+function syncMintOption() {
+  const picked = panel.querySelector('input[name="mint-opt"]:checked');
+  const option = picked ? picked.value : "new";
+  const cap = document.getElementById("mint-cap-row");
+  const to = document.getElementById("mint-to-row");
+  const go = document.getElementById("mint-go");
+  if (cap) cap.hidden = option !== "new";
+  if (to) to.hidden = option !== "send";
+  if (go) go.textContent = option === "send" ? "Send" : "Mint";
+}
+
+async function saveMint() {
+  if (!requireId()) return;
+  const picked = panel.querySelector('input[name="mint-opt"]:checked');
+  const option = picked ? picked.value : "new";
+  const name = (document.getElementById("mint-name") || {}).value || "";
+  const amount = (document.getElementById("mint-amount") || {}).value || "";
+  const cap = (document.getElementById("mint-cap") || {}).value || "";
+  const to = (document.getElementById("mint-to") || {}).value || "";
+  const body = await post("/api/1984/mint", { option, name, amount, cap, to });
+  if (!body.ok) {
+    say(body.error || "The mint did not land.", true);
+    return;
+  }
+  state.account = body.account;
+  if (state.home && body.mints) state.home.mints = body.mints;
+  say(body.receipt && body.receipt.note ? body.receipt.note : "Minted.");
+  paintChrome();
+  paintMint();
 }
 
 async function saveRules() {

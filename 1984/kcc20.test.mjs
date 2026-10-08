@@ -6,11 +6,15 @@ import {
   KUSDT_FROZEN_EXTENSION,
   POC_EXTENSION,
   TRANSFER_TAG,
+  blake3Hex,
   borrowedReceive,
   effectiveThreshold,
   extensionFor,
+  holderMint,
+  normalizeTick,
   requireIncrease,
   standardTransfer,
+  tokenExtension,
 } from "./kcc20.mjs";
 
 const GUARD_500 = "f401000000000000" + "00".repeat(24);
@@ -28,6 +32,22 @@ function row(amount, guard, owner = "11") {
     extension: POC_EXTENSION,
   };
 }
+
+test("a short name hashes with unkeyed BLAKE3", () => {
+  assert.equal(blake3Hex(new Uint8Array()), "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262");
+  assert.equal(
+    blake3Hex(new TextEncoder().encode("abc")),
+    "6437b3ac38465133ffb63b75273a8db548c558465d79db03fd359c6cd5bd9d85"
+  );
+  const ash = tokenExtension("ash");
+  assert.equal(ash, tokenExtension("ASH"));
+  assert.equal(ash.length, 64);
+  assert.notEqual(ash, POC_EXTENSION);
+  assert.equal(normalizeTick(" ash "), "ASH");
+  assert.throws(() => normalizeTick("POCencept"), /already a rail/);
+  assert.throws(() => holderMint(5n, 5n, ash, "holder"), /increase/);
+  holderMint(5n, 8n, ash, "holder");
+});
 
 test("the published dispatch tags and the three extensions stay apart", () => {
   assert.equal(TRANSFER_TAG, "79c71c23");

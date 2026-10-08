@@ -13,11 +13,11 @@ import {
   railName,
   sompiForCents,
 } from "./money.mjs";
-import { extensionFor, requireIncrease } from "./kcc20.mjs";
+import { extensionFor, holderMint, normalizeTick, requireIncrease, standardTransfer, tokenExtension } from "./kcc20.mjs";
 import { SHOPS, huntById, itemBySku, shopById } from "./world.mjs";
 
 export function freshState() {
-  return { accounts: {}, txids: {}, receipts: [], redeemedSompi: "0", seq: "0", hunts: {} };
+  return { accounts: {}, txids: {}, receipts: [], redeemedSompi: "0", seq: "0", hunts: {}, mints: {} };
 }
 
 export function defaultRules() {
@@ -186,7 +186,130 @@ export function publicAccount(state, address) {
     spentDay: base.spentDay,
     spentCents: base.spentCents,
     seq: base.seq,
+    tokens: tokenHoldings(state, base),
     receipts,
+  };
+}
+
+export function publicMints(state) {
+  const book = (state && state.mints) || {};
+  return Object.keys(book)
+    .map((extension) => {
+      const row = book[extension];
+      return {
+        name: row.name,
+        extension,
+        supply: String(row.supply || "0"),
+        cap: String(row.cap || "0"),
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function tokenHoldings(state, account) {
+  const bag = (account && account.tokens) || {};
+  const book = (state && state.mints) || {};
+  return Object.keys(bag)
+    .map((extension) => ({
+      name: book[extension] ? book[extension].name : "",
+      extension,
+      amount: String(bag[extension] || "0"),
+    }))
+    .filter((row) => row.name && row.amount !== "0")
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+const MAX_MINT = 1_000_000_000_000n;
+
+function wholeAmount(value, label) {
+  const text = String(value ?? "").trim();
+  if (!/^[0-9]+$/.test(text)) throw new Error(label);
+  const amount = BigInt(text);
+  if (amount <= 0n || amount > MAX_MINT) throw new Error(label);
+  return amount;
+}
+
+function wholeCap(value) {
+  const text = String(value ?? "").trim();
+  if (text === "" || text === "0") return 0n;
+  if (!/^[0-9]+$/.test(text)) throw new Error("A cap is a whole number, or 0 for no cap.");
+  const cap = BigInt(text);
+  if (cap > MAX_MINT) throw new Error("That cap is too large.");
+  return cap;
+}
+
+/** Open a token, mint more of it, or send it. The desk checks the Last Call increase. No covenant. */
+export function applyToken(state, input, now) {
+  const address = assertTestnet(input.address);
+  const option = String(input.option || "");
+  if (option !== "new" && option !== "more" && option !== "send") {
+    throw new Error("Pick open a new token, mint more, or send.");
+  }
+  const name = normalizeTick(input.name);
+  const extension = tokenExtension(name);
+  const amount = wholeAmount(input.amount, "Type a whole amount above zero.");
+  const next = clone(state);
+  if (!next.mints) next.mints = {};
+  const existing = next.mints[extension];
+  if (option === "new") {
+    if (existing) throw new Error("That token is already open. Mint more of it.");
+    const cap = wholeCap(input.cap);
+    if (cap > 0n && cap < amount) throw new Error("The cap has to cover this mint.");
+    next.mints[extension] = { name, extension, supply: "0", cap: String(cap) };
+  } else if (!existing || existing.name !== name) {
+    throw new Error("That token is not open yet. Open it first.");
+  }
+  const book = next.mints[extension];
+  const account = ensure(next, address);
+  if (!account.tokens) account.tokens = {};
+  const held = bi(account.tokens[extension]);
+  if (option === "send") {
+    const to = assertTestnet(input.to);
+    if (to.toLowerCase() === address.toLowerCase()) throw new Error("Send it to another address.");
+    if (held < amount) throw new Error("Not enough " + name + ".");
+    const dest = ensure(next, to);
+    if (!dest.tokens) dest.tokens = {};
+    const destHeld = bi(dest.tokens[extension]);
+    standardTransfer(
+      [{ amount, extension }],
+      [{ amount, extension }]
+    );
+    holderMint(destHeld, destHeld + amount, extension, to);
+    account.tokens[extension] = String(held - amount);
+    dest.tokens[extension] = String(destHeld + amount);
+    const receipt = pushReceipt(next, account, {
+      at: now,
+      kind: "mint",
+      sku: name,
+      rail: "poc",
+      cents: 0n,
+      note: "Sent " + amount.toString() + " " + name + " on this ledger. Not a covenant.",
+    });
+    return {
+      state: next,
+      result: { ok: true, receipt, account: publicAccount(next, address), mints: publicMints(next) },
+    };
+  }
+  const supply = bi(book.supply);
+  const cap = bi(book.cap);
+  if (cap > 0n && supply + amount > cap) throw new Error("That mint passes the cap.");
+  holderMint(held, held + amount, extension, address);
+  account.tokens[extension] = String(held + amount);
+  book.supply = String(supply + amount);
+  const opened = option === "new";
+  const receipt = pushReceipt(next, account, {
+    at: now,
+    kind: "mint",
+    sku: name,
+    rail: "poc",
+    cents: 0n,
+    note: opened
+      ? "Opened " + name + " on this ledger. KCC-20 is Last Call, not Final. No covenant."
+      : "Minted " + amount.toString() + " more " + name + ". The amount increased.",
+  });
+  return {
+    state: next,
+    result: { ok: true, receipt, account: publicAccount(next, address), mints: publicMints(next), token: book },
   };
 }
 

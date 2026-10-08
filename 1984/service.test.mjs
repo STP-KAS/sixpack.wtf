@@ -543,3 +543,77 @@ test("the old payment path still answers", async () => {
   assert.equal(result.body.repos.includes("1984"), true);
   assert.equal(result.body.repos.includes("kworld"), false);
 });
+
+const OTHER = "kaspatest:qpppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp";
+
+test("a named token opens, increases, stops at the cap, and a send keeps the total", async () => {
+  const { svc } = harness(async () => ({ txids: ["ab"] }));
+  const mint = (body) =>
+    svc.handle({
+      method: "POST",
+      pathname: "/api/1984/mint",
+      query: new URLSearchParams(),
+      body: { address: USER, network: "testnet-10", ...body },
+      ip: "203.0.113.80",
+    });
+  const opened = await mint({ option: "new", name: "ash", amount: "5", cap: "8" });
+  assert.equal(opened.status, 200);
+  assert.equal(opened.body.ok, true);
+  assert.match(opened.body.receipt.note, /Last Call, not Final/);
+  assert.match(opened.body.receipt.note, /No covenant/);
+  assert.equal(opened.body.account.tokens.length, 1);
+  assert.equal(opened.body.account.tokens[0].name, "ASH");
+  assert.equal(opened.body.account.tokens[0].amount, "5");
+  assert.equal(opened.body.token.supply, "5");
+  assert.equal(opened.body.token.cap, "8");
+  assert.equal(opened.body.mints[0].name, "ASH");
+
+  const again = await mint({ option: "new", name: "ASH", amount: "1", cap: "0" });
+  assert.equal(again.status, 400);
+  assert.match(again.body.error, /already open/);
+
+  const zero = await mint({ option: "more", name: "ASH", amount: "0" });
+  assert.equal(zero.status, 400);
+  assert.match(zero.body.error, /above zero/);
+
+  const reserved = await mint({ option: "new", name: "KUSDT", amount: "1", cap: "0" });
+  assert.equal(reserved.status, 400);
+  assert.match(reserved.body.error, /already a rail/);
+
+  const over = await mint({ option: "more", name: "ASH", amount: "4" });
+  assert.equal(over.status, 400);
+  assert.match(over.body.error, /passes the cap/);
+
+  const more = await mint({ option: "more", name: "ASH", amount: "3" });
+  assert.equal(more.status, 200);
+  assert.equal(more.body.account.tokens[0].amount, "8");
+  assert.equal(more.body.mints[0].supply, "8");
+  assert.match(more.body.receipt.note, /amount increased/);
+
+  const sent = await mint({ option: "send", name: "ASH", amount: "2", to: OTHER });
+  assert.equal(sent.status, 200);
+  assert.equal(sent.body.account.tokens[0].amount, "6");
+  assert.equal(sent.body.mints[0].supply, "8");
+  assert.match(sent.body.receipt.note, /Not a covenant/);
+
+  const home = await svc.handle({
+    method: "GET",
+    pathname: "/api/1984",
+    query: new URLSearchParams(),
+    body: {},
+    ip: "203.0.113.81",
+  });
+  assert.equal(home.status, 200);
+  assert.equal(home.body.mints[0].supply, "8");
+
+  const other = await svc.handle({
+    method: "GET",
+    pathname: "/api/1984/account",
+    query: new URLSearchParams({ address: OTHER }),
+    body: {},
+    ip: "203.0.113.82",
+  });
+  assert.equal(other.status, 200);
+  assert.equal(other.body.account.tokens[0].name, "ASH");
+  assert.equal(other.body.account.tokens[0].amount, "2");
+});

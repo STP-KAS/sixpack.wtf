@@ -16,6 +16,7 @@ import {
   applyRules,
   applySnap,
   applySpend,
+  applyToken,
   applyWithdrawPromise,
   attachTxid,
   checkRules,
@@ -23,6 +24,7 @@ import {
   planSnap,
   publicAccount,
   publicHunts,
+  publicMints,
 } from "./ledger.mjs";
 import { BENCH, POST, REPOS } from "./links.mjs";
 import {
@@ -264,6 +266,7 @@ export function create1984Service(deps) {
         disclaimer: DISCLAIMER,
         guestDisclaimer: GUEST_DISCLAIMER,
         guestFundSompi: GUEST_FUND_SOMPI.toString(),
+        mints: publicMints(state),
       },
     };
   }
@@ -376,6 +379,21 @@ export function create1984Service(deps) {
         if (pathname === "/api/1984/practice") {
           return await queue(async () => {
             const out = applyPractice(state, { address }, now);
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: out.result };
+          });
+        }
+        if (pathname === "/api/1984/mint") {
+          return await queue(async () => {
+            const out = applyToken(state, {
+              address,
+              option: body.option,
+              name: body.name,
+              amount: body.amount,
+              cap: body.cap,
+              to: body.to,
+            }, now);
             state = out.state;
             deps.save(state);
             return { status: 200, body: out.result };

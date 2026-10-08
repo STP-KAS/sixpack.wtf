@@ -57,6 +57,130 @@ export function borrowedReceive(leader, next) {
   same(next.extension, leader.extension, "A borrowed receive keeps the extension commitment.");
 }
 
+const BLAKE3_IV = [
+  0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+  0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+];
+const BLAKE3_PERM = [2, 6, 3, 10, 7, 0, 4, 13, 1, 11, 12, 5, 9, 14, 15, 8];
+
+function rotr(value, bits) {
+  return ((value >>> bits) | (value << (32 - bits))) >>> 0;
+}
+
+function blake3G(state, a, b, c, d, mx, my) {
+  state[a] = (state[a] + state[b] + mx) >>> 0;
+  state[d] = rotr(state[d] ^ state[a], 16);
+  state[c] = (state[c] + state[d]) >>> 0;
+  state[b] = rotr(state[b] ^ state[c], 12);
+  state[a] = (state[a] + state[b] + my) >>> 0;
+  state[d] = rotr(state[d] ^ state[a], 8);
+  state[c] = (state[c] + state[d]) >>> 0;
+  state[b] = rotr(state[b] ^ state[c], 7);
+}
+
+function blake3Compress(cv, block, counter, blockLen, flags) {
+  const words = new Array(16);
+  for (let i = 0; i < 16; i += 1) {
+    words[i] = block[i * 4] | (block[i * 4 + 1] << 8) | (block[i * 4 + 2] << 16) | (block[i * 4 + 3] << 24);
+  }
+  const state = cv.slice(0, 8).concat(BLAKE3_IV.slice(0, 4), [
+    counter >>> 0,
+    Math.floor(counter / 2 ** 32) >>> 0,
+    blockLen,
+    flags,
+  ]);
+  const msg = words.slice();
+  for (let round = 0; round < 7; round += 1) {
+    blake3G(state, 0, 4, 8, 12, msg[0], msg[1]);
+    blake3G(state, 1, 5, 9, 13, msg[2], msg[3]);
+    blake3G(state, 2, 6, 10, 14, msg[4], msg[5]);
+    blake3G(state, 3, 7, 11, 15, msg[6], msg[7]);
+    blake3G(state, 0, 5, 10, 15, msg[8], msg[9]);
+    blake3G(state, 1, 6, 11, 12, msg[10], msg[11]);
+    blake3G(state, 2, 7, 8, 13, msg[12], msg[13]);
+    blake3G(state, 3, 4, 9, 14, msg[14], msg[15]);
+    if (round === 6) break;
+    const next = new Array(16);
+    for (let i = 0; i < 16; i += 1) next[i] = msg[BLAKE3_PERM[i]];
+    for (let i = 0; i < 16; i += 1) msg[i] = next[i];
+  }
+  const out = new Array(16);
+  for (let i = 0; i < 8; i += 1) {
+    out[i] = (state[i] ^ state[i + 8]) >>> 0;
+    out[i + 8] = (state[i + 8] ^ cv[i]) >>> 0;
+  }
+  return out;
+}
+
+/** Unkeyed BLAKE3, 32 bytes, lowercase hex. Token names are short, so one chunk is enough. */
+export function blake3Hex(bytes) {
+  const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+  if (data.length > 1024) throw new Error("This hash is for a short token name.");
+  const cv = BLAKE3_IV.slice();
+  const blocks = Math.max(1, Math.ceil(data.length / 64));
+  let hash = cv;
+  for (let i = 0; i < blocks; i += 1) {
+    const block = new Uint8Array(64);
+    const start = i * 64;
+    block.set(data.subarray(start, Math.min(data.length, start + 64)));
+    const blockLen = Math.min(64, data.length - start);
+    let flags = 0;
+    if (i === 0) flags |= 1;
+    if (i === blocks - 1) flags |= 2 | 8;
+    const out = blake3Compress(cv, block, 0, blockLen < 0 ? 0 : blockLen, flags);
+    hash = out;
+    for (let w = 0; w < 8; w += 1) cv[w] = out[w];
+  }
+  let hex = "";
+  for (let i = 0; i < 8; i += 1) {
+    const word = hash[i] >>> 0;
+    hex += (word & 0xff).toString(16).padStart(2, "0");
+    hex += ((word >>> 8) & 0xff).toString(16).padStart(2, "0");
+    hex += ((word >>> 16) & 0xff).toString(16).padStart(2, "0");
+    hex += ((word >>> 24) & 0xff).toString(16).padStart(2, "0");
+  }
+  return hex;
+}
+
+const RESERVED_TICKS = new Set(["POC", "POCEPT", "POCENCEPT", "KUSDT", "KAS", "TKAS"]);
+
+/** A mint name on this desk. Letters and digits, 1 to 12, starting with a letter. */
+export function normalizeTick(name) {
+  const tick = String(name || "").trim().toUpperCase();
+  if (!/^[A-Z][A-Z0-9]{0,11}$/.test(tick)) {
+    throw new Error("A token name is 1 to 12 letters and digits, and it starts with a letter.");
+  }
+  if (RESERVED_TICKS.has(tick)) throw new Error("That name is already a rail on this square.");
+  return tick;
+}
+
+/** Unkeyed BLAKE3 of the token name. The same name keeps the same extension. */
+export function tokenExtension(name) {
+  return blake3Hex(new TextEncoder().encode(normalizeTick(name)));
+}
+
+/** A mint increases the holder's amount. Owner and extension stay. */
+export function holderMint(before, after, extension, owner) {
+  borrowedReceive(
+    {
+      amount: before,
+      owner,
+      ownerScheme: 0x01,
+      borrowScheme: 0x01,
+      borrowGuard: ZERO_GUARD,
+      extension,
+    },
+    {
+      amount: after,
+      owner,
+      ownerScheme: 0x01,
+      borrowScheme: 0x01,
+      borrowGuard: ZERO_GUARD,
+      extension,
+    }
+  );
+}
+
 /** The square's second lock is amount-threshold with a zero guard: any increase passes. */
 export function requireIncrease(before, after) {
   borrowedReceive(
