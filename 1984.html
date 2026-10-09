@@ -7,7 +7,7 @@
   <meta name="description" content="1984 is early development, not the benchmark that was envisioned. The best case is stable money you can spend anywhere, in Kaspa or a stable. It is a Testnet-10 village. Pay a shop with tKAS, POCencept stable, or KUSDT stable. The gate takes a funded address. This money is tKAS. With tKAS you can go to the bank. Mainnet wallets are refused.">
   <link rel="canonical" href="https://sixpack.wtf/1984.html">
   <link rel="stylesheet" href="site.css?v=27">
-  <link rel="stylesheet" href="1984.css?v=74">
+  <link rel="stylesheet" href="1984.css?v=75">
   <script>
     window.TOWN_API = "https://authority-fireplace-earlier-spirit.trycloudflare.com";
   </script>
@@ -62,6 +62,8 @@
     <div id="show" class="show-card" hidden>
       <div class="show-head">
         <p id="show-now" class="show-now"></p>
+        <button type="button" id="show-snacks-tab" class="show-snacks-tab" hidden>Snacks</button>
+        <button type="button" id="show-snacks-close" hidden>Close snacks</button>
         <button type="button" id="show-exit">Exit to the square</button>
       </div>
       <div class="show-reel">
@@ -73,8 +75,10 @@
       <div id="show-list" class="show-list" hidden></div>
       <div id="show-rails"></div>
       <div id="show-pay" hidden></div>
-      <p class="show-label">Snacks</p>
-      <div id="show-snacks" class="show-snacks"></div>
+      <div id="show-snacks-box">
+        <p class="show-label">Snacks</p>
+        <div id="show-snacks" class="show-snacks"></div>
+      </div>
       <button type="button" id="show-play" hidden>Play</button>
       <button type="button" id="show-leave">Leave the seat</button>
     </div>
@@ -147,6 +151,6 @@
 </div>
 <script src="nav.js?v=59"></script>
 <script src="wallets/kaspa-wallets.js?v=7"></script>
-<script type="module" src="1984/client.mjs?v=129"></script>
+<script type="module" src="1984/client.mjs?v=130"></script>
 </body>
 </html>

@@ -448,6 +448,9 @@ body.page-1984 main.kw-stage {
 .show-reel[hidden],
 .show-label[hidden],
 #show-snacks[hidden],
+#show-snacks-box[hidden],
+#show-snacks-tab[hidden],
+#show-snacks-close[hidden],
 #show-pay[hidden] { display: none; }
 #show-pay p { margin: 0.15rem 0 0.35rem; color: #f3e6c8; }
 .show-now {
@@ -483,6 +486,15 @@ body.page-1984 main.kw-stage {
   border-color: #e7c27a;
 }
 .show-label { margin: 0 0 0.3rem; color: #f3e6c8; font-size: 0.78rem; }
+#show-snacks-tab,
+#show-snacks-close {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 1.9rem;
+  padding: 0.12rem 0.55rem;
+  font-size: 0.75rem;
+  text-align: center;
+}
 .show-snacks {
   display: flex;
   flex-wrap: wrap;
@@ -1854,6 +1866,20 @@ a { color: #f2d48a; }
     max-height: 62%;
     transform: none;
     padding: 0.45rem 0.5rem 0.55rem;
+  }
+  .phone-fit #show-snacks-tab,
+  .phone-fit #show-snacks-close {
+    width: auto;
+    flex: 0 0 auto;
+    min-height: 1.85rem;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.72rem;
+  }
+  .phone-fit .show-snacks {
+    max-height: 9.5rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .phone-fit .show-list { max-height: 28%; }
   .phone-fit .show-reel button,

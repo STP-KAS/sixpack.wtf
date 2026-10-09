@@ -52,7 +52,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=129/);
+  assert.match(html, /1984\/client\.mjs\?v=130/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -112,6 +112,42 @@ test("the landing gate takes a funded test address", () => {
   assert.match(client, /getElementById\("gate-guest"\)/);
 });
 
+test("the cinema snacks close to a small tab", () => {
+  const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
+  assert.match(html, /id="show-snacks-close"[^>]*>Close snacks<\/button>/);
+  assert.match(html, /id="show-snacks-tab"[^>]*>Snacks<\/button>/);
+  assert.doesNotMatch(html, /id="show-snacks-tab"[^>]*data-pay/);
+  assert.doesNotMatch(html, /id="show-snacks-close"[^>]*data-snack/);
+  assert.doesNotMatch(html, /id="show-snacks-close"[^>]*data-pay/);
+  const mark = sliceFn(client, "markShow");
+  assert.match(mark, /snacksOpen\(\)/);
+  assert.match(mark, /show-snacks-tab/);
+  assert.match(mark, /show-snacks-close/);
+  assert.match(mark, /show-snacks-box/);
+  assert.match(sliceFn(client, "phoneLayout"), /max-width: 980px/);
+  assert.match(sliceFn(client, "snacksOpen"), /phoneLayout\(\)/);
+  const bind = sliceFn(client, "bindReel");
+  const closeAt = bind.indexOf("#show-snacks-close");
+  const tabAt = bind.indexOf("#show-snacks-tab");
+  const snackAt = bind.indexOf("const snack");
+  assert.ok(closeAt > 0 && tabAt > closeAt && snackAt > tabAt);
+  const shut = bind.slice(closeAt, tabAt);
+  const reopen = bind.slice(tabAt, snackAt);
+  assert.match(shut, /state\.snacksOpen = false/);
+  assert.match(shut, /return;/);
+  assert.doesNotMatch(shut, /spend\(/);
+  assert.match(reopen, /state\.snacksOpen = true/);
+  assert.match(reopen, /return;/);
+  assert.doesNotMatch(reopen, /spend\(/);
+  assert.match(client, /Close snacks puts that list away/);
+  assert.match(client, /Snacks brings it back/);
+  assert.match(css, /#show-snacks-tab\[hidden\]/);
+  assert.match(css, /#show-snacks-tab,\s*#show-snacks-close \{[^}]*width: auto/);
+  const phoneAt = css.indexOf("@media (max-width: 980px)");
+  assert.match(css.slice(phoneAt), /\.phone-fit #show-snacks-tab/);
+  assert.match(css.slice(phoneAt), /\.phone-fit \.show-snacks \{[^}]*max-height: 9\.5rem/);
+});
+
 test("exit to the square is on the shop card", () => {
   const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
   assert.match(html, /id="show-exit">Exit to the square<\/button>/);
@@ -147,8 +183,8 @@ test("the balances stay in a clear bar under the site tabs", () => {
   const stageAt = html.indexOf('<main class="kw-stage">');
   assert.ok(topEnd > 0 && barAt > topEnd && stageAt > barAt);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
-  assert.match(html, /1984\.css\?v=74/);
-  assert.match(html, /1984\/client\.mjs\?v=129/);
+  assert.match(html, /1984\.css\?v=75/);
+  assert.match(html, /1984\/client\.mjs\?v=130/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
