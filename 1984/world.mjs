@@ -287,11 +287,11 @@ function build() {
     y: b.npc.y,
     line:
       b.shop === "bank"
-        ? "Push a clerk. Each window swaps into the other two."
+        ? "The swap is open. Pay one asset, receive another."
         : b.shop === "hunt"
           ? "Promise a month if others do. I will not tell you how many already did."
           : b.shop === "mint"
-            ? "Open a name, mint more, or send it. Type 0 in Cap for no cap."
+            ? "The mint is open. Mint more, send, or open a name."
             : shopById(b.shop).line,
   }));
 

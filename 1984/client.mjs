@@ -17,8 +17,8 @@ import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=4";
 import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=8";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=8";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, HOT_STAGE_MS, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=56";
-import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=4";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, HOT_STAGE_MS, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=57";
+import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=5";
 const TUNNEL = "https://authority-fireplace-earlier-spirit.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 const map = world();
@@ -1519,7 +1519,9 @@ function chooseRail(rail) {
   if (swapBusy) return;
   state.bankFlight = null;
   state.bankRail = rail;
-  state.bankClerk = rail;
+  dexFrom = rail;
+  if (dexTo === rail) dexTo = rail === "kas" ? "poc" : "kas";
+  state.bankClerk = "";
   state.bankShutter = performance.now();
   if (state.mode !== "bank") {
     keepClerk = true;
@@ -1559,6 +1561,14 @@ function veilRoom() {
 
 function enterVenue(shop) {
   if (!shopVisit(shop)) return;
+  if (shop === "mint" || shop === "bank") {
+    if (state.mode === shop && state.venue === shop && state.inside) return;
+    const changed = state.venue !== shop || !state.inside;
+    if (shop !== "cinema") stopShow(true);
+    if (changed) veilRoom();
+    openMode(shop);
+    return;
+  }
   if (shop !== "cinema") stopShow(true);
   const changed = state.venue !== shop || !state.inside;
   if (changed) veilRoom();
@@ -1948,7 +1958,6 @@ function openMode(mode) {
     if (enteringBank && !keepClerk) {
       state.bankClerk = "";
       state.bankShutter = performance.now();
-      say("Push a clerk. tKAS, POCencept, or KUSDT.");
     }
     paintBank();
     refreshBankHunts();
@@ -2147,7 +2156,10 @@ function paintShop(shopId) {
 
 let lockDraft = "1";
 let redeemDraft = "";
-let swapNoteText = "Push a clerk. tKAS, POCencept, or KUSDT.";
+let swapNoteText = "Type an amount, then swap.";
+let dexFrom = "kas";
+let dexTo = "poc";
+const DEX_ASSET = { kas: "tKAS", poc: "POCencept", kusdt: "KUSDT" };
 let swapNoteKind = "";
 let swapBusy = false;
 let swapTold = false;
@@ -2269,18 +2281,12 @@ function paintBank() {
   const frozen = !!(state.account && state.account.kusdtFrozen);
   const close = placeActs('<button type="button" id="bank-close">Close</button>');
   const back = placeActs('<button type="button" id="clerk-back" data-clerk="">Back</button>');
+  if (clerk === "kas" || clerk === "poc" || clerk === "kusdt") {
+    dexFrom = clerk;
+    if (dexTo === dexFrom) dexTo = dexFrom === "kas" ? "poc" : "kas";
+  }
   let body;
-  if (!clerk) {
-    const push = (id, title) =>
-      '<button type="button" class="clerk-push" data-booth="' + id + '"><span>' + esc(title) + "</span><strong>" + esc(clerkFigure(id)) + "</strong><small>Push this window</small></button>";
-    body =
-      '<div class="swap-head"><h2>Venn\'s bank</h2>' + close + "</div>" +
-      '<p class="clerk-ask">To pay for something, swap tKAS here for POCencept and KUSDT. Push a clerk.</p>' +
-      '<div class="clerk-picks">' + push("kas", "tKAS") + push("poc", "POCencept") + push("kusdt", "KUSDT") + "</div>" +
-      '<button type="button" class="rails-open" data-rails>What are the rails?</button>' +
-      '<button type="button" class="clerk-books" data-clerk="books">The books</button>' +
-      statusLine() + bankFine();
-  } else if (clerk === "books") {
+  if (clerk === "books") {
     const poc = splitCents(state.account && state.account.poc, state.account && state.account.pocBacked);
     const kusdt = splitCents(state.account && state.account.kusdt, state.account && state.account.kusdtBacked);
     const card = (title, amount, detail) =>
@@ -2301,59 +2307,68 @@ function paintBank() {
       "</div>" +
       '<div class="kw-row"><button type="button" id="purse" data-act>Practice purse</button><button type="button" id="freeze" data-act>' + (frozen ? "Thaw KUSDT" : "Freeze KUSDT") + "</button></div>" +
       statusLine() + bankFine();
-  } else if (clerk === "kas") {
-    body =
-      '<div class="swap-head"><h2>tKAS</h2>' + back + "</div>" +
-      '<p class="clerk-ask">Swap tKAS here for POCencept or KUSDT. That is how you pay for something.</p>' +
-      '<p class="clerk-bal"><span>You have</span><strong>' + esc(clerkFigure("kas")) + "</strong></p>" +
-      '<p class="fine">Only the part that came from tKAS can come back. Practice stays a shop coin.</p>' +
-      '<label class="amt">tKAS to swap<input id="lock-amt" value="' + esc(lockDraft) + '" inputmode="decimal" autocomplete="off"></label>' +
-      '<p class="swap-preview" id="lock-preview"></p>' +
-      '<div class="kw-row"><button type="button" id="lock-poc" data-act>Swap to POCencept</button><button type="button" id="lock-kusdt" data-act' + (frozen ? ' data-hold="1" disabled' : "") + ">Swap to KUSDT</button></div>" +
-      swapLoadHtml() + statusLine() +
-      '<p class="fine">' + esc(payKind("lock")) + "</p>" +
-      '<details class="paid-already"' + (lockTxid ? " open" : "") + '><summary>Already sent tKAS? Paste the txid</summary><textarea id="lock-txid" rows="2">' + esc(lockTxid) + "</textarea></details>" +
-      bankFine();
   } else {
-    const name = clerk === "poc" ? "POCencept" : "KUSDT";
-    const other = clerk === "poc" ? "kusdt" : "poc";
-    const otherName = clerk === "poc" ? "KUSDT" : "POCencept";
-    const blocked = clerk === "kusdt" && frozen;
-    const otherBlocked = other === "kusdt" && frozen;
+    const payKas = dexFrom === "kas";
+    const blocked = frozen && (dexFrom === "kusdt" || dexTo === "kusdt");
+    const payId = payKas ? "lock-amt" : "redeem-amt";
+    const payValue = payKas ? lockDraft : redeemDraft;
+    const previewId = payKas ? "lock-preview" : "ledger-preview";
+    const opt = (selected) => ["kas", "poc", "kusdt"].map((id) =>
+      '<option value="' + id + '"' + (id === selected ? " selected" : "") + ">" + DEX_ASSET[id] + "</option>"
+    ).join("");
     body =
-      '<div class="swap-head"><h2>' + esc(name) + "</h2>" + back + "</div>" +
-      '<p class="clerk-ask">This window swaps into tKAS or ' + esc(otherName) + ".</p>" +
-      '<p class="clerk-bal"><span>You have</span><strong>' + esc(clerkFigure(clerk)) + "</strong></p>" +
+      '<div class="dex">' +
+      '<div class="swap-head"><h2>Swap</h2>' + close + "</div>" +
+      '<div class="dex-box"><div class="dex-box-top"><span>You pay</span><span>' + esc(clerkFigure(dexFrom)) + "</span></div>" +
+      '<div class="dex-row"><input id="' + payId + '" class="dex-amt" value="' + esc(payValue) + '" inputmode="decimal" autocomplete="off" placeholder="0">' +
+      '<select id="dex-from" class="dex-token">' + opt(dexFrom) + "</select></div></div>" +
+      '<button type="button" id="dex-flip" class="dex-flip" aria-label="Flip">↓</button>' +
+      '<div class="dex-box"><div class="dex-box-top"><span>You receive</span><span>' + esc(clerkFigure(dexTo)) + "</span></div>" +
+      '<div class="dex-row"><p class="swap-preview dex-out" id="' + previewId + '"></p>' +
+      '<select id="dex-to" class="dex-token">' + opt(dexTo) + "</select></div></div>" +
+      (blocked ? '<p class="fine">KUSDT is frozen. Thaw it in the books before this swap.</p>' : "") +
+      '<button type="button" id="dex-go" class="dex-go"' + (blocked ? ' data-hold="1" disabled' : "") + ">Swap</button>" +
+      swapLoadHtml() +
+      (payKas
+        ? '<details class="paid-already"' + (lockTxid ? " open" : "") + '><summary>Already sent tKAS? Paste the txid</summary><textarea id="lock-txid" rows="2">' + esc(lockTxid) + "</textarea></details>"
+        : "") +
       '<p class="fine">Only the part that came from tKAS can come back. Practice stays a shop coin.</p>' +
-      (blocked ? '<p class="fine">KUSDT is frozen. Thaw it in the books before these swaps.</p>' : "") +
-      '<label class="amt">Amount<input id="redeem-amt" value="' + esc(redeemDraft) + '" placeholder="1.00" inputmode="decimal" autocomplete="off"></label>' +
-      '<p class="swap-preview" id="ledger-preview"></p>' +
-      '<div class="kw-row"><button type="button" id="redeem-' + clerk + '" data-act' + (blocked ? ' data-hold="1" disabled' : "") + ">Swap to tKAS</button>" +
-      '<button type="button" id="x-' + clerk + "-" + other + '" data-act' + (blocked || otherBlocked ? ' data-hold="1" disabled' : "") + ">Swap to " + esc(otherName) + "</button></div>" +
-      swapLoadHtml() + statusLine() + bankFine();
+      '<button type="button" class="rails-open" data-rails>What are the rails?</button>' +
+      '<button type="button" class="clerk-books" data-clerk="books">The books</button>' +
+      statusLine() +
+      '<p class="fine">' + esc(payKind("lock")) + "</p>" +
+      bankFine() +
+      "</div>";
   }
   panel.innerHTML = '<div class="swap">' + body + "</div>";
-  if (clerk === "kas") {
-    paintLockPreview();
-    document.getElementById("lock-amt").addEventListener("input", () => {
-      lockDraft = fieldValue("lock-amt");
+  if (clerk !== "books") {
+    if (dexFrom === "kas") {
       paintLockPreview();
-    });
-    const tx = document.getElementById("lock-txid");
-    if (tx) tx.addEventListener("input", () => {
-      lockTxid = fieldValue("lock-txid").trim();
-    });
-    document.getElementById("lock-poc").onclick = () => lock("poc");
-    document.getElementById("lock-kusdt").onclick = () => lock("kusdt");
-  } else if (clerk === "poc" || clerk === "kusdt") {
-    paintLedgerPreview();
-    document.getElementById("redeem-amt").addEventListener("input", () => {
-      redeemDraft = fieldValue("redeem-amt");
+      const amt = document.getElementById("lock-amt");
+      if (amt) amt.addEventListener("input", () => {
+        lockDraft = fieldValue("lock-amt");
+        paintLockPreview();
+      });
+      const tx = document.getElementById("lock-txid");
+      if (tx) tx.addEventListener("input", () => {
+        lockTxid = fieldValue("lock-txid").trim();
+      });
+    } else {
       paintLedgerPreview();
-    });
-    const other = clerk === "poc" ? "kusdt" : "poc";
-    document.getElementById("redeem-" + clerk).onclick = () => redeem(clerk);
-    document.getElementById("x-" + clerk + "-" + other).onclick = () => exchange(clerk, other);
+      const amt = document.getElementById("redeem-amt");
+      if (amt) amt.addEventListener("input", () => {
+        redeemDraft = fieldValue("redeem-amt");
+        paintLedgerPreview();
+      });
+    }
+    const from = document.getElementById("dex-from");
+    const to = document.getElementById("dex-to");
+    const flip = document.getElementById("dex-flip");
+    const go = document.getElementById("dex-go");
+    if (from) from.onchange = () => setDexSide("from", from.value);
+    if (to) to.onchange = () => setDexSide("to", to.value);
+    if (flip) flip.onclick = () => flipDex();
+    if (go) go.onclick = () => runDexSwap();
   } else if (clerk === "books") {
     document.getElementById("purse").onclick = practice;
     document.getElementById("freeze").onclick = freeze;
@@ -2364,12 +2379,49 @@ function paintBank() {
   if (swapBusy) setSwapBusy(true);
 }
 
+function setDexSide(which, value) {
+  if (value !== "kas" && value !== "poc" && value !== "kusdt") return;
+  if (swapBusy) return;
+  rememberSwapFields();
+  if (which === "from") {
+    dexFrom = value;
+    if (dexTo === value) dexTo = value === "kas" ? "poc" : "kas";
+  } else {
+    dexTo = value;
+    if (dexFrom === value) dexFrom = value === "kas" ? "poc" : "kas";
+  }
+  state.bankRail = dexFrom;
+  state.bankClerk = "";
+  paintBank();
+}
+
+function flipDex() {
+  if (swapBusy) return;
+  rememberSwapFields();
+  const next = dexFrom;
+  dexFrom = dexTo;
+  dexTo = next;
+  state.bankRail = dexFrom;
+  state.bankClerk = "";
+  paintBank();
+}
+
+function runDexSwap() {
+  if (dexFrom === dexTo) {
+    say("Pick two different assets.", true);
+    return;
+  }
+  if (dexFrom === "kas") lock(dexTo);
+  else if (dexTo === "kas") redeem(dexFrom);
+  else exchange(dexFrom, dexTo);
+}
+
 function setSwapBusy(on) {
   swapBusy = on;
   const root = panel.querySelector(".swap");
   if (!root) return;
   for (const button of root.querySelectorAll("button")) {
-    if (button.id === "bank-close" || button.id === "clerk-back" || button.id === "place-exit") continue;
+    if (button.id === "bank-close" || button.id === "clerk-back" || button.id === "place-exit" || button.id === "dex-flip") continue;
     button.disabled = on || button.getAttribute("data-hold") === "1";
   }
 }
@@ -2634,18 +2686,18 @@ function paintGuide() {
     "<li>A funded wallet is prefunded with tKAS. Spend it at will. There is no risk. tKAS is worthless. The welcome gate takes that address. This money is tKAS, Testnet-10 KAS. With tKAS you can go to the bank. The same browser gets the same funded wallet. If this desk cannot tell it is the same browser, it says so. A mainnet address is refused.</li>" +
     "<li>A kaspatest address, or a .kas name that already resolves on TN10, is accepted when that address already holds tKAS. An empty address stays outside. The welcome gate takes a funded address.</li>" +
     "<li>Need coins: Use a funded test address on the welcome gate. The list of those addresses is on the economics tab. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
-    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank card opens when you click a clerk. In the cafe, take a seat and the menu blinks, or order at the blinking counter. The mint opens when you click the counter. The market opens at the counter. Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Once it is yours, Launch into space is the gold button. The showroom still opens when you click Pike or the sign. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
-    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The mint opens when you tap the counter. The bank opens when you tap a clerk. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. Use a funded test address. This money is tKAS. With tKAS you can go to the bank.</li>" +
+    "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank opens as a swap. In the cafe, take a seat and the menu blinks, or order at the blinking counter. The mint opens as soon as you walk in. The market opens at the counter. Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Once it is yours, Launch into space is the gold button. The showroom still opens when you click Pike or the sign. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
+    "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The mint and the bank open as soon as you walk in. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. Use a funded test address. This money is tKAS. With tKAS you can go to the bank.</li>" +
     "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is six times the standard Testnet 10 rate, and it is extra KAS. When a payment settles, it goes through. On a tKAS send, confirmations are still ongoing. The steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate.</li>" +
-    "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
-    "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe, take a seat and the menu blinks, or order at the counter. The mint opens when you click the counter. Launch, while you are in the car and outside, plays two short films beside the rocket first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. The tower stands beside it. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. After the booster is gone, the ship coasts, then the roadster leaves. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: you hang out with the old roadster. It has been cruising for years. The way there is ten seconds. Out there the two cars race in orbit around the Earth. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
+    "<li>Venn's bank opens as a swap. You pay one asset and you receive another: tKAS, POCencept, or KUSDT. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on the card.</li>" +
+    "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe, take a seat and the menu blinks, or order at the counter. The mint opens when you walk in. Launch, while you are in the car and outside, plays two short films beside the rocket first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. The tower stands beside it. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. After the booster is gone, the ship coasts, then the roadster leaves. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: you hang out with the old roadster. It has been cruising for years. The way there is ten seconds. Out there the two cars race in orbit around the Earth. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>The Moon map is NASA. Mars, Jupiter, Saturn, and the rings are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0.</li>" +
     "<li>The balances stay in a clear bar under the site tabs, on the square, in a shop, in the cinema, and on a flight. It reads tKAS, POC, and KUSDT. Bank is on that bar. With the bank open, that bar lists the minted tokens and the hunt you are in.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Every film is labeled this desk agrees. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends. Exit to the square leaves the cinema.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Peer to peer is the payment. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled. This square is still the classroom.</li>" +
-    "<li>Mint is the building with the Mint sign. Walk in and click the counter. What: a token on this ledger, under KCC-20 Last Call. It is not Final, and no covenant is deployed. How: open a new name, mint more, or send it. Open names sit in the list next to the card and update when a name opens. A name that has reached its cap is in the tall list. Click a name to see the addresses, the amounts, and the ledger lines. Why: so you can try a mint on Testnet 10. Type 0 in Cap for no cap. There is no maximum.</li>" +
+    "<li>Mint is the building with the Mint sign. Walk in and the mint card is open. Mint more, send, or open a new name. Open names sit on the card. Click a name to see the addresses, the amounts, and the ledger lines. A name that has reached its cap is under Completed. It is a square-ledger token under KCC-20 Last Call. It is not Final, and no covenant is deployed. Type 0 in Cap for no cap. There is no maximum.</li>" +
     "<li>Layer-Kaspa is on the side rail. Open a .kas name. Visitors see the page. Only the address that owns that name on the KNS testnet index can change it. The window has the title, a tagline, the welcome, a color, a link, and offers. Register the name in the KNS app. This desk does not register it. This layer does not hide the path. It is not Tor.</li>" +
     "<li>Kachat is on the side rail. Paste the other kaspatest address and send a handshake. They accept it. Then you send messages. Each step is 0.01 POCencept. Messages only. The KaChat app on the chain is a different program.</li>" +
     "<li>Vault is on the side rail. It keeps a note on this square ledger and a rule for who may read it and when. The labels are a note, an NDA, an enterprise file, or other. A real secret does not belong here. This page checks the readers and the time. A covenant mark is a label. No covenant is deployed. Seal keeps the note and the rule.</li>" +
@@ -3761,34 +3813,35 @@ function paintMint() {
   const open = ((state.home && state.home.mints) || []).filter((row) => !mintIsDone(row));
   const mine = (state.account && state.account.tokens) || [];
   const names = open.map((row) => {
-    const cap = !row.cap || row.cap === "0" ? " · no cap" : " · cap " + row.cap;
-    return '<option value="' + esc(row.name) + '">' + esc(row.name) + " · supply " + esc(row.supply) + esc(cap) + "</option>";
+    return '<option value="' + esc(row.name) + '">' + esc(row.name) + "</option>";
   }).join("");
+  const start = names ? "more" : "new";
   const held = mine.length
-    ? mine.map((row) => "<li>" + esc(row.amount) + " " + esc(row.name) + "</li>").join("")
-    : "<li>None yet.</li>";
+    ? mine.map((row) => '<span class="dex-chip">' + esc(row.amount) + " " + esc(row.name) + "</span>").join("")
+    : '<span class="dex-chip">None yet.</span>';
+  const tab = (value, label) =>
+    '<label class="dex-tab"><input type="radio" name="mint-opt" value="' + value + '"' + (start === value ? " checked" : "") + "><span>" + label + "</span></label>";
   panel.innerHTML =
-    '<div class="stall-head"><h2>Mint</h2>' + placeActs("") + "</div>" +
-    "<p><strong>Open mints.</strong> The list next to this card updates as soon as a name opens. Any funded address can mint more of it. Click a name there to see who holds it, how much, and the ledger lines. A name that has reached its cap moves to the tall list.</p>" +
-    "<p><strong>What.</strong> This place writes a token on the square ledger. The rule is KCC-20 Last Call. It is not Final. No covenant is deployed. The token is not tKAS, not a dollar, and not a spendable Layer-1 coin.</p>" +
-    "<p><strong>How.</strong> Pick one option. A new name opens a token and mints your amount. Mint more increases a token that is already open. Any funded address can mint more of a name someone else opened. Send moves some of yours to another kaspatest address. The same name keeps the same extension. A mint has to increase your amount. A send keeps the total. Open mints lists every name and every funded address that holds it. Join fills that name so you mint more.</p>" +
-    "<p><strong>Why.</strong> So a funded address can try a mint here on Testnet 10, while KCC-20 is still Last Call. The cap is the most that can be minted. This desk checks it. Type 0 in Cap for no cap. There is no maximum.</p>" +
-    "<p><strong>Options.</strong></p>" +
-    '<div class="mint-form">' +
-    '<label class="mint-choice"><input type="radio" name="mint-opt" value="new" checked><span>Open a new token</span></label>' +
-    '<label class="mint-choice"><input type="radio" name="mint-opt" value="more"><span>Mint more of an open token</span></label>' +
-    '<label class="mint-choice"><input type="radio" name="mint-opt" value="send"><span>Send to another address</span></label>' +
-    '<label class="mint-line" id="mint-pick-row"' + (names ? "" : " hidden") + '><span>Open tokens</span><select id="mint-pick"><option value="">Choose</option>' + names + "</select></label>" +
-    '<label class="mint-line"><span>Name</span><input id="mint-name" maxlength="12" spellcheck="false" autocomplete="off"></label>' +
-    '<label class="mint-line"><span>Amount</span><input id="mint-amount" inputmode="numeric" spellcheck="false" autocomplete="off"></label>' +
-    '<div id="mint-cap-row">' +
-    '<label class="mint-line"><span>Cap</span><input id="mint-cap" inputmode="numeric" value="0" spellcheck="false" autocomplete="off"></label>' +
+    '<div class="dex">' +
+    '<div class="swap-head"><h2>Mint</h2>' + placeActs("") + "</div>" +
+    '<div class="dex-tabs">' + tab("more", "Mint") + tab("send", "Send") + tab("new", "New") + "</div>" +
+    '<div class="dex-box"><div class="dex-box-top"><span id="mint-pay-label">You mint</span></div>' +
+    '<div class="dex-row">' +
+    '<input id="mint-amount" class="dex-amt" inputmode="numeric" spellcheck="false" autocomplete="off" placeholder="0">' +
+    '<select id="mint-pick" class="dex-token"' + (names ? "" : " hidden") + '><option value="">Choose</option>' + names + "</select>" +
+    '<input id="mint-name" class="dex-name" maxlength="12" spellcheck="false" autocomplete="off" placeholder="NAME">' +
+    "</div></div>" +
+    '<div class="dex-box" id="mint-cap-row">' +
+    '<div class="dex-box-top"><span>Cap</span></div>' +
+    '<input id="mint-cap" class="dex-amt" inputmode="numeric" value="0" spellcheck="false" autocomplete="off">' +
     '<p id="mint-cap-note" class="mint-cap-note">0 means no cap. There is no maximum.</p>' +
     "</div>" +
-    '<label class="mint-line" id="mint-to-row" hidden><span>To</span><input id="mint-to" spellcheck="false" autocomplete="off" placeholder="kaspatest address"></label>' +
-    "</div>" +
-    '<button type="button" id="mint-go">Mint</button>' +
-    "<p><strong>Yours.</strong></p><ul>" + held + "</ul>";
+    '<div class="dex-box" id="mint-to-row" hidden><div class="dex-box-top"><span>To</span></div>' +
+    '<input id="mint-to" class="dex-addr" spellcheck="false" autocomplete="off" placeholder="kaspatest address"></div>' +
+    '<button type="button" id="mint-go" class="dex-go">Mint</button>' +
+    '<p class="fine">Square ledger. KCC-20 Last Call. It is not Final. No covenant is deployed. Any funded address can mint more. Type 0 in Cap for no cap.</p>' +
+    '<div id="mint-book"></div>' +
+    '<div class="dex-yours"><span>Yours</span>' + held + "</div></div>";
   const pick = document.getElementById("mint-pick");
   if (pick) {
     pick.onchange = () => {
@@ -3894,8 +3947,7 @@ function mintDetail(row) {
 function mintRow(row) {
   const cap = !row.cap || row.cap === "0" ? "no cap" : "cap " + row.cap;
   const count = String(row.holderCount != null ? row.holderCount : (row.holders || []).length);
-  return "<li><button type=\"button\" data-mint=\"" + esc(row.name) + "\">" + esc(row.name) +
-    "</button> · supply " + esc(row.supply) + " · " + esc(cap) + " · " + esc(count) +
+  return "<li><button type=\"button\" class=\"dex-market-row\" data-mint=\"" + esc(row.name) + "\"><strong>" + esc(row.name) + "</strong><span>" + esc(row.supply) + " · " + esc(cap) + " · " + esc(count) + "</span></button>" +
     (mintFocus === row.name ? mintDetail(row) : "") + "</li>";
 }
 
@@ -3913,8 +3965,22 @@ function paintOneMintPop(id, title, rows, empty) {
 function paintMintBoards() {
   const rows = (state.home && state.home.mints) || [];
   mintSeen = JSON.stringify(rows);
-  paintOneMintPop("mint-open-pop", "Open mints", rows.filter((row) => !mintIsDone(row)), "No open mint yet.");
-  paintOneMintPop("mint-done-pop", "Completed mints", rows.filter((row) => mintIsDone(row)), "No mint has reached its cap.");
+  const book = document.getElementById("mint-book");
+  for (const id of ["mint-open-pop", "mint-done-pop"]) {
+    const pop = document.getElementById(id);
+    if (pop) pop.hidden = true;
+  }
+  if (!book) return;
+  const scroll = book.scrollTop;
+  const open = rows.filter((row) => !mintIsDone(row));
+  const done = rows.filter((row) => mintIsDone(row));
+  const list = (items, empty) => items.length
+    ? '<ul class="dex-market">' + items.map(mintRow).join("") + "</ul>"
+    : '<p class="mint-cap-note">' + empty + "</p>";
+  book.innerHTML =
+    "<h3>Open</h3>" + list(open, "No open mint yet.") +
+    "<details class=\"dex-done\"><summary>Completed</summary>" + list(done, "No mint has reached its cap.") + "</details>";
+  book.scrollTop = scroll;
 }
 
 function bindMintPops() {
@@ -3953,7 +4019,7 @@ function stopMintWatch() {
 
 function startMintWatch() {
   if (mintPoll) clearInterval(mintPoll);
-  panel.classList.add("mint-form-pop");
+  panel.classList.remove("mint-form-pop");
   bindMintPops();
   paintMintBoards();
   refreshMints();
@@ -3966,10 +4032,7 @@ function syncMintPick() {
   if (!pick) return;
   const open = ((state.home && state.home.mints) || []).filter((item) => !mintIsDone(item));
   const current = pick.value;
-  const names = open.map((item) => {
-    const cap = !item.cap || item.cap === "0" ? " · no cap" : " · cap " + item.cap;
-    return '<option value="' + esc(item.name) + '">' + esc(item.name) + " · supply " + esc(item.supply) + esc(cap) + "</option>";
-  }).join("");
+  const names = open.map((item) => '<option value="' + esc(item.name) + '">' + esc(item.name) + "</option>").join("");
   pick.innerHTML = '<option value="">Choose</option>' + names;
   if ([...pick.options].some((option) => option.value === current)) pick.value = current;
   if (row) row.hidden = !open.length;
@@ -3981,6 +4044,8 @@ function joinMint(name) {
   syncMintOption();
   const box = document.getElementById("mint-name");
   if (box) box.value = name || "";
+  const pick = document.getElementById("mint-pick");
+  if (pick && [...pick.options].some((option) => option.value === name)) pick.value = name;
   const amount = document.getElementById("mint-amount");
   if (amount) amount.focus();
 }
@@ -4009,8 +4074,14 @@ function syncMintOption() {
   const cap = document.getElementById("mint-cap-row");
   const to = document.getElementById("mint-to-row");
   const go = document.getElementById("mint-go");
+  const pick = document.getElementById("mint-pick");
+  const name = document.getElementById("mint-name");
+  const label = document.getElementById("mint-pay-label");
   if (cap) cap.hidden = option !== "new";
   if (to) to.hidden = option !== "send";
+  if (pick) pick.hidden = option === "new";
+  if (name) name.hidden = option !== "new";
+  if (label) label.textContent = option === "send" ? "You send" : option === "new" ? "You open" : "You mint";
   if (go) go.textContent = option === "send" ? "Send" : "Mint";
   syncCapNote();
 }
@@ -4675,6 +4746,20 @@ if (bankShade) bankShade.addEventListener("click", () => {
   else openMode("world");
 });
 panel.addEventListener("click", (ev) => {
+  if (state.mode === "mint") {
+    const join = ev.target.closest("[data-join]");
+    if (join) {
+      joinMint(join.getAttribute("data-join") || "");
+      return;
+    }
+    const mintBtn = ev.target.closest("[data-mint]");
+    if (mintBtn) {
+      const name = mintBtn.getAttribute("data-mint") || "";
+      mintFocus = mintFocus === name ? "" : name;
+      paintMintBoards();
+      return;
+    }
+  }
   if (ev.target.closest("[data-rails]")) {
     openRailsNote();
     return;
@@ -4711,7 +4796,6 @@ panel.addEventListener("click", (ev) => {
   if (clerkBtn) {
     if (swapBusy) return;
     state.bankClerk = clerkBtn.getAttribute("data-clerk") || "";
-    if (!state.bankClerk) say("Push a clerk. tKAS, POCencept, or KUSDT.");
     paintBank();
     return;
   }

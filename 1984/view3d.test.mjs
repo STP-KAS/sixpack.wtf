@@ -212,8 +212,8 @@ test("the wall menu uses the shop prices", () => {
 });
 
 test("a room opens the card only from the counter, a clerk, or a seat", () => {
-  assert.equal(roomUse("bank", false, "").open, "");
-  assert.equal(roomUse("bank", false, "").say, "Click a clerk.");
+  assert.equal(roomUse("bank", false, "").open, "bank");
+  assert.equal(roomUse("bank", false, "").say, "");
   assert.equal(roomUse("bank", false, "clerk").open, "bank");
   assert.equal(roomUse("bank", false, "books").clerk, "books");
   assert.equal(roomUse("cafe", false, "").open, "");
@@ -228,10 +228,11 @@ test("a room opens the card only from the counter, a clerk, or a seat", () => {
   assert.equal(roomUse("cafe", false, "counter").sit, false);
   assert.equal(roomUse("cafe", true, "menu").open, "cafe");
   assert.equal(roomUse("cafe", true, "qr").open, "cafe");
-  assert.equal(roomUse("mint", false, "").say, "Click the counter.");
+  assert.equal(roomUse("mint", false, "").open, "mint");
+  assert.equal(roomUse("mint", false, "").say, "");
   assert.equal(roomUse("mint", false, "counter").open, "mint");
   assert.equal(roomUse("mint", false, "keeper").open, "mint");
-  assert.equal(roomUse("mint", true, "seat").open, "");
+  assert.equal(roomUse("mint", true, "seat").open, "mint");
   assert.equal(roomUse("groceries", false, "").say, "Click the counter.");
   assert.equal(roomUse("groceries", false, "counter").open, "groceries");
   assert.equal(roomUse("groceries", false, "seat").open, "");
@@ -259,9 +260,9 @@ test("a room opens the card only from the counter, a clerk, or a seat", () => {
 });
 
 test("the room glows only the next step", () => {
-  assert.equal(ENTRY_HINT.bank, "Click a clerk.");
+  assert.equal(ENTRY_HINT.bank, "");
   assert.equal(ENTRY_HINT.cafe, "Take a seat, or order at the counter.");
-  assert.equal(ENTRY_HINT.mint, "Click the counter.");
+  assert.equal(ENTRY_HINT.mint, "");
   assert.equal(ENTRY_HINT.groceries, "Click the counter.");
   assert.equal(ENTRY_HINT.roadster, "Click Pike or the sign.");
   assert.equal(ENTRY_HINT.cinema, "Take a seat. The screen starts the reel.");

@@ -917,9 +917,9 @@ export function seat(owns, aboard, tile) {
 
 /** One next step. The gold ring shows the same thing. The card stays shut. */
 export const ENTRY_HINT = {
-  bank: "Click a clerk.",
+  bank: "",
   cafe: "Take a seat, or order at the counter.",
-  mint: "Click the counter.",
+  mint: "",
   groceries: "Click the counter.",
   roadster: "Click Pike or the sign.",
   cinema: "Take a seat. The screen starts the reel.",
@@ -946,13 +946,11 @@ export function invite(venue, seated) {
 export function roomUse(venue, seated, hit) {
   const none = { open: "", sit: false, say: "", clerk: "" };
   if (venue === "bank") {
-    if (hit === "clerk") return { open: "bank", sit: false, say: "", clerk: "" };
     if (hit === "books") return { open: "bank", sit: false, say: "", clerk: "books" };
-    return { ...none, say: "Click a clerk." };
+    return { open: "bank", sit: false, say: "", clerk: "" };
   }
   if (venue === "mint") {
-    if (hit === "counter" || hit === "keeper") return { open: "mint", sit: false, say: "", clerk: "" };
-    return { ...none, say: "Click the counter." };
+    return { open: "mint", sit: false, say: "", clerk: "" };
   }
   if (venue === "cafe") {
     if (hit === "seat") {
@@ -3484,7 +3482,7 @@ function buildStallRoom(maps) {
   const picks = {};
   const feet = {
     cafe: ["Sit, then this menu", "menu"],
-    mint: ["Click the counter", "counter"],
+    mint: ["Mint", "counter"],
     groceries: ["Click the counter", "counter"],
     roadster: ["Click the sign", "sign"],
   };
