@@ -121,11 +121,16 @@ export const FLIGHT_LIFTOFF = 15000;
 export const FLIGHT_CLIMB = 21000;
 /** Most booster engines cut. Flight 14 did this at 2:20. The hot-staging clip starts here. */
 export const FLIGHT_STAGE = 28000;
-/** Length of 1984/hotstage.mp4. The separation runs for this whole clip. */
+/** Length of 1984/hotstage.mp4. The voice starts here. The picture does not wait for the rest of the file. */
 export const HOT_STAGE_MS = 65493;
-/** The camera leaves the booster and stays with the ship, when that clip ends. */
-export const FLIGHT_ORBIT = FLIGHT_STAGE + HOT_STAGE_MS;
-/** Ship engine cutoff after the hot-staging clip, then the coast. */
+/**
+ * The booster lets go, the ship pulls clear, and the booster finishes its half turn.
+ * That turn is done just after 24s. The camera stays with the ship once the turn is clear.
+ */
+export const SEP_MS = 27000;
+/** The camera leaves the booster and stays with the ship. */
+export const FLIGHT_ORBIT = FLIGHT_STAGE + SEP_MS;
+/** Ship engine cutoff after separation, then the coast. */
 export const FLIGHT_SECO = FLIGHT_ORBIT + 7000;
 /** Unpowered float before the bay opens. */
 export const FLIGHT_COAST = 10000;
@@ -438,7 +443,7 @@ function stageMarks() {
     flipStart,
     flipEnd,
     boostStart: FLIGHT_STAGE + 21000,
-    boostEnd: FLIGHT_STAGE + HOT_STAGE_MS,
+    boostEnd: FLIGHT_ORBIT,
   };
 }
 
@@ -472,7 +477,7 @@ export function flightPose(ms) {
   const shipAt = stackPoint(0, stackY, 0, along, shipRoll);
   const boostAt = stackPoint(0, stackY, -aside, -slip, shipRoll);
   const peel = flightSmooth(t, marks.flipEnd, marks.flipEnd + 900);
-  // The booster keeps falling away for the rest of the hot-staging clip, then a bit more once the camera leaves.
+  // The booster falls away through the separation shot, then a bit more once the camera leaves.
   const drop = flightSmooth(t, marks.flipEnd, marks.boostEnd) * 14 + flightSmooth(t, marks.boostEnd, marks.boostEnd + 2500) * 10;
   const flip = flightSmooth(t, marks.flipStart, marks.flipEnd) * Math.PI;
   const boosterRoll = shipRoll - flip;
@@ -821,16 +826,16 @@ export function limbShot(x, y, z, dist, yaw = 0) {
 
 /**
  * In space the window is black and the stars show.
- * The filmed sky stays off there, so looking around does not play clouds across the dark.
+ * The filmed sky stays off. It is a flat Earth plate, and it read as a cut
+ * while the stack was still leaving the real planet.
  * Stage is already above the blue, so it uses the same dark field.
  */
 export function spaceBackdrop(pose) {
   const beat = pose && pose.beat;
   const inSpace = beat === "stage" || beat === "cruise" || beat === "orbit" || beat === "release" || beat === "space";
-  const high = pose && Number(pose.sky) >= 0.55;
   return {
     stars: inSpace || !!(pose && Number(pose.sky) >= 0.45),
-    film: !!high && !inSpace,
+    film: false,
   };
 }
 
@@ -853,8 +858,8 @@ export function flightFog(pose) {
 
 /**
  * Pad and climb cameras sit on +Z and keep the Earth limb in the window.
- * Until the booster lets go, the camera stays on the stack. Separation then watches the gap.
- * Coast and ejection sit just outside the vehicle, so the Earth fills the window the way the cruise does.
+ * Until the booster lets go, the camera stays on the stack and looks down the real planet.
+ * Separation then watches the gap. Coast and ejection sit just outside the vehicle.
  */
 export function flightCamera(ms, yaw = 0, pitch = 1.05) {
   const pose = flightPose(ms);
@@ -871,12 +876,14 @@ export function flightCamera(ms, yaw = 0, pitch = 1.05) {
   }
   if (pose.beat === "climb" || (pose.beat === "stage" && ms < stageMarks().letGo)) {
     const lx = pose.shipX || 0;
+    // Look 26 below the ship from z = 56. At T+ 0:12 the limb sits just above the look
+    // ray and the stack sits about 25° above it, inside a 58° frame.
     return {
       x: lx + 2.2,
       y: pose.shipY + 0.6,
       z: 56,
       lx,
-      ly: pose.shipY - 10.5,
+      ly: pose.shipY - 26,
       lz: 0,
     };
   }
@@ -2292,7 +2299,7 @@ export function buildFlight() {
     new THREE.MeshBasicMaterial({
       color: "#8ec5ff",
       transparent: true,
-      opacity: 0.05,
+      opacity: 0.2,
       side: THREE.BackSide,
       depthWrite: false,
       fog: false,
@@ -2740,7 +2747,7 @@ export function placeFlight(flight, pose) {
   const skyY = pose.worldY != null ? pose.worldY : (above ? earthCenter(pose) : pose.shipY);
   const mode = spaceSkyMode(pose);
   flight.stars.position.set(pose.worldX || 0, skyY, pose.worldZ || 0);
-  if (flight.earthClouds) flight.earthClouds.visible = false;
+  if (flight.earthClouds) flight.earthClouds.visible = pose.beat === "climb";
   const field = flight.spaceSky && flight.spaceSky.userData.starfield;
   const showField = mode === "stars" && !!field;
   flight.stars.visible = mode === "stars" && !showField;

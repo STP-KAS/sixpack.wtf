@@ -48,7 +48,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=125/);
+  assert.match(html, /1984\/client\.mjs\?v=126/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -82,7 +82,8 @@ test("the landing gate takes a funded test address", () => {
   assert.match(phone, /\.phone-fit \.flight-planets \{[\s\S]*position: fixed;[\s\S]*overflow-y: auto;/);
   assert.match(client, /function jokeForScreen/);
   assert.match(client, /old roadster/);
-  assert.match(sliceFn(client, "syncFlightFilms"), /currentTime = 0\.49/);
+  assert.match(sliceFn(client, "syncFlightFilms"), /stopCommsSound\(\)/);
+  assert.doesNotMatch(sliceFn(client, "syncFlightFilms"), /currentTime = 0\.49/);
   assert.match(sliceFn(client, "syncFlightFilms"), /HOT_STAGE_MS/);
   assert.match(phone, /\.phone-fit \.kw-side \{[^}]*width: 4\.4rem/);
   assert.doesNotMatch(phone, /\.kw \.kw-launch/);
@@ -143,7 +144,7 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.ok(topEnd > 0 && barAt > topEnd && stageAt > barAt);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
   assert.match(html, /1984\.css\?v=74/);
-  assert.match(html, /1984\/client\.mjs\?v=125/);
+  assert.match(html, /1984\/client\.mjs\?v=126/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);

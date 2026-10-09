@@ -17,7 +17,7 @@ import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=4";
 import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=8";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=8";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, HOT_STAGE_MS, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=58";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_RELEASE, FLIGHT_STAGE, HOT_STAGE_MS, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=59";
 import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=6";
 const TUNNEL = "https://authority-fireplace-earlier-spirit.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -257,19 +257,13 @@ function jokeForScreen(text, sku) {
 function syncFlightFilms(ms) {
   const hot = flightFilm("hotstage-film");
   const comms = document.getElementById("comms-sound");
-  const sepEnd = FLIGHT_STAGE + HOT_STAGE_MS;
+  const sepEnd = Math.min(FLIGHT_STAGE + HOT_STAGE_MS, FLIGHT_ORBIT);
   if (ms >= FLIGHT_RELEASE) {
     hideFlightFilm(flightFilm("release-film"));
-    if (comms) {
-      comms.volume = 0;
-      try { comms.pause(); } catch (err) { /* already quiet */ }
-    }
-    if (hot && !state.releasePlayed) {
-      state.releasePlayed = true;
-      state.hotOn = false;
-      try { hot.currentTime = 0.49; } catch (err) { /* the file may still be opening */ }
-      playFlightFilm(hot);
-    }
+    hideFlightFilm(hot);
+    stopCommsSound();
+    if (comms) comms.volume = 0;
+    state.hotOn = false;
     return;
   }
   if (ms >= sepEnd) {
