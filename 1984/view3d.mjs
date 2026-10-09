@@ -163,6 +163,15 @@ const HANG_LAP_MS = 80000;
 const EARTH_FACE = 1.15;
 /** Tips the pole so the pad sits on a mid-latitude coast, not the ice. */
 const EARTH_PAD_TILT = 1.05;
+/**
+ * One play of the limb film. The mesh turns this far about its polar axis.
+ * Positive yaw is west to east: from the north pole the surface moves counter-clockwise.
+ */
+export const EARTH_TURN_MS = 10042;
+/** Texture v of the horizon in the portrait. Above it is space and is not drawn. */
+export const EARTH_LIMB_V = 0.61;
+/** Keeps the plate just outside the surface so the limb is not buried in the sphere. */
+const EARTH_FILM_BIAS = 2;
 /** A half turn of local +Y lands on −Y. The exhaust column is built on −Y already. */
 export const FLIGHT_PLUME_PITCH = Math.PI;
 
@@ -559,6 +568,7 @@ export function flightPose(ms) {
     separated: t > marks.letGo,
     released: carX > 0.2,
     beatCruise: false,
+    ms: t,
   };
 }
 
@@ -636,7 +646,7 @@ function abyssPose(ms, fromMs) {
     carRoll: bank,
     nod: 0,
     spin: 0,
-    earthSpin: t * 0.000035 + EARTH_FACE,
+    earthSpin: earthTurn((fromMs || FLIGHT_SPACE) + t),
     plume: 0,
     shipPlume: 0,
     sky: 1,
@@ -830,6 +840,99 @@ export function flightWatch(pose, yaw = 0, pitch = 1.05, dist = 9) {
 /** Fixed center under the pad. The surface does not chase the ship. */
 export function earthCenter(_pose) {
   return EARTH_SURFACE - EARTH_RADIUS;
+}
+
+/** Yaw after one full turn. The same clock drives the limb film. */
+export function earthTurn(ms) {
+  const t = Math.max(0, Number(ms) || 0);
+  return EARTH_FACE + (t / EARTH_TURN_MS) * Math.PI * 2;
+}
+
+function earthFocus(pose) {
+  const hang = pose && pose.beat === "cruise" && pose.dest === "abyss";
+  if (hang) return { x: pose.worldX || 0, y: pose.worldY || 0, z: pose.worldZ || 0 };
+  return { x: 0, y: earthCenter(pose), z: 0 };
+}
+
+/**
+ * Portrait plate whose horizon sits on the real limb.
+ * The clip is 9:16 and is not an equirectangular map, so it does not wrap the sphere.
+ * (fx, fy, fz) points from the horizon toward the camera. (ux, uy, uz) is the plate's up.
+ */
+export function earthFilmFrame(pose, cam) {
+  const focus = earthFocus(pose);
+  const radius = EARTH_RADIUS;
+  const px = cam ? cam.x : 0;
+  const py = cam ? cam.y : 0;
+  const pz = cam ? cam.z : 1;
+  const look = cam && cam.lx != null
+    ? { x: cam.lx, y: cam.ly, z: cam.lz }
+    : focus;
+  let dx = look.x - px;
+  let dy = look.y - py;
+  let dz = look.z - pz;
+  const dlen = Math.hypot(dx, dy, dz) || 1;
+  dx /= dlen;
+  dy /= dlen;
+  dz /= dlen;
+  const ox = focus.x - px;
+  const oy = focus.y - py;
+  const oz = focus.z - pz;
+  let along = ox * dx + oy * dy + oz * dz;
+  if (along < 1) along = 1;
+  const qx = px + dx * along;
+  const qy = py + dy * along;
+  const qz = pz + dz * along;
+  let rx = qx - focus.x;
+  let ry = qy - focus.y;
+  let rz = qz - focus.z;
+  const rlen = Math.hypot(rx, ry, rz) || 1;
+  const hx = focus.x + (rx / rlen) * radius;
+  const hy = focus.y + (ry / rlen) * radius;
+  const hz = focus.z + (rz / rlen) * radius;
+  let vx = px - hx;
+  let vy = py - hy;
+  let vz = pz - hz;
+  const vlen = Math.hypot(vx, vy, vz) || 1;
+  vx /= vlen;
+  vy /= vlen;
+  vz /= vlen;
+  let ux = -vx * vy;
+  let uy = 1 - vy * vy;
+  let uz = -vz * vy;
+  const ulen = Math.hypot(ux, uy, uz);
+  if (ulen < 1e-4) {
+    ux = 0;
+    uy = 0;
+    uz = 1;
+  } else {
+    ux /= ulen;
+    uy /= ulen;
+    uz /= ulen;
+  }
+  const fov = ((pose && pose.sky >= 0.5 ? 58 : 42) * Math.PI) / 180;
+  const height = 2 * vlen * Math.tan(fov / 2);
+  const width = (height * 9) / 16;
+  const horizonLocalY = (EARTH_LIMB_V - 0.5) * height;
+  return {
+    x: hx - ux * horizonLocalY + vx * EARTH_FILM_BIAS,
+    y: hy - uy * horizonLocalY + vy * EARTH_FILM_BIAS,
+    z: hz - uz * horizonLocalY + vz * EARTH_FILM_BIAS,
+    fx: vx,
+    fy: vy,
+    fz: vz,
+    ux,
+    uy,
+    uz,
+    width,
+    height,
+    hx,
+    hy,
+    hz,
+    cx: focus.x,
+    cy: focus.y,
+    cz: focus.z,
+  };
 }
 
 /**
@@ -1346,6 +1449,46 @@ function saturnLimbMaterial() {
       "}",
     ].join("\n"),
   });
+}
+
+/** The limb film. Space above the horizon is discarded so the rocket and the stars stay. */
+function earthFilmMaterial(map) {
+  return new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    fog: false,
+    toneMapped: false,
+    uniforms: {
+      map: { value: map },
+      limbV: { value: EARTH_LIMB_V },
+    },
+    vertexShader: [
+      "varying vec2 vUv;",
+      "void main() {",
+      "  vUv = uv;",
+      "  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);",
+      "}",
+    ].join("\n"),
+    fragmentShader: [
+      "uniform sampler2D map;",
+      "uniform float limbV;",
+      "varying vec2 vUv;",
+      "void main() {",
+      "  float fade = 1.0 - smoothstep(limbV - 0.015, limbV + 0.02, vUv.y);",
+      "  if (fade < 0.02) discard;",
+      "  vec4 color = texture2D(map, vUv);",
+      "  gl_FragColor = vec4(color.rgb, fade);",
+      "}",
+    ].join("\n"),
+  });
+}
+
+function blankEarthTex() {
+  const data = new Uint8Array([8, 18, 36, 255]);
+  const tex = new THREE.DataTexture(data, 1, 1);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
 }
 
 /** Photo replaces the painted fallback once a browser can fetch it. */
@@ -2821,7 +2964,32 @@ export function buildFlight() {
     saturnFilm.userData.videoMap = videoMap;
     saturnVideo = saturnEl;
   }
-  return { root, pad, mount, tower, booster, ship, door, car, starman, plume, plumeHot, plumeSkirt, jets, diamonds, shipPlume, shipSkirt, shipJets, hullLine, fins, burn, earth, earthClouds, stars, steam, splash, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo, saturnFilm, saturnVideo, padScreens, padVideos, padFilmsDone: false };
+  let earthVideo = null;
+  const earthTex = blankEarthTex();
+  const earthFilm = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), earthFilmMaterial(earthTex));
+  earthFilm.name = "earth-film";
+  earthFilm.visible = false;
+  earthFilm.renderOrder = 4;
+  root.add(earthFilm);
+  loadEarthStill(earthFilm);
+  const earthEl = document.createElement("video");
+  if (earthEl && typeof earthEl.play === "function" && document.body) {
+    earthEl.muted = true;
+    earthEl.loop = true;
+    earthEl.playsInline = true;
+    earthEl.preload = "auto";
+    earthEl.src = "1984/earth.mp4";
+    earthEl.setAttribute("playsinline", "");
+    earthEl.setAttribute("muted", "");
+    earthEl.setAttribute("aria-hidden", "true");
+    earthEl.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none";
+    document.body.appendChild(earthEl);
+    const videoMap = new THREE.VideoTexture(earthEl);
+    videoMap.colorSpace = THREE.SRGBColorSpace;
+    earthFilm.userData.videoMap = videoMap;
+    earthVideo = earthEl;
+  }
+  return { root, pad, mount, tower, booster, ship, door, car, starman, plume, plumeHot, plumeSkirt, jets, diamonds, shipPlume, shipSkirt, shipJets, hullLine, fins, burn, earth, earthClouds, earthFilm, earthVideo, stars, steam, splash, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo, saturnFilm, saturnVideo, padScreens, padVideos, padFilmsDone: false };
 }
 
 function paintKoniCanvas(canvas, lines) {
@@ -2903,6 +3071,76 @@ function showSaturnFilm(flight, pose) {
     }
   }
   videoMap.needsUpdate = true;
+  if (vid.paused && typeof vid.play === "function") {
+    const pending = vid.play();
+    if (pending && typeof pending.catch === "function") pending.catch(() => {});
+  }
+}
+
+/** Still of the limb, until the film has a frame. The soundtrack is not shipped. */
+function loadEarthStill(film) {
+  try {
+    if (!film || typeof document === "undefined" || typeof document.createElementNS !== "function") return;
+    const loader = new THREE.TextureLoader();
+    loader.load("1984/earth-film-still.jpg?v=1", (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 8;
+      tex.wrapS = THREE.ClampToEdgeWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      if (film.userData.videoOn) return;
+      if (film.material.uniforms && film.material.uniforms.map) {
+        film.material.uniforms.map.value = tex;
+      }
+      film.userData.still = true;
+    });
+  } catch (err) {
+    /* The painted sphere stays until the film can play. */
+  }
+}
+
+function applyEarthFilm(film, frame) {
+  film.position.set(frame.x, frame.y, frame.z);
+  film.scale.set(frame.width, frame.height, 1);
+  aimUpright(film, frame.fx, frame.fy, frame.fz);
+}
+
+/**
+ * The limb film plays while the real Earth is in the window.
+ * One play is one full turn. The climb sky stays the star field.
+ */
+function showEarthFilm(flight, pose) {
+  const film = flight && flight.earthFilm;
+  if (!film) return;
+  const show = !!(pose && flight.earth && flight.earth.visible);
+  const vid = flight.earthVideo;
+  const videoMap = film.userData.videoMap;
+  const playing = !!(show && vid && videoMap && vid.readyState >= 2);
+  const picture = !!(show && (playing || film.userData.still));
+  film.visible = picture;
+  if (!show) {
+    if (vid && !vid.paused && typeof vid.pause === "function") vid.pause();
+    return;
+  }
+  let cam = null;
+  if (pose.beat !== "cruise" && pose.ms != null) cam = flightCamera(pose.ms);
+  else if (pose.carX != null) cam = { x: pose.carX, y: pose.carY, z: pose.carZ, lx: pose.worldX, ly: pose.worldY, lz: pose.worldZ };
+  if (!cam) return;
+  applyEarthFilm(film, earthFilmFrame(pose, cam));
+  if (!playing) return;
+  if (!film.userData.videoOn && film.material.uniforms && film.material.uniforms.map) {
+    film.material.uniforms.map.value = videoMap;
+    film.userData.videoOn = true;
+  }
+  videoMap.needsUpdate = true;
+  const duration = Number(vid.duration);
+  if (duration > 0) {
+    const posePhase = ((pose.ms || 0) % EARTH_TURN_MS) / EARTH_TURN_MS;
+    const vidPhase = (vid.currentTime % duration) / duration;
+    let delta = posePhase - vidPhase;
+    if (delta > 0.5) delta -= 1;
+    if (delta < -0.5) delta += 1;
+    if (Math.abs(delta) > 0.08) vid.currentTime = posePhase * duration;
+  }
   if (vid.paused && typeof vid.play === "function") {
     const pending = vid.play();
     if (pending && typeof pending.catch === "function") pending.catch(() => {});
@@ -3036,9 +3274,9 @@ export function placeFlight(flight, pose) {
       flight.earth.position.set(0, earthCenter(pose), 0);
     }
     flight.earth.scale.setScalar(EARTH_RADIUS);
-    const spin = pose.earthSpin != null ? pose.earthSpin : (pose.stackY || 0) * 0.004;
+    const spin = pose.earthSpin != null ? pose.earthSpin : earthTurn(pose.ms || 0);
     if (hang) flight.earth.rotation.set(0, spin, 0);
-    else flight.earth.rotation.set(EARTH_PAD_TILT, EARTH_FACE + (pose.stackY || 0) * 0.004, 0);
+    else flight.earth.rotation.set(EARTH_PAD_TILT, spin, 0);
     if (flight.earthClouds) flight.earthClouds.rotation.y = spin * 0.4;
   }
   if (flight.worlds) {
@@ -3055,6 +3293,7 @@ export function placeFlight(flight, pose) {
     }
   }
   showSaturnFilm(flight, pose);
+  showEarthFilm(flight, pose);
   if (flight.jokes) {
     for (const sprite of flight.jokes) sprite.visible = false;
     (pose.jokes || []).forEach((burst, n) => {
@@ -3088,7 +3327,7 @@ export function placeFlight(flight, pose) {
   const skyY = pose.worldY != null ? pose.worldY : (above ? earthCenter(pose) : pose.shipY);
   const mode = spaceSkyMode(pose);
   flight.stars.position.set(pose.worldX || 0, skyY, pose.worldZ || 0);
-  if (flight.earthClouds) flight.earthClouds.visible = pose.beat === "climb";
+  if (flight.earthClouds) flight.earthClouds.visible = pose.beat === "climb" && !(flight.earthFilm && flight.earthFilm.visible);
   const field = flight.spaceSky && flight.spaceSky.userData.starfield;
   const showField = mode === "stars" && !!field;
   flight.stars.visible = mode === "stars" && !showField;
@@ -4480,6 +4719,17 @@ export function mountWorld(canvas, map, api) {
       const frame = saturnFilmFrame(pose, camera.position);
       flight.saturnFilm.position.set(frame.x, frame.y, frame.z);
       aimUpright(flight.saturnFilm, frame.fx, frame.fy, frame.fz);
+    }
+    if (flight.earthFilm && flight.earthFilm.visible) {
+      const shot = {
+        x: camera.position.x,
+        y: camera.position.y,
+        z: camera.position.z,
+        lx: cam.lx,
+        ly: cam.ly,
+        lz: cam.lz,
+      };
+      applyEarthFilm(flight.earthFilm, earthFilmFrame(pose, shot));
     }
     const flightFov = pose.sky >= 0.5 ? 58 : 42;
     if (camera.fov !== flightFov || camera.far !== 1400) {

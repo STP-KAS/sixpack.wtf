@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, HOT_STAGE_MS, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, countdownMs, COUNT_HOLD_MS, cruiseWatch, abyssWatch, raceWatch, flightFog, spaceBackdrop, spaceSkyMode, drives, EARTH_RADIUS, EARTH_SURFACE, HANG_RADIUS, WORLD_RADIUS, SATURN_FILM_H, SATURN_WATCH, saturnFilmFrame, earthCenter, escapeRoom, fitScreen, portraitDistance, pointerScale, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
+import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, HOT_STAGE_MS, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, countdownMs, COUNT_HOLD_MS, cruiseWatch, abyssWatch, raceWatch, flightFog, spaceBackdrop, spaceSkyMode, drives, EARTH_RADIUS, EARTH_SURFACE, EARTH_LIMB_V, EARTH_TURN_MS, HANG_RADIUS, WORLD_RADIUS, SATURN_FILM_H, SATURN_WATCH, saturnFilmFrame, aimUpright, earthCenter, earthFilmFrame, earthTurn, escapeRoom, fitScreen, portraitDistance, pointerScale, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -721,6 +721,69 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.ok(shipDeg > 8 && shipDeg < 29, "stack stays in the upper window " + shipDeg);
   assert.equal(spaceSkyMode(flightPose(34000)), "stars");
   assert.equal(spaceSkyMode(flightPose(0)), "off");
+});
+
+test("the earth limb film sits on the real horizon and one play is one full turn", () => {
+  const lap = earthTurn(EARTH_TURN_MS) - earthTurn(0);
+  assert.ok(Math.abs(lap - Math.PI * 2) < 1e-9, "full turn " + lap);
+  const later = earthTurn(EARTH_TURN_MS + 250) - earthTurn(250);
+  assert.ok(Math.abs(later - Math.PI * 2) < 1e-9, "closed " + later);
+  const q0 = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, earthTurn(0), 0));
+  const q1 = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, earthTurn(80), 0));
+  const p0 = new THREE.Vector3(0, 0, 1).applyQuaternion(q0);
+  const p1 = new THREE.Vector3(0, 0, 1).applyQuaternion(q1);
+  const east = new THREE.Vector3(1, 0, 0).applyQuaternion(q0);
+  assert.ok(p1.clone().sub(p0).dot(east) > 0, "west to east");
+  const pose = flightPose(FLIGHT_LIFTOFF + 12000);
+  const cam = flightCamera(pose.ms);
+  const frame = earthFilmFrame(pose, cam);
+  const limb = Math.hypot(frame.hx, frame.hy - earthCenter(), frame.hz);
+  assert.ok(Math.abs(limb - EARTH_RADIUS) < 1e-4, "horizon on the sphere " + limb);
+  assert.ok(Math.abs(frame.width * 16 - frame.height * 9) < 0.02, "portrait");
+  assert.ok(frame.uy > 0.5, "plate up " + frame.uy);
+  const toCam = new THREE.Vector3(cam.x - frame.x, cam.y - frame.y, cam.z - frame.z).normalize();
+  const facing = new THREE.Vector3(frame.fx, frame.fy, frame.fz);
+  assert.ok(toCam.dot(facing) > 0.9, "faces the camera " + toCam.dot(facing));
+  const plate = new THREE.Object3D();
+  aimUpright(plate, frame.fx, frame.fy, frame.fz);
+  const up = new THREE.Vector3(0, 1, 0).applyQuaternion(plate.quaternion);
+  assert.ok(up.dot(new THREE.Vector3(frame.ux, frame.uy, frame.uz)) > 0.9, "up " + up.y);
+  assert.equal(spaceBackdrop(pose).film, false);
+  const ctx = new Proxy({}, {
+    get(_target, key) {
+      if (key === "canvas") return { width: 128, height: 128 };
+      if (key === "createLinearGradient" || key === "createRadialGradient") return () => ({ addColorStop() {} });
+      return () => {};
+    },
+    set() {
+      return true;
+    },
+  });
+  const previous = globalThis.document;
+  globalThis.document = {
+    createElement() {
+      return { width: 128, height: 128, getContext: () => ctx };
+    },
+  };
+  let flight;
+  try {
+    flight = buildFlight();
+  } finally {
+    globalThis.document = previous;
+  }
+  placeFlight(flight, pose);
+  assert.ok(Math.abs(flight.earth.rotation.y - earthTurn(pose.ms)) < 1e-6, "yaw " + flight.earth.rotation.y);
+  assert.equal(flight.earthFilm.visible, false);
+  flight.earthFilm.userData.still = true;
+  placeFlight(flight, pose);
+  assert.equal(flight.earthFilm.visible, true);
+  assert.equal(flight.earthClouds.visible, false);
+  assert.ok(Math.abs(flight.earthFilm.scale.y / flight.earthFilm.scale.x - 16 / 9) < 1e-6);
+  assert.ok(flight.earthFilm.position.distanceTo(new THREE.Vector3(frame.x, frame.y, frame.z)) < 1e-4);
+  placeFlight(flight, cruisePose(0, "mars", FLIGHT_SPACE));
+  assert.equal(flight.earth.visible, false);
+  assert.equal(flight.earthFilm.visible, false);
+  assert.ok(EARTH_LIMB_V > 0.5 && EARTH_LIMB_V < 0.75);
 });
 
 test("the saturn film sits behind the car on the cruise radial", () => {
