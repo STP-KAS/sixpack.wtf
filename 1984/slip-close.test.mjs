@@ -48,7 +48,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=120/);
+  assert.match(html, /1984\/client\.mjs\?v=121/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -128,18 +128,33 @@ test("exit to the square is on the shop card", () => {
   assert.match(css, /\.stall-acts/);
 });
 
-test("the balances stay in the top right with Bank", () => {
+test("the balances stay in a clear bar under the site tabs", () => {
   const css = readFileSync(new URL("../1984.css", import.meta.url), "utf8");
   const rails = readFileSync(new URL("../rails.html", import.meta.url), "utf8");
-  assert.match(html, /<header class="kw-bar" id="bar"><\/header>/);
-  assert.match(html, /1984\.css\?v=70/);
-  assert.match(html, /1984\/client\.mjs\?v=120/);
+  const topEnd = html.indexOf("</header>");
+  const barAt = html.indexOf('<header class="kw-bar" id="bar"></header>');
+  const stageAt = html.indexOf('<main class="kw-stage">');
+  assert.ok(topEnd > 0 && barAt > topEnd && stageAt > barAt);
+  assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
+  assert.match(html, /1984\.css\?v=71/);
+  assert.match(html, /1984\/client\.mjs\?v=121/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
+  assert.match(chrome, /<span class="bal-k">tKAS:<\/span>/);
+  assert.match(chrome, /<span class="bal-k">POC:<\/span>/);
+  assert.match(chrome, /<span class="bal-k">KUSDT:<\/span>/);
+  assert.match(chrome, /Minted:/);
+  assert.match(chrome, /Hunt:/);
+  assert.match(chrome, /state\.mode === "bank"/);
+  assert.match(sliceFn(client, "mintedBarText"), /None yet\./);
+  assert.match(sliceFn(client, "huntBarText"), /your promise is on the ledger/);
+  assert.match(sliceFn(client, "huntBarText"), /None yet\./);
+  assert.match(sliceFn(client, "refreshBankHunts"), /\/api\/1984\/hunts\?address=/);
+  assert.match(sliceFn(client, "openMode"), /refreshBankHunts\(\)/);
   assert.match(client, /closest\("#bar-bank"\)/);
   assert.match(client, /openMode\("bank"\)/);
-  assert.match(client, /The balances stay in the top right/);
+  assert.match(client, /The balances stay in a clear bar under the site tabs/);
   assert.match(client, /\["mint", "Mint"\]/);
   const mintCard = sliceFn(client, "paintMint");
   assert.match(mintCard, /<strong>What\.<\/strong>/);
@@ -193,10 +208,12 @@ test("the balances stay in the top right with Bank", () => {
   assert.match(rails, /<h2>The stag<\/h2>/);
   assert.match(rails, /Layer-Kaspa/);
   assert.match(rails, /kachat\.app\/home/);
-  assert.match(css, /\.kw-bar \{[\s\S]*?right: 8px;/);
-  assert.match(css, /\.kw\.flight \.kw-bar,\s*\.kw\.watching \.kw-bar,\s*\.kw\.room \.kw-bar \{ display: block; \}/);
+  assert.match(css, /\.kw-bar \{[\s\S]*?background: transparent/);
+  assert.doesNotMatch(css, /\.kw-bar \{[^}]*right: 8px/);
+  assert.doesNotMatch(css, /\.kw-bar \{[^}]*display:\s*none/);
   assert.doesNotMatch(css, /\.kw\.flight \.kw-bar \{ display: none/);
   assert.doesNotMatch(css, /\.kw\.watching \.kw-bar \{ display: none/);
+  assert.doesNotMatch(css, /\.kw\.room \.kw-bar \{ display: none/);
 });
 
 test("closing the pay slip leaves new purchase on that card", () => {

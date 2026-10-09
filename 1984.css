@@ -75,36 +75,48 @@ body.page-1984 .tabs button.on { background: #8a7040; color: #1a1612; }
   box-shadow: inset 0 0 0 1px #f3e6c8;
 }
 .kw-bar {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  left: auto;
+  position: static;
   z-index: 12;
-  width: min(220px, calc(100% - 16px));
-  margin: 0;
-  padding: 0.35rem 0.45rem 0.4rem;
-  background: rgba(20, 14, 10, 0.9);
-  border: 2px solid #c6a15a;
-  pointer-events: auto;
-  font-size: 0.78rem;
-  line-height: 1.3;
-  text-align: right;
-  white-space: normal;
-  overflow: visible;
-}
-.kw-bar .bal-line { margin: 0; }
-.kw-bar .bar-bank {
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.12rem 0.85rem;
   width: 100%;
-  margin-top: 0.35rem;
-  min-height: 44px;
+  max-height: 30vh;
+  margin: 0;
+  padding: 0.14rem 0.55rem 0.18rem;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(138, 112, 64, 0.45);
+  color: #f3e6c8;
+  pointer-events: auto;
+  font-size: 0.82rem;
+  line-height: 1.3;
+  text-align: left;
+  overflow: auto;
+}
+.kw-bar .bal-line { margin: 0; white-space: nowrap; }
+.kw-bar .bal-extra { flex: 1 0 100%; margin: 0; }
+.kw-bar .bal-k { color: #f2d48a; font-weight: 700; }
+.kw-bar .bar-bank {
+  display: inline-block;
+  width: auto;
+  margin: 0;
+  min-height: 1.6rem;
+  padding: 0 0.15rem;
   text-align: center;
+  font: inherit;
   font-weight: 700;
-  color: #1a1612;
-  background: linear-gradient(#f0d7a0, #c49a45);
-  border: 2px solid #1c1916;
+  color: #f2d48a;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.12rem;
   pointer-events: auto;
 }
+.kw-bar .bar-bank.on { color: #fff; }
 .kw-bar strong { color: #f2d48a; }
 .kw-bar .fine, .fine { color: #b7a88a; font-size: 0.75rem; margin: 0.1rem 0 0; }
 body.page-1984 main.kw-stage {
@@ -492,9 +504,6 @@ body.page-1984 main.kw-stage {
 .kw.watching .kw-chat,
 .kw.watching .kw-side,
 .kw.watching .kw-mini { display: none; }
-.kw.flight .kw-bar,
-.kw.watching .kw-bar,
-.kw.room .kw-bar { display: block; }
 .kw-you {
   position: absolute;
   right: 10px;
@@ -1315,18 +1324,16 @@ a { color: #f2d48a; }
     text-align: center;
   }
   .phone-fit .kw-bar {
-    top: 6px;
-    right: 6px;
-    width: min(11.2rem, 62%);
-    padding: 0.22rem 0.32rem 0.28rem;
+    gap: 0.08rem 0.5rem;
+    padding: 0.1rem 0.4rem 0.14rem;
     font-size: 0.72rem;
   }
   .phone-fit .kw-bar .bar-bank {
-    min-height: 2.15rem;
-    margin-top: 0.2rem;
+    min-height: 1.7rem;
+    margin-top: 0;
   }
   .phone-fit .kw-logout {
-    top: 7.35rem;
+    top: 6px;
     right: 6px;
     width: 4.4rem;
     min-height: 2.15rem;

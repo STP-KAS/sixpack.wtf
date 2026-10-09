@@ -60,6 +60,7 @@ const state = {
   huntRails: {},
   huntNeeds: {},
   huntBook: null,
+  huntFor: "",
   flightStart: 0,
   launchHold: false,
   liftoffWall: null,
@@ -454,19 +455,24 @@ function paintChrome() {
   const nameSel = keepName != null ? [nameDraft.selectionStart, nameDraft.selectionEnd] : null;
   const id = state.id;
   const label = id.label || short(id.address);
-  const kas = !id.address ? "— tKAS" : state.kasSompi == null ? "… tKAS" : formatTkas(state.kasSompi) + " tKAS";
-  const poc = state.account ? formatCents(state.account.poc) + " POCencept stable" : "— POCencept stable";
-  const kusdt = state.account ? formatCents(state.account.kusdt) + " KUSDT stable" : "— KUSDT stable";
-  const frozen = state.account && state.account.kusdtFrozen ? " · KUSDT stable frozen" : "";
+  const kasAmt = !id.address ? "—" : state.kasSompi == null ? "…" : formatTkas(state.kasSompi);
+  const pocAmt = state.account ? formatCents(state.account.poc) : "—";
+  const kusdtAmt = state.account ? formatCents(state.account.kusdt) : "—";
+  const frozen = state.account && state.account.kusdtFrozen ? " frozen" : "";
   const guestLine = id.kind === "guest" ? " · this tab only" : "";
   const driving = state.account && state.account.roadster ? (state.aboard ? " · driving" : " · roadster is yours") : "";
   const bankOn = state.mode === "bank" ? " on" : "";
+  const bankLines = state.mode === "bank"
+    ? '<p class="bal-extra"><span class="bal-k">Minted:</span> ' + esc(mintedBarText()) + "</p>" +
+      '<p class="bal-extra"><span class="bal-k">Hunt:</span> ' + esc(huntBarText()) + "</p>"
+    : "";
+  bar.title = label + guestLine + driving;
   bar.innerHTML =
-    '<p class="bal-line"><strong>' + esc(label) + "</strong>" + esc(guestLine) + driving + "</p>" +
-    '<p class="bal-line">' + esc(kas) + "</p>" +
-    '<p class="bal-line">' + esc(poc) + "</p>" +
-    '<p class="bal-line">' + esc(kusdt) + esc(frozen) + "</p>" +
-    '<button type="button" id="bar-bank" class="bar-bank' + bankOn + '">Bank</button>';
+    '<p class="bal-line"><span class="bal-k">tKAS:</span> ' + esc(kasAmt) + "</p>" +
+    '<p class="bal-line"><span class="bal-k">POC:</span> ' + esc(pocAmt) + "</p>" +
+    '<p class="bal-line"><span class="bal-k">KUSDT:</span> ' + esc(kusdtAmt + frozen) + "</p>" +
+    '<button type="button" id="bar-bank" class="bar-bank' + bankOn + '">Bank</button>' +
+    bankLines;
 
   const buttons = [
     ["world", "Square"],
@@ -523,6 +529,9 @@ function paintChrome() {
   watchAddressBox(addrBox);
   watchNameBox(nameBox);
   syncRide();
+  requestAnimationFrame(() => {
+    if (worldView && worldView.resize) worldView.resize();
+  });
 }
 
 function groundTile() {
@@ -1942,6 +1951,7 @@ function openMode(mode) {
       say("Push a clerk. tKAS, POCencept, or KUSDT.");
     }
     paintBank();
+    refreshBankHunts();
   } else if (mode === "rules") paintRules();
   else if (mode === "bench") paintBench();
   else if (mode === "guide") paintGuide();
@@ -2371,16 +2381,61 @@ function rememberHuntFields() {
 }
 
 function huntRowState(id) {
-  const list = state.huntBook && state.huntBook.hunts;
+  const list = state.huntBook && state.huntFor === state.id.address && state.huntBook.hunts;
   if (!list) return null;
   return list.find((item) => item.id === id) || null;
 }
 
+function keepHuntBook(book) {
+  if (!book) return;
+  state.huntBook = book;
+  state.huntFor = state.id.address || "";
+}
+
+let huntBarMiss = false;
+
+function mintedBarText() {
+  if (!state.account) return "—";
+  const mine = state.account.tokens || [];
+  if (!mine.length) return "None yet.";
+  return mine.map((row) => row.amount + " " + row.name).join(", ");
+}
+
+function huntBarText() {
+  if (!state.id.address) return "—";
+  const list = state.huntBook && state.huntFor === state.id.address && state.huntBook.hunts;
+  if (!list) return huntBarMiss ? "The hunt book did not answer." : "…";
+  const mine = list.filter((row) => row && (row.promise || row.paid));
+  if (!mine.length) return "None yet.";
+  return mine.map((row) => {
+    const bits = [];
+    if (row.promise) bits.push("your promise is on the ledger");
+    if (row.paid) bits.push("paid");
+    return row.name + (bits.length ? " · " + bits.join(", ") : "");
+  }).join("; ");
+}
+
+async function refreshBankHunts() {
+  if (!state.id.address || state.mode !== "bank") return;
+  const asked = state.id.address;
+  const body = await api("/api/1984/hunts?address=" + encodeURIComponent(asked));
+  if (state.mode !== "bank" || state.id.address !== asked) return;
+  if (!body || !body.ok || !Array.isArray(body.hunts)) {
+    if (state.huntFor !== asked) huntBarMiss = true;
+    paintChrome();
+    return;
+  }
+  huntBarMiss = false;
+  keepHuntBook(body);
+  paintChrome();
+}
+
 async function refreshHuntBook() {
   if (!state.id.address || state.mode !== "hunt") return;
-  const body = await api("/api/1984/hunts?address=" + encodeURIComponent(state.id.address));
-  if (state.mode !== "hunt" || !body || !body.ok) return;
-  state.huntBook = body;
+  const asked = state.id.address;
+  const body = await api("/api/1984/hunts?address=" + encodeURIComponent(asked));
+  if (state.mode !== "hunt" || state.id.address !== asked || !body || !body.ok) return;
+  keepHuntBook(body);
   paintHunt();
 }
 
@@ -2452,7 +2507,7 @@ async function dropPromise(id) {
       return;
     }
     if (body.account) state.account = body.account;
-    if (body.hunts) state.huntBook = body.hunts;
+    if (body.hunts) keepHuntBook(body.hunts);
     say("The promise is off the ledger.");
     paintHunt();
   } catch (err) {
@@ -2504,12 +2559,12 @@ async function promiseHunt(id) {
       say(promised.error || "The desk refused the promise.", true);
       return;
     }
-    if (promised.hunts) state.huntBook = promised.hunts;
+    if (promised.hunts) keepHuntBook(promised.hunts);
     if (promised.account) state.account = promised.account;
     const snapPath = rail === "kas" && guest ? "/api/1984/guest/hunt/snap" : "/api/1984/hunt/snap";
     const snapped = await post(snapPath, { ...extra, hunt: id, txid });
     if (snapped.account) state.account = snapped.account;
-    if (snapped.hunts) state.huntBook = snapped.hunts;
+    if (snapped.hunts) keepHuntBook(snapped.hunts);
     if (snapped.paid && snapped.banner === "Pack paid on this square.") {
       const huntTx = (snapped.receipt && snapped.receipt.txid) || txid || "";
       paySlip({
@@ -2585,7 +2640,7 @@ function paintGuide() {
     "<li>Venn's bank starts with three clerks. Push tKAS, POCencept, or KUSDT. The open clerk swaps into the other two. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on that clerk.</li>" +
     "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe, take a seat and the menu blinks, or order at the counter. The mint opens when you click the counter. Launch, while you are in the car and outside, plays two short films beside the rocket first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. The tower stands beside it. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. After the booster is gone, the ship coasts, then the roadster leaves. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: you hang out with the old roadster. It has been cruising for years. The way there is ten seconds. Out there the two cars race in orbit around the Earth. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>The Moon map is NASA. Mars, Jupiter, Saturn, and the rings are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0.</li>" +
-    "<li>The balances stay in the top right, on the square, in a shop, in the cinema, and on a flight. Bank is on that card.</li>" +
+    "<li>The balances stay in a clear bar under the site tabs, on the square, in a shop, in the cinema, and on a flight. It reads tKAS, POC, and KUSDT. Bank is on that bar. With the bank open, that bar lists the minted tokens and the hunt you are in.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Every film is labeled this desk agrees. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. The current film stays up until the next one has a picture. The next film starts when one ends. Exit to the square leaves the cinema.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
