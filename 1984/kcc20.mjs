@@ -182,7 +182,7 @@ export function holderMint(before, after, extension, owner) {
 }
 
 /** The square's second lock is amount-threshold with a zero guard: any increase passes. */
-export function requireIncrease(before, after) {
+export function requireIncrease(before, after, extension = POC_EXTENSION) {
   borrowedReceive(
     {
       amount: before,
@@ -190,7 +190,7 @@ export function requireIncrease(before, after) {
       ownerScheme: 0x01,
       borrowScheme: 0x01,
       borrowGuard: ZERO_GUARD,
-      extension: POC_EXTENSION,
+      extension,
     },
     {
       amount: after,
@@ -198,14 +198,17 @@ export function requireIncrease(before, after) {
       ownerScheme: 0x01,
       borrowScheme: 0x01,
       borrowGuard: ZERO_GUARD,
-      extension: POC_EXTENSION,
+      extension,
     }
   );
 }
 
-/** Section 2. One family, one extension, the total amount stays. */
+/** Section 2. One family, one extension, the total amount stays. Last Call default is 3 in and 3 out. */
 export function standardTransfer(inputs, outputs) {
   if (!inputs.length || !outputs.length) throw new Error("A standard transfer needs inputs and outputs.");
+  if (inputs.length > 3 || outputs.length > 3) {
+    throw new Error("A standard transfer stays within 3 inputs and 3 outputs.");
+  }
   const extension = inputs[0].extension;
   let inn = 0n;
   let out = 0n;

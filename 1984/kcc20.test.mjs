@@ -100,6 +100,8 @@ test("a standard transfer keeps one extension and the total amount", () => {
   assert.throws(() =>
     standardTransfer([{ amount: 1000n, extension: POC_EXTENSION }], [{ amount: 999n, extension: POC_EXTENSION }])
   );
+  const four = [1, 2, 3, 4].map((amount) => ({ amount: BigInt(amount), extension: POC_EXTENSION }));
+  assert.throws(() => standardTransfer([{ amount: 10n, extension: POC_EXTENSION }], four), /3 inputs and 3 outputs/);
 });
 
 test("a square lock has to increase the amount", () => {

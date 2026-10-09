@@ -95,6 +95,16 @@ export function sompiForCents(cents, usdPerKas) {
   return (c * SCALE + micro - 1n) / micro;
 }
 
+/** Sompi returned for locked tag units. The whole remainder returns the whole lock. A later quote is not used. */
+export function lockShare(liability, backed, cents) {
+  const debt = BigInt(liability || 0);
+  const locked = BigInt(backed || 0);
+  const take = BigInt(cents || 0);
+  if (take <= 0n || locked <= 0n || debt <= 0n) return 0n;
+  if (take >= locked) return debt;
+  return (debt * take) / locked;
+}
+
 export function formatTkas(sompi) {
   let n = BigInt(sompi || 0);
   const neg = n < 0n;

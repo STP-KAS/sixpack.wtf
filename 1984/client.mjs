@@ -9,10 +9,11 @@ import {
   centsForSompi,
   formatCents,
   formatTkas,
+  lockShare,
   parseDollars,
   parseTkas,
   sompiForCents,
-} from "./money.mjs";
+} from "./money.mjs?v=2";
 import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=4";
 import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=8";
@@ -1496,7 +1497,7 @@ function quoteSompi(cents) {
 const RAIL_CHAT = {
   kas: "tKAS is the only coin that moves.",
   poc: "Tag only, no freeze. Redeem returns the locked part. Grams are not this dollar.",
-  kusdt: "Freeze blocks KUSDT only.",
+  kusdt: "Freeze blocks the KUSDT tag. Locked tKAS still redeems.",
 };
 
 function markRoom() {
@@ -2335,7 +2336,7 @@ function paintLockPreview() {
   const cents = centsForSompi(sompi, state.oracle);
   const tag = formatCents(cents);
   el.textContent = cents > 0n
-    ? formatTkas(sompi) + " tKAS becomes about " + tag + " at $" + Number(state.oracle).toFixed(4) + "."
+    ? formatTkas(sompi) + " tKAS becomes about " + tag + " at $" + Number(state.oracle).toFixed(4) + ". Redeem returns this tKAS. A later price does not change the lock."
     : formatTkas(sompi) + " tKAS is below 0.01 at this price. Swap more tKAS.";
 }
 
@@ -2397,7 +2398,19 @@ function paintLedgerPreview() {
     return;
   }
   try {
-    el.textContent = formatCents(parseDollars(raw)) + " on this ledger.";
+    const cents = parseDollars(raw);
+    const rail = dexFrom === "kusdt" ? "kusdt" : "poc";
+    const account = state.account || {};
+    const backed = BigInt(rail === "poc" ? account.pocBacked || 0 : account.kusdtBacked || 0);
+    const debt = BigInt(rail === "poc" ? account.pocLiability || 0 : account.kusdtLiability || 0);
+    if (dexTo === "kas") {
+      const sompi = lockShare(debt, backed, cents);
+      el.textContent = sompi > 0n
+        ? formatCents(cents) + " returns " + formatTkas(sompi) + " tKAS of the lock. A later price does not change that."
+        : formatCents(cents) + " on this ledger. Practice coins do not come back as tKAS.";
+      return;
+    }
+    el.textContent = formatCents(cents) + " swaps the tag. Locked tKAS moves with the locked part. The purse stays a purse.";
   } catch (err) {
     el.textContent = err.message;
   }
@@ -2423,12 +2436,12 @@ function paintBank() {
       '<div class="swap-head"><h2>The books</h2>' + back + "</div>" +
       "<p>Locked tags came from a real tKAS send. That part can come back as tKAS.</p>" +
       "<p>The purse is practice coins. Shops spend the purse first. The purse does not come back as tKAS.</p>" +
-      "<p>A swap between POCencept and KUSDT moves each pile as itself. Locked stays locked. The purse stays a purse. No extra tKAS is locked or freed.</p>" +
-      "<p>KUSDT can be frozen. POCencept cannot. A freeze blocks any swap that touches KUSDT.</p>" +
-      "<p>The miner fee is always KAS. On a tKAS send it is extra. It is 87 times the standard Testnet 10 rate. The price is not reduced to pay the miner.</p>" +
+      "<p>A swap between POCencept and KUSDT moves each pile as itself. Locked tKAS moves with the locked part. The purse stays a purse. No extra tKAS is locked or freed.</p>" +
+      "<p>KUSDT can be frozen. POCencept cannot. A freeze blocks KUSDT spending and any swap that moves the tag. Redeem of tKAS already locked still pays.</p>" +
+      "<p>The miner fee is always KAS. On a tKAS send it is extra. It is 87 times the standard Testnet 10 rate. The price is not reduced to pay the miner. A redeem does not take the fee out of the lock.</p>" +
       "<p>A tKAS payment smaller than the quote does not buy the item and does not mint a tag.</p>" +
       "<p>Sending the same accepted txid again, for the same address and the same purchase, returns the receipt already written. A different item or a different address with that txid is refused.</p>" +
-      "<p>A lock has to increase the amount. A negative threshold counts as zero. POCencept and KUSDT keep different extension commitments, so they do not mix. A freeze changes the KUSDT commitment. This counter did not compile a covenant. The tags stay on this square. KCC-20 is Last Call, not Final.</p>" +
+      "<p>A lock writes the tag at the quote in that moment and has to increase the amount. Redeem returns the tKAS that was locked. A later quote does not reprice it. A negative threshold counts as zero. POCencept and KUSDT keep different extension commitments, so they do not mix. A freeze changes the KUSDT commitment. This counter did not compile a covenant. The tags stay on this square. KCC-20 is Last Call, not Final.</p>" +
       '<div class="swap-bals">' +
       card("POCencept", formatCents(poc.have), "locked " + formatCents(poc.lock) + " · purse " + formatCents(poc.purse)) +
       card("KUSDT", formatCents(kusdt.have), "locked " + formatCents(kusdt.lock) + " · purse " + formatCents(kusdt.purse) + (frozen ? " · frozen" : "")) +
@@ -2437,7 +2450,8 @@ function paintBank() {
       statusLine() + bankFine();
   } else {
     const payKas = dexFrom === "kas";
-    const blocked = frozen && (dexFrom === "kusdt" || dexTo === "kusdt");
+    const redeemFrozen = frozen && dexFrom === "kusdt" && dexTo === "kas";
+    const blocked = frozen && (dexFrom === "kusdt" || dexTo === "kusdt") && !redeemFrozen;
     const payId = payKas ? "lock-amt" : "redeem-amt";
     const payValue = payKas ? lockDraft : redeemDraft;
     const previewId = payKas ? "lock-preview" : "ledger-preview";
@@ -2455,6 +2469,7 @@ function paintBank() {
       '<div class="dex-row"><p class="swap-preview dex-out" id="' + previewId + '"></p>' +
       '<select id="dex-to" class="dex-token">' + opt(dexTo) + "</select></div></div>" +
       (blocked ? '<p class="fine">KUSDT is frozen. Thaw it in the books before this swap.</p>' : "") +
+      (redeemFrozen ? '<p class="fine">KUSDT is frozen. This redeem still returns the locked tKAS. The tag does not swap.</p>' : "") +
       '<button type="button" id="dex-go" class="dex-go"' + (blocked ? ' data-hold="1" disabled' : "") + ">Swap</button>" +
       swapLoadHtml() +
       (payKas
@@ -2791,7 +2806,7 @@ function paintRules() {
     "<p>Shops you allow. Leave all off to allow every shop.</p>" + shops +
     "<p>Rails you allow. Leave all off to allow every rail.</p>" + rails +
     '<button type="button" id="save-rules">Save rules</button>' +
-    '<p class="fine">PegLab: this quote is an outside price. If it moves, a redeem can fail because the lock no longer covers the tagged amount. That is a peg failing. It is not a promise of dollars. Grams are not this dollar. BitCoffee\'s covenant KUSD is a different object and is not minted here.</p>' +
+    '<p class="fine">The live quote sets a tKAS shop price and the tag written when tKAS is locked. Redeem returns that locked tKAS. It does not pay a new dollar price. PegLab is the classroom where a thin peg breaks. This bank is not that peg. Grams are not this dollar. BitCoffee\'s covenant KUSD is a different object and is not minted here.</p>' +
     '<p class="fine">A real covenant would enforce this on Testnet-10 without trusting this page. SilverScript and the Kaspero freelancer sheet are on the bench. This page checks the rule before it moves a ledger balance. A vProg guest can sequence a step. This square does not claim the shop spend is that step.</p>';
   document.getElementById("save-rules").onclick = saveRules;
   wirePlaceExit();

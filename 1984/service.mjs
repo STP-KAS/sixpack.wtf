@@ -574,11 +574,10 @@ export function create1984Service(deps) {
           });
         }
         if (pathname === "/api/1984/redeem") {
-          const usd = await price();
           const cents = parseDollars(body.amount);
           return await queue(async () => {
             const before = clone(state);
-            const out = applyRedeem(state, { address, rail: body.rail, cents, usdPerKas: usd }, now);
+            const out = applyRedeem(state, { address, rail: body.rail, cents }, now);
             state = out.state;
             deps.save(state);
             try {

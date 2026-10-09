@@ -12,7 +12,7 @@ import {
   freshState,
   publicAccount,
 } from "./ledger.mjs";
-import { RESERVE, assertTestnet, centsForSompi, sompiForCents } from "./money.mjs";
+import { RESERVE, assertTestnet, centsForSompi, lockShare, sompiForCents } from "./money.mjs";
 import { LOT_LINE, PARKING_BAYS, ROADSTER_PARK, SHOPS, counterFace, findPath, nearShop, shopVisit, standTile, walkable, world } from "./world.mjs";
 
 const USER = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
@@ -158,6 +158,59 @@ test("a locked redeem burns backed coins, not the practice purse", () => {
   assert.equal(state.accounts[USER].pocBacked, "0");
   assert.equal(state.accounts[USER].liability, "0");
   assert.throws(() => applyRedeem(state, { address: USER, rail: "poc", cents: 100n, usdPerKas: USD }, NOW));
+});
+
+test("a redeem returns the locked tKAS after the quote moves", () => {
+  let state = freshState();
+  const locked = pay(2_000_000_000n, 21);
+  state = applyConvert(state, { address: USER, rail: "poc", payment: locked, usdPerKas: USD }, NOW).state;
+  assert.equal(state.accounts[USER].pocLiability, "2000000000");
+  const dear = applyRedeem(state, { address: USER, rail: "poc", cents: 50n, usdPerKas: 0.2 }, NOW);
+  assert.equal(dear.sompi, 1_000_000_000n);
+  assert.equal(dear.state.accounts[USER].pocLiability, "1000000000");
+  const cheap = applyRedeem(dear.state, { address: USER, rail: "poc", cents: 50n, usdPerKas: 0.01 }, NOW);
+  assert.equal(cheap.sompi, 1_000_000_000n);
+  assert.equal(cheap.state.accounts[USER].liability, "0");
+  assert.equal(lockShare(2_000_000_001n, 100n, 100n), 2_000_000_001n);
+});
+
+test("frozen KUSDT still redeems the lock and does not spend the tag", () => {
+  let state = freshState();
+  const locked = pay(2_000_000_000n, 22);
+  state = applyConvert(state, { address: USER, rail: "kusdt", payment: locked, usdPerKas: USD }, NOW).state;
+  state = applyFreeze(state, { address: USER, frozen: true }, NOW).state;
+  assert.throws(() => applySpend(state, { address: USER, shop: "roadster", sku: "keys", rail: "kusdt" }, NOW));
+  const back = applyRedeem(state, { address: USER, rail: "kusdt", cents: 100n, usdPerKas: 0.01 }, NOW);
+  assert.equal(back.sompi, 2_000_000_000n);
+  assert.equal(back.state.accounts[USER].kusdt, "0");
+  assert.equal(back.state.accounts[USER].kusdtLiability, "0");
+});
+
+test("spending locked tags extinguishes that share of the lock", () => {
+  let state = freshState();
+  const locked = pay(2_000_000_000n, 23);
+  state = applyConvert(state, { address: USER, rail: "poc", payment: locked, usdPerKas: USD }, NOW).state;
+  state = applySpend(state, { address: USER, shop: "roadster", sku: "keys", rail: "poc" }, NOW).state;
+  assert.equal(state.accounts[USER].poc, "0");
+  assert.equal(state.accounts[USER].pocBacked, "0");
+  assert.equal(state.accounts[USER].liability, "0");
+  assert.throws(() => applyRedeem(state, { address: USER, rail: "poc", cents: 100n, usdPerKas: USD }, NOW));
+});
+
+test("an older single lock pool splits across the two tags", () => {
+  const state = freshState();
+  state.accounts[USER] = {
+    address: USER,
+    poc: "100",
+    kusdt: "100",
+    pocBacked: "100",
+    kusdtBacked: "100",
+    liability: "2000000000",
+  };
+  const out = applyRedeem(state, { address: USER, rail: "poc", cents: 100n }, NOW);
+  assert.equal(out.sompi, 1_000_000_000n);
+  assert.equal(out.state.accounts[USER].kusdtLiability, "1000000000");
+  assert.equal(out.state.accounts[USER].pocLiability, "0");
 });
 
 test("a purse swap keeps locked cents locked and purse cents in the purse", () => {

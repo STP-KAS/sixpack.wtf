@@ -10,6 +10,7 @@ import {
   assertTestnet,
   centsForSompi,
   dayKey,
+  lockShare,
   railName,
   sompiForCents,
 } from "./money.mjs";
@@ -61,6 +62,8 @@ function ensure(state, address) {
       kusdt: "0",
       pocBacked: "0",
       kusdtBacked: "0",
+      pocLiability: "0",
+      kusdtLiability: "0",
       liability: "0",
       kusdtFrozen: false,
       practice: false,
@@ -71,7 +74,37 @@ function ensure(state, address) {
       seq: "0",
     };
   }
+  settleRails(state.accounts[key]);
   return state.accounts[key];
+}
+
+/** Older rows stored one sompi pool. Split it by the locked tags. A later quote is not a price. */
+function splitLock(account) {
+  if (account.pocLiability != null && account.kusdtLiability != null) {
+    return { poc: bi(account.pocLiability), kusdt: bi(account.kusdtLiability) };
+  }
+  const legacy = bi(account.liability);
+  const pocBacked = bi(account.pocBacked);
+  const kusdtBacked = bi(account.kusdtBacked);
+  const backed = pocBacked + kusdtBacked;
+  if (legacy <= 0n || backed <= 0n) return { poc: 0n, kusdt: 0n };
+  const poc = (legacy * pocBacked) / backed;
+  return { poc, kusdt: legacy - poc };
+}
+
+function settleRails(account) {
+  const split = splitLock(account);
+  account.pocLiability = String(split.poc);
+  account.kusdtLiability = String(split.kusdt);
+  account.liability = String(split.poc + split.kusdt);
+}
+
+function syncLiability(account) {
+  account.liability = String(bi(account.pocLiability) + bi(account.kusdtLiability));
+}
+
+function liabilityField(rail) {
+  return rail === "poc" ? "pocLiability" : "kusdtLiability";
 }
 
 function bi(value) {
@@ -130,7 +163,7 @@ function fields(rail) {
   return rail === "poc" ? ["poc", "pocBacked"] : ["kusdt", "kusdtBacked"];
 }
 
-/** Shops burn practice coins first, so a locked redeem stays available. */
+/** Shops burn practice coins first. Burning locked units extinguishes that share of the lock. */
 function takeToken(account, rail, cents) {
   const [field, backedField] = fields(rail);
   const have = bi(account[field]);
@@ -139,6 +172,12 @@ function takeToken(account, rail, cents) {
   const practice = have - backed;
   const fromPractice = practice >= cents ? cents : practice;
   const fromBacked = cents - fromPractice;
+  if (fromBacked > 0n) {
+    const box = liabilityField(rail);
+    const share = lockShare(account[box], backed, fromBacked);
+    account[box] = String(bi(account[box]) - share);
+    syncLiability(account);
+  }
   account[field] = String(have - cents);
   account[backedField] = String(backed - fromBacked);
 }
@@ -163,6 +202,8 @@ export function publicAccount(state, address) {
     kusdt: "0",
     pocBacked: "0",
     kusdtBacked: "0",
+    pocLiability: "0",
+    kusdtLiability: "0",
     liability: "0",
     kusdtFrozen: false,
     practice: false,
@@ -172,13 +213,16 @@ export function publicAccount(state, address) {
     seq: "0",
   };
   const receipts = state.receipts.filter((row) => row.address.toLowerCase() === clean.toLowerCase()).slice(-12);
+  const locks = splitLock(base);
   return {
     address: clean,
     poc: base.poc,
     kusdt: base.kusdt,
     pocBacked: base.pocBacked,
     kusdtBacked: base.kusdtBacked,
-    liability: base.liability,
+    pocLiability: String(locks.poc),
+    kusdtLiability: String(locks.kusdt),
+    liability: String(locks.poc + locks.kusdt),
     kusdtFrozen: !!base.kusdtFrozen,
     practice: !!base.practice,
     roadster: !!base.roadster,
@@ -554,7 +598,7 @@ export function applyConvert(state, input, now) {
       txid,
       seq: seen.receiptId || "",
       kusdtSeq: "",
-      note: "Locked tKAS at the live quote. Backed. Redeemable until the oracle moves past the lock.",
+      note: "Locked tKAS. The tag is the keypad amount at that quote. Redeem returns this lock. Not a dollar.",
     };
     return {
       state,
@@ -572,10 +616,12 @@ export function applyConvert(state, input, now) {
   const field = input.rail === "poc" ? "poc" : "kusdt";
   const backedField = input.rail === "poc" ? "pocBacked" : "kusdtBacked";
   const before = bi(account[field]);
-  requireIncrease(before, before + cents);
+  requireIncrease(before, before + cents, extensionFor(input.rail, false));
   account[field] = String(before + cents);
   account[backedField] = String(bi(account[backedField]) + cents);
-  account.liability = String(bi(account.liability) + input.payment.paid);
+  const box = liabilityField(input.rail);
+  account[box] = String(bi(account[box]) + bi(input.payment.paid));
+  syncLiability(account);
   const receipt = pushReceipt(next, account, {
     at: now,
     kind: "convert",
@@ -583,7 +629,7 @@ export function applyConvert(state, input, now) {
     cents,
     sompi: input.payment.paid,
     txid,
-    note: "Locked tKAS at the live quote. Backed. Redeemable until the oracle moves past the lock.",
+    note: "Locked tKAS. The tag is the keypad amount at that quote. Redeem returns this lock. Not a dollar.",
   });
   next.txids[txid] = { address, kind: "convert", rail: input.rail, receiptId: receipt.id };
   return { state: next, result: { ok: true, receipt, account: publicAccount(next, address), cents: String(cents) } };
@@ -597,23 +643,24 @@ export function applyRedeem(state, input, now) {
   if (input.rail !== "poc" && input.rail !== "kusdt") throw new Error("Redeem POCencept or KUSDT.");
   const cents = BigInt(input.cents);
   if (cents <= 0n) throw new Error("Type an amount above zero.");
-  const sompi = sompiForCents(cents, input.usdPerKas);
-  if (sompi < MIN_REDEEM_SOMPI) throw new Error("That redeem is too small to broadcast on Testnet-10.");
-  if (sompi > MAX_REDEEM_SOMPI) throw new Error("One redeem is capped at 10000 tKAS so the broadcast stays a normal transaction. Split it.");
   const next = clone(state);
   const account = ensure(next, address);
-  if (input.rail === "kusdt" && account.kusdtFrozen) {
-    throw new Error("KUSDT is frozen. A frozen tether-style balance does not redeem.");
-  }
-  if (bi(account.liability) < sompi) {
-    throw new Error("The oracle moved. The lock no longer covers this redeem. PegLab: a peg without enough locked KAS does not pay.");
-  }
+  const [haveField, backedField] = fields(input.rail);
+  const backed = bi(account[backedField]);
+  if (backed < cents) throw new Error("Practice coins spend in the shops. Only locked tKAS can be redeemed.");
+  if (bi(account[haveField]) < cents) throw new Error("Not enough " + railName(input.rail) + ".");
+  const box = liabilityField(input.rail);
+  const sompi = lockShare(account[box], backed, cents);
+  if (sompi <= 0n) throw new Error("Practice coins spend in the shops. Only locked tKAS can be redeemed.");
+  if (sompi < MIN_REDEEM_SOMPI) throw new Error("That redeem is too small to broadcast on Testnet-10.");
+  if (sompi > MAX_REDEEM_SOMPI) throw new Error("One redeem is capped at 10000 tKAS so the broadcast stays a normal transaction. Split it.");
   const redeemed = bi(next.redeemedSompi);
   if (redeemed + sompi > GLOBAL_REDEEM_CAP) {
     throw new Error("The village redeem pool for this process is full. The rest of the lock stays put.");
   }
   takeBacked(account, input.rail, cents);
-  account.liability = String(bi(account.liability) - sompi);
+  account[box] = String(bi(account[box]) - sompi);
+  syncLiability(account);
   next.redeemedSompi = String(redeemed + sompi);
   const receipt = pushReceipt(next, account, {
     at: now,
@@ -621,7 +668,7 @@ export function applyRedeem(state, input, now) {
     rail: input.rail,
     cents,
     sompi,
-    note: "Redeem at the live quote. Miner fee stays KAS.",
+    note: "Redeemed the locked tKAS. The miner fee is extra KAS and is not taken from the lock.",
   });
   return {
     state: next,
@@ -659,7 +706,15 @@ export function applyExchange(state, input, now) {
   const fromPractice = practice >= cents ? cents : practice;
   const fromLocked = cents - fromPractice;
   const toHave = bi(account[toField]);
-  requireIncrease(toHave, toHave + cents);
+  requireIncrease(toHave, toHave + cents, extensionFor(to, false));
+  if (fromLocked > 0n) {
+    const fromBox = liabilityField(from);
+    const toBox = liabilityField(to);
+    const moved = lockShare(account[fromBox], backed, fromLocked);
+    account[fromBox] = String(bi(account[fromBox]) - moved);
+    account[toBox] = String(bi(account[toBox]) + moved);
+    syncLiability(account);
+  }
   account[fromField] = String(have - cents);
   account[fromBacked] = String(backed - fromLocked);
   account[toField] = String(toHave + cents);

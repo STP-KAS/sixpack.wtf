@@ -37,6 +37,10 @@ test("the landing gate takes a funded test address", () => {
   assert.match(html, /Testnet 10 · LUMBRIDGE/);
   assert.match(client, /1984\. LUMBRIDGE\. Testnet 10/);
   assert.match(rails, /The town on the page is LUMBRIDGE/);
+  assert.match(rails, /A later quote does not reprice the lock/);
+  assert.match(rails, /The tKAS already locked on that tag can still be redeemed/);
+  assert.match(client, /Redeem returns the tKAS that was locked/);
+  assert.doesNotMatch(client, /the lock no longer covers the tagged amount/);
   assert.doesNotMatch(html, /Ashfields/);
   assert.doesNotMatch(client, /Ashfields/);
   assert.doesNotMatch(rails, /Ashfields/);
@@ -48,7 +52,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=126/);
+  assert.match(html, /1984\/client\.mjs\?v=127/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -144,7 +148,7 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.ok(topEnd > 0 && barAt > topEnd && stageAt > barAt);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
   assert.match(html, /1984\.css\?v=74/);
-  assert.match(html, /1984\/client\.mjs\?v=126/);
+  assert.match(html, /1984\/client\.mjs\?v=127/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
