@@ -691,3 +691,62 @@ test("a named token opens, increases, stops at the cap, and a send keeps the tot
   assert.equal(other.body.account.tokens.find((row) => row.name === "ASH").amount, "2");
   assert.equal(other.body.account.tokens.find((row) => row.name === "FREE").amount, "7");
 });
+
+test("a square offer locks one name until the other name takes it", async () => {
+  const { svc } = harness(async () => ({ txids: ["ab"] }));
+  const mint = (address, body) =>
+    svc.handle({
+      method: "POST",
+      pathname: "/api/1984/mint",
+      query: new URLSearchParams(),
+      body: { address, network: "testnet-10", ...body },
+      ip: "203.0.113.90",
+    });
+  const opened = await mint(USER, { option: "new", name: "ash", amount: "10", cap: "0" });
+  assert.equal(opened.status, 200);
+  const free = await mint(OTHER, { option: "new", name: "free", amount: "10", cap: "0" });
+  assert.equal(free.status, 200);
+  const offer = await mint(USER, { option: "offer", name: "ASH", amount: "4", recvName: "FREE", recvAmount: "3" });
+  assert.equal(offer.status, 200, offer.body && offer.body.error);
+  assert.match(offer.body.receipt.note, /Not Zealous Swap/);
+  assert.match(offer.body.receipt.note, /Not Kaspa.com/);
+  assert.equal(offer.body.account.tokens.find((row) => row.name === "ASH").amount, "6");
+  assert.equal(offer.body.offers.length, 1);
+  assert.equal(offer.body.mints.find((row) => row.name === "ASH").supply, "10");
+  const id = offer.body.offers[0].id;
+  const stolen = await mint(OTHER, { option: "pull", offer: id });
+  assert.equal(stolen.status, 400);
+  assert.match(stolen.body.error, /Only the address that offered/);
+  const poor = await mint(USER, { option: "take", offer: id });
+  assert.equal(poor.status, 400);
+  assert.match(poor.body.error, /Pull your own offer/);
+  const took = await mint(OTHER, { option: "take", offer: id });
+  assert.equal(took.status, 200, took.body && took.body.error);
+  assert.equal(took.body.account.tokens.find((row) => row.name === "ASH").amount, "4");
+  assert.equal(took.body.account.tokens.find((row) => row.name === "FREE").amount, "7");
+  assert.equal(took.body.offers.length, 0);
+  assert.equal(took.body.mints.find((row) => row.name === "ASH").supply, "10");
+  assert.equal(took.body.mints.find((row) => row.name === "FREE").supply, "10");
+  const again = await mint(USER, { option: "offer", name: "ASH", amount: "1", recvName: "FREE", recvAmount: "1" });
+  assert.equal(again.status, 200);
+  const pulled = await mint(USER, { option: "pull", offer: again.body.offers[0].id });
+  assert.equal(pulled.status, 200, pulled.body && pulled.body.error);
+  assert.equal(pulled.body.offers.length, 0);
+  assert.equal(pulled.body.account.tokens.find((row) => row.name === "ASH").amount, "6");
+  const home = await svc.handle({
+    method: "GET",
+    pathname: "/api/1984",
+    query: new URLSearchParams(),
+    body: {},
+    ip: "203.0.113.91",
+  });
+  assert.equal(home.body.offers.length, 0);
+  const maker = await svc.handle({
+    method: "GET",
+    pathname: "/api/1984/account",
+    query: new URLSearchParams({ address: USER }),
+    body: {},
+    ip: "203.0.113.92",
+  });
+  assert.equal(maker.body.account.tokens.find((row) => row.name === "FREE").amount, "3");
+});

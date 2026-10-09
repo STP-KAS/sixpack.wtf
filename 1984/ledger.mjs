@@ -18,7 +18,7 @@ import { extensionFor, holderMint, normalizeTick, requireIncrease, standardTrans
 import { SHOPS, huntById, itemBySku, shopById } from "./world.mjs";
 
 export function freshState() {
-  return { accounts: {}, txids: {}, receipts: [], redeemedSompi: "0", seq: "0", hunts: {}, mints: {} };
+  return { accounts: {}, txids: {}, receipts: [], redeemedSompi: "0", seq: "0", hunts: {}, mints: {}, offers: [] };
 }
 
 export function defaultRules() {
@@ -269,6 +269,19 @@ export function publicMints(state) {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+export function publicOffers(state) {
+  const rows = (state && state.offers) || [];
+  return rows.map((row) => ({
+    id: String(row.id || ""),
+    address: row.address || "",
+    payName: row.payName || "",
+    payAmount: String(row.payAmount || "0"),
+    recvName: row.recvName || "",
+    recvAmount: String(row.recvAmount || "0"),
+    at: row.at || 0,
+  }));
+}
+
 function mintTxs(state, row) {
   const logged = Array.isArray(row.moves) ? row.moves : [];
   const source = logged.length
@@ -346,12 +359,151 @@ function wholeCap(value) {
   return cap;
 }
 
-/** Open a token, mint more of it, or send it. The desk checks the Last Call increase. No covenant. */
+function bagOf(account) {
+  if (!account.tokens) account.tokens = {};
+  return account.tokens;
+}
+
+function heldOf(account, extension) {
+  return bi(bagOf(account)[extension]);
+}
+
+function setHeld(account, extension, amount) {
+  bagOf(account)[extension] = String(amount);
+}
+
+function openBook(state, name) {
+  const extension = tokenExtension(name);
+  const book = state.mints && state.mints[extension];
+  if (!book || book.name !== name) throw new Error("That token is not open yet. Open it first.");
+  return { extension, book };
+}
+
+function tradeResult(next, address, receipt) {
+  return {
+    state: next,
+    result: {
+      ok: true,
+      receipt,
+      account: publicAccount(next, address),
+      mints: publicMints(next),
+      offers: publicOffers(next),
+    },
+  };
+}
+
+/**
+ * One name for another, on this square. The pay side waits here until someone takes it.
+ * Two standard transfers, one extension each. Not Zealous Swap and not Kaspa.com.
+ */
+function applyOffer(state, input, now, address, option) {
+  const next = clone(state);
+  if (!Array.isArray(next.offers)) next.offers = [];
+  if (option === "take" || option === "pull") {
+    const found = next.offers.findIndex((row) => String(row.id) === String(input.offer || ""));
+    if (found < 0) throw new Error("That offer is gone.");
+    const offer = next.offers[found];
+    const maker = ensure(next, offer.address);
+    const pay = bi(offer.payAmount);
+    const recv = bi(offer.recvAmount);
+    if (option === "pull") {
+      if (maker.address.toLowerCase() !== address.toLowerCase()) {
+        throw new Error("Only the address that offered can pull it back.");
+      }
+      const before = heldOf(maker, offer.payExtension);
+      standardTransfer([{ amount: pay, extension: offer.payExtension }], [{ amount: pay, extension: offer.payExtension }]);
+      holderMint(before, before + pay, offer.payExtension, maker.address);
+      setHeld(maker, offer.payExtension, before + pay);
+      next.offers.splice(found, 1);
+      const book = next.mints[offer.payExtension];
+      const receipt = pushReceipt(next, maker, {
+        at: now,
+        kind: "mint",
+        sku: offer.payName,
+        rail: "poc",
+        cents: 0n,
+        note: "Pulled back " + offer.payAmount + " " + offer.payName + ". The offer is off this square. Not a covenant.",
+      });
+      if (book) rememberMint(next, book, receipt, { address, to: "", amount: offer.payAmount, op: "pull" });
+      return tradeResult(next, address, receipt);
+    }
+    if (maker.address.toLowerCase() === address.toLowerCase()) {
+      throw new Error("Pull your own offer back.");
+    }
+    const taker = ensure(next, address);
+    const takerRecv = heldOf(taker, offer.recvExtension);
+    if (takerRecv < recv) throw new Error("Not enough " + offer.recvName + ".");
+    const makerRecv = heldOf(maker, offer.recvExtension);
+    const takerPay = heldOf(taker, offer.payExtension);
+    standardTransfer([{ amount: pay, extension: offer.payExtension }], [{ amount: pay, extension: offer.payExtension }]);
+    standardTransfer([{ amount: recv, extension: offer.recvExtension }], [{ amount: recv, extension: offer.recvExtension }]);
+    holderMint(takerPay, takerPay + pay, offer.payExtension, taker.address);
+    holderMint(makerRecv, makerRecv + recv, offer.recvExtension, maker.address);
+    setHeld(taker, offer.recvExtension, takerRecv - recv);
+    setHeld(maker, offer.recvExtension, makerRecv + recv);
+    setHeld(taker, offer.payExtension, takerPay + pay);
+    next.offers.splice(found, 1);
+    const receipt = pushReceipt(next, taker, {
+      at: now,
+      kind: "mint",
+      sku: offer.payName,
+      rail: "poc",
+      cents: 0n,
+      note: "Traded " + offer.recvAmount + " " + offer.recvName + " for " + offer.payAmount + " " + offer.payName + " on this square. Not Zealous Swap. Not Kaspa.com. No covenant.",
+    });
+    const payBook = next.mints[offer.payExtension];
+    const recvBook = next.mints[offer.recvExtension];
+    if (payBook) rememberMint(next, payBook, receipt, { address, to: maker.address, amount: offer.payAmount, op: "trade" });
+    if (recvBook) rememberMint(next, recvBook, receipt, { address: maker.address, to: address, amount: offer.recvAmount, op: "trade" });
+    return tradeResult(next, address, receipt);
+  }
+  const payName = normalizeTick(input.name);
+  const recvName = normalizeTick(input.recvName);
+  if (payName === recvName) throw new Error("Trade two different names.");
+  const payAmount = wholeAmount(input.amount);
+  const recvAmount = wholeAmount(input.recvAmount);
+  const paySide = openBook(next, payName);
+  const recvSide = openBook(next, recvName);
+  const maker = ensure(next, address);
+  const held = heldOf(maker, paySide.extension);
+  if (held < payAmount) throw new Error("Not enough " + payName + ".");
+  standardTransfer(
+    [{ amount: payAmount, extension: paySide.extension }],
+    [{ amount: payAmount, extension: paySide.extension }]
+  );
+  setHeld(maker, paySide.extension, held - payAmount);
+  const receipt = pushReceipt(next, maker, {
+    at: now,
+    kind: "mint",
+    sku: payName,
+    rail: "poc",
+    cents: 0n,
+    note: "Offered " + payAmount.toString() + " " + payName + " for " + recvAmount.toString() + " " + recvName + ". The pay side waits on this square. Not Zealous Swap. Not Kaspa.com. No covenant.",
+  });
+  next.offers.push({
+    id: receipt.id,
+    address: maker.address,
+    payName,
+    payExtension: paySide.extension,
+    payAmount: payAmount.toString(),
+    recvName,
+    recvExtension: recvSide.extension,
+    recvAmount: recvAmount.toString(),
+    at: now,
+  });
+  rememberMint(next, paySide.book, receipt, { address, to: "", amount: payAmount.toString(), op: "offer" });
+  return tradeResult(next, address, receipt);
+}
+
+/** Open a token, mint more of it, send it, or trade two names. The desk checks the Last Call increase. No covenant. */
 export function applyToken(state, input, now) {
   const address = assertTestnet(input.address);
   const option = String(input.option || "");
+  if (option === "offer" || option === "take" || option === "pull") {
+    return applyOffer(state, input, now, address, option);
+  }
   if (option !== "new" && option !== "more" && option !== "send") {
-    throw new Error("Pick open a new token, mint more, or send.");
+    throw new Error("Pick open a new token, mint more, send, or trade.");
   }
   const name = normalizeTick(input.name);
   const extension = tokenExtension(name);

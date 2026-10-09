@@ -1624,10 +1624,6 @@ function reelVideo() {
   return worldView && worldView.cinemaVideo ? worldView.cinemaVideo() : null;
 }
 
-function phoneLayout() {
-  return !!(window.matchMedia && window.matchMedia("(max-width: 980px)").matches);
-}
-
 function snacksOpen() {
   if (state.snacksOpen == null) return !phoneLayout();
   return state.snacksOpen === true;
@@ -2867,7 +2863,7 @@ function paintGuide() {
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Peer to peer is the payment. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled. This square is still the classroom.</li>" +
-    "<li>Mint is the building with the Mint sign. Walk in and the mint card is open. Mint more, send, or open a new name. Open names sit on the card. Click a name to see the addresses, the amounts, and the ledger lines. A name that has reached its cap is under Completed. It is a square-ledger token under KCC-20 Last Call. It is not Final, and no covenant is deployed. Type 0 in Cap for no cap. There is no maximum.</li>" +
+    "<li>Mint is the building with the Mint sign. Walk in and the mint card is open. The line on the card is supply on this square, not a KAS price. Mint, Trade, and About sit under that line. Trade offers one open name for another. Copy puts an address on the clipboard. Mint more, send, or open a new name. Open names sit on the card. Click a name to see the addresses, the amounts, and the ledger lines. A name that has reached its cap is under Completed. It is a square-ledger token under KCC-20 Last Call. It is not Final, and no covenant is deployed. Type 0 in Cap for no cap. There is no maximum.</li>" +
     "<li>Layer-Kaspa is on the side rail. Open a .kas name. Visitors see the page. Only the address that owns that name on the KNS testnet index can change it. The window has the title, a tagline, the welcome, a color, a link, and offers. Register the name in the KNS app. This desk does not register it. This layer does not hide the path. It is not Tor.</li>" +
     "<li>Kachat is on the side rail. Paste the other kaspatest address and send a handshake. They accept it. Then you send messages. Each step is 0.01 POCencept. Messages only. The KaChat app on the chain is a different program.</li>" +
     "<li>Vault is on the side rail. It keeps a note on this square ledger and a rule for who may read it and when. The labels are a note, an NDA, an enterprise file, or other. A real secret does not belong here. This page checks the readers and the time. A covenant mark is a label. No covenant is deployed. Seal keeps the note and the rule.</li>" +
@@ -3997,6 +3993,16 @@ function paintMint() {
     '<div class="swap-head"><h2>Mint</h2>' + placeActs("") + "</div>" +
     '<div class="mint-work">' +
     '<div class="mint-trade">' +
+    '<div class="mint-cmc">' +
+    '<div class="mint-cmc-top"><div id="mint-face"></div><button type="button" id="mint-copy">Copy address</button></div>' +
+    '<div class="mint-chart-well" id="mint-chart-slot"></div>' +
+    "</div>" +
+    '<div class="mint-views">' +
+    '<button type="button" data-mint-view="mint">Mint</button>' +
+    '<button type="button" data-mint-view="trade">Trade</button>' +
+    '<button type="button" data-mint-view="about">About</button>' +
+    "</div>" +
+    '<div id="mint-pane-mint">' +
     '<div class="dex-tabs">' + tab("more", "Mint") + tab("send", "Send") + tab("new", "New") + "</div>" +
     '<div class="dex-box"><div class="dex-box-top"><span id="mint-pay-label">You mint</span></div>' +
     '<div class="dex-row">' +
@@ -4013,6 +4019,22 @@ function paintMint() {
     '<input id="mint-to" class="dex-addr" spellcheck="false" autocomplete="off" placeholder="kaspatest address"></div>' +
     '<button type="button" id="mint-go" class="dex-go">Mint</button>' +
     '<p class="fine">Square ledger. KCC-20 Last Call. It is not Final. No covenant is deployed. Any funded address can mint more. Type 0 in Cap for no cap.</p>' +
+    "</div>" +
+    '<div id="mint-pane-trade" hidden>' +
+    '<div class="dex-box"><div class="dex-box-top"><span>You pay</span></div>' +
+    '<div class="dex-row"><input id="trade-pay-amt" class="dex-amt" inputmode="numeric" spellcheck="false" autocomplete="off" placeholder="0">' +
+    '<select id="trade-pay-name" class="dex-token">' + mintNameOptions("") + "</select></div></div>" +
+    '<button type="button" id="trade-flip" class="mint-flip">Flip</button>' +
+    '<div class="dex-box"><div class="dex-box-top"><span>You receive</span></div>' +
+    '<div class="dex-row"><input id="trade-recv-amt" class="dex-amt" inputmode="numeric" spellcheck="false" autocomplete="off" placeholder="0">' +
+    '<select id="trade-recv-name" class="dex-token">' + mintNameOptions("") + "</select></div></div>" +
+    '<button type="button" id="trade-offer" class="dex-go">Offer</button>' +
+    '<div id="mint-offers"></div>' +
+    '<p class="fine">You pay one open name and you receive another. The pay side waits on this square until someone who holds the other name takes it, or you pull it back. Not Zealous Swap. Not Kaspa.com. No covenant.</p>' +
+    "</div>" +
+    '<div id="mint-pane-about" hidden>' +
+    '<p class="fine">The list is the Kaspa.com shape: name, supply, holders, minted share, and age. Copy puts an address on the clipboard. The two boxes are the Zealous shape: what you pay, then what you receive. The line is supply on this square. Not a KAS price. It is not a CoinMarketCap price. KCC-20 is Last Call, not Final. No covenant is deployed.</p>' +
+    "</div>" +
     "</div>" +
     '<section class="mint-floor">' +
     '<label class="mint-find">Find a name<input id="mint-find" type="search" spellcheck="false" autocomplete="off" placeholder="Name"></label>' +
@@ -4032,11 +4054,59 @@ function paintMint() {
   if (capBox) capBox.oninput = syncCapNote;
   if (amountBox) amountBox.oninput = syncCapNote;
   document.getElementById("mint-go").onclick = saveMint;
+  const offer = document.getElementById("trade-offer");
+  if (offer) offer.onclick = () => saveTrade("offer", "");
+  const flip = document.getElementById("trade-flip");
+  if (flip) flip.onclick = flipTrade;
+  const copy = document.getElementById("mint-copy");
+  if (copy) copy.onclick = () => copySquareText(state.id.address || "");
   const find = document.getElementById("mint-find");
   if (find) find.addEventListener("input", () => paintMintBoards());
   syncMintOption();
+  syncMintView();
   wirePlaceExit();
   paintMintBoards();
+}
+
+function flipTrade() {
+  const payAmt = document.getElementById("trade-pay-amt");
+  const recvAmt = document.getElementById("trade-recv-amt");
+  const payName = document.getElementById("trade-pay-name");
+  const recvName = document.getElementById("trade-recv-name");
+  if (payAmt && recvAmt) {
+    const saved = payAmt.value;
+    payAmt.value = recvAmt.value;
+    recvAmt.value = saved;
+  }
+  if (payName && recvName) {
+    const saved = payName.value;
+    payName.value = recvName.value;
+    recvName.value = saved;
+  }
+}
+
+async function saveTrade(option, offerId) {
+  if (!requireId()) return;
+  const body = {
+    option,
+    offer: offerId || "",
+    name: (document.getElementById("trade-pay-name") || {}).value || "",
+    amount: (document.getElementById("trade-pay-amt") || {}).value || "",
+    recvName: (document.getElementById("trade-recv-name") || {}).value || "",
+    recvAmount: (document.getElementById("trade-recv-amt") || {}).value || "",
+  };
+  const result = await post("/api/1984/mint", body);
+  if (!result.ok) {
+    say(result.error || "The trade did not land.", true);
+    return;
+  }
+  state.account = result.account;
+  if (!state.home) state.home = {};
+  if (result.mints) state.home.mints = result.mints;
+  if (result.offers) state.home.offers = result.offers;
+  say(result.receipt && result.receipt.note ? result.receipt.note : "Traded.");
+  paintChrome();
+  paintMint();
 }
 
 const MINT_MAX = 1000000000000000000n;
@@ -4070,7 +4140,9 @@ function mintProblem(option, amount, cap) {
 
 let mintPoll = 0;
 let mintSeen = "";
+let offerSeen = "";
 let mintFocus = "";
+let mintView = "mint";
 
 function mintIsDone(row) {
   if (!row || row.cap == null || row.cap === "" || row.cap === "0") return false;
@@ -4093,7 +4165,138 @@ function mintOp(op) {
   if (op === "new") return "Opened";
   if (op === "more") return "Minted";
   if (op === "send") return "Sent";
+  if (op === "offer") return "Offered";
+  if (op === "trade") return "Traded";
+  if (op === "pull") return "Pulled";
   return "Ledger";
+}
+
+function mintedShare(row) {
+  try {
+    const cap = BigInt(row.cap || "0");
+    if (cap <= 0n) return "No cap";
+    const supply = BigInt(row.supply || "0");
+    const bps = (supply * 10000n) / cap;
+    return (bps / 100n).toString() + "." + (bps % 100n).toString().padStart(2, "0") + "%";
+  } catch {
+    return "";
+  }
+}
+
+function mintAge(row) {
+  const times = (row.txs || []).map((tx) => Number(tx.at)).filter((n) => n > 0);
+  if (!times.length) return "";
+  const days = Math.floor((Date.now() - Math.min(...times)) / 86400000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "1 day";
+  return days + " days";
+}
+
+function mintSeries(row) {
+  const points = [];
+  let supply = 0n;
+  for (const tx of row.txs || []) {
+    if (tx.op !== "new" && tx.op !== "more") continue;
+    try { supply += BigInt(tx.amount || "0"); } catch { /* skip a line with no amount */ }
+    points.push(supply);
+  }
+  if (points.length === 1) points.push(points[0]);
+  return points;
+}
+
+function mintChart(row) {
+  const series = mintSeries(row);
+  if (series.length < 2) {
+    return "<p class=\"mint-cap-note\">Supply shows here after two mints. This is not a KAS price.</p>";
+  }
+  const w = 320;
+  const h = 112;
+  const pad = 8;
+  let min = series[0];
+  let max = series[0];
+  for (const value of series) {
+    if (value < min) min = value;
+    if (value > max) max = value;
+  }
+  const span = max - min;
+  const pts = series.map((value, i) => {
+    const x = pad + (i * (w - pad * 2)) / (series.length - 1);
+    let y = h / 2;
+    if (span > 0n) {
+      const usable = BigInt(Math.round((h - pad * 2) * 10));
+      y = pad + (h - pad * 2) - Number(((value - min) * usable) / span) / 10;
+    }
+    return x.toFixed(1) + "," + y.toFixed(1);
+  });
+  const up = series[series.length - 1] >= series[0];
+  const stroke = up ? "#3ddc97" : "#ff5d5d";
+  const fill = up ? "rgba(61,220,151,0.28)" : "rgba(255,93,93,0.28)";
+  const last = pts[pts.length - 1].split(",")[0];
+  const first = pts[0].split(",")[0];
+  const area = pts.join(" ") + " " + last + "," + (h - pad) + " " + first + "," + (h - pad);
+  return "<svg class=\"mint-chart\" viewBox=\"0 0 320 112\" role=\"img\" aria-label=\"Supply on this square\"><polygon points=\"" + area + "\" fill=\"" + fill + "\"></polygon><polyline points=\"" + pts.join(" ") + "\" fill=\"none\" stroke=\"" + stroke + "\" stroke-width=\"2\"></polyline></svg>";
+}
+
+function mintNameOptions(selected) {
+  const open = ((state.home && state.home.mints) || []).filter((row) => !mintIsDone(row));
+  const names = open.map((row) => "<option value=\"" + esc(row.name) + "\"" + (row.name === selected ? " selected" : "") + ">" + esc(row.name) + "</option>").join("");
+  return "<option value=\"\">Name</option>" + names;
+}
+
+function mintOffersHtml() {
+  const rows = (state.home && state.home.offers) || [];
+  if (!rows.length) return "<p class=\"mint-cap-note\">No offer yet. You pay one name. You receive another. The pay side waits on this square.</p>";
+  const mine = (state.id.address || "").toLowerCase();
+  return "<ul class=\"mint-open\">" + rows.map((row) => {
+    const own = mine && row.address.toLowerCase() === mine;
+    const act = own
+      ? "<button type=\"button\" data-pull=\"" + esc(row.id) + "\">Pull back</button>"
+      : "<button type=\"button\" data-take=\"" + esc(row.id) + "\">Take</button>";
+    return "<li><strong>" + esc(row.payAmount) + " " + esc(row.payName) + "</strong> for " + esc(row.recvAmount) + " " + esc(row.recvName) +
+      "<span class=\"mint-addr\">" + esc(row.address) + "</span> " +
+      "<button type=\"button\" data-copy=\"" + esc(row.address) + "\">Copy</button> " + act + "</li>";
+  }).join("") + "</ul>";
+}
+
+function paintMintFace() {
+  const face = document.getElementById("mint-face");
+  const chart = document.getElementById("mint-chart-slot");
+  const offers = document.getElementById("mint-offers");
+  const rows = (state.home && state.home.mints) || [];
+  const row = rows.find((item) => item.name === mintFocus) || rows.find((item) => !mintIsDone(item)) || rows[0];
+  if (face) {
+    face.innerHTML = row
+      ? "<p class=\"mint-tick\">" + esc(row.name) + "</p><p class=\"mint-price\">" + esc(row.supply) + "</p><p class=\"mint-change\">" + esc(mintedShare(row)) + " · " + esc(String(row.holderCount || 0)) + " holders · Supply on this square. Not a KAS price.</p>"
+      : "<p class=\"mint-tick\">No name yet</p><p class=\"mint-price\">0</p><p class=\"mint-change\">Supply on this square. Not a KAS price.</p>";
+  }
+  if (chart) chart.innerHTML = row ? mintChart(row) : "<p class=\"mint-cap-note\">Open a name and the supply line shows here.</p>";
+  if (offers) offers.innerHTML = mintOffersHtml();
+}
+
+function syncMintView() {
+  const view = mintView === "trade" || mintView === "about" ? mintView : "mint";
+  for (const name of ["mint", "trade", "about"]) {
+    const el = document.getElementById("mint-pane-" + name);
+    if (el) el.hidden = name !== view;
+  }
+  for (const button of panel.querySelectorAll("[data-mint-view]")) {
+    button.classList.toggle("on", button.getAttribute("data-mint-view") === view);
+  }
+}
+
+async function copySquareText(text) {
+  const value = String(text || "");
+  if (!value) {
+    say("Nothing to copy.", true);
+    return;
+  }
+  try {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error("copy");
+    await navigator.clipboard.writeText(value);
+    say("Copied.");
+  } catch {
+    say("Copy did not land.", true);
+  }
 }
 
 function mintDetail(row) {
@@ -4101,7 +4304,7 @@ function mintDetail(row) {
   const txs = row.txs || [];
   const people = holders.length
     ? "<ul class=\"mint-open\">" + holders.map((item) =>
-      "<li><span class=\"mint-addr\">" + esc(item.address) + "</span> " + esc(item.amount) + "</li>"
+      "<li><span class=\"mint-addr\">" + esc(item.address) + "</span> " + esc(item.amount) + " <button type=\"button\" data-copy=\"" + esc(item.address) + "\">Copy</button></li>"
     ).join("") + "</ul>"
     : "<p class=\"mint-cap-note\">No address holds this yet.</p>";
   const lines = txs.length
@@ -4128,7 +4331,7 @@ function mintRow(row) {
   const count = String(row.holderCount != null ? row.holderCount : (row.holders || []).length);
   const people = count === "1" ? "1 holder" : count + " holders";
   const on = mintFocus === row.name ? " on" : "";
-  return "<li class=\"mint-tile" + on + "\"><button type=\"button\" class=\"dex-market-row\" data-mint=\"" + esc(row.name) + "\"><strong>" + esc(row.name) + "</strong><span>Supply " + esc(row.supply) + "</span><span>" + esc(cap) + "</span><span>" + esc(people) + "</span></button>" +
+  return "<li class=\"mint-tile" + on + "\"><button type=\"button\" class=\"dex-market-row\" data-mint=\"" + esc(row.name) + "\"><strong>" + esc(row.name) + "</strong><span>" + esc(row.supply) + "</span><span>" + esc(people) + "</span><span>" + esc(mintedShare(row)) + "</span><span>" + esc(mintAge(row) || cap) + "</span></button>" +
     (mintFocus === row.name ? mintDetail(row) : "") + "</li>";
 }
 
@@ -4164,11 +4367,13 @@ function paintMintBoards() {
   const openEmpty = needle ? "No open name matches." : "No open mint yet.";
   const doneEmpty = needle ? "No completed name matches." : "No mint has reached its cap.";
   const openHead = '<div class="mint-section"><h3>Open</h3><span>' + open.length + "</span></div>";
+  const cols = "<div class=\"mint-cols\"><span>Name</span><span>Supply</span><span>Holders</span><span>Minted</span><span>Age</span></div>";
   book.innerHTML = needle && !open.length && !done.length
     ? openHead + '<p class="mint-cap-note">No name matches.</p>'
-    : openHead + list(open, openEmpty) +
+    : openHead + cols + list(open, openEmpty) +
       "<details class=\"dex-done\"><summary>Completed <span>" + done.length + "</span></summary>" + list(done, doneEmpty) + "</details>";
   book.scrollTop = scroll;
+  paintMintFace();
 }
 
 function bindMintPops() {
@@ -4196,6 +4401,7 @@ function stopMintWatch() {
   mintPoll = 0;
   mintFocus = "";
   mintSeen = "";
+  offerSeen = "";
   panel.classList.remove("mint-form-pop");
   for (const id of ["mint-open-pop", "mint-done-pop"]) {
     const el = document.getElementById(id);
@@ -4249,9 +4455,12 @@ async function refreshMints() {
   const body = await api("/api/1984");
   if (state.mode !== "mint" || !body || !body.ok || !body.mints) return;
   const next = JSON.stringify(body.mints);
-  if (next === mintSeen) return;
+  const offers = JSON.stringify(body.offers || []);
+  if (next === mintSeen && offers === offerSeen) return;
   if (!state.home) state.home = {};
   state.home.mints = body.mints;
+  if (body.offers) state.home.offers = body.offers;
+  offerSeen = offers;
   paintMintBoards();
   syncMintPick();
 }
@@ -4935,6 +5144,27 @@ if (bankShade) bankShade.addEventListener("click", () => {
 });
 panel.addEventListener("click", (ev) => {
   if (state.mode === "mint") {
+    const copyBtn = ev.target.closest("[data-copy]");
+    if (copyBtn) {
+      copySquareText(copyBtn.getAttribute("data-copy") || "");
+      return;
+    }
+    const take = ev.target.closest("[data-take]");
+    if (take) {
+      saveTrade("take", take.getAttribute("data-take") || "");
+      return;
+    }
+    const pull = ev.target.closest("[data-pull]");
+    if (pull) {
+      saveTrade("pull", pull.getAttribute("data-pull") || "");
+      return;
+    }
+    const view = ev.target.closest("[data-mint-view]");
+    if (view) {
+      mintView = view.getAttribute("data-mint-view") || "mint";
+      syncMintView();
+      return;
+    }
     const join = ev.target.closest("[data-join]");
     if (join) {
       joinMint(join.getAttribute("data-join") || "");

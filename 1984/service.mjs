@@ -29,6 +29,7 @@ import {
   publicAccount,
   publicHunts,
   publicMints,
+  publicOffers,
 } from "./ledger.mjs";
 import { BENCH, POST, REPOS } from "./links.mjs";
 import {
@@ -288,6 +289,7 @@ export function create1984Service(deps) {
         guestDisclaimer: GUEST_DISCLAIMER,
         guestFundSompi: GUEST_FUND_SOMPI.toString(),
         mints: publicMints(state),
+        offers: publicOffers(state),
         sites: publicSites(state),
       },
     };
@@ -424,6 +426,9 @@ export function create1984Service(deps) {
               amount: body.amount,
               cap: body.cap,
               to: body.to,
+              recvName: body.recvName,
+              recvAmount: body.recvAmount,
+              offer: body.offer,
             }, now);
             state = out.state;
             deps.save(state);
