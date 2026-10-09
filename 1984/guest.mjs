@@ -351,6 +351,18 @@ export function createGuestDesk(deps) {
     return publicJob(job);
   };
 
+  desk.sessionKey = ({ token, address }) =>
+    queue(async () => {
+      const row = book.sessions[String(token || "")];
+      if (!row) throw new Error("This test tab has already been dropped. Open a new one, or use the KNS app.");
+      const clean = assertTestnet(address);
+      if (row.address !== clean) throw new Error("This test tab does not match that address.");
+      if (row.byeAt && row.byeLife && row.life === row.byeLife) {
+        throw new Error("This test tab is closing. Open a new one, or use the KNS app.");
+      }
+      return { key: row.key, address: row.address };
+    });
+
   desk.pay = ({ token, address, sompi }) =>
     queue(async () => {
       const now = deps.now();

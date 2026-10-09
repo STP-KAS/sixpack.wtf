@@ -226,6 +226,8 @@ export function publicAccount(state, address) {
     kusdtFrozen: !!base.kusdtFrozen,
     practice: !!base.practice,
     roadster: !!base.roadster,
+    displayName: typeof base.displayName === "string" ? base.displayName : "",
+    knsName: typeof base.knsName === "string" ? base.knsName : "",
     rules: base.rules,
     spentDay: base.spentDay,
     spentCents: base.spentCents,

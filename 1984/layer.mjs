@@ -102,6 +102,8 @@ export function publicSites(state) {
         linkLabel: row.linkLabel || "",
         linkUrl: row.linkUrl || "",
         kns: row.kns === "tn10" ? "tn10" : "square",
+        showName: row.showName === true,
+        inscribed: row.inscribed === true,
         offers: (row.offers || []).map((item) => ({
           id: item.id,
           name: item.name,
@@ -162,6 +164,8 @@ export function applyClaim(state, input, now) {
     existing.owner = address;
     existing.kns = "tn10";
   }
+  const account = next.accounts && next.accounts[address.toLowerCase()];
+  if (account && account.knsName === name) sites[name].inscribed = true;
   return {
     state: next,
     result: {
@@ -169,6 +173,65 @@ export function applyClaim(state, input, now) {
       site: publicSites(next).find((row) => row.name === name),
       sites: publicSites(next),
       note: "This address owns " + name + ".kas on the KNS testnet index. This desk did not register it.",
+      at: now,
+    },
+  };
+}
+
+export function applyInscribed(state, input, now) {
+  const address = assertTestnet(input.address);
+  const name = normalizeLabel(input.name);
+  const id = String(input.inscriptionId || "").trim().toLowerCase();
+  if (!/^[0-9a-f]{64}i0$/.test(id)) throw new Error("The inscription id did not come back.");
+  const next = clone(state);
+  const account = ensure(next, address);
+  if (account.knsName && account.knsName !== name) {
+    throw new Error("This address already inscribed one name. A layer has one.");
+  }
+  account.knsName = name;
+  const row = book(next)[name];
+  if (row && row.owner.toLowerCase() === address.toLowerCase()) row.inscribed = true;
+  return {
+    state: next,
+    result: {
+      ok: true,
+      name,
+      inscriptionId: id,
+      note: "Inscribed " + name + ".kas on the KNS testnet index. One name. No covenant was deployed. Open it again once the index lists this address.",
+      at: now,
+    },
+  };
+}
+
+export function applyDisplay(state, input, now) {
+  const address = assertTestnet(input.address);
+  const name = normalizeLabel(input.name);
+  const show = input.show === true;
+  const next = clone(state);
+  const sites = book(next);
+  const row = sites[name];
+  if (!row || row.kns !== "tn10") {
+    throw new Error("Own this name on the KNS testnet index before you show it.");
+  }
+  if (row.owner.toLowerCase() !== address.toLowerCase()) {
+    throw new Error("Only the owner of this name on the KNS testnet index can show it.");
+  }
+  for (const key of Object.keys(sites)) {
+    if (sites[key].owner && sites[key].owner.toLowerCase() === address.toLowerCase()) sites[key].showName = false;
+  }
+  row.showName = show;
+  const account = ensure(next, address);
+  account.displayName = show ? name : "";
+  return {
+    state: next,
+    result: {
+      ok: true,
+      site: publicSites(next).find((item) => item.name === name),
+      sites: publicSites(next),
+      displayName: account.displayName,
+      note: show
+        ? "This square shows " + name + ".kas instead of the tKAS address."
+        : "This square shows the tKAS address.",
       at: now,
     },
   };

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { applyAccept, applyHandshake, applyMessage, publicChat } from "./kachat.mjs";
-import { applyClaim, applyOfferBuy, applySite, publicSites } from "./layer.mjs";
+import { applyClaim, applyDisplay, applyInscribed, applyOfferBuy, applySite, publicSites } from "./layer.mjs";
 import { create1984Service } from "./service.mjs";
 
 const A = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
@@ -136,6 +136,83 @@ test("a quiet KNS index does not let an address customize", async () => {
   assert.equal(refused.status, 400);
   assert.match(refused.body.error, /did not confirm/);
   assert.equal(state.sites, undefined);
+});
+
+test("one address inscribes one name, and can show that name instead of the address", async () => {
+  let state = { accounts: {}, receipts: [], seq: "0", sites: {} };
+  let calls = 0;
+  let owned = false;
+  const svc = create1984Service({
+    load: () => state,
+    save: (next) => {
+      state = next;
+    },
+    fetch: async (url) => {
+      const u = String(url);
+      if (u.includes("/owner")) {
+        if (!owned) return { ok: false, status: 404, json: async () => ({}) };
+        return { ok: true, status: 200, json: async () => ({ success: true, data: { owner: A, asset: "lumbridge.kas" } }) };
+      }
+      return { ok: false, status: 404, json: async () => ({}) };
+    },
+    now: () => 10,
+    pay: async () => ({ txids: [] }),
+    inscribe: async ({ name }) => {
+      calls += 1;
+      assert.equal(name, "lumbridge");
+      return { inscriptionId: "ab".repeat(32) + "i0", feeKas: 35, revealId: "ab".repeat(32) };
+    },
+  });
+  const missing = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/layer/inscribe",
+    query: new URLSearchParams(),
+    body: { address: A, network: "testnet-10", name: "lumbridge" },
+    ip: "layer-kns",
+  });
+  assert.equal(missing.status, 400);
+  assert.match(missing.body.error, /KNS app/);
+  assert.equal(calls, 0);
+  const inscribed = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/layer/inscribe",
+    query: new URLSearchParams(),
+    body: { address: A, network: "testnet-10", token: "tab", name: "lumbridge" },
+    ip: "layer-kns",
+  });
+  assert.equal(inscribed.status, 200);
+  assert.equal(calls, 1);
+  assert.match(inscribed.body.note, /No covenant was deployed/);
+  assert.equal(state.accounts[A.toLowerCase()].knsName, "lumbridge");
+  const again = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/layer/inscribe",
+    query: new URLSearchParams(),
+    body: { address: A, network: "testnet-10", token: "tab", name: "othername" },
+    ip: "layer-kns",
+  });
+  assert.equal(again.status, 400);
+  assert.match(again.body.error, /one name/);
+  assert.equal(calls, 1);
+  owned = true;
+  const shown = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/layer/display",
+    query: new URLSearchParams(),
+    body: { address: A, network: "testnet-10", name: "lumbridge", show: true },
+    ip: "layer-kns",
+  });
+  assert.equal(shown.status, 200);
+  assert.equal(shown.body.displayName, "lumbridge");
+  assert.equal(shown.body.account.displayName, "lumbridge");
+  assert.equal(publicSites(state)[0].showName, true);
+  assert.equal(publicSites(state)[0].inscribed, true);
+  const local = applyDisplay(state, { address: A, name: "lumbridge", show: false }, 11);
+  assert.equal(local.result.displayName, "");
+  assert.throws(
+    () => applyInscribed(local.state, { address: A, name: "othername", inscriptionId: "cd".repeat(32) + "i0" }, 12),
+    /one name/
+  );
 });
 
 test("Kachat takes a handshake before a message, and each step costs 0.01 POCencept", () => {

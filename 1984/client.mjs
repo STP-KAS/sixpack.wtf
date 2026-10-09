@@ -422,7 +422,7 @@ async function api(path, options) {
         method: options && options.method ? options.method : "GET",
         headers: ledgerHeaders({ "content-type": "application/json" }),
         body: options && options.body ? options.body : undefined,
-        signal: AbortSignal.timeout(45000),
+        signal: AbortSignal.timeout(options && options.timeout ? options.timeout : 45000),
       });
       const text = await res.text();
       if (!text || text[0] === "<" || res.status === 404 || res.status === 405) continue;
@@ -494,6 +494,7 @@ function paintChrome() {
     .join("");
 
   const guestOn = id.kind === "guest";
+  const named = guestOn && id.label && String(id.label).endsWith(".kas");
   you.innerHTML =
     "<h2>Who is paying</h2>" +
     "<p class=\"fine\">A funded wallet is prefunded with tKAS. Spend it at will. There is no risk. tKAS is worthless. This money is tKAS, Testnet-10 KAS. With tKAS you can go to the bank.</p>" +
@@ -502,7 +503,9 @@ function paintChrome() {
     '<button type="button" id="log-out">Log out</button>' +
     '<p class="warn">' + esc(GUEST_DISCLAIMER) + "</p>" +
     (guestOn
-      ? '<p class="warn">This funded wallet stays with this browser: ' + esc(short(id.address)) + ". Another browser cannot be matched. This desk says so.</p>"
+      ? '<p class="warn">This funded wallet stays with this browser' +
+        (named ? " as " + esc(id.label) + ". " : ": " + esc(short(id.address)) + ". ") +
+        "Another browser cannot be matched. This desk says so.</p>"
       : "") +
     '<label>kaspatest address<input id="addr" spellcheck="false" autocomplete="off" value="' + esc(id.kind === "name" || guestOn ? "" : id.address) + '"></label>' +
     '<button type="button" id="use-addr">Use this address</button>' +
@@ -943,6 +946,7 @@ async function refreshAccount(quiet) {
   state.kasSompi = body.kasSompi;
   state.oracle = body.oracle;
   if (body.reserve) state.reserve = body.reserve;
+  if (syncDisplayName(body.account)) paintChrome();
   paintBooks();
   maybeSwapNotice();
   return { ok: true, account: body.account };
@@ -2864,7 +2868,7 @@ function paintGuide() {
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Peer to peer is the payment. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled. This square is still the classroom.</li>" +
     "<li>Mint is the building with the Mint sign. Walk in and the mint card is open. The line on the card is supply on this square, not a KAS price. Mint, Trade, and About sit under that line. Trade offers one open name for another. Copy puts an address on the clipboard. Mint more, send, or open a new name. Open names sit on the card. Click a name to see the addresses, the amounts, and the ledger lines. A name that has reached its cap is under Completed. It is a square-ledger token under KCC-20 Last Call. It is not Final, and no covenant is deployed. Type 0 in Cap for no cap. There is no maximum.</li>" +
-    "<li>Layer-Kaspa is on the side rail. Open a .kas name. Visitors see the page. Only the address that owns that name on the KNS testnet index can change it. The window has the title, a tagline, the welcome, a color, a link, and offers. Register the name in the KNS app. This desk does not register it. This layer does not hide the path. It is not Tor.</li>" +
+    "<li>Layer-Kaspa is on the side rail. Open a .kas name. One name can be inscribed from the funded test wallet on this tab. The KNS testnet index records it. No covenant is deployed. Visitors see the page. Only the owner can change it. The owner can show that name instead of the tKAS address. The window has the title, a tagline, the welcome, a color, a link, and offers. A pasted address uses the KNS app. This layer does not hide the path. It is not Tor.</li>" +
     "<li>Kachat is on the side rail. Paste the other kaspatest address and send a handshake. They accept it. Then you send messages. Each step is 0.01 POCencept. Messages only. The KaChat app on the chain is a different program.</li>" +
     "<li>Vault is on the side rail. It keeps a note on this square ledger and a rule for who may read it and when. The labels are a note, an NDA, an enterprise file, or other. A real secret does not belong here. This page checks the readers and the time. A covenant mark is a label. No covenant is deployed. Seal keeps the note and the rule.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
@@ -3535,7 +3539,7 @@ function paintLayer() {
   panel.innerHTML =
     '<div class="stall-head"><h2>Layer-Kaspa</h2>' + placeActs("") + "</div>" +
     "<p><strong>What.</strong> Layer-Kaspa opens a .kas name from the KNS testnet index. Visitors can open a published page. Only the address that owns the name can change it.</p>" +
-    "<p><strong>How.</strong> Register the name in the <a href=\"https://app.knsdomains.org\" target=\"_blank\" rel=\"noopener\">KNS app</a>. The testnet index is <a href=\"https://tn10.knsdomains.org\" target=\"_blank\" rel=\"noopener\">tn10.knsdomains.org</a>. Open the name here. If this address owns it, a window opens with the page options. Visitors get the page without those controls. This desk does not register the name.</p>" +
+    "<p><strong>How.</strong> One name. Inscribe sends the KNS testnet fee from the funded test wallet on this tab. Five letters or more is 35 tKAS. A shorter name costs more. A pasted address still uses the <a href=\"https://app.knsdomains.org\" target=\"_blank\" rel=\"noopener\">KNS app</a>. The testnet index is <a href=\"https://tn10.knsdomains.org\" target=\"_blank\" rel=\"noopener\">tn10.knsdomains.org</a>. Open the name here. If this address owns it, a window opens with the page options. Visitors get the page without those controls. No covenant is deployed.</p>" +
     "<p><strong>Why.</strong> So a name you already own on the Kaspa testnet index can have a page on this square. It is not Tor, and it does not hide the path. No covenant is deployed.</p>" +
     '<label class="mint-line"><span>Name</span><input id="layer-name" maxlength="32" spellcheck="false" autocomplete="off" placeholder="name.kas"></label>' +
     '<button type="button" id="layer-open">Open</button> ' +
@@ -3565,7 +3569,11 @@ function layerVisitHtml(site) {
     if (layerKns === "") return "<p>Checking the KNS testnet index.</p>";
     if (layerKns === "error") return "<p>The KNS testnet index did not answer. Open the name again in a moment.</p>";
     if (layerKns === "other") return "<p>This name is on the KNS testnet index for another address. That owner has not published a page here. Visitors cannot change it.</p>";
-    return "<p>This name is not on the KNS testnet index. Register it in the <a href=\"https://app.knsdomains.org\" target=\"_blank\" rel=\"noopener\">KNS app</a>. This desk does not register it.</p>";
+    if (state.account && state.account.knsName === layerKey(layerVisit)) {
+      return "<p>This name was inscribed for this address. The KNS testnet index has not listed it yet. Open it again in a moment. No covenant was deployed.</p>";
+    }
+    return "<p>This name is not on the KNS testnet index. One name. Inscribe it for the funded test wallet on this tab. The KNS fee for five letters or more is 35 tKAS. A shorter name costs more. A pasted address uses the <a href=\"https://app.knsdomains.org\" target=\"_blank\" rel=\"noopener\">KNS app</a>. No covenant is deployed.</p>" +
+      '<button type="button" id="layer-inscribe">Inscribe this name</button>';
   }
   const link = site.linkUrl ? "<p><a href=\"" + esc(site.linkUrl) + "\" target=\"_blank\" rel=\"noopener\">" + esc(site.linkLabel || site.linkUrl) + "</a></p>" : "";
   const offers = site.offers.length
@@ -3599,7 +3607,8 @@ function paintLayerPop() {
     const picked = (value) => (site && site.accent === value ? " selected" : (!site && value === "stone" ? " selected" : ""));
     pop.innerHTML =
       '<div class="stall-head"><h2>' + esc(host) + '</h2><div class="stall-acts"><button type="button" id="layer-pop-close">Close</button></div></div>' +
-      "<p>You own this name on the KNS testnet index. Visitors can open the page. They cannot change it. This desk did not register the name.</p>" +
+      "<p>You own this name on the KNS testnet index. Visitors can open the page. They cannot change it. No covenant is deployed.</p>" +
+      '<label class="mint-line"><span>Show</span><input id="layer-show-name" type="checkbox"' + (site && site.showName ? " checked" : "") + "> Show this name instead of the tKAS address</label>" +
       '<label class="mint-line"><span>Title</span><input id="layer-title" maxlength="48" value="' + esc(site ? site.title : "") + '"></label>' +
       '<label class="mint-line"><span>Tagline</span><input id="layer-tagline" maxlength="80" value="' + esc(site ? site.tagline : "") + '"></label>' +
       '<label class="mint-line"><span>About</span><input id="layer-about" maxlength="280" value="' + esc(site ? site.about : "") + '"></label>' +
@@ -3616,12 +3625,16 @@ function paintLayerPop() {
       layerOfferRows(site) +
       '<button type="button" id="layer-publish">Save page</button>';
     document.getElementById("layer-publish").onclick = publishSite;
+    const showName = document.getElementById("layer-show-name");
+    if (showName) showName.onchange = () => chooseLayerName(showName.checked);
   } else {
     pop.innerHTML =
       '<div class="stall-head"><h2>' + esc(host) + '</h2><div class="stall-acts"><button type="button" id="layer-pop-close">Close</button></div></div>' +
       layerVisitHtml(site);
   }
   document.getElementById("layer-pop-close").onclick = () => hideLayerPop();
+  const inscribe = document.getElementById("layer-inscribe");
+  if (inscribe) inscribe.onclick = () => inscribeLayer();
   for (const button of pop.querySelectorAll("[data-buy]")) {
     button.onclick = () => buyOffer(button.getAttribute("data-buy"));
   }
@@ -3660,6 +3673,70 @@ async function openLayer(name) {
     layerKns = "tn10";
   } else if (found && found.address) layerKns = "other";
   else layerKns = "none";
+  paintLayerPop();
+}
+
+function syncDisplayName(account) {
+  if (!state.id || state.id.kind !== "guest" || !state.id.token) return false;
+  const name = account && typeof account.displayName === "string" ? account.displayName : "";
+  const nextLabel = name ? name + ".kas" : (String(state.id.label || "").endsWith(".kas") ? "test tab" : state.id.label);
+  if (!nextLabel || nextLabel === state.id.label) return false;
+  state.id = { ...state.id, label: nextLabel };
+  try {
+    writeIdentity(boxes(), state.id);
+  } catch (_) {}
+  return true;
+}
+
+async function inscribeLayer() {
+  if (!requireId()) return;
+  if (state.id.kind !== "guest" || !state.id.token) {
+    say("This desk inscribes the funded test wallet it handed you. A pasted address uses the KNS app.", true);
+    return;
+  }
+  say("Inscribing this one name on the KNS testnet index.");
+  const body = await api("/api/1984/layer/inscribe", {
+    method: "POST",
+    timeout: 120000,
+    body: JSON.stringify({
+      address: state.id.address,
+      network: "testnet-10",
+      token: state.id.token,
+      name: layerVisit,
+    }),
+  });
+  if (!body.ok) {
+    say(body.error || "The name was not inscribed.", true);
+    return;
+  }
+  if (body.account) {
+    state.account = body.account;
+    if (syncDisplayName(body.account)) paintChrome();
+  }
+  say(body.note || "Inscribed.");
+  if (!body.pending) await openLayer(layerVisit);
+}
+
+async function chooseLayerName(show) {
+  if (!requireId()) return;
+  if (!layerOwns) {
+    say("Only the owner of this name on the KNS testnet index can show it.", true);
+    return;
+  }
+  const saved = await post("/api/1984/layer/display", { name: layerVisit, show: show === true });
+  if (!saved.ok) {
+    say(saved.error || "The name was not shown.", true);
+    return;
+  }
+  if (!state.home) state.home = {};
+  if (saved.sites) state.home.sites = saved.sites;
+  if (saved.account) {
+    state.account = saved.account;
+    syncDisplayName(saved.account);
+  }
+  say(saved.note || "Saved.");
+  paintChrome();
+  paintLayer();
   paintLayerPop();
 }
 

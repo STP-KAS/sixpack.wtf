@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { fetchBalance, fetchKoni, fetchPrice, fetchTx, paymentFromTx, resolveName } from "./chain.mjs";
 import { applyAccept, applyHandshake, applyMessage, publicChat } from "./kachat.mjs";
 import { applyVaultSave, applyVaultSeal, publicVaults } from "./vault.mjs";
-import { applyClaim, applyOfferBuy, applySite, publicSites } from "./layer.mjs";
+import { applyClaim, applyDisplay, applyInscribed, applyOfferBuy, applySite, normalizeLabel, publicSites } from "./layer.mjs";
 import { lookupAccepted, warmNodeWindow } from "./node-tx.mjs";
 import { guestDesk, GUEST_FUND_SOMPI } from "./guest.mjs";
 import { pageFeeRate } from "../faucet/fee-rate.mjs";
@@ -56,6 +56,7 @@ export function create1984Service(deps) {
   let lock = Promise.resolve();
   let oracle = { price: 0, at: 0 };
   const hits = new Map();
+  const inscribing = new Set();
   const pause = deps.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
 
   function queue(fn) {
@@ -320,6 +321,29 @@ export function create1984Service(deps) {
         disclaimer: DISCLAIMER,
       },
     };
+  }
+
+  async function inscribeForGuest({ address, name, token }) {
+    const guests = guestApi();
+    const session = await guests.sessionKey({ token, address });
+    const { knsPlan } = await import("./kns-plan.mjs");
+    const plan = knsPlan(name);
+    const bal = await fetchBalance(address, deps.fetch);
+    if (bal < plan.holdSompi) {
+      throw new Error(
+        "This name costs " + plan.feeKas + " tKAS on the KNS testnet index, plus a small commit. This wallet does not hold that much. No covenant was deployed."
+      );
+    }
+    const { inscribeTn10 } = await import("./kns-inscribe.mjs");
+    try {
+      return await inscribeTn10({ privHex: session.key, from: session.address, label: name, fetchImpl: deps.fetch });
+    } catch (err) {
+      const msg = String((err && err.message) || "");
+      if (session.key && msg.toLowerCase().includes(String(session.key).toLowerCase())) {
+        throw new Error("The inscription did not broadcast.");
+      }
+      throw err;
+    }
   }
 
   return {
@@ -597,6 +621,97 @@ export function create1984Service(deps) {
               deps.save(state);
               throw new Error((err && err.message) || "Redeem did not broadcast. The ledger balance was put back.");
             }
+          });
+        }
+        if (pathname === "/api/1984/layer/inscribe") {
+          const name = normalizeLabel(body.name);
+          const key = address.toLowerCase();
+          const held = state.accounts && state.accounts[key];
+          if (held && held.knsName && held.knsName !== name) {
+            throw new Error("This address already inscribed one name. A layer has one.");
+          }
+          if (held && held.knsName === name) {
+            return {
+              status: 200,
+              body: {
+                ok: true,
+                already: true,
+                name,
+                note: "This address already inscribed " + name + ".kas. One name. No covenant was deployed.",
+              },
+            };
+          }
+          let found = null;
+          try {
+            found = await resolveName(name, deps.fetch);
+          } catch (err) {
+            const msg = String((err && err.message) || "");
+            if (/mainnet|Type a \.kas name/i.test(msg)) throw err;
+            throw new Error("The KNS testnet index did not answer. The name was not inscribed.");
+          }
+          if (found && found.address.toLowerCase() === key) {
+            return {
+              status: 200,
+              body: {
+                ok: true,
+                already: true,
+                name,
+                note: "You already own this name on the KNS testnet index. Open it to publish the page. No covenant was deployed.",
+              },
+            };
+          }
+          if (found) throw new Error("That name is already on the KNS testnet index for another address.");
+          if (!body.token) {
+            throw new Error("This desk inscribes the funded test wallet it handed you. A pasted address uses the KNS app.");
+          }
+          if (inscribing.has(key)) throw new Error("This name is already being inscribed.");
+          inscribing.add(key);
+          try {
+            const run = deps.inscribe || inscribeForGuest;
+            const out = await run({ address, name, token: body.token });
+            if (!out || out.pending || !out.inscriptionId) {
+              return {
+                status: 200,
+                body: {
+                  ok: true,
+                  pending: true,
+                  name,
+                  note: (out && out.note) || "The commit is on Testnet-10. Press Inscribe again to finish this one name.",
+                },
+              };
+            }
+            return await queue(async () => {
+              const marked = applyInscribed(state, { address, name, inscriptionId: out.inscriptionId }, deps.now());
+              state = marked.state;
+              deps.save(state);
+              return {
+                status: 200,
+                body: { ...marked.result, account: publicAccount(state, address), feeKas: out.feeKas },
+              };
+            });
+          } finally {
+            inscribing.delete(key);
+          }
+        }
+        if (pathname === "/api/1984/layer/display") {
+          await layerGate(body.name, address);
+          return await queue(async () => {
+            const show = body.show === true;
+            const current = state.sites && state.sites[normalizeLabel(body.name)];
+            let base = state;
+            if (show || current) {
+              base = applyClaim(state, { address, name: body.name, kns: "tn10" }, now).state;
+            }
+            if (!show && !(base.sites && base.sites[normalizeLabel(body.name)])) {
+              return {
+                status: 200,
+                body: { ok: true, displayName: "", note: "This square shows the tKAS address.", account: publicAccount(state, address) },
+              };
+            }
+            const out = applyDisplay(base, { address, name: body.name, show }, now);
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: { ...out.result, account: publicAccount(state, address) } };
           });
         }
         if (pathname === "/api/1984/layer/claim") {
