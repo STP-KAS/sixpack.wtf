@@ -48,7 +48,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=122/);
+  assert.match(html, /1984\/client\.mjs\?v=123/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -142,8 +142,8 @@ test("the balances stay in a clear bar under the site tabs", () => {
   const stageAt = html.indexOf('<main class="kw-stage">');
   assert.ok(topEnd > 0 && barAt > topEnd && stageAt > barAt);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
-  assert.match(html, /1984\.css\?v=72/);
-  assert.match(html, /1984\/client\.mjs\?v=122/);
+  assert.match(html, /1984\.css\?v=73/);
+  assert.match(html, /1984\/client\.mjs\?v=123/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
@@ -178,7 +178,15 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(mintCard, /Type 0 in Cap for no cap/);
   assert.match(mintCard, /0 means no cap\. There is no maximum/);
   assert.match(mintCard, /id="mint-book"/);
+  assert.match(mintCard, /id="mint-find"/);
   assert.match(mintCard, /Any funded address can mint more/);
+  assert.match(sliceFn(client, "openMode"), /panel\.classList\.toggle\("mint-board", mode === "mint"\)/);
+  assert.match(sliceFn(client, "mintRow"), /mint-tile/);
+  assert.match(css, /\.kw-panel\.stall-pop\.mint-board \{[\s\S]*?left: 112px/);
+  const phoneAt = css.indexOf("@media (max-width: 980px)");
+  const phone = css.slice(phoneAt);
+  assert.match(phone, /\.phone-fit \.kw-panel\.stall-pop\.mint-board \{[^}]*left: 4\.7rem[^}]*max-height: none/);
+  assert.match(phone, /\.phone-fit \.mint-board \.dex-market \{[^}]*grid-template-columns: 1fr/);
   assert.match(html, /id="mint-open-pop"/);
   assert.match(html, /id="mint-done-pop"/);
   const boards = sliceFn(client, "paintMintBoards");

@@ -871,6 +871,199 @@ body.page-1984 main.kw-stage {
   padding: 0.85rem 0.9rem 1rem;
   overflow: auto;
 }
+.kw:has(.kw-panel.mint-board:not([hidden])) .kw-side { z-index: 6; }
+.kw-panel.stall-pop.mint-board {
+  left: 112px;
+  right: 16px;
+  top: 12px;
+  bottom: 12px;
+  width: auto;
+  max-height: none;
+  transform: none;
+  display: flex;
+  flex-direction: column;
+  z-index: 7;
+  overflow: hidden;
+  padding: 0.75rem 0.85rem 0.7rem;
+}
+.mint-board .dex {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+.mint-board .mint-desk {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.mint-board .swap-head,
+.mint-board .dex-yours { flex: 0 0 auto; }
+.mint-board .mint-work {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: stretch;
+}
+.mint-board .mint-trade,
+.mint-board .mint-floor {
+  min-width: 0;
+  min-height: 0;
+}
+.mint-board .mint-trade {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-right: 0.15rem;
+}
+.mint-board .mint-trade .dex-row { flex-wrap: wrap; }
+.mint-board .mint-trade .dex-row .dex-amt { flex: 1 1 100%; }
+.mint-board .mint-trade .dex-row .dex-token,
+.mint-board .mint-trade .dex-row .dex-name {
+  flex: 1 1 8rem;
+  width: auto;
+  max-width: none;
+}
+.mint-board .mint-floor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.mint-board .mint-find {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  margin: 0;
+  color: #b7a88a;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.mint-board .mint-find input {
+  width: 100%;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #f3e6c8;
+  background: #140e0a;
+  border: 1px solid #e7c27a;
+  border-radius: 12px;
+  padding: 0.5rem 0.75rem;
+}
+.mint-board #mint-book {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.15rem;
+}
+.mint-board .mint-section {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin: 0.1rem 0 0.35rem;
+}
+.mint-board .mint-section span,
+.mint-board .dex-done summary span {
+  color: #b7a88a;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.mint-board #mint-book h3 { margin: 0; font-size: 0.85rem; }
+.mint-board .dex-market {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.55rem;
+  max-height: none;
+  overflow: visible;
+  margin: 0 0 0.45rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.mint-board .mint-tile {
+  min-width: 0;
+  background: #1c140e;
+  border: 1px solid #8a7040;
+  border-radius: 14px;
+  box-shadow: inset 0 2px 0 #8a7040;
+}
+.mint-board .mint-tile.on {
+  grid-column: 1 / -1;
+  background: #241910;
+  border-color: #e7c27a;
+  box-shadow: inset 0 2px 0 #e7c27a;
+}
+.kw-panel.mint-board button.dex-market-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.15rem;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0.7rem 0.75rem 0.6rem;
+  text-align: left;
+  white-space: normal;
+  color: #f3e6c8;
+}
+.kw-panel.mint-board button.dex-market-row strong {
+  display: block;
+  width: 100%;
+  flex: none;
+  color: #f2d48a;
+  font-size: 1.12rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.kw-panel.mint-board button.dex-market-row span {
+  display: block;
+  width: 100%;
+  text-align: left;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 0.78rem;
+}
+.mint-board .mint-detail {
+  border-top: 1px solid #3a2c1c;
+  padding: 0.5rem 0.75rem 0.65rem;
+}
+.mint-board .mint-detail .mint-open { max-height: 16rem; }
+.kw-panel.mint-board .mint-detail button {
+  width: auto;
+  min-width: 8rem;
+  margin-top: 0.25rem;
+  text-align: center;
+  background: linear-gradient(#e6c98a, #a07838);
+  color: #1a1612;
+  font-weight: 700;
+  border: 1px solid #f3e6c8;
+  box-shadow: none;
+}
+.mint-board .dex-done { margin: 0.15rem 0 0.4rem; }
+.mint-board .dex-done summary {
+  font-size: 0.85rem;
+  padding: 0.2rem 0;
+}
+.mint-board .dex-yours {
+  margin: 0;
+  padding-top: 0.35rem;
+  border-top: 1px solid #3a2c1c;
+}
 .bank-shade {
   position: absolute;
   inset: 0;
@@ -1701,6 +1894,32 @@ a { color: #f2d48a; }
     bottom: 8px;
     max-height: 34%;
   }
+  .phone-fit .kw-panel.stall-pop.mint-board {
+    left: 4.7rem;
+    right: 6px;
+    top: 6px;
+    bottom: 6px;
+    width: auto;
+    max-height: none;
+    transform: none;
+  }
+  .phone-fit .mint-board .mint-work {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+  }
+  .phone-fit .mint-board .mint-trade,
+  .phone-fit .mint-board .mint-floor {
+    flex: 0 0 auto;
+    min-height: auto;
+    overflow: visible;
+  }
+  .phone-fit .mint-board #mint-book {
+    overflow: visible;
+    flex: 0 0 auto;
+  }
+  .phone-fit .mint-board .dex-market { grid-template-columns: 1fr; }
+  .phone-fit .mint-board .mint-find input { font-size: 16px; }
   .phone-fit .kw-you {
     left: 8px;
     right: 8px;

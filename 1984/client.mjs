@@ -1931,6 +1931,7 @@ function openMode(mode) {
   const sheet = mode === "mint" || mode === "layer" || mode === "kachat" || mode === "vault";
   panel.classList.toggle("swap-pop", mode === "bank");
   panel.classList.toggle("stall-pop", (isVisit(mode) && mode !== "bank") || sheet);
+  panel.classList.toggle("mint-board", mode === "mint");
   if (shade) shade.hidden = !(isVisit(mode) || sheet);
   if (mode === "world") {
     panel.hidden = true;
@@ -3822,8 +3823,10 @@ function paintMint() {
   const tab = (value, label) =>
     '<label class="dex-tab"><input type="radio" name="mint-opt" value="' + value + '"' + (start === value ? " checked" : "") + "><span>" + label + "</span></label>";
   panel.innerHTML =
-    '<div class="dex">' +
+    '<div class="dex"><div class="mint-desk">' +
     '<div class="swap-head"><h2>Mint</h2>' + placeActs("") + "</div>" +
+    '<div class="mint-work">' +
+    '<div class="mint-trade">' +
     '<div class="dex-tabs">' + tab("more", "Mint") + tab("send", "Send") + tab("new", "New") + "</div>" +
     '<div class="dex-box"><div class="dex-box-top"><span id="mint-pay-label">You mint</span></div>' +
     '<div class="dex-row">' +
@@ -3840,8 +3843,12 @@ function paintMint() {
     '<input id="mint-to" class="dex-addr" spellcheck="false" autocomplete="off" placeholder="kaspatest address"></div>' +
     '<button type="button" id="mint-go" class="dex-go">Mint</button>' +
     '<p class="fine">Square ledger. KCC-20 Last Call. It is not Final. No covenant is deployed. Any funded address can mint more. Type 0 in Cap for no cap.</p>' +
+    "</div>" +
+    '<section class="mint-floor">' +
+    '<label class="mint-find">Find a name<input id="mint-find" type="search" spellcheck="false" autocomplete="off" placeholder="Name"></label>' +
     '<div id="mint-book"></div>' +
-    '<div class="dex-yours"><span>Yours</span>' + held + "</div></div>";
+    "</section></div>" +
+    '<div class="dex-yours"><span>Yours</span>' + held + "</div></div></div>";
   const pick = document.getElementById("mint-pick");
   if (pick) {
     pick.onchange = () => {
@@ -3855,6 +3862,8 @@ function paintMint() {
   if (capBox) capBox.oninput = syncCapNote;
   if (amountBox) amountBox.oninput = syncCapNote;
   document.getElementById("mint-go").onclick = saveMint;
+  const find = document.getElementById("mint-find");
+  if (find) find.addEventListener("input", () => paintMintBoards());
   syncMintOption();
   wirePlaceExit();
   paintMintBoards();
@@ -3945,9 +3954,11 @@ function mintDetail(row) {
 }
 
 function mintRow(row) {
-  const cap = !row.cap || row.cap === "0" ? "no cap" : "cap " + row.cap;
+  const cap = !row.cap || row.cap === "0" ? "No cap" : "Cap " + row.cap;
   const count = String(row.holderCount != null ? row.holderCount : (row.holders || []).length);
-  return "<li><button type=\"button\" class=\"dex-market-row\" data-mint=\"" + esc(row.name) + "\"><strong>" + esc(row.name) + "</strong><span>" + esc(row.supply) + " · " + esc(cap) + " · " + esc(count) + "</span></button>" +
+  const people = count === "1" ? "1 holder" : count + " holders";
+  const on = mintFocus === row.name ? " on" : "";
+  return "<li class=\"mint-tile" + on + "\"><button type=\"button\" class=\"dex-market-row\" data-mint=\"" + esc(row.name) + "\"><strong>" + esc(row.name) + "</strong><span>Supply " + esc(row.supply) + "</span><span>" + esc(cap) + "</span><span>" + esc(people) + "</span></button>" +
     (mintFocus === row.name ? mintDetail(row) : "") + "</li>";
 }
 
@@ -3972,14 +3983,21 @@ function paintMintBoards() {
   }
   if (!book) return;
   const scroll = book.scrollTop;
-  const open = rows.filter((row) => !mintIsDone(row));
-  const done = rows.filter((row) => mintIsDone(row));
+  const find = document.getElementById("mint-find");
+  const needle = find ? find.value.trim().toLowerCase() : "";
+  const fit = (row) => !needle || String(row.name || "").toLowerCase().includes(needle);
+  const open = rows.filter((row) => !mintIsDone(row) && fit(row));
+  const done = rows.filter((row) => mintIsDone(row) && fit(row));
   const list = (items, empty) => items.length
     ? '<ul class="dex-market">' + items.map(mintRow).join("") + "</ul>"
     : '<p class="mint-cap-note">' + empty + "</p>";
-  book.innerHTML =
-    "<h3>Open</h3>" + list(open, "No open mint yet.") +
-    "<details class=\"dex-done\"><summary>Completed</summary>" + list(done, "No mint has reached its cap.") + "</details>";
+  const openEmpty = needle ? "No open name matches." : "No open mint yet.";
+  const doneEmpty = needle ? "No completed name matches." : "No mint has reached its cap.";
+  const openHead = '<div class="mint-section"><h3>Open</h3><span>' + open.length + "</span></div>";
+  book.innerHTML = needle && !open.length && !done.length
+    ? openHead + '<p class="mint-cap-note">No name matches.</p>'
+    : openHead + list(open, openEmpty) +
+      "<details class=\"dex-done\"><summary>Completed <span>" + done.length + "</span></summary>" + list(done, doneEmpty) + "</details>";
   book.scrollTop = scroll;
 }
 
