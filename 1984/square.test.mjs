@@ -197,12 +197,12 @@ test("freeze blocks KUSDT only, and a short tKAS payment is refused", () => {
   let state = freshState();
   state = applyPractice(state, { address: USER }, NOW).state;
   state = applyFreeze(state, { address: USER, frozen: true }, NOW).state;
-  assert.throws(() => applySpend(state, { address: USER, shop: "groceries", sku: "pebble", rail: "kusdt" }, NOW));
-  state = applySpend(state, { address: USER, shop: "groceries", sku: "pebble", rail: "poc" }, NOW).state;
-  assert.equal(state.accounts[USER].poc, "1999");
+  assert.throws(() => applySpend(state, { address: USER, shop: "groceries", sku: "steam-5", rail: "kusdt" }, NOW));
+  state = applySpend(state, { address: USER, shop: "groceries", sku: "steam-5", rail: "poc" }, NOW).state;
+  assert.equal(state.accounts[USER].poc, "1500");
   const tiny = pay(1n, 3);
   assert.throws(() =>
-    applySpend(state, { address: USER, shop: "groceries", sku: "pebble", rail: "kas", payment: tiny, usdPerKas: USD }, NOW)
+    applySpend(state, { address: USER, shop: "groceries", sku: "steam-5", rail: "kas", payment: tiny, usdPerKas: USD }, NOW)
   );
 });
 

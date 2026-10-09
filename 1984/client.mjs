@@ -17,8 +17,8 @@ import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=4";
 import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=8";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=8";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, HOT_STAGE_MS, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=57";
-import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=5";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, FLIGHT_STAGE, HOT_STAGE_MS, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=58";
+import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=6";
 const TUNNEL = "https://authority-fireplace-earlier-spirit.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 const map = world();
@@ -958,7 +958,10 @@ function paintBooks() {
   if (face === "bank") paintBank();
   else if (face === "hunt") paintHunt();
   else if (face === "mint") paintMint();
-  else if (face === "shop") paintShop(state.mode);
+  else if (face === "shop") {
+    if (state.mode === "groceries") paintMarket();
+    else paintShop(state.mode);
+  }
 }
 
 function maybeSwapNotice() {
@@ -1541,7 +1544,7 @@ function isVisit(mode) {
 function hidePanel() {
   panel.hidden = true;
   panel.innerHTML = "";
-  panel.classList.remove("swap-pop", "stall-pop");
+  panel.classList.remove("swap-pop", "stall-pop", "mint-board");
   stopMintWatch();
   hideLayerPop();
   const shade = document.getElementById("bank-shade");
@@ -1561,7 +1564,7 @@ function veilRoom() {
 
 function enterVenue(shop) {
   if (!shopVisit(shop)) return;
-  if (shop === "mint" || shop === "bank") {
+  if (shop === "mint" || shop === "bank" || shop === "groceries") {
     if (state.mode === shop && state.venue === shop && state.inside) return;
     const changed = state.venue !== shop || !state.inside;
     if (shop !== "cinema") stopShow(true);
@@ -1931,7 +1934,7 @@ function openMode(mode) {
   const sheet = mode === "mint" || mode === "layer" || mode === "kachat" || mode === "vault";
   panel.classList.toggle("swap-pop", mode === "bank");
   panel.classList.toggle("stall-pop", (isVisit(mode) && mode !== "bank") || sheet);
-  panel.classList.toggle("mint-board", mode === "mint");
+  panel.classList.toggle("mint-board", mode === "mint" || mode === "groceries");
   if (shade) shade.hidden = !(isVisit(mode) || sheet);
   if (mode === "world") {
     panel.hidden = true;
@@ -1974,7 +1977,8 @@ function openMode(mode) {
     if (mode === "hunt") {
       paintHunt();
       refreshHuntBook();
-    } else paintShop(mode);
+    } else if (mode === "groceries") paintMarket();
+    else paintShop(mode);
   }
 }
 
@@ -2028,7 +2032,8 @@ function saleButton(rail, shop, sku, cents, name, withName) {
 function setShopRail(rail) {
   if (rail !== "kas" && rail !== "poc" && rail !== "kusdt") return;
   state.shopRail = payRail(rail);
-  if (isVisit(state.mode) && state.mode !== "hunt") paintShop(state.mode);
+  if (state.mode === "groceries") paintMarket();
+  else if (isVisit(state.mode) && state.mode !== "hunt") paintShop(state.mode);
   paintShow();
   if (state.flightStart && !state.cruiseStart) {
     const box = document.getElementById("flight-planets");
@@ -2153,6 +2158,134 @@ function paintShop(shopId) {
   if (pasted) pasted.addEventListener("input", () => {
     shopTxid = pasted.value.trim();
   });
+}
+
+let marketCard = "";
+let marketSku = "";
+let marketQuery = "";
+
+function marketShop() {
+  const lists = [state.home && state.home.shops, SHOPS];
+  for (const list of lists) {
+    const shop = (list || []).find((item) => item.id === "groceries");
+    if (shop && (shop.items || []).some((item) => item.card)) return shop;
+  }
+  return ((state.home && state.home.shops) || SHOPS).find((item) => item.id === "groceries") || null;
+}
+
+function marketCards(shop) {
+  const cards = [];
+  const by = new Map();
+  for (const item of shop.items) {
+    const name = item.card || item.name;
+    let row = by.get(name);
+    if (!row) {
+      row = { name, group: item.group || "Cards", items: [] };
+      by.set(name, row);
+      cards.push(row);
+    }
+    row.items.push(item);
+  }
+  for (const row of cards) row.items.sort((a, b) => a.cents - b.cents);
+  return cards;
+}
+
+function paintMarketBook(cards) {
+  const book = document.getElementById("market-book");
+  if (!book) return;
+  const scroll = book.scrollTop;
+  const needle = marketQuery.trim().toLowerCase();
+  const fit = cards.filter((row) => !needle || (row.name + " " + row.group).toLowerCase().includes(needle));
+  const groups = [];
+  for (const row of fit) {
+    let group = groups.find((item) => item.name === row.group);
+    if (!group) {
+      group = { name: row.group, rows: [] };
+      groups.push(group);
+    }
+    group.rows.push(row);
+  }
+  book.innerHTML = groups.length
+    ? groups.map((group) => {
+      const tiles = group.rows.map((row) => {
+        const from = formatCents(row.items[0].cents);
+        const on = row.name === marketCard ? " on" : "";
+        return '<li class="mint-tile' + on + '"><button type="button" class="dex-market-row" data-card="' + esc(row.name) + '"><strong>' + esc(row.name) + '</strong><span>' + esc(row.group) + '</span><span>from ' + esc(from) + '</span></button></li>';
+      }).join("");
+      return '<div class="mint-section"><h3>' + esc(group.name) + '</h3><span>' + group.rows.length + '</span></div><ul class="dex-market">' + tiles + '</ul>';
+    }).join("")
+    : '<p class="mint-cap-note">' + (needle ? "No card matches." : "No card on this counter.") + "</p>";
+  book.scrollTop = scroll;
+}
+
+function paintMarket() {
+  const shop = marketShop();
+  if (!shop) {
+    paintShop("groceries");
+    return;
+  }
+  const cards = marketCards(shop);
+  if (marketCard && !cards.some((row) => row.name === marketCard)) marketCard = "";
+  if (!marketCard && cards[0]) marketCard = cards[0].name;
+  const picked = cards.find((row) => row.name === marketCard) || null;
+  if (picked && !picked.items.some((item) => item.sku === marketSku)) marketSku = picked.items[0].sku;
+  if (!picked) marketSku = "";
+  const item = picked ? picked.items.find((row) => row.sku === marketSku) : null;
+  const rail = payRail(state.shopRail);
+  const findWas = document.activeElement && document.activeElement.id === "market-find";
+  const sel = findWas ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
+  const amounts = picked
+    ? '<div class="market-amounts">' + picked.items.map((row) => {
+      const on = row.sku === marketSku ? " on" : "";
+      return '<button type="button" class="market-amt' + on + '" data-face="' + esc(row.sku) + '">' + esc(row.face || formatCents(row.cents)) + "</button>";
+    }).join("") + "</div>"
+    : "<p>Select a card.</p>";
+  const pay = item
+    ? saleButton(rail, shop.id, item.sku, item.cents, item.name, true)
+    : "";
+  const pasteOpen = shopTxid || (state.id && state.id.kind !== "guest");
+  const txid = rail === "kas"
+    ? '<details class="paid-already"' + (pasteOpen ? " open" : "") + '><summary>Already sent tKAS? Paste the txid</summary><textarea id="txid" rows="2">' + esc(shopTxid) + "</textarea></details>"
+    : "";
+  panel.innerHTML =
+    '<div class="dex"><div class="mint-desk">' +
+    '<div class="swap-head"><h2>Market</h2>' + placeActs('<button type="button" id="stall-close">Close</button>') + "</div>" +
+    '<div class="mint-work">' +
+    '<div class="mint-trade">' +
+    "<p class=\"stall-keeper\">" + esc(shop.keeper) + "</p>" +
+    "<p>" + esc(shop.line) + "</p>" +
+    (picked ? "<p><strong>" + esc(picked.name) + "</strong> · " + esc(picked.group) + "</p>" : "<p>Select a card.</p>") +
+    '<p class="mint-cap-note">Select amount</p>' +
+    amounts +
+    railBarHtml(rail) +
+    pay + txid +
+    '<p class="fine">Names are for identification. This desk is not Coinsbee and it is not those brands. A buy writes a ledger receipt on tKAS, POCencept, or KUSDT. It does not email a brand code.</p>' +
+    '<p class="fine"><a href="https://www.coinsbee.com/en/buy-gift-cards-with-kaspa/" target="_blank" rel="noopener">Coinsbee Kaspa checkout</a> is where a real code is sent. US face values. The region on that site can differ.</p>' +
+    "</div>" +
+    '<section class="mint-floor">' +
+    '<label class="mint-find">Find a card<input id="market-find" type="search" spellcheck="false" autocomplete="off" placeholder="Amazon, Steam, Netflix" value="' + esc(marketQuery) + '"></label>' +
+    '<div id="market-book"></div>' +
+    "</section></div>" +
+    '<div class="dex-yours"><span>Steps</span><span class="dex-chip">Card</span><span class="dex-chip">Amount</span><span class="dex-chip">Lane</span></div>' +
+    "</div></div>";
+  document.getElementById("stall-close").onclick = () => closeCounter();
+  wirePlaceExit();
+  const find = document.getElementById("market-find");
+  if (find) {
+    find.addEventListener("input", () => {
+      marketQuery = find.value;
+      paintMarketBook(marketCards(marketShop() || shop));
+    });
+    if (findWas) {
+      find.focus();
+      if (sel && sel[0] != null) find.setSelectionRange(sel[0], sel[1]);
+    }
+  }
+  const pasted = document.getElementById("txid");
+  if (pasted) pasted.addEventListener("input", () => {
+    shopTxid = pasted.value.trim();
+  });
+  paintMarketBook(cards);
 }
 
 let lockDraft = "1";
@@ -4776,6 +4909,21 @@ panel.addEventListener("click", (ev) => {
       const name = mintBtn.getAttribute("data-mint") || "";
       mintFocus = mintFocus === name ? "" : name;
       paintMintBoards();
+      return;
+    }
+  }
+  if (state.mode === "groceries") {
+    const card = ev.target.closest("[data-card]");
+    if (card) {
+      marketCard = card.getAttribute("data-card") || "";
+      marketSku = "";
+      paintMarket();
+      return;
+    }
+    const faceBtn = ev.target.closest("[data-face]");
+    if (faceBtn) {
+      marketSku = faceBtn.getAttribute("data-face") || "";
+      paintMarket();
       return;
     }
   }

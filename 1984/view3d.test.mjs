@@ -203,7 +203,9 @@ test("walking into a room starts the camera inside the walls", () => {
 test("the wall menu uses the shop prices", () => {
   assert.equal(menuLines("cafe")[1], "Coffee 2.50");
   assert.equal(menuLines("restaurant")[1], "Supper 14.00");
-  assert.equal(menuLines("groceries")[0], "Square pebble 0.01");
+  assert.equal(menuLines("groceries")[0], "Amazon 10.00");
+  assert.equal(menuLines("groceries")[1], "Steam 5.00");
+  assert.equal(menuLines("groceries").length, 5);
   assert.equal(menuLines("roadster")[0], "The roadster 1.00");
   assert.equal(menuLines("cinema")[0], "The reel 5.00");
   assert.equal(menuLines("cinema")[1], "Popcorn 1.50");

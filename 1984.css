@@ -957,12 +957,32 @@ body.page-1984 main.kw-stage {
   border-radius: 12px;
   padding: 0.5rem 0.75rem;
 }
-.mint-board #mint-book {
+.mint-board #mint-book,
+.mint-board #market-book {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
   padding-right: 0.15rem;
+}
+.market-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.2rem 0 0.55rem;
+}
+.kw-panel .market-amounts button {
+  width: auto;
+  text-align: center;
+  font-weight: 700;
+  border-radius: 12px;
+  border: 1px solid #8a7040;
+  background: #140e0a;
+}
+.kw-panel .market-amounts button.on {
+  background: linear-gradient(#e6c98a, #a07838);
+  color: #1a1612;
+  border-color: #f3e6c8;
 }
 .mint-board .mint-section {
   display: flex;
@@ -1914,7 +1934,8 @@ a { color: #f2d48a; }
     min-height: auto;
     overflow: visible;
   }
-  .phone-fit .mint-board #mint-book {
+  .phone-fit .mint-board #mint-book,
+  .phone-fit .mint-board #market-book {
     overflow: visible;
     flex: 0 0 auto;
   }

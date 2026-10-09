@@ -1,7 +1,7 @@
 /** LUMBRIDGE in 3D. Original meshes. The camera turns around the player through a full circle. */
 
 import * as THREE from "./vendor/three.module.js";
-import { HUNTS, PARKING_BAYS, ROADSTER_PARK, SHOPS, standTile, tripBySku } from "./world.mjs";
+import { HUNTS, PARKING_BAYS, ROADSTER_PARK, SHOPS, standTile, tripBySku } from "./world.mjs?v=6";
 
 const TILE = 1.15;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -1008,6 +1008,17 @@ export function escapeRoom(panelOpen, inside) {
 export function menuLines(shopId) {
   const shop = SHOPS.find((item) => item.id === shopId);
   if (!shop) return [];
+  if (shopId === "groceries") {
+    const seen = new Set();
+    const lines = [];
+    for (const item of shop.items) {
+      const name = item.card || item.name;
+      if (seen.has(name)) continue;
+      seen.add(name);
+      lines.push(name + " " + (item.cents / 100).toFixed(2));
+    }
+    return lines;
+  }
   return shop.items.map((item) => item.name + " " + (item.cents / 100).toFixed(2));
 }
 
