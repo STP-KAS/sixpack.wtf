@@ -18,6 +18,15 @@ test("a shop buy names this square's ledger, and a tKAS swap names the transacti
   assert.match(lock, /txid is the payment/);
   assert.match(lock, /not an Argent or SilverScript covenant/);
   assert.match(lock, /not a vProg/);
+  const bank = payKind("bank");
+  const covenant = payKind("covenant");
+  assert.match(bank, /SquarePeg covenant/);
+  assert.match(bank, /cannot sign that covenant/);
+  assert.match(bank, /not dollars/);
+  assert.match(covenant, /SquarePeg covenant on Testnet 10/);
+  assert.match(covenant, /script holds the tKAS/);
+  assert.match(covenant, /not dollars/);
+  assert.match(shop, /SquarePeg lock spent here/);
   assert.equal(settleLine(true), "Settled. Confirmations are ongoing.");
   assert.equal(settleLine(false), "Settled on this ledger.");
   const client = readFileSync(new URL("./client.mjs", import.meta.url), "utf8");

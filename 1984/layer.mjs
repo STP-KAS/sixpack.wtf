@@ -1,6 +1,7 @@
 /** Layer-Kaspa. A site book on this square's ledger. Not Tor, not a KNS registration, not a new chain. */
 
 import { assertTestnet, railName } from "./money.mjs";
+import { chainWouldCover } from "./peg-book.mjs";
 
 const RESERVED = new Set(["kas", "tkas", "kns", "layer", "kachat", "poc", "kusdt", "pocencept", "kaspa", "1984"]);
 
@@ -270,6 +271,9 @@ export function applySite(state, input, now) {
 }
 
 function take(account, rail, cents) {
+  if (chainWouldCover(account, rail, cents)) {
+    throw new Error("An offer uses the purse or an older reserve tag. A SquarePeg lock is not this payment.");
+  }
   const field = rail === "poc" ? "poc" : "kusdt";
   const backedField = rail === "poc" ? "pocBacked" : "kusdtBacked";
   const have = bi(account[field]);

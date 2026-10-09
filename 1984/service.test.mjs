@@ -750,3 +750,85 @@ test("a square offer locks one name until the other name takes it", async () => 
   });
   assert.equal(maker.body.account.tokens.find((row) => row.name === "FREE").amount, "3");
 });
+
+test("a guest covenant lock is not a reserve liability, and redeem does not pay from the faucet", async () => {
+  const txid = "cd".repeat(32);
+  const redeemTx = "ee".repeat(32);
+  const sompi = "100000000";
+  const peg = "kaspatest:qpegpegpegpegpegpegpegpegpegpegpegpegpegpegpegpegpegpegpeg";
+  const pays = [];
+  let redeemCalls = 0;
+  const { svc, read } = harness(async () => {
+    pays.push("faucet");
+    return { txids: ["zz"] };
+  }, {
+    guests: {
+      async sessionKey() {
+        return { key: "ab".repeat(32), address: USER };
+      },
+      async payTo(input) {
+        return { txid, to: input.to };
+      },
+      async pay() {
+        throw new Error("reserve pay");
+      },
+    },
+    pegLock: {
+      async plan() {
+        return {
+          id: "pending1",
+          address: USER,
+          rail: "poc",
+          cents: "5",
+          sompi,
+          owner: "11".repeat(32),
+          quoteMicro: "50000",
+          bornCents: "5",
+          bornSompi: sompi,
+          openSig: "22".repeat(64),
+          issuer: "33".repeat(32),
+          reserve: "44".repeat(32),
+          pegAddress: peg,
+        };
+      },
+      async waitOutput() {
+        return { txid, index: 0, amount: sompi };
+      },
+      async redeem() {
+        redeemCalls += 1;
+        return { txid: redeemTx };
+      },
+    },
+  });
+  const locked = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/guest/convert",
+    query: new URLSearchParams(),
+    body: { address: USER, network: "testnet-10", token: "tok", rail: "poc", amount: "1" },
+    ip: "127.0.0.1",
+  });
+  assert.equal(locked.body.ok, true, locked.body && locked.body.error);
+  assert.equal(locked.body.peg, true);
+  assert.equal(locked.body.cents, "5");
+  assert.equal(locked.body.account.poc, "5");
+  assert.equal(JSON.stringify(locked.body).includes("openSig"), false);
+  assert.equal(read().accounts[USER].poc, "0");
+  assert.equal(read().accounts[USER].pocBacked, "0");
+  assert.equal(read().accounts[USER].chainLocks.length, 1);
+  assert.equal(pays.length, 0);
+  const redeemed = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/redeem",
+    query: new URLSearchParams(),
+    body: { address: USER, network: "testnet-10", token: "tok", rail: "poc", amount: "0.05" },
+    ip: "127.0.0.1",
+  });
+  assert.equal(redeemed.body.ok, true, redeemed.body && redeemed.body.error);
+  assert.equal(redeemed.body.peg, true);
+  assert.equal(redeemCalls, 1);
+  assert.equal(pays.length, 0);
+  assert.equal(read().accounts[USER].poc, "0");
+  assert.equal(read().accounts[USER].pocBacked, "0");
+  assert.equal(read().accounts[USER].chainLocks.length, 0);
+  assert.equal(JSON.stringify(redeemed.body).includes("openSig"), false);
+});

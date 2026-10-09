@@ -42,6 +42,8 @@ import {
   parseTkas,
   sompiForCents,
 } from "./money.mjs";
+import { createPegLock } from "./peg-chain.mjs";
+import { openGuestLock, settleExchange, settleFreeze, settleRedeem, settleSpend } from "./peg-flow.mjs";
 import { HUNTS, SHOPS, itemBySku, shopById } from "./world.mjs";
 
 const DISCLAIMER =
@@ -57,6 +59,7 @@ export function create1984Service(deps) {
   let oracle = { price: 0, at: 0 };
   const hits = new Map();
   const inscribing = new Set();
+  const pegging = new Set();
   const pause = deps.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
 
   function queue(fn) {
@@ -253,6 +256,31 @@ export function create1984Service(deps) {
     if (pathname === "/api/1984/guest/convert") {
       const usd = await price();
       const sompi = parseTkas(body.amount);
+      if (deps.pegLock) {
+        const key = address.toLowerCase();
+        if (pegging.has(key)) throw new Error("This lock is already being written.");
+        pegging.add(key);
+        try {
+          return await openGuestLock({
+            pegLock: deps.pegLock,
+            guests,
+            address,
+            token: body.token,
+            rail: body.rail,
+            sompi,
+            usdPerKas: usd,
+            now: deps.now(),
+            getState: () => state,
+            setState: (next) =>
+              queue(async () => {
+                state = typeof next === "function" ? next(state) : next;
+                deps.save(state);
+              }),
+          });
+        } finally {
+          pegging.delete(key);
+        }
+      }
       const paid = await guests.pay({ token: body.token, address, sompi });
       const seen = await waitPayment(address, paid.txid, sompi);
       return queue(async () => {
@@ -469,10 +497,20 @@ export function create1984Service(deps) {
         }
         if (pathname === "/api/1984/freeze") {
           return await queue(async () => {
-            const out = applyFreeze(state, { address, frozen: body.frozen }, now);
-            state = out.state;
-            deps.save(state);
-            return { status: 200, body: out.result };
+            const settled = await settleFreeze({
+              pegLock: deps.pegLock,
+              guests: deps.guests,
+              address,
+              token: body.token,
+              frozen: body.frozen,
+              now,
+              getState: () => state,
+              setState: (next) => {
+                state = typeof next === "function" ? next(state) : next;
+                deps.save(state);
+              },
+            });
+            return settled;
           });
         }
         if (pathname === "/api/1984/hunt/promise") {
@@ -564,6 +602,42 @@ export function create1984Service(deps) {
             pay = await waitPayment(address, pasted, sompiForCents(item.cents, usd));
           }
           return await queue(async () => {
+            let prepaid = null;
+            if (body.rail === "poc" || body.rail === "kusdt") {
+              const item = itemBySku(body.shop, body.sku);
+              if (!item) throw new Error("That item is not on this counter.");
+              const account = state.accounts[address.toLowerCase()] || { rules: {}, spentDay: "", spentCents: "0" };
+              const gate = checkRules(
+                account,
+                { shop: body.shop, rail: body.rail, cents: item.cents, confirmed: !!body.confirmed },
+                dayKey(now)
+              );
+              if (gate.needsConfirm) {
+                return {
+                  status: 409,
+                  body: {
+                    ok: false,
+                    needsConfirm: true,
+                    cents: item.cents,
+                    error: "This is over your confirm line. Confirm it to pay.",
+                  },
+                };
+              }
+              prepaid = await settleSpend({
+                pegLock: deps.pegLock,
+                guests: deps.guests,
+                address,
+                token: body.token,
+                rail: body.rail,
+                cents: BigInt(item.cents),
+                now,
+                getState: () => state,
+                setState: (next) => {
+                  state = typeof next === "function" ? next(state) : next;
+                  deps.save(state);
+                },
+              });
+            }
             const out = applySpend(
               state,
               {
@@ -574,13 +648,19 @@ export function create1984Service(deps) {
                 confirmed: body.confirmed,
                 payment: pay,
                 usdPerKas: usd,
+                prepaidCents: prepaid && prepaid.prepaidCents,
+                chainSompi: prepaid && prepaid.chainSompi,
+                chainTxid: prepaid && prepaid.chainTxid,
               },
               now
             );
             if (out.result && out.result.needsConfirm) return { status: 409, body: out.result };
             state = out.state;
             deps.save(state);
-            return { status: 200, body: out.result };
+            return {
+              status: 200,
+              body: { ...out.result, txids: prepaid && prepaid.txids, peg: !!(prepaid && prepaid.peg) },
+            };
           });
         }
         if (pathname === "/api/1984/convert") {
@@ -596,6 +676,22 @@ export function create1984Service(deps) {
         if (pathname === "/api/1984/exchange") {
           const cents = parseDollars(body.amount);
           return await queue(async () => {
+            const settled = await settleExchange({
+              pegLock: deps.pegLock,
+              guests: deps.guests,
+              address,
+              token: body.token,
+              from: body.from,
+              to: body.to,
+              cents,
+              now,
+              getState: () => state,
+              setState: (next) => {
+                state = typeof next === "function" ? next(state) : next;
+                deps.save(state);
+              },
+            });
+            if (settled) return settled;
             const out = applyExchange(state, { address, from: body.from, to: body.to, cents }, now);
             state = out.state;
             deps.save(state);
@@ -605,6 +701,22 @@ export function create1984Service(deps) {
         if (pathname === "/api/1984/redeem") {
           const cents = parseDollars(body.amount);
           return await queue(async () => {
+            const settled = await settleRedeem({
+              pegLock: deps.pegLock,
+              guests: deps.guests,
+              pay: deps.pay,
+              address,
+              token: body.token,
+              rail: body.rail,
+              cents,
+              now,
+              getState: () => state,
+              setState: (next) => {
+                state = typeof next === "function" ? next(state) : next;
+                deps.save(state);
+              },
+            });
+            if (settled) return settled;
             const before = clone(state);
             const out = applyRedeem(state, { address, rail: body.rail, cents }, now);
             state = out.state;
@@ -803,7 +915,7 @@ export function create1984Service(deps) {
         }
         return { status: 404, body: { ok: false, error: "Not found." } };
       } catch (err) {
-        return { status: 400, body: { ok: false, error: err.message || String(err) } };
+        return { status: 400, body: { ok: false, error: err.message || String(err), moved: !!err.moved } };
       }
     },
   };
@@ -842,6 +954,7 @@ export function service1984() {
       now: () => Date.now(),
       lookupTx: lookupAccepted,
       guests,
+      pegLock: createPegLock(),
       pay: async (to, sompi) => {
         const { payTn10 } = await import("../faucet/pay.mjs");
         const { pageFeeRate } = await import("../faucet/fee-rate.mjs");

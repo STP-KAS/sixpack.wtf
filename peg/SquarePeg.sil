@@ -1,0 +1,179 @@
+pragma silverscript ^0.1.0;
+
+// POCencept and KUSDT on one Testnet-10 covenant.
+// The output value is the locked tKAS. A later quote cannot change it.
+// Rail 0 is POCencept. Rail 1 is KUSDT. KCC-20 is not Final. This is not a dollar.
+contract SquarePeg(
+    pubkey issuer,
+    pubkey reserve,
+    int initCents,
+    pubkey initOwner,
+    byte initRail,
+    byte initFrozen,
+    int initQuote,
+    int initBornCents,
+    int initBornSompi,
+    datasig initOpenSig
+) {
+    int cents = initCents;
+    pubkey owner = initOwner;
+    byte rail = initRail;
+    byte frozen = initFrozen;
+    int quoteMicro = initQuote;
+    int bornCents = initBornCents;
+    int bornSompi = initBornSompi;
+    datasig openSig = initOpenSig;
+
+    byte constant POC = 0x00;
+    byte constant KUSDT = 0x01;
+    byte constant LIQUID = 0x00;
+    byte constant FROZEN = 0x01;
+
+    function locked(): int {
+        return(tx.inputs[this.activeInputIndex].value);
+    }
+
+    function requireShape() {
+        require(tx.inputs.length >= 1);
+        require(tx.inputs.length <= 3);
+        require(tx.outputs.length >= 1);
+        require(tx.outputs.length <= 3);
+    }
+
+    // The issuer signed the opening cents, the opening sompi, and the quote.
+    function requireBirth() {
+        int value = locked();
+        require(cents > 0);
+        require(bornCents > 0);
+        require(bornSompi > 0);
+        require(quoteMicro > 0);
+        require(value > 0);
+        require(cents <= bornCents);
+        require(value <= bornSompi);
+        require(cents * bornSompi <= bornCents * value);
+        require(rail == POC || rail == KUSDT);
+        require(frozen == LIQUID || frozen == FROZEN);
+        byte[8] centsBin = bornCents as byte[8];
+        byte[8] sompiBin = bornSompi as byte[8];
+        byte[8] quoteBin = quoteMicro as byte[8];
+        byte[] message = byte[](centsBin) + byte[](sompiBin) + byte[](quoteBin);
+        require(checkMsgSig(openSig, sha256(message), issuer));
+    }
+
+    function requireOwner(sig ownerSig) {
+        require(checkSig(ownerSig, owner));
+    }
+
+    function share(int take): int {
+        int value = locked();
+        require(take > 0);
+        require(take <= cents);
+        int pay = value;
+        if (take != cents) {
+            pay = (value * take) / cents;
+            require(pay > 0);
+            require(pay < value);
+        }
+        return(pay);
+    }
+
+    function continueAt(int index, int nextCents, pubkey nextOwner, byte nextRail, byte nextFrozen, int nextValue) {
+        require(nextCents > 0);
+        require(nextCents <= bornCents);
+        require(nextValue > 0);
+        require(nextValue <= bornSompi);
+        require(nextCents * bornSompi <= bornCents * nextValue);
+        require(tx.outputs[index].value == nextValue);
+        validateOutputState(index, State {
+            cents: nextCents,
+            owner: nextOwner,
+            rail: nextRail,
+            frozen: nextFrozen,
+            quoteMicro: quoteMicro,
+            bornCents: bornCents,
+            bornSompi: bornSompi,
+            openSig: openSig
+        });
+    }
+
+    // The holder can take the coins back. Freeze does not block this.
+    entry redeem(sig ownerSig, int take) {
+        requireShape();
+        requireBirth();
+        requireOwner(ownerSig);
+        int pay = share(take);
+        byte[36] holderLock = new ScriptPubKeyP2PK(owner);
+        require(tx.outputs[0].scriptPubKey == byte[](holderLock));
+        require(tx.outputs[0].value == pay);
+        if (take != cents) {
+            require(tx.outputs.length >= 2);
+            continueAt(1, cents - take, owner, rail, frozen, locked() - pay);
+        }
+    }
+
+    // A broken opening still returns the coins to the owner. It does not move the tag.
+    entry recover(sig ownerSig) {
+        requireShape();
+        requireOwner(ownerSig);
+        int value = locked();
+        require(value > 0);
+        byte[36] holderLock = new ScriptPubKeyP2PK(owner);
+        require(tx.outputs[0].scriptPubKey == byte[](holderLock));
+        require(tx.outputs[0].value == value);
+    }
+
+    entry transfer(sig ownerSig, pubkey nextOwner, int take) {
+        requireShape();
+        requireBirth();
+        requireOwner(ownerSig);
+        require(frozen == LIQUID);
+        int pay = share(take);
+        continueAt(0, take, nextOwner, rail, frozen, pay);
+        if (take != cents) {
+            require(tx.outputs.length >= 2);
+            continueAt(1, cents - take, owner, rail, frozen, locked() - pay);
+        }
+    }
+
+    // One-to-one. The locked tKAS moves with the cents. Frozen KUSDT cannot swap.
+    entry exchange(sig ownerSig, int take) {
+        requireShape();
+        requireBirth();
+        requireOwner(ownerSig);
+        require(frozen == LIQUID);
+        require(rail == POC || rail == KUSDT);
+        byte nextRail = rail == POC ? KUSDT : POC;
+        int pay = share(take);
+        continueAt(0, take, owner, nextRail, LIQUID, pay);
+        if (take != cents) {
+            require(tx.outputs.length >= 2);
+            continueAt(1, cents - take, owner, rail, frozen, locked() - pay);
+        }
+    }
+
+    // A shop burn. The locked share goes to the reserve. The tag does not continue.
+    entry spend(sig ownerSig, int take) {
+        requireShape();
+        requireBirth();
+        requireOwner(ownerSig);
+        require(frozen == LIQUID);
+        int pay = share(take);
+        byte[36] reserveLock = new ScriptPubKeyP2PK(reserve);
+        require(tx.outputs[0].scriptPubKey == byte[](reserveLock));
+        require(tx.outputs[0].value == pay);
+        if (take != cents) {
+            require(tx.outputs.length >= 2);
+            continueAt(1, cents - take, owner, rail, frozen, locked() - pay);
+        }
+    }
+
+    // Issuer toggle. POCencept has no freeze. The coins stay put.
+    entry freeze(sig issuerSig) {
+        requireShape();
+        requireBirth();
+        require(checkSig(issuerSig, issuer));
+        require(rail == KUSDT);
+        byte nextFrozen = frozen == LIQUID ? FROZEN : LIQUID;
+        continueAt(0, cents, owner, rail, nextFrozen, locked());
+    }
+}

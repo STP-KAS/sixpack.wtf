@@ -363,8 +363,8 @@ export function createGuestDesk(deps) {
       return { key: row.key, address: row.address };
     });
 
-  desk.pay = ({ token, address, sompi }) =>
-    queue(async () => {
+  function sendPayment(token, address, sompi, dest) {
+    return queue(async () => {
       const now = deps.now();
       const row = book.sessions[String(token || "")];
       if (!row) throw new Error("This test tab has already been dropped. Open a new one, or use your Testnet-10 wallet.");
@@ -382,11 +382,12 @@ export function createGuestDesk(deps) {
             " tKAS. That payment is outside it. This money is tKAS. With tKAS you can go to the bank."
         );
       }
+      const target = dest ? assertTestnet(dest) : "";
       row.touched = now;
       persist();
       let paid;
       try {
-        paid = await deps.pay({ key: row.key, from: row.address, sompi: amount });
+        paid = await deps.pay({ key: row.key, from: row.address, sompi: amount, to: target || undefined });
       } catch (err) {
         throw scrub(err, row.key);
       }
@@ -397,6 +398,10 @@ export function createGuestDesk(deps) {
       persist();
       return { ok: true, txid: String(txid), sompi: sent.toString() };
     });
+  }
+
+  desk.pay = ({ token, address, sompi }) => sendPayment(token, address, sompi, "");
+  desk.payTo = ({ token, address, sompi, to }) => sendPayment(token, address, sompi, to);
 
   desk.keep = ({ token, address, life }) =>
     queue(async () => {
@@ -536,10 +541,11 @@ export function guestDesk() {
       const { pageFeeRate } = await import("../faucet/fee-rate.mjs");
       return payTn10(address, sompi, onStep, pageFeeRate);
     },
-    async pay({ key, from, sompi }) {
+    async pay({ key, from, sompi, to }) {
       const { payFromKey } = await import("../faucet/pay.mjs");
       const { pageFeeRate } = await import("../faucet/fee-rate.mjs");
-      const out = await payFromKey({ privHex: key, fromAddr: from, toAddr: RESERVE, sompi, rateOf: pageFeeRate });
+      const toAddr = to ? assertTestnet(to) : RESERVE;
+      const out = await payFromKey({ privHex: key, fromAddr: from, toAddr, sompi, rateOf: pageFeeRate });
       return { txid: out.txids && out.txids[0], sompi: out.sompi, txids: out.txids };
     },
     poolOnly: true,

@@ -1,21 +1,29 @@
 /**
  * What a payment actually is.
- * A shop buy is this square's own ledger. A tKAS swap at the bank is a Testnet 10 transaction.
- * Neither one is an Argent or SilverScript covenant, and neither one is a vProg tic-tac-toe ply.
+ * A purse or an older reserve tag stays on this square's ledger.
+ * A funded test wallet can lock tKAS in a SquarePeg covenant.
+ * A pasted address still sends tKAS to the reserve, because this tab cannot sign that covenant.
+ * None of these is a vProg tic-tac-toe ply. None of these is a dollar.
  */
 export const SETTLED_CHAIN = "Settled. Confirmations are ongoing.";
 export const SETTLED_LEDGER = "Settled on this ledger.";
 
-/** A tKAS send settles when Testnet 10 accepts it. POCencept and KUSDT settle on this ledger. */
+/** A tKAS send settles when Testnet 10 accepts it. A purse spend settles on this ledger. */
 export function settleLine(hasTx) {
   return hasTx ? SETTLED_CHAIN : SETTLED_LEDGER;
 }
 
 export function payKind(place) {
+  if (place === "covenant") {
+    return "This is a SquarePeg covenant on Testnet 10. The txid is that covenant transaction. The script holds the tKAS. It is not Argent, and it is not a vProg tic-tac-toe ply. KCC-20 is Last Call, not Final. These are not dollars.";
+  }
+  if (place === "bank") {
+    return "A funded test wallet on this tab locks tKAS in a SquarePeg covenant. A pasted address still sends tKAS to the reserve, because this tab cannot sign that covenant. It is not Argent, and it is not a vProg tic-tac-toe ply. These are not dollars.";
+  }
   if (place === "lock") {
     return "This is a Testnet 10 transaction. The txid is the payment. It is not an Argent or SilverScript covenant, and it is not a vProg tic-tac-toe ply. The tag written after it is this square's own ledger.";
   }
-  return "This buy is this square's own ledger. No covenant is attached, so there is no covenant tx. It is not Argent or SilverScript, and it is not a vProg tic-tac-toe ply.";
+  return "This buy is this square's own ledger when it spends the purse or an older reserve tag. Those have no covenant tx. A SquarePeg lock spent here is a Testnet 10 covenant transaction, and that share of tKAS goes to the reserve. It is not Argent or SilverScript, and it is not a vProg tic-tac-toe ply.";
 }
 
 /** Banner for a shop purchase. Driving and a lap say what changed. Anything else says paid. */

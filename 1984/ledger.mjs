@@ -15,6 +15,7 @@ import {
   sompiForCents,
 } from "./money.mjs";
 import { extensionFor, holderMint, normalizeTick, requireIncrease, standardTransfer, tokenExtension } from "./kcc20.mjs";
+import { chainPublic } from "./peg-book.mjs";
 import { SHOPS, huntById, itemBySku, shopById } from "./world.mjs";
 
 export function freshState() {
@@ -214,16 +215,18 @@ export function publicAccount(state, address) {
   };
   const receipts = state.receipts.filter((row) => row.address.toLowerCase() === clean.toLowerCase()).slice(-12);
   const locks = splitLock(base);
+  const chain = chainPublic(base);
   return {
     address: clean,
-    poc: base.poc,
-    kusdt: base.kusdt,
-    pocBacked: base.pocBacked,
-    kusdtBacked: base.kusdtBacked,
-    pocLiability: String(locks.poc),
-    kusdtLiability: String(locks.kusdt),
-    liability: String(locks.poc + locks.kusdt),
-    kusdtFrozen: !!base.kusdtFrozen,
+    poc: String(bi(base.poc) + chain.pocCents),
+    kusdt: String(bi(base.kusdt) + chain.kusdtCents),
+    pocBacked: String(bi(base.pocBacked) + chain.pocCents),
+    kusdtBacked: String(bi(base.kusdtBacked) + chain.kusdtCents),
+    pocLiability: String(locks.poc + chain.pocSompi),
+    kusdtLiability: String(locks.kusdt + chain.kusdtSompi),
+    liability: String(locks.poc + locks.kusdt + chain.pocSompi + chain.kusdtSompi),
+    kusdtFrozen: !!base.kusdtFrozen || chain.kusdtFrozen,
+    peg: chain.count > 0,
     practice: !!base.practice,
     roadster: !!base.roadster,
     displayName: typeof base.displayName === "string" ? base.displayName : "",
@@ -700,7 +703,12 @@ export function applySpend(state, input, now) {
     txid = input.payment.txid;
     if (next.txids[txid]) throw new Error("That transaction was already used.");
   } else {
-    takeToken(account, input.rail, cents);
+    const prepaid = bi(input.prepaidCents || 0);
+    if (prepaid < 0n || prepaid > cents) throw new Error("The covenant part does not match this price.");
+    const due = cents - prepaid;
+    if (due > 0n) takeToken(account, input.rail, due);
+    sompi = bi(input.chainSompi || 0);
+    txid = input.chainTxid || "";
   }
   bumpSpent(account, today, cents);
   if (item.sku === "keys") account.roadster = true;
@@ -879,6 +887,68 @@ export function applyExchange(state, input, now) {
     rail: to,
     cents,
     note: "Swapped ledger tags. Locked stayed locked. The purse stayed a purse. No tKAS moved.",
+  });
+  return { state: next, result: { ok: true, receipt, account: publicAccount(next, address) } };
+}
+
+export function applyChainLock(state, input, now) {
+  const address = assertTestnet(input.address);
+  const lock = input.lock;
+  if (!lock || !lock.txid) throw new Error("That covenant output is not on Testnet 10 yet.");
+  const txid = String(lock.txid);
+  const seen = state.txids && state.txids[txid];
+  if (seen) {
+    if (seen.kind === "peg" && String(seen.address).toLowerCase() === address.toLowerCase()) {
+      const found = convertReceipt(state, txid, lock.rail);
+      return {
+        state,
+        result: { ok: true, already: true, peg: true, cents: String(lock.cents), account: publicAccount(state, address), receipt: found },
+      };
+    }
+    throw new Error("That transaction was already used.");
+  }
+  const next = clone(state);
+  const account = ensure(next, address);
+  if (!Array.isArray(account.chainLocks)) account.chainLocks = [];
+  account.chainLocks.push(lock);
+  if (next.pegPending && input.pendingId) delete next.pegPending[input.pendingId];
+  const receipt = pushReceipt(next, account, {
+    at: now,
+    kind: "convert",
+    rail: lock.rail,
+    cents: BigInt(lock.cents),
+    sompi: BigInt(lock.sompi),
+    txid,
+    note: "Locked tKAS in the SquarePeg covenant. The tag is the keypad amount at that quote. Redeem returns this lock. Not a dollar.",
+  });
+  next.txids[txid] = { address, kind: "peg", rail: lock.rail, receiptId: receipt.id };
+  return { state: next, result: { ok: true, peg: true, receipt, account: publicAccount(next, address), cents: String(lock.cents) } };
+}
+
+export function applyChainMove(state, input, now) {
+  const address = assertTestnet(input.address);
+  const next = clone(state);
+  const account = ensure(next, address);
+  const rows = Array.isArray(account.chainLocks) ? account.chainLocks : [];
+  if (input.lockId) account.chainLocks = rows.filter((row) => row.id !== input.lockId).concat(input.next || []);
+  const kind = input.entry === "exchange" ? "exchange" : input.entry === "spend" ? "spend" : input.entry === "freeze" ? "freeze" : "redeem";
+  const note = input.note || (
+    kind === "exchange"
+      ? "Swapped on the SquarePeg covenant. Locked tKAS moved with the cents. The purse stayed a purse."
+      : kind === "spend"
+        ? "Spent a SquarePeg lock. That share of tKAS went to the reserve. The tag does not continue."
+        : kind === "freeze"
+          ? "KUSDT freeze changed on the SquarePeg covenant. The coins stayed put."
+          : "Redeemed the locked tKAS from the SquarePeg covenant. The miner fee is extra KAS and is not taken from the lock."
+  );
+  const receipt = pushReceipt(next, account, {
+    at: now,
+    kind,
+    rail: input.rail,
+    cents: BigInt(input.cents || 0),
+    sompi: BigInt(input.sompi || 0),
+    txid: input.txid || "",
+    note,
   });
   return { state: next, result: { ok: true, receipt, account: publicAccount(next, address) } };
 }

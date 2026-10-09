@@ -1,6 +1,7 @@
 /** Kachat on this square. Messages and a handshake. The fee is 0.01 POCencept. Not the KaChat chain app. */
 
 import { assertTestnet } from "./money.mjs";
+import { chainWouldCover } from "./peg-book.mjs";
 
 export const CHAT_FEE = 1n;
 
@@ -50,6 +51,9 @@ function pair(a, b) {
 }
 
 function takeFee(account) {
+  if (chainWouldCover(account, "poc", CHAT_FEE)) {
+    throw new Error("Kachat uses the purse or an older reserve tag. A SquarePeg lock is not the chat fee.");
+  }
   const have = bi(account.poc);
   if (have < CHAT_FEE) {
     throw new Error("This costs 0.01 POCencept. Swap tKAS at the bank, or take the practice purse.");

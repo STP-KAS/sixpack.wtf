@@ -15,10 +15,10 @@ import {
   sompiForCents,
 } from "./money.mjs?v=2";
 import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
-import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=4";
+import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=5";
 import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=8";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=8";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_RELEASE, FLIGHT_STAGE, HOT_STAGE_MS, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=61";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_RELEASE, FLIGHT_STAGE, HOT_STAGE_MS, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=62";
 import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=6";
 const TUNNEL = "https://authority-fireplace-earlier-spirit.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -2468,7 +2468,7 @@ function paintBank() {
       "<p>The miner fee is always KAS. On a tKAS send it is extra. It is 87 times the standard Testnet 10 rate. The price is not reduced to pay the miner. A redeem does not take the fee out of the lock.</p>" +
       "<p>A tKAS payment smaller than the quote does not buy the item and does not mint a tag.</p>" +
       "<p>Sending the same accepted txid again, for the same address and the same purchase, returns the receipt already written. A different item or a different address with that txid is refused.</p>" +
-      "<p>A lock writes the tag at the quote in that moment and has to increase the amount. Redeem returns the tKAS that was locked. A later quote does not reprice it. A negative threshold counts as zero. POCencept and KUSDT keep different extension commitments, so they do not mix. A freeze changes the KUSDT commitment. This counter did not compile a covenant. The tags stay on this square. KCC-20 is Last Call, not Final.</p>" +
+      "<p>A lock writes the tag at the quote in that moment and has to increase the amount. Redeem returns the tKAS that was locked. A later quote does not reprice it. A negative threshold counts as zero. POCencept and KUSDT keep different extension commitments, so they do not mix. A freeze changes the KUSDT commitment. A funded test wallet on this tab locks tKAS in a SquarePeg covenant. The script returns that tKAS on redeem. A shop spend sends that share to the reserve. An exchange flips the rail and keeps the sompi. A pasted address still sends tKAS to the reserve, because this tab cannot sign that covenant. Practice coins stay on this square. KCC-20 is Last Call, not Final.</p>" +
       '<div class="swap-bals">' +
       card("POCencept", formatCents(poc.have), "locked " + formatCents(poc.lock) + " · purse " + formatCents(poc.purse)) +
       card("KUSDT", formatCents(kusdt.have), "locked " + formatCents(kusdt.lock) + " · purse " + formatCents(kusdt.purse) + (frozen ? " · frozen" : "")) +
@@ -2506,7 +2506,7 @@ function paintBank() {
       '<button type="button" class="rails-open" data-rails>What are the rails?</button>' +
       '<button type="button" class="clerk-books" data-clerk="books">The books</button>' +
       statusLine() +
-      '<p class="fine">' + esc(payKind("lock")) + "</p>" +
+      '<p class="fine">' + esc(payKind("bank")) + "</p>" +
       bankFine() +
       "</div>";
   }
@@ -2888,8 +2888,23 @@ function requireId() {
   return true;
 }
 
-async function post(path, body) {
-  return api(path, { method: "POST", body: JSON.stringify({ ...body, address: state.id.address, network: "testnet-10" }) });
+async function post(path, body, timeout) {
+  return api(path, {
+    method: "POST",
+    body: JSON.stringify({ ...body, address: state.id.address, network: "testnet-10" }),
+    timeout,
+  });
+}
+
+function guestToken() {
+  return state.id && state.id.kind === "guest" ? state.id.token : undefined;
+}
+
+function paidKind(body) {
+  const rail = body && body.receipt && body.receipt.rail;
+  const tx = (body && body.txids && body.txids[0]) || (body && body.receipt && body.receipt.txid);
+  if (body && body.peg && tx && rail !== "kas") return payKind("covenant");
+  return payKind("shop");
 }
 
 function tookPayment(body, sku) {
@@ -2911,7 +2926,7 @@ function tookPayment(body, sku) {
     state.showPaid = true;
     showBanner("Paid.");
     punch("nod");
-    say(body.shop + " took the payment for " + body.item + ". " + payKind("shop"));
+    say(body.shop + " took the payment for " + body.item + ". " + paidKind(body));
     beginShow(true);
     return;
   }
@@ -2932,10 +2947,10 @@ function tookPayment(body, sku) {
   } else if (sku === "lap") {
     punch("lap");
     if (state.account && state.account.roadster) state.lapUntil = performance.now() + 6000;
-    say(body.shop + " took the payment for " + body.item + ". " + payKind("shop"));
+    say(body.shop + " took the payment for " + body.item + ". " + paidKind(body));
   } else {
     punch("nod");
-    say(body.shop + " took the payment for " + body.item + ". " + payKind("shop"));
+    say(body.shop + " took the payment for " + body.item + ". " + paidKind(body));
   }
 }
 
@@ -3151,7 +3166,14 @@ async function spend(rail, shop, sku) {
         return;
       }
     }
-    const body = await post("/api/1984/spend", { shop, sku, rail, txid, confirmed: true });
+    const body = await post("/api/1984/spend", {
+      shop,
+      sku,
+      rail,
+      txid,
+      confirmed: true,
+      token: guestToken(),
+    }, 90000);
     if (!body.ok) {
       punch("shake");
       const kept = rail === "kas" && txid ? " The txid stays in the paste box. Buy again claims it and does not send a second time." : "";
@@ -3160,14 +3182,17 @@ async function spend(rail, shop, sku) {
     }
     if (rail === "kas") shopTxid = "";
     if (body.account) state.account = body.account;
-    const paidTx = (body.receipt && body.receipt.txid) || txid || "";
+    const chainShop = !!(body.peg && (rail === "poc" || rail === "kusdt"));
+    const paidTx = chainShop
+      ? String((body.txids && body.txids[0]) || (body.receipt && body.receipt.txid) || "")
+      : ((body.receipt && body.receipt.txid) || txid || "");
     paySlip({
       title: "Paid",
       steps: paySteps,
       place: shop,
       tx: paidTx,
       receipt: body.receipt && body.receipt.id,
-      kind: paidTx ? payKind("lock") : payKind("shop"),
+      kind: chainShop ? payKind("covenant") : (paidTx ? payKind("lock") : payKind("shop")),
     });
     tookPayment(body, sku);
     paintBooks();
@@ -3282,7 +3307,7 @@ async function lock(rail) {
         token: state.id.token,
         rail,
         amount: fieldValue("lock-amt").trim(),
-      });
+      }, 90000);
       showSteps(steps, steps.length, "Done.");
     } else {
       const txField = document.getElementById("lock-txid");
@@ -3331,20 +3356,21 @@ async function lock(rail) {
       return;
     }
     punch("nod");
+    const paid = (body.receipt && body.receipt.txid) || lockTxid || "";
+    const kind = body.peg ? payKind("covenant") : payKind("lock");
     paySlip({
       title: "Swapped",
       steps: ["Checking the amount", "Paying", "Adding the tag", "Done"],
       place: "bank",
-      tx: lockTxid,
+      tx: paid,
       receipt: body.receipt && body.receipt.id,
-      kind: payKind("lock"),
+      kind,
     });
-    const paid = lockTxid;
     lockTxid = "";
     const got = body.cents == null || body.cents === "" ? "" : formatCents(body.cents);
     if (got) putRedeemAmount(got);
     const tx = paid ? " Tx " + paid.slice(0, 10) + "…." : "";
-    swapNote(settleLine(!!paid) + " " + (got ? "Swapped. " + shown + " became " + got + " " + name + "." : "Swapped. " + shown + " locked into " + name + ".") + tx + " " + payKind("lock"), "ok");
+    swapNote(settleLine(!!paid) + " " + (got ? "Swapped. " + shown + " became " + got + " " + name + "." : "Swapped. " + shown + " locked into " + name + ".") + tx + " " + kind, "ok");
     await refreshAccount();
   } catch (err) {
     punch("shake");
@@ -3386,10 +3412,11 @@ async function redeem(rail) {
   swapNote("Swapping " + amount + " " + name + " back to tKAS…", "wait");
   showSteps(steps, 2, "Sending tKAS back.");
   try {
-    const body = await post("/api/1984/redeem", { rail, amount });
+    const body = await post("/api/1984/redeem", { rail, amount, token: guestToken() }, 90000);
     if (!body.ok) {
       punch("shake");
-      swapNote("Not swapped. " + (body.error || "The redeem did not clear.") + " The tag was put back.", "bad");
+      const kept = body.moved ? " Part of this redeem is already on Testnet 10." : " The tag was put back.";
+      swapNote("Not swapped. " + (body.error || "The redeem did not clear.") + kept, "bad");
       await refreshAccount();
       return;
     }
@@ -3397,15 +3424,20 @@ async function redeem(rail) {
     punch("nod");
     const backTx = body.txids && body.txids[0] ? String(body.txids[0]) : "";
     const tx = backTx ? " Tx " + backTx : "";
+    const kind = body.peg ? payKind("covenant") : (backTx ? payKind("lock") : payKind("shop"));
     paySlip({
       title: "Swapped",
       steps: ["Checking the amount", "Taking the locked tag", "Sending tKAS back", "Done"],
       place: "bank",
       tx: backTx,
       receipt: body.receipt && body.receipt.id,
-      kind: backTx ? payKind("lock") : payKind("shop"),
+      kind,
     });
-    swapNote(settleLine(!!backTx) + " Swapped. " + amount + " " + name + " came back as tKAS." + tx + " " + payKind("lock"), "ok");
+    if (body.partial && body.note) {
+      swapNote(body.note, "ok");
+    } else {
+      swapNote(settleLine(!!backTx) + " Swapped. " + amount + " " + name + " came back as tKAS." + tx + " " + kind, "ok");
+    }
     await refreshAccount();
   } catch (err) {
     punch("shake");
@@ -3447,7 +3479,7 @@ async function exchange(from, to) {
   showSteps(steps, 1, "Moving the tag.");
   swapNote("Swapping " + amount + " " + source + " to " + dest + "…", "wait");
   try {
-    const body = await post("/api/1984/exchange", { from, to, amount });
+    const body = await post("/api/1984/exchange", { from, to, amount, token: guestToken() }, 90000);
     if (!body.ok) {
       punch("shake");
       swapNote("Not swapped. " + (body.error || "The swap did not clear.") + " Nothing moved.", "bad");
@@ -3455,14 +3487,21 @@ async function exchange(from, to) {
     }
     showSteps(steps, steps.length, "Done.");
     punch("nod");
+    const swapTx = body.peg && body.txids && body.txids[0] ? String(body.txids[0]) : "";
+    const kind = body.peg ? payKind("covenant") : payKind("shop");
+    const moved = body.peg
+      ? "The covenant moved the locked tKAS with the cents. "
+      : "Locked stayed locked. The purse stayed a purse. ";
     paySlip({
       title: "Swapped",
       steps: ["Checking the amount", "Moving the tag", "Done"],
       place: "bank",
+      tx: swapTx,
       receipt: body.receipt && body.receipt.id,
-      kind: payKind("shop"),
+      kind,
     });
-    swapNote(settleLine(false) + " Swapped. " + amount + " " + source + " is now " + dest + ". Locked stayed locked. The purse stayed a purse. " + payKind("shop"), "ok");
+    const line = body.peg ? settleLine(true) : settleLine(false);
+    swapNote(line + " Swapped. " + amount + " " + source + " is now " + dest + ". " + moved + (swapTx ? "Tx " + swapTx.slice(0, 10) + "…. " : "") + kind, "ok");
     await refreshAccount();
   } catch (err) {
     punch("shake");
@@ -3488,7 +3527,7 @@ async function practice() {
 async function freeze() {
   if (!requireId()) return;
   const next = !(state.account && state.account.kusdtFrozen);
-  const body = await post("/api/1984/freeze", { frozen: next });
+  const body = await post("/api/1984/freeze", { frozen: next, token: guestToken() }, 90000);
   if (!body.ok) {
     punch("shake");
     swapNote("Not changed. " + (body.error || "The freeze did not stick."), "bad");

@@ -17,3 +17,4 @@ faucet/.local/
 .env
 grok/logs/
 grok/.local/
+peg/target/

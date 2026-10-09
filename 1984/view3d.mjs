@@ -3956,13 +3956,13 @@ function qrCard() {
     g.fillStyle = "#1c1916";
     g.textAlign = "center";
     g.font = "700 36px Georgia, serif";
-    g.fillText("Own ledger", s / 2, 58);
+    g.fillText("SquarePeg", s / 2, 58);
     g.font = "600 22px Georgia, serif";
-    g.fillText("No covenant tx", s / 2, 108);
+    g.fillText("Covenant tx", s / 2, 108);
     g.fillText("Not Argent", s / 2, 146);
     g.fillText("Not a vProg", s / 2, 184);
     g.font = "600 18px Georgia, serif";
-    g.fillText("This square's till", s / 2, 222);
+    g.fillText("Not a dollar", s / 2, 222);
   });
   map.wrapS = THREE.ClampToEdgeWrapping;
   map.wrapT = THREE.ClampToEdgeWrapping;
