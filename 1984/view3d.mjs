@@ -295,6 +295,15 @@ const WORLD_FACE = { moon: 0.4, mars: 1.2, jupiter: 0.8, saturn: 0.2 };
 const SATURN_TILT = 26.7 * Math.PI / 180;
 const SATURN_RING_INNER = 1.11;
 const SATURN_RING_OUTER = 2.27;
+/**
+ * Saturn cruise sits further out than the other hops.
+ * The portrait is 9:16. At this distance plus SATURN_FILM_BACK, a 58° frame
+ * is about 129 units tall, so the plate fills the height and keeps its shape.
+ */
+export const SATURN_WATCH = 26;
+export const SATURN_FILM_BACK = 90;
+export const SATURN_FILM_W = 68.625;
+export const SATURN_FILM_H = 122;
 
 const SPACE_JOKES = {
   moon: [
@@ -721,6 +730,51 @@ export function cruiseWatch(pose, yaw = 0, pitch = 1.05, dist = 14) {
     ly: pose.carY,
     lz: pose.carZ,
   };
+}
+
+/**
+ * Portrait plate on the look ray, behind the car.
+ * Without a camera, the ray is the horizontal radial from the world through the car,
+ * the same radial cruiseWatch uses at pitch π/2. (fx, fy, fz) is toward the camera.
+ * The plate is 9:16. It is not an equirectangular map, so it does not wrap the sphere.
+ */
+export function saturnFilmFrame(pose, cam) {
+  let fx;
+  let fy;
+  let fz;
+  if (cam) {
+    fx = cam.x - pose.carX;
+    fy = cam.y - pose.carY;
+    fz = cam.z - pose.carZ;
+  } else {
+    fx = pose.carX - pose.worldX;
+    fy = 0;
+    fz = pose.carZ - pose.worldZ;
+  }
+  const flen = Math.hypot(fx, fy, fz) || 1;
+  fx /= flen;
+  fy /= flen;
+  fz /= flen;
+  return {
+    x: pose.carX - fx * SATURN_FILM_BACK,
+    y: pose.carY - fy * SATURN_FILM_BACK,
+    z: pose.carZ - fz * SATURN_FILM_BACK,
+    fx,
+    fy,
+    fz,
+  };
+}
+
+/** Point the plate's +Z along (fx, fy, fz) and keep its +Y on world up. */
+export function aimUpright(object, fx, fy, fz) {
+  const zAxis = new THREE.Vector3(fx, fy, fz);
+  if (zAxis.lengthSq() < 1e-8) zAxis.set(0, 0, 1);
+  else zAxis.normalize();
+  const xAxis = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), zAxis);
+  if (xAxis.lengthSq() < 1e-8) xAxis.set(1, 0, 0);
+  else xAxis.normalize();
+  const yAxis = new THREE.Vector3().crossVectors(zAxis, xAxis).normalize();
+  object.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis));
 }
 
 /**
@@ -1172,7 +1226,154 @@ function starfieldTexture() {
   return tex;
 }
 
+function canvasTex(w, h, draw) {
+  let canvas;
+  try {
+    canvas = document.createElement("canvas");
+  } catch (err) {
+    return null;
+  }
+  if (!canvas || typeof canvas.getContext !== "function") return null;
+  canvas.width = w;
+  canvas.height = h;
+  const g = canvas.getContext("2d");
+  if (!g || typeof g.fillRect !== "function") return null;
+  draw(g, w, h);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  return tex;
+}
+
+/** Equirectangular bands. The night side stays off the face the hop camera sees. */
+function drawSaturnBody(g, w, h) {
+  const sky = g.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, "#10283c");
+  sky.addColorStop(0.16, "#3d6d8c");
+  sky.addColorStop(0.34, "#d39258");
+  sky.addColorStop(0.46, "#f3d7a2");
+  sky.addColorStop(0.52, "#e7a25a");
+  sky.addColorStop(0.63, "#b56b38");
+  sky.addColorStop(0.78, "#6a8498");
+  sky.addColorStop(1, "#1a3044");
+  g.fillStyle = sky;
+  g.fillRect(0, 0, w, h);
+  const stripes = [
+    [0.3, 2, "rgba(186,214,230,0.35)"],
+    [0.4, 3, "rgba(92,48,22,0.4)"],
+    [0.48, 2, "rgba(255,244,214,0.75)"],
+    [0.57, 4, "rgba(120,64,28,0.38)"],
+    [0.7, 2, "rgba(70,96,120,0.45)"],
+  ];
+  for (let i = 0; i < stripes.length; i++) {
+    const band = stripes[i];
+    g.fillStyle = band[2];
+    g.fillRect(0, band[0] * h, w, band[1]);
+  }
+  const night = g.createLinearGradient(0, 0, w, 0);
+  night.addColorStop(0, "rgba(3,8,16,0.78)");
+  night.addColorStop(0.2, "rgba(3,8,16,0.12)");
+  night.addColorStop(0.32, "rgba(3,8,16,0)");
+  night.addColorStop(0.72, "rgba(3,8,16,0)");
+  night.addColorStop(0.88, "rgba(3,8,16,0.45)");
+  night.addColorStop(1, "rgba(3,8,16,0.8)");
+  g.fillStyle = night;
+  g.fillRect(0, 0, w, h);
+}
+
+/**
+ * RingGeometry UVs are a top-down square, center at 0.5.
+ * A radial strip would draw stripes. These bands are concentric.
+ */
+function drawSaturnRing(g, s) {
+  const c = s / 2;
+  const inner = (SATURN_RING_INNER / SATURN_RING_OUTER) * c;
+  const outer = c * 0.98;
+  g.clearRect(0, 0, s, s);
+  const bands = 46;
+  for (let i = 0; i < bands; i++) {
+    const t = i / (bands - 1);
+    const radius = inner + (outer - inner) * t;
+    if (i % 9 === 4) continue;
+    const wobble = 0.55 + 0.45 * Math.abs(Math.sin(i * 2.15) * Math.cos(i * 0.37));
+    const cyan = i % 13 === 7;
+    const alpha = (0.35 + wobble * 0.6).toFixed(3);
+    g.strokeStyle = cyan
+      ? "rgba(150,230,235," + alpha + ")"
+      : "rgba(255," + Math.round(150 + wobble * 80) + "," + Math.round(50 + wobble * 50) + "," + alpha + ")";
+    g.lineWidth = i % 6 === 0 ? 3.2 : i % 2 === 0 ? 1.4 : 0.7;
+    g.beginPath();
+    g.arc(c, c, radius, 0, Math.PI * 2);
+    g.stroke();
+  }
+  for (let i = 0; i < 900; i++) {
+    const ang = hash(i, 2) * Math.PI * 2;
+    const radius = inner + hash(i, 3) * (outer - inner);
+    const x = c + Math.cos(ang) * radius;
+    const y = c + Math.sin(ang) * radius;
+    const spark = hash(i, 4) > 0.82;
+    g.fillStyle = spark ? "rgba(255,246,220,0.95)" : "rgba(255,196,110,0.35)";
+    g.fillRect(x, y, spark ? 1.7 : 0.8, spark ? 1.7 : 0.8);
+  }
+}
+
+function saturnLimbMaterial() {
+  return new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    fog: false,
+    toneMapped: false,
+    vertexShader: [
+      "varying vec3 vNormal;",
+      "varying vec3 vWorld;",
+      "void main() {",
+      "  vec4 worldPos = modelMatrix * vec4(position, 1.0);",
+      "  vWorld = cameraPosition - worldPos.xyz;",
+      "  vNormal = normalize(mat3(modelMatrix) * normal);",
+      "  gl_Position = projectionMatrix * viewMatrix * worldPos;",
+      "}",
+    ].join("\n"),
+    fragmentShader: [
+      "varying vec3 vNormal;",
+      "varying vec3 vWorld;",
+      "void main() {",
+      "  float fres = pow(1.0 - clamp(abs(dot(normalize(vNormal), normalize(vWorld))), 0.0, 1.0), 2.2);",
+      "  vec3 glow = mix(vec3(0.95, 0.55, 0.18), vec3(0.35, 0.62, 0.95), fres);",
+      "  gl_FragColor = vec4(glow, fres * 0.9);",
+      "}",
+    ].join("\n"),
+  });
+}
+
 /** Photo replaces the painted fallback once a browser can fetch it. */
+function loadSaturnStill(film) {
+  try {
+    if (!film || typeof document === "undefined" || typeof document.createElementNS !== "function") return;
+    const loader = new THREE.TextureLoader();
+    loader.load("1984/saturn-still.jpg?v=1", (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 8;
+      tex.wrapS = THREE.ClampToEdgeWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      if (film.userData.videoOn) return;
+      film.material.map = tex;
+      film.material.needsUpdate = true;
+      const glow = film.getObjectByName("saturn-film-glow");
+      if (glow) {
+        glow.material.map = tex;
+        glow.material.color.set("#ffffff");
+        glow.material.needsUpdate = true;
+      }
+      film.userData.still = true;
+    });
+  } catch (err) {
+    /* The painted plate stays until the film can play. */
+  }
+}
+
 function loadWorldPhoto(material, url, ring) {
   try {
     if (typeof document !== "undefined" && typeof document.createElementNS === "function") {
@@ -2413,25 +2614,26 @@ export function buildFlight() {
   jupiter.add(worldAir("#f0d8b0", 0.04));
   const saturn = new THREE.Group();
   saturn.name = "saturn";
-  const saturnBody = worldBody("#e6c98a", 1);
-  saturnBody.add(worldAir("#f3e6c8", 0.04));
-  const ringMap = paintTex(256, (g, s) => {
-    g.clearRect(0, 0, s, s);
-    const c = s / 2;
-    const inner = SATURN_RING_INNER / SATURN_RING_OUTER;
-    g.strokeStyle = "rgba(230,210,170,0.9)";
-    g.lineWidth = (1 - inner) * c;
-    g.beginPath();
-    g.arc(c, c, ((inner + 1) / 2) * c, 0, Math.PI * 2);
-    g.stroke();
-  });
-  ringMap.wrapS = THREE.ClampToEdgeWrapping;
-  ringMap.wrapT = THREE.ClampToEdgeWrapping;
+  const bodyMap = canvasTex(1024, 512, drawSaturnBody);
+  const saturnBody = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 96, 64),
+    new THREE.MeshBasicMaterial({ map: bodyMap || null, color: bodyMap ? "#ffffff" : "#e6c98a", fog: false }),
+  );
+  saturnBody.name = "saturn-body";
+  saturnBody.add(worldAir("#b7d4ea", 0.14));
+  const limb = new THREE.Mesh(new THREE.SphereGeometry(1.04, 64, 48), saturnLimbMaterial());
+  limb.name = "saturn-limb";
+  limb.renderOrder = 2;
+  const ringMap = canvasTex(1024, 1024, (g, w) => drawSaturnRing(g, w));
+  if (ringMap) {
+    ringMap.wrapS = THREE.ClampToEdgeWrapping;
+    ringMap.wrapT = THREE.ClampToEdgeWrapping;
+  }
   const saturnRing = new THREE.Mesh(
-    new THREE.RingGeometry(SATURN_RING_INNER, SATURN_RING_OUTER, 96),
+    new THREE.RingGeometry(SATURN_RING_INNER, SATURN_RING_OUTER, 160),
     new THREE.MeshBasicMaterial({
-      map: ringMap,
-      color: "#ffffff",
+      map: ringMap || null,
+      color: ringMap ? "#ffffff" : "#e6c98a",
       transparent: true,
       premultipliedAlpha: false,
       side: THREE.DoubleSide,
@@ -2441,16 +2643,66 @@ export function buildFlight() {
   );
   saturnRing.name = "saturn-ring";
   saturnRing.rotation.x = Math.PI / 2;
+  const innerGlow = new THREE.Mesh(
+    new THREE.RingGeometry(1.02, 1.18, 96),
+    new THREE.MeshBasicMaterial({
+      color: "#ffc27a",
+      transparent: true,
+      opacity: 0.55,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      fog: false,
+    }),
+  );
+  innerGlow.name = "saturn-inner-glow";
+  innerGlow.rotation.x = Math.PI / 2;
+  const dust = new THREE.Mesh(
+    new THREE.RingGeometry(2.15, 2.62, 96),
+    new THREE.MeshBasicMaterial({
+      color: "#e0a060",
+      transparent: true,
+      opacity: 0.14,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      fog: false,
+    }),
+  );
+  dust.name = "saturn-dust";
+  dust.rotation.x = Math.PI / 2;
+  const sparkCount = 800;
+  const sparkGeo = new THREE.BufferGeometry();
+  const sparkPos = new Float32Array(sparkCount * 3);
+  for (let i = 0; i < sparkCount; i++) {
+    const ang = hash(i, 11) * Math.PI * 2;
+    const radius = SATURN_RING_INNER + hash(i, 12) * (SATURN_RING_OUTER - SATURN_RING_INNER);
+    sparkPos[i * 3] = Math.cos(ang) * radius;
+    sparkPos[i * 3 + 1] = (hash(i, 13) - 0.5) * 0.015;
+    sparkPos[i * 3 + 2] = Math.sin(ang) * radius;
+  }
+  sparkGeo.setAttribute("position", new THREE.BufferAttribute(sparkPos, 3));
+  const sparks = new THREE.Points(
+    sparkGeo,
+    new THREE.PointsMaterial({
+      color: "#ffe2b0",
+      size: 2.4,
+      sizeAttenuation: false,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false,
+      fog: false,
+    }),
+  );
+  sparks.name = "saturn-sparks";
   saturn.rotation.x = SATURN_TILT;
   saturn.scale.setScalar(WORLD_RADIUS.saturn);
-  saturn.add(saturnBody, saturnRing);
+  saturn.add(saturnBody, limb, saturnRing, innerGlow, dust, sparks);
   saturn.userData.ground = saturnBody;
   saturn.userData.ring = saturnRing;
+  saturn.userData.parts = [saturnBody, limb, saturnRing, innerGlow, dust, sparks];
   loadWorldPhoto(moon.userData.photo, "1984/moon.jpg?v=2");
   loadWorldPhoto(mars.userData.photo, "1984/mars.jpg?v=2");
   loadWorldPhoto(jupiter.userData.photo, "1984/jupiter.jpg?v=2");
-  loadWorldPhoto(saturnBody.userData.photo, "1984/saturn.jpg?v=2");
-  loadWorldPhoto(saturnRing.material, "1984/saturn-ring.png?v=2", true);
   worlds.moon = moon;
   worlds.mars = mars;
   worlds.jupiter = jupiter;
@@ -2523,7 +2775,53 @@ export function buildFlight() {
     root.add(spaceSky);
     spaceVideo = skyEl;
   }
-  return { root, pad, mount, tower, booster, ship, door, car, starman, plume, plumeHot, plumeSkirt, jets, diamonds, shipPlume, shipSkirt, shipJets, hullLine, fins, burn, earth, earthClouds, stars, steam, splash, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo, padScreens, padVideos, padFilmsDone: false };
+  let saturnVideo = null;
+  const filmMap = canvasTex(180, 320, (g, w, h) => {
+    g.fillStyle = "#05070c";
+    g.fillRect(0, 0, w, h);
+  });
+  const saturnFilm = new THREE.Mesh(
+    new THREE.PlaneGeometry(SATURN_FILM_W, SATURN_FILM_H),
+    new THREE.MeshBasicMaterial({ map: filmMap || null, color: "#ffffff", fog: false, toneMapped: false }),
+  );
+  saturnFilm.name = "saturn-film";
+  saturnFilm.visible = false;
+  const filmGlow = new THREE.Mesh(
+    new THREE.PlaneGeometry(SATURN_FILM_W * 1.12, SATURN_FILM_H * 1.04),
+    new THREE.MeshBasicMaterial({
+      map: filmMap || null,
+      color: "#ffd2a0",
+      transparent: true,
+      opacity: 0.18,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      fog: false,
+      toneMapped: false,
+    }),
+  );
+  filmGlow.name = "saturn-film-glow";
+  filmGlow.position.z = -6;
+  saturnFilm.add(filmGlow);
+  root.add(saturnFilm);
+  loadSaturnStill(saturnFilm);
+  const saturnEl = document.createElement("video");
+  if (saturnEl && typeof saturnEl.play === "function" && document.body) {
+    saturnEl.muted = true;
+    saturnEl.loop = true;
+    saturnEl.playsInline = true;
+    saturnEl.preload = "auto";
+    saturnEl.src = "1984/saturn.mp4";
+    saturnEl.setAttribute("playsinline", "");
+    saturnEl.setAttribute("muted", "");
+    saturnEl.setAttribute("aria-hidden", "true");
+    saturnEl.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none";
+    document.body.appendChild(saturnEl);
+    const videoMap = new THREE.VideoTexture(saturnEl);
+    videoMap.colorSpace = THREE.SRGBColorSpace;
+    saturnFilm.userData.videoMap = videoMap;
+    saturnVideo = saturnEl;
+  }
+  return { root, pad, mount, tower, booster, ship, door, car, starman, plume, plumeHot, plumeSkirt, jets, diamonds, shipPlume, shipSkirt, shipJets, hullLine, fins, burn, earth, earthClouds, stars, steam, splash, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo, saturnFilm, saturnVideo, padScreens, padVideos, padFilmsDone: false };
 }
 
 function paintKoniCanvas(canvas, lines) {
@@ -2566,6 +2864,48 @@ export function erasePadFilms(flight) {
     try { film.pause(); } catch (err) { /* already quiet */ }
     try { film.removeAttribute("src"); } catch (err) { /* already clear */ }
     try { film.load(); } catch (err) { /* no file left */ }
+  }
+}
+
+/**
+ * The Saturn plate plays only on that cruise. The climb sky stays the star field.
+ * Until the still or the film has a frame, the sharpened planet stays up.
+ */
+function showSaturnFilm(flight, pose) {
+  const film = flight && flight.saturnFilm;
+  if (!film) return;
+  const show = !!(pose && pose.beat === "cruise" && pose.dest === "saturn");
+  const vid = flight.saturnVideo;
+  const videoMap = film.userData.videoMap;
+  const playing = !!(show && vid && videoMap && vid.readyState >= 2);
+  const picture = !!(show && (playing || film.userData.still));
+  film.visible = picture;
+  const parts = flight.worlds && flight.worlds.saturn && flight.worlds.saturn.userData.parts;
+  if (parts) {
+    for (const part of parts) part.visible = !picture;
+  }
+  if (!show) {
+    if (vid && !vid.paused && typeof vid.pause === "function") vid.pause();
+    return;
+  }
+  const frame = saturnFilmFrame(pose);
+  film.position.set(frame.x, frame.y, frame.z);
+  aimUpright(film, frame.fx, frame.fy, frame.fz);
+  if (!playing) return;
+  if (film.material.map !== videoMap) {
+    film.material.map = videoMap;
+    film.material.needsUpdate = true;
+    film.userData.videoOn = true;
+    const glow = film.getObjectByName("saturn-film-glow");
+    if (glow) {
+      glow.material.map = videoMap;
+      glow.material.needsUpdate = true;
+    }
+  }
+  videoMap.needsUpdate = true;
+  if (vid.paused && typeof vid.play === "function") {
+    const pending = vid.play();
+    if (pending && typeof pending.catch === "function") pending.catch(() => {});
   }
 }
 
@@ -2714,6 +3054,7 @@ export function placeFlight(flight, pose) {
       else body.rotation.y = turn;
     }
   }
+  showSaturnFilm(flight, pose);
   if (flight.jokes) {
     for (const sprite of flight.jokes) sprite.visible = false;
     (pose.jokes || []).forEach((burst, n) => {
@@ -4125,14 +4466,21 @@ export function mountWorld(canvas, map, api) {
     }
     const cruisingWatch = pose.beat === "cruise";
     // Level with the car, just outside the circle, so the limb crosses the window.
+    // Saturn sits further out so the portrait fills the height.
     const watchPitch = cruisingWatch ? (Math.PI / 2) * (flightPitch / 1.05) : flightPitch;
+    const watchDist = cruisingWatch && pose.dest === "saturn" ? SATURN_WATCH : 6;
     const cam = cruisingWatch
-      ? (pose.dest === "abyss" ? abyssWatch(pose, flightYaw, watchPitch) : cruiseWatch(pose, flightYaw, watchPitch, 6))
+      ? (pose.dest === "abyss" ? abyssWatch(pose, flightYaw, watchPitch) : cruiseWatch(pose, flightYaw, watchPitch, watchDist))
       : flightCamera(ms, flightYaw, flightPitch);
     const kick = pose.plume > 0.4 ? 1 : 0;
     camera.position.set(cam.x + Math.sin(now / 28) * 0.15 * kick, cam.y + Math.cos(now / 24) * 0.1 * kick, cam.z);
     camera.up.copy(UP);
     camera.lookAt(cam.lx, cam.ly, cam.lz);
+    if (flight.saturnFilm && flight.saturnFilm.visible) {
+      const frame = saturnFilmFrame(pose, camera.position);
+      flight.saturnFilm.position.set(frame.x, frame.y, frame.z);
+      aimUpright(flight.saturnFilm, frame.fx, frame.fy, frame.fz);
+    }
     const flightFov = pose.sky >= 0.5 ? 58 : 42;
     if (camera.fov !== flightFov || camera.far !== 1400) {
       camera.fov = flightFov;

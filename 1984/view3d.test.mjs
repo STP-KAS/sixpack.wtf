@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, HOT_STAGE_MS, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, countdownMs, COUNT_HOLD_MS, cruiseWatch, abyssWatch, raceWatch, flightFog, spaceBackdrop, spaceSkyMode, drives, EARTH_RADIUS, EARTH_SURFACE, HANG_RADIUS, WORLD_RADIUS, earthCenter, escapeRoom, fitScreen, portraitDistance, pointerScale, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
+import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, HOT_STAGE_MS, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, countdownMs, COUNT_HOLD_MS, cruiseWatch, abyssWatch, raceWatch, flightFog, spaceBackdrop, spaceSkyMode, drives, EARTH_RADIUS, EARTH_SURFACE, HANG_RADIUS, WORLD_RADIUS, SATURN_FILM_H, SATURN_WATCH, saturnFilmFrame, earthCenter, escapeRoom, fitScreen, portraitDistance, pointerScale, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -723,6 +723,30 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.equal(spaceSkyMode(flightPose(0)), "off");
 });
 
+test("the saturn film sits behind the car on the cruise radial", () => {
+  const pose = cruisePose(APPROACH_MS, "saturn", FLIGHT_SPACE);
+  const frame = saturnFilmFrame(pose);
+  const ox = pose.carX - pose.worldX;
+  const oz = pose.carZ - pose.worldZ;
+  const rho = Math.hypot(ox, oz);
+  const plate = Math.hypot(frame.x - pose.worldX, frame.z - pose.worldZ);
+  assert.ok(plate < rho - 20, plate + " " + rho);
+  assert.ok(Math.abs(frame.y - pose.carY) < 1e-6);
+  assert.ok((ox * frame.fx + oz * frame.fz) / rho > 0.99);
+  assert.equal(frame.fy, 0);
+  assert.ok(SATURN_WATCH > 14);
+  const watch = cruiseWatch(pose, 0, Math.PI / 2, SATURN_WATCH);
+  const aimed = saturnFilmFrame(pose, watch);
+  const gap = Math.hypot(watch.x - aimed.x, watch.y - aimed.y, watch.z - aimed.z);
+  const toward = (watch.x - aimed.x) * aimed.fx + (watch.y - aimed.y) * aimed.fy + (watch.z - aimed.z) * aimed.fz;
+  assert.ok(toward / gap > 0.99, toward / gap);
+  const quarter = cruisePose(APPROACH_MS + orbitPeriod("saturn") / 4, "saturn", FLIGHT_SPACE);
+  const turned = saturnFilmFrame(quarter);
+  assert.ok(turned.fx > 0.99, turned.fx);
+  assert.ok(Math.abs(turned.fz) < 0.02);
+  assert.equal(spaceBackdrop(pose).film, false);
+});
+
 test("the roadster leaves the ship nose-first on +X", () => {
   const ctx = new Proxy({}, {
     get(_target, key) {
@@ -887,6 +911,19 @@ test("the roadster leaves the ship nose-first on +X", () => {
   assert.ok(saturnAlt > ringPeak + 30, "above rings " + saturnAlt + " " + ringPeak);
   const saturnBody = saturnRing.geometry.parameters.outerRadius * flight.worlds.saturn.scale.x;
   assert.ok(saturnBody > WORLD_RADIUS.saturn, "ring wider than the body");
+  assert.ok(flight.saturnFilm, "saturn film");
+  assert.equal(flight.saturnFilm.visible, false);
+  assert.equal(flight.saturnFilm.geometry.parameters.height, SATURN_FILM_H);
+  assert.ok(Math.abs(flight.saturnFilm.geometry.parameters.width * 16 - SATURN_FILM_H * 9) < 0.02);
+  flight.root.updateMatrixWorld(true);
+  const filmNormal = new THREE.Vector3(0, 0, 1).applyQuaternion(flight.saturnFilm.getWorldQuaternion(new THREE.Quaternion()));
+  const filmOut = new THREE.Vector3(saturnPose.carX - saturnPose.worldX, 0, saturnPose.carZ - saturnPose.worldZ).normalize();
+  assert.ok(filmNormal.dot(filmOut) > 0.9, "saturn film " + filmNormal.dot(filmOut));
+  const filmUp = new THREE.Vector3(0, 1, 0).applyQuaternion(flight.saturnFilm.getWorldQuaternion(new THREE.Quaternion()));
+  assert.ok(filmUp.y > 0.9, "saturn film up " + filmUp.y);
+  assert.equal(flight.worlds.saturn.userData.ground.visible, true);
+  assert.ok(flight.worlds.saturn.getObjectByName("saturn-limb"));
+  assert.equal(spaceBackdrop(saturnPose).film, false);
   const quiet = cruisePose(APPROACH_MS - 1, "mars", FLIGHT_SPACE);
   placeFlight(flight, quiet);
   assert.equal(flight.jokes.filter((sprite) => sprite.visible).length, 0);
