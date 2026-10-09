@@ -491,8 +491,8 @@ test("a wallet shop buy credits a pasted txid after the rules pass", async () =>
   assert.equal(read().txids[id].kind, "spend");
 });
 
-test("a wallet fee quote uses the page rate, and a dead quote stays at 600", async () => {
-  const high = harness(async () => ({ txids: ["ab"] }), { feeRate: async () => 2400 });
+test("a wallet fee quote uses the page rate, and a dead quote stays at 8700", async () => {
+  const high = harness(async () => ({ txids: ["ab"] }), { feeRate: async () => 34800 });
   const busy = await high.svc.handle({
     method: "GET",
     pathname: "/api/1984/fee",
@@ -502,7 +502,7 @@ test("a wallet fee quote uses the page rate, and a dead quote stays at 600", asy
   });
   assert.equal(busy.status, 200);
   assert.equal(busy.body.ok, true);
-  assert.equal(busy.body.feerate, 2400);
+  assert.equal(busy.body.feerate, 34800);
   const low = harness(async () => ({ txids: ["ab"] }), { feeRate: async () => 200 });
   const old = await low.svc.handle({
     method: "GET",
@@ -511,7 +511,7 @@ test("a wallet fee quote uses the page rate, and a dead quote stays at 600", asy
     body: {},
     ip: "203.0.113.53",
   });
-  assert.equal(old.body.feerate, 600);
+  assert.equal(old.body.feerate, 8700);
   const down = harness(async () => ({ txids: ["ab"] }), {
     feeRate: async () => {
       throw new Error("no node");
@@ -525,7 +525,7 @@ test("a wallet fee quote uses the page rate, and a dead quote stays at 600", asy
     ip: "203.0.113.52",
   });
   assert.equal(quiet.body.ok, true);
-  assert.equal(quiet.body.feerate, 600);
+  assert.equal(quiet.body.feerate, 8700);
 });
 
 test("the old payment path still answers", async () => {

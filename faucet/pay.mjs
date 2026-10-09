@@ -22,7 +22,7 @@ const RPC_URL = process.env.FAUCET_RPC || "127.0.0.1:17210";
 /** A refused local port still takes about two seconds. Remember that and do not wait it out on the next send. */
 const LOCAL_WAIT_MS = 1500;
 const LOCAL_DOWN_MS = 60_000;
-/** The page rate is already six times the standard. A slow quote must not hold the click. */
+/** The page rate is already 87 times the standard. A slow quote must not hold the click. */
 const FEE_WAIT_MS = 400;
 let localDownUntil = 0;
 

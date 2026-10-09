@@ -1,15 +1,16 @@
-/** Testnet 10 standard fee is 100 sompi per gram. The faucet pays twice that. 1984 pays six times that. */
+/** Testnet 10 standard fee is 100 sompi per gram. The faucet pays twice that. 1984 pays 87 times that. */
 export const STANDARD_FEE_RATE = 100;
 export const PAY_FEE_MULTIPLE = 2;
-export const PAGE_FEE_MULTIPLE = 6;
+/** 14.5 times the previous six, so a 1984 send stays ahead of a crowded mempool. */
+export const PAGE_FEE_MULTIPLE = 87;
 
 /**
  * Extra sompi for a wallet that adds a flat fee on top of its own minimum.
  * 2,000,000 sompi is double the standard fee on a 10,000 gram payment.
- * 1984 asks for three times that flat fee.
+ * 1984 asks for 14.5 times its previous flat fee.
  */
 export const WALLET_PRIORITY_SOMPI = 2_000_000;
-export const PAGE_PRIORITY_SOMPI = 6_000_000;
+export const PAGE_PRIORITY_SOMPI = 87_000_000;
 
 function bucketRate(bucket) {
   if (!bucket || typeof bucket !== "object") return 0;
@@ -36,7 +37,7 @@ export function payFeeRate(estimate) {
   return ratedFee(estimate, PAY_FEE_MULTIPLE);
 }
 
-/** Six times the ordinary rate, and never under six times the known standard. 1984 uses this. */
+/** 87 times the ordinary rate, and never under that. 1984 uses this. */
 export function pageFeeRate(estimate) {
   return ratedFee(estimate, PAGE_FEE_MULTIPLE);
 }

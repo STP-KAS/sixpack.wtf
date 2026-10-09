@@ -9,6 +9,7 @@ import { applyVaultSave, applyVaultSeal, publicVaults } from "./vault.mjs";
 import { applyClaim, applyOfferBuy, applySite, publicSites } from "./layer.mjs";
 import { lookupAccepted, warmNodeWindow } from "./node-tx.mjs";
 import { guestDesk, GUEST_FUND_SOMPI } from "./guest.mjs";
+import { pageFeeRate } from "../faucet/fee-rate.mjs";
 import {
   applyConvert,
   applyExchange,
@@ -376,13 +377,14 @@ export function create1984Service(deps) {
           return { status: 200, body: found };
         }
         if (method === "GET" && pathname === "/api/1984/fee") {
-          let rate = 600;
+          const floor = pageFeeRate(null);
+          let rate = floor;
           try {
             const quoted = deps.feeRate ? await deps.feeRate() : await (await import("../faucet/pay.mjs")).quotedPageFeeRate();
             const n = Number(quoted);
-            if (Number.isFinite(n) && n >= 600) rate = n;
+            if (Number.isFinite(n) && n >= floor) rate = n;
           } catch {
-            rate = 600;
+            rate = floor;
           }
           return { status: 200, body: { ok: true, network: "testnet-10", feerate: rate } };
         }

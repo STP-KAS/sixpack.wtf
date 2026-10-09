@@ -2146,7 +2146,7 @@ function paintShop(shopId) {
     rows + txid +
     "<p class=\"fine\">" + esc(payKind("shop")) + "</p>" +
     "<p class=\"fine\">" + esc(SWAP_PAY) + " No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap.</p>" +
-    "<p class=\"fine\">One rail for this buy. A buy asks on this page, then OK. The wallet opens only when you swap tKAS at the bank. The miner fee on that swap is six times the standard Testnet 10 rate, and it is extra KAS.</p></div>";
+    "<p class=\"fine\">One rail for this buy. A buy asks on this page, then OK. The wallet opens only when you swap tKAS at the bank. The miner fee on that swap is 87 times the standard Testnet 10 rate, and it is extra KAS.</p></div>";
   document.getElementById("stall-close").onclick = () => closeCounter();
   wirePlaceExit();
   const pasted = document.getElementById("txid");
@@ -2298,7 +2298,7 @@ function paintBank() {
       "<p>The purse is practice coins. Shops spend the purse first. The purse does not come back as tKAS.</p>" +
       "<p>A swap between POCencept and KUSDT moves each pile as itself. Locked stays locked. The purse stays a purse. No extra tKAS is locked or freed.</p>" +
       "<p>KUSDT can be frozen. POCencept cannot. A freeze blocks any swap that touches KUSDT.</p>" +
-      "<p>The miner fee is always KAS. On a tKAS send it is extra. It is six times the standard Testnet 10 rate. The price is not reduced to pay the miner.</p>" +
+      "<p>The miner fee is always KAS. On a tKAS send it is extra. It is 87 times the standard Testnet 10 rate. The price is not reduced to pay the miner.</p>" +
       "<p>A tKAS payment smaller than the quote does not buy the item and does not mint a tag.</p>" +
       "<p>Sending the same accepted txid again, for the same address and the same purchase, returns the receipt already written. A different item or a different address with that txid is refused.</p>" +
       "<p>A lock has to increase the amount. A negative threshold counts as zero. POCencept and KUSDT keep different extension commitments, so they do not mix. A freeze changes the KUSDT commitment. This counter did not compile a covenant. The tags stay on this square. KCC-20 is Last Call, not Final.</p>" +
@@ -2689,7 +2689,7 @@ function paintGuide() {
     "<li>Need coins: Use a funded test address on the welcome gate. The list of those addresses is on the economics tab. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank opens as a swap. In the cafe, take a seat and the menu blinks, or order at the blinking counter. The mint opens as soon as you walk in. The market opens at the counter. Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Once it is yours, Launch into space is the gold button. The showroom still opens when you click Pike or the sign. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The mint and the bank open as soon as you walk in. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. Use a funded test address. This money is tKAS. With tKAS you can go to the bank.</li>" +
-    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is six times the standard Testnet 10 rate, and it is extra KAS. When a payment settles, it goes through. On a tKAS send, confirmations are still ongoing. The steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate.</li>" +
+    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is 87 times the standard Testnet 10 rate, and it is extra KAS. When a payment settles, it goes through. On a tKAS send, confirmations are still ongoing. The steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate.</li>" +
     "<li>Venn's bank opens as a swap. You pay one asset and you receive another: tKAS, POCencept, or KUSDT. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on the card.</li>" +
     "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe, take a seat and the menu blinks, or order at the counter. The mint opens when you walk in. Launch, while you are in the car and outside, plays two short films beside the rocket first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. The tower stands beside it. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. After the booster is gone, the ship coasts, then the roadster leaves. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: you hang out with the old roadster. It has been cruising for years. The way there is ten seconds. Out there the two cars race in orbit around the Earth. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>The Moon map is NASA. Mars, Jupiter, Saturn, and the rings are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0.</li>" +
@@ -2848,8 +2848,9 @@ async function sendFromWallet(plan, sompi) {
 async function walletFeeRate() {
   const body = await api("/api/1984/fee");
   const n = Number(body && body.feerate);
-  if (body && body.ok && Number.isFinite(n) && n >= 600) return n;
-  return pageFeeRate(null);
+  const floor = pageFeeRate(null);
+  if (body && body.ok && Number.isFinite(n) && n >= floor) return n;
+  return floor;
 }
 
 function revealPaste(id) {
@@ -3132,7 +3133,7 @@ async function lock(rail) {
         const named = walletWord(plan);
         steps = ["Checking the amount", "Opening " + named, "Approve the send in " + named, "Waiting for Testnet 10 to settle", "Adding the tag"];
         showSteps(steps, 2, "Approve the send in " + named + ".");
-        swapNote("Approve " + shown + " in " + named + ". The miner fee is six times the standard rate, and it is extra KAS.", "wait");
+        swapNote("Approve " + shown + " in " + named + ". The miner fee is 87 times the standard rate, and it is extra KAS.", "wait");
         rememberWalletKind(plan);
         txid = await sendFromWallet(plan, sompi);
         showSteps(steps, 3, "Waiting for Testnet 10 to settle.");
