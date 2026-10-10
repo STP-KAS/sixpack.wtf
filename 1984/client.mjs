@@ -2914,7 +2914,7 @@ function paintGuide() {
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Peer to peer is the payment. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled. This square is still the classroom.</li>" +
     "<li>Mint is the building with the Mint sign. Walk in and the mint card is open. The line on the card is supply on this square, not a KAS price. Mint, Trade, and About sit under that line. Trade offers one open name for another. Copy puts an address on the clipboard. Mint more, send, or open a new name. Open names sit on the card. Click a name to see the addresses, the amounts, and the ledger lines. A name that has reached its cap is under Completed. It is a square-ledger token under KCC-20 Last Call. It is not Final, and no covenant is deployed. Type 0 in Cap for no cap. There is no maximum.</li>" +
-    "<li>Layer-Kaspa is on the side rail. Open a .kas name, or make one. The funded test wallet on this tab can inscribe more than one name. The first name is the default. domain/address on the balance bar changes it. The KNS testnet index records each name. No covenant is deployed. Visitors see the page. Only the owner can change it. The window has the title, a tagline, the welcome, a color, a link, and offers. A private note is separate. A short one is ciphertext in a Testnet-10 payload. A longer one stays encrypted on this desk. A pasted address uses the KNS app. This layer does not hide the path. It is not Tor.</li>" +
+    "<li>Layer-Kaspa is on the side rail. Open a .kas name, or make one. The funded test wallet on this tab can inscribe more than one name. The first name is the default. domain/address on the balance bar changes it. This square keeps an index of names it inscribed or verified. The KNS testnet index is still the network record. No covenant is deployed. Visitors see the page. Only the owner can change it. The window has the title, a tagline, the welcome, a color, a link, and offers. A private note is separate. A short one is ciphertext in a Testnet-10 payload. A longer one stays encrypted on this desk. A pasted address uses the KNS app. This layer does not hide the path. It is not Tor.</li>" +
     "<li>Kachat is on the side rail. Paste the other kaspatest address and send a handshake. They accept it. Then you send messages. Each step is 0.01 POCencept. Messages only. The KaChat app on the chain is a different program.</li>" +
     "<li>Vault is on the side rail. It keeps a note on this square ledger and a rule for who may read it and when. The labels are a note, an NDA, an enterprise file, or other. A real secret does not belong here. This page checks the readers and the time. A covenant mark is a label. No covenant is deployed. Seal keeps the note and the rule.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
@@ -3898,6 +3898,16 @@ async function chooseBarName(name) {
   }
 }
 
+function layerIndexHtml() {
+  const rows = (state.home && Array.isArray(state.home.kns) && state.home.kns) || [];
+  if (!rows.length) return "<p class=\"mint-cap-note\">No name is on this square's index yet.</p>";
+  return "<ul class=\"layer-scroll\">" + rows.map((row) => {
+    const id = row.inscriptionId ? "<span class=\"mint-addr\">" + esc(row.inscriptionId) + "</span>" : "";
+    const via = row.source === "kns" ? "verified" : "inscribed";
+    return "<li><button type=\"button\" data-visit=\"" + esc(row.name) + "\">" + esc(row.name) + ".kas</button> " + esc(via) + "<span class=\"mint-addr\">" + esc(row.owner || "") + "</span>" + id + "</li>";
+  }).join("") + "</ul>";
+}
+
 function paintLayer() {
   const drafts = {};
   for (const id of ["layer-name", "layer-choice", "layer-note", "seal-choice", "layer-seal-pass"]) {
@@ -3920,6 +3930,8 @@ function paintLayer() {
     "<p><strong>What.</strong> Layer-Kaspa opens a .kas name from the KNS testnet index. Visitors can open a published page. Only the address that owns the name can change it.</p>" +
     "<p><strong>How.</strong> Type a name and pick where it goes. Inscribe sends the KNS testnet fee from the funded test wallet on this tab. Click that wallet when this tab has one. Five letters or more is 35 tKAS. A shorter name costs more. This address, or an address you type, uses the <a href=\"https://app.knsdomains.org\" target=\"_blank\" rel=\"noopener\">KNS app</a>. More than one name can be inscribed. The first one is the default. domain/address on the balance bar changes it. The testnet index is <a href=\"https://tn10.knsdomains.org\" target=\"_blank\" rel=\"noopener\">tn10.knsdomains.org</a>. Open the name here. If this address owns it, a window opens with the page options. Visitors get the page without those controls. No covenant is deployed.</p>" +
     "<p><strong>Why.</strong> So a name you already own on the Kaspa testnet index can have a page on this square. It is not Tor, and it does not hide the path. No covenant is deployed.</p>" +
+    "<p><strong>Index.</strong> This square's index lists names this desk inscribed or verified. The KNS testnet index is still the network record. While that network index is quiet or has not listed the name, the recorded owner can open and edit the page. When it names another address, that address wins. No covenant is deployed.</p>" +
+    layerIndexHtml() +
     "<p><strong>Pages.</strong> Open one to visit. The owner is the only one who can change it.</p>" +
     directory;
   document.getElementById("layer-open").onclick = () => openLayer((document.getElementById("layer-name") || {}).value || "");
@@ -3948,6 +3960,7 @@ function layerVisitHtml(site) {
     if (layerKns === "") return "<p>Checking the KNS testnet index.</p>";
     if (layerKns === "error") return "<p>The KNS testnet index did not answer. Open the name again in a moment.</p>";
     if (layerKns === "other") return "<p>This name is on the KNS testnet index for another address. That owner has not published a page here. Visitors cannot change it.</p>";
+    if (layerKns === "other-square") return "<p>This name is on this square's index for another address. The KNS testnet index did not name a different owner. Visitors cannot change it. No covenant is deployed.</p>";
     if (clientNames(state.account).includes(layerKey(layerVisit))) {
       return "<p>This name was inscribed for this address. The KNS testnet index has not listed it yet. Open it again in a moment. No covenant was deployed.</p>";
     }
@@ -3962,7 +3975,10 @@ function layerVisitHtml(site) {
       " <button type=\"button\" data-buy=\"" + esc(site.name) + "|" + esc(item.id) + "|kusdt\">KUSDT</button></p>"
     ).join("")
     : "<p>No offer yet.</p>";
-  return "<p class=\"mint-cap-note\">You are visiting. Only the owner on the KNS testnet index can change this page.</p>" +
+  const ownerLine = layerKns === "square" || layerKns === "other-square"
+    ? "You are visiting. This square's index names the owner. The KNS testnet index is still the network record. Only that owner can change this page."
+    : "You are visiting. Only the owner on the KNS testnet index can change this page.";
+  return "<p class=\"mint-cap-note\">" + ownerLine + "</p>" +
     (site.tagline ? "<p><strong>" + esc(site.tagline) + "</strong></p>" : "") +
     "<p>" + esc(site.about || "No description yet.") + "</p>" +
     (site.welcome ? "<p>" + esc(site.welcome) + "</p>" : "") +
@@ -3986,7 +4002,9 @@ function paintLayerPop() {
     const picked = (value) => (site && site.accent === value ? " selected" : (!site && value === "stone" ? " selected" : ""));
     pop.innerHTML =
       '<div class="stall-head"><h2>' + esc(host) + '</h2><div class="stall-acts"><button type="button" id="layer-pop-close">Close</button></div></div>' +
-      "<p>You own this name on the KNS testnet index. Visitors can open the page. They cannot change it. The private note is on the Layer card, and visitors do not see it. No covenant is deployed.</p>" +
+      (layerKns === "square"
+        ? "<p>You own this name on this square's index. The KNS testnet index has not listed it, or it did not answer. That network index still wins when it names another address. Visitors can open the page. They cannot change it. No covenant is deployed.</p>"
+        : "<p>You own this name on the KNS testnet index. Visitors can open the page. They cannot change it. The private note is on the Layer card, and visitors do not see it. No covenant is deployed.</p>") +
       '<label class="mint-line"><span>Show</span><input id="layer-show-name" type="checkbox"' + (site && site.showName ? " checked" : "") + "> Show this name instead of the tKAS address</label>" +
       '<label class="mint-line"><span>Title</span><input id="layer-title" maxlength="48" value="' + esc(site ? site.title : "") + '"></label>' +
       '<label class="mint-line"><span>Tagline</span><input id="layer-tagline" maxlength="80" value="' + esc(site ? site.tagline : "") + '"></label>' +
@@ -4024,6 +4042,7 @@ async function refreshLayer() {
   if (!body.ok || !body.sites) return;
   if (!state.home) state.home = {};
   state.home.sites = body.sites;
+  if (Array.isArray(body.kns)) state.home.kns = body.kns;
   if (state.mode !== "layer") return;
   const pop = document.getElementById("layer-pop");
   const focus = document.activeElement;
@@ -4049,8 +4068,8 @@ async function openLayer(name) {
   if (!body.ok) layerKns = "error";
   else if (found && found.address && state.id.address && found.address.toLowerCase() === state.id.address.toLowerCase()) {
     layerOwns = true;
-    layerKns = "tn10";
-  } else if (found && found.address) layerKns = "other";
+    layerKns = found.index === "square" ? "square" : "tn10";
+  } else if (found && found.address) layerKns = found.index === "square" ? "other-square" : "other";
   else layerKns = "none";
   paintLayerPop();
 }
@@ -4093,7 +4112,12 @@ async function inscribeLayer() {
     syncDisplayName(body.account);
     paintChrome();
   }
+  if (Array.isArray(body.kns)) {
+    if (!state.home) state.home = {};
+    state.home.kns = body.kns;
+  }
   say(body.note || "Inscribed.");
+  if (state.mode === "layer") paintLayer();
   if (!body.pending) await openLayer(layerVisit);
 }
 

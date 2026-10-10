@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { fetchBalance, fetchKoni, fetchPrice, fetchTx, paymentFromTx, resolveName } from "./chain.mjs";
+import { lookupSquareName, publicKnsIndex, recordSquareName } from "./kns-index.mjs";
 import { applyAccept, applyHandshake, applyMessage, publicChat } from "./kachat.mjs";
 import { applyVaultSave, applyVaultSeal, publicVaults } from "./vault.mjs";
 import { accountNames, applyClaim, applyDefault, applyDisplay, applyInscribed, applyOfferBuy, applySite, normalizeLabel, publicSites } from "./layer.mjs";
@@ -98,21 +99,56 @@ export function create1984Service(deps) {
     return assertTestnet(body && body.address);
   }
 
-  async function layerGate(name, address) {
-    let found = null;
+  async function squareResolve(name) {
+    let official = null;
+    let quiet = false;
     try {
-      found = await resolveName(String(name || ""), deps.fetch);
+      official = await resolveName(String(name || ""), deps.fetch);
     } catch (err) {
       const msg = String((err && err.message) || "");
       if (/mainnet|Type a \.kas name/i.test(msg)) throw err;
+      quiet = true;
+    }
+    if (official && official.address) {
+      return {
+        found: { domain: official.domain, address: official.address, index: "kns" },
+        quiet: false,
+      };
+    }
+    const row = lookupSquareName(state, name);
+    if (row) {
+      return {
+        found: { domain: row.name + ".kas", address: row.owner, index: "square", inscriptionId: row.inscriptionId },
+        quiet,
+      };
+    }
+    return { found: null, quiet };
+  }
+
+  async function layerGate(name, address) {
+    const hit = await squareResolve(name);
+    const who = String(address || "").toLowerCase();
+    if (hit.found && hit.found.index === "kns") {
+      if (hit.found.address.toLowerCase() !== who) {
+        throw new Error("That name is already on the KNS testnet index for another address.");
+      }
+      return hit;
+    }
+    if (hit.found && hit.found.index === "square") {
+      if (hit.found.address.toLowerCase() === who) return hit;
+      throw new Error("That name is already on this square's index for another address.");
+    }
+    if (hit.quiet) {
       throw new Error("The KNS testnet index did not confirm this address owns that name.");
     }
-    if (!found) {
-      throw new Error("Own this name on the KNS testnet index before you customize it. The KNS app registers it. This desk does not.");
-    }
-    if (found.address.toLowerCase() !== address.toLowerCase()) {
-      throw new Error("That name is already on the KNS testnet index for another address.");
-    }
+    throw new Error("Own this name on the KNS testnet index before you customize it. The KNS app registers it. This desk does not.");
+  }
+
+  function withVerified(base, hit, name, address, now) {
+    if (!hit || !hit.found || hit.found.index !== "kns") return base;
+    if (String(hit.found.address || "").toLowerCase() !== String(address || "").toLowerCase()) return base;
+    const noted = recordSquareName(base, { name, owner: address, source: "kns" }, now);
+    return noted.conflict ? base : noted.state;
   }
 
   async function payment(address, txid, need, opts) {
@@ -322,6 +358,7 @@ export function create1984Service(deps) {
         mints: publicMints(state),
         offers: publicOffers(state),
         sites: publicSites(state),
+        kns: publicKnsIndex(state),
       },
     };
   }
@@ -533,9 +570,21 @@ export function create1984Service(deps) {
           const who = raw ? assertTestnet(raw) : "";
           return { status: 200, body: publicHunts(state, who) };
         }
+        if (method === "GET" && pathname === "/api/1984/kns") {
+          return {
+            status: 200,
+            body: {
+              ok: true,
+              index: "square",
+              note: "This list is this square's index. The KNS testnet index is still the network record. No covenant is deployed.",
+              names: publicKnsIndex(state),
+            },
+          };
+        }
         if (method === "GET" && pathname === "/api/1984/resolve") {
-          const found = await resolveName(query.get("name") || "", deps.fetch);
-          return { status: 200, body: { ok: true, found } };
+          const hit = await squareResolve(query.get("name") || "");
+          if (!hit.found && hit.quiet) throw new Error("The KNS testnet index did not answer.");
+          return { status: 200, body: { ok: true, found: hit.found } };
         }
         if (method === "GET" && pathname === "/api/1984/guest") {
           const guests = guestApi();
@@ -881,22 +930,55 @@ export function create1984Service(deps) {
             throw new Error("The KNS testnet index did not answer. The name was not inscribed.");
           }
           if (found && found.address.toLowerCase() === key) {
-            return {
-              status: 200,
-              body: {
-                ok: true,
-                already: true,
-                name,
-                note: "You already own this name on the KNS testnet index. Open it to publish the page. No covenant was deployed.",
-              },
-            };
+            return await queue(async () => {
+              const noted = recordSquareName(state, { name, owner: address, source: "kns" }, deps.now());
+              const listed = !noted.conflict;
+              if (listed) {
+                state = noted.state;
+                deps.save(state);
+              }
+              return {
+                status: 200,
+                body: {
+                  ok: true,
+                  already: true,
+                  name,
+                  names: accountNames(state.accounts && state.accounts[key]),
+                  kns: publicKnsIndex(state),
+                  note: listed
+                    ? "You already own this name on the KNS testnet index. This square's index lists it too. Open it to publish the page. No covenant was deployed."
+                    : "You already own this name on the KNS testnet index. Open it to publish the page. No covenant was deployed.",
+                },
+              };
+            });
           }
           if (found) throw new Error("That name is already on the KNS testnet index for another address.");
+          if (!found) {
+            const row = lookupSquareName(state, name);
+            if (row && row.owner.toLowerCase() !== key) {
+              throw new Error("That name is already on this square's index for another address.");
+            }
+            if (row && row.owner.toLowerCase() === key) {
+              return {
+                status: 200,
+                body: {
+                  ok: true,
+                  already: true,
+                  name,
+                  names: accountNames(held),
+                  kns: publicKnsIndex(state),
+                  note: "This square's index already lists " + name + ".kas for this address. The KNS testnet index has not listed it. No covenant was deployed.",
+                },
+              };
+            }
+          }
           if (!body.token) {
             throw new Error("This desk inscribes the funded test wallet it handed you. A pasted address uses the KNS app.");
           }
-          if (inscribing.has(key)) throw new Error("This name is already being inscribed.");
+          const nameKey = "n:" + name;
+          if (inscribing.has(key) || inscribing.has(nameKey)) throw new Error("This name is already being inscribed.");
           inscribing.add(key);
+          inscribing.add(nameKey);
           try {
             const run = deps.inscribe || inscribeForGuest;
             const out = await run({ address, name, token: body.token });
@@ -913,27 +995,44 @@ export function create1984Service(deps) {
             }
             return await queue(async () => {
               const marked = applyInscribed(state, { address, name, inscriptionId: out.inscriptionId }, deps.now());
-              state = marked.state;
+              const noted = recordSquareName(marked.state, {
+                name,
+                owner: address,
+                inscriptionId: out.inscriptionId,
+                source: "square",
+              }, deps.now());
+              state = noted.state;
               deps.save(state);
               return {
                 status: 200,
-                body: { ...marked.result, account: publicAccount(state, address), feeKas: out.feeKas },
+                body: {
+                  ...marked.result,
+                  account: publicAccount(state, address),
+                  feeKas: out.feeKas,
+                  kns: publicKnsIndex(state),
+                },
               };
             });
           } finally {
             inscribing.delete(key);
+            inscribing.delete(nameKey);
           }
         }
         if (pathname === "/api/1984/layer/display") {
-          await layerGate(body.name, address);
+          const hit = await layerGate(body.name, address);
           return await queue(async () => {
             const show = body.show === true;
-            const current = state.sites && state.sites[normalizeLabel(body.name)];
-            let base = state;
+            const verified = withVerified(state, hit, body.name, address, now);
+            const current = verified.sites && verified.sites[normalizeLabel(body.name)];
+            let base = verified;
             if (show || current) {
-              base = applyClaim(state, { address, name: body.name, kns: "tn10" }, now).state;
+              base = applyClaim(verified, { address, name: body.name, kns: "tn10" }, now).state;
             }
             if (!show && !(base.sites && base.sites[normalizeLabel(body.name)])) {
+              if (base !== state) {
+                state = base;
+                deps.save(state);
+              }
               return {
                 status: 200,
                 body: { ok: true, displayName: "", note: "This square shows the tKAS address.", account: publicAccount(state, address) },
@@ -946,18 +1045,23 @@ export function create1984Service(deps) {
           });
         }
         if (pathname === "/api/1984/layer/claim") {
-          await layerGate(body.name, address);
+          const hit = await layerGate(body.name, address);
           return await queue(async () => {
-            const out = applyClaim(state, { address, name: body.name, kns: "tn10" }, now);
+            const base = withVerified(state, hit, body.name, address, now);
+            const out = applyClaim(base, { address, name: body.name, kns: "tn10" }, now);
             state = out.state;
             deps.save(state);
+            if (hit.found && hit.found.index === "square") {
+              out.result.note = "This address owns " + normalizeLabel(body.name) + ".kas on this square's index. The KNS testnet index is still the network record. This desk did not register it. No covenant was deployed.";
+            }
             return { status: 200, body: out.result };
           });
         }
         if (pathname === "/api/1984/layer/save") {
-          await layerGate(body.name, address);
+          const hit = await layerGate(body.name, address);
           return await queue(async () => {
-            const claimed = applyClaim(state, { address, name: body.name, kns: "tn10" }, now);
+            const base = withVerified(state, hit, body.name, address, now);
+            const claimed = applyClaim(base, { address, name: body.name, kns: "tn10" }, now);
             const out = applySite(claimed.state, {
               address,
               name: body.name,
@@ -972,7 +1076,11 @@ export function create1984Service(deps) {
             }, now);
             state = out.state;
             deps.save(state);
-            return { status: 200, body: out.result };
+            const bodyOut = { ...out.result };
+            if (hit.found && hit.found.index === "square") {
+              bodyOut.note = "Published " + normalizeLabel(body.name) + ".kas on this square's index. The KNS testnet index is still the network record. Visitors can open the page. No covenant was deployed.";
+            }
+            return { status: 200, body: bodyOut };
           });
         }
         if (pathname === "/api/1984/layer/buy") {

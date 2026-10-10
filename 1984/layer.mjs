@@ -231,7 +231,7 @@ export function applyInscribed(state, input, now) {
       names,
       displayName: def,
       inscriptionId: id,
-      note: "Inscribed " + name + ".kas on the KNS testnet index. " + tail + " No covenant was deployed. Open it again once the index lists this address.",
+      note: "Inscribed " + name + ".kas. This square's index lists this address. The KNS testnet index is still the network record. " + tail + " No covenant was deployed.",
       at: now,
     },
   };

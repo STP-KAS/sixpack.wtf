@@ -138,6 +138,119 @@ test("a quiet KNS index does not let an address customize", async () => {
   assert.equal(state.sites, undefined);
 });
 
+test("this square's index opens a name it inscribed when the KNS testnet index is quiet", async () => {
+  let state = { accounts: {}, receipts: [], seq: "0", sites: {} };
+  let mode = "miss";
+  const id = "ab".repeat(32) + "i0";
+  const svc = create1984Service({
+    load: () => state,
+    save: (next) => {
+      state = next;
+    },
+    fetch: async (url) => {
+      const u = String(url);
+      if (!u.includes("/owner")) return { ok: false, status: 404, json: async () => ({}) };
+      if (mode === "down") throw new Error("down");
+      if (mode === "other") {
+        return { ok: true, status: 200, json: async () => ({ success: true, data: { owner: B, asset: "lumbridge.kas" } }) };
+      }
+      return { ok: false, status: 404, json: async () => ({}) };
+    },
+    now: () => 10,
+    pay: async () => ({ txids: [] }),
+    inscribe: async () => ({ inscriptionId: id, feeKas: 35, revealId: "ab".repeat(32) }),
+  });
+  const inscribed = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/layer/inscribe",
+    query: new URLSearchParams(),
+    body: { address: A, network: "testnet-10", token: "tab", name: "lumbridge" },
+    ip: "layer-own-index",
+  });
+  assert.equal(inscribed.status, 200, inscribed.body && inscribed.body.error);
+  assert.equal(inscribed.body.kns.length, 1);
+  assert.equal(state.knsIndex[0].owner, A);
+  assert.equal(state.knsIndex[0].inscriptionId, id);
+  assert.equal(state.knsIndex[0].source, "square");
+  assert.match(inscribed.body.note, /this square's index/i);
+  assert.match(inscribed.body.note, /No covenant was deployed/);
+  mode = "down";
+  const saved = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/layer/save",
+    query: new URLSearchParams(),
+    body: { address: A, network: "testnet-10", name: "lumbridge", title: "Loaves", about: "Bread" },
+    ip: "layer-own-index",
+  });
+  assert.equal(saved.status, 200, saved.body && saved.body.error);
+  assert.match(saved.body.note, /this square's index/);
+  assert.match(saved.body.note, /network record/);
+  assert.equal(state.sites.lumbridge.owner, A);
+  const stranger = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/layer/save",
+    query: new URLSearchParams(),
+    body: { address: B, network: "testnet-10", name: "lumbridge", title: "No" },
+    ip: "layer-own-index",
+  });
+  assert.equal(stranger.status, 400);
+  assert.match(stranger.body.error, /this square's index/);
+  assert.equal(state.sites.lumbridge.owner, A);
+  const listed = await svc.handle({
+    method: "GET",
+    pathname: "/api/1984/kns",
+    query: new URLSearchParams(),
+    body: {},
+    ip: "layer-own-index",
+  });
+  assert.equal(listed.status, 200);
+  assert.equal(listed.body.index, "square");
+  assert.equal(listed.body.names.length, 1);
+  assert.equal(listed.body.names[0].name, "lumbridge");
+  assert.doesNotMatch(JSON.stringify(listed.body), /mnemonic|privHex|privateKey|seed|wallet\.secret/i);
+  const resolved = await svc.handle({
+    method: "GET",
+    pathname: "/api/1984/resolve",
+    query: new URLSearchParams({ name: "lumbridge" }),
+    body: {},
+    ip: "layer-own-index",
+  });
+  assert.equal(resolved.status, 200);
+  assert.equal(resolved.body.found.address, A);
+  assert.equal(resolved.body.found.index, "square");
+  mode = "other";
+  const beaten = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/layer/save",
+    query: new URLSearchParams(),
+    body: { address: A, network: "testnet-10", name: "lumbridge", title: "Mine" },
+    ip: "layer-own-index",
+  });
+  assert.equal(beaten.status, 400);
+  assert.match(beaten.body.error, /another address/);
+  assert.equal(state.knsIndex[0].owner, A);
+  const official = await svc.handle({
+    method: "GET",
+    pathname: "/api/1984/resolve",
+    query: new URLSearchParams({ name: "lumbridge" }),
+    body: {},
+    ip: "layer-own-index",
+  });
+  assert.equal(official.status, 200);
+  assert.equal(official.body.found.address, B);
+  assert.equal(official.body.found.index, "kns");
+  mode = "down";
+  const quietMiss = await svc.handle({
+    method: "GET",
+    pathname: "/api/1984/resolve",
+    query: new URLSearchParams({ name: "missingname" }),
+    body: {},
+    ip: "layer-own-index",
+  });
+  assert.equal(quietMiss.status, 400);
+  assert.match(quietMiss.body.error, /did not answer/);
+});
+
 test("one address can inscribe more than one name, and the bar default is the first until it is changed", async () => {
   let state = { accounts: {}, receipts: [], seq: "0", sites: {} };
   let calls = 0;
@@ -195,6 +308,9 @@ test("one address can inscribe more than one name, and the bar default is the fi
   assert.equal(calls, 2);
   assert.equal(state.accounts[A.toLowerCase()].knsName, "lumbridge");
   assert.deepEqual(state.accounts[A.toLowerCase()].knsNames, ["lumbridge", "othername"]);
+  assert.equal(state.knsIndex.length, 2);
+  assert.equal(state.knsIndex[0].source, "square");
+  assert.equal(state.knsIndex[1].name, "othername");
   const repeat = await svc.handle({
     method: "POST",
     pathname: "/api/1984/layer/inscribe",
