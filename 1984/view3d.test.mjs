@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, HOT_STAGE_MS, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, countdownMs, COUNT_HOLD_MS, cruiseWatch, abyssWatch, raceWatch, flightFog, spaceBackdrop, spaceSkyMode, drives, EARTH_RADIUS, EARTH_SURFACE, EARTH_LIMB_V, EARTH_TURN_MS, HANG_RADIUS, WORLD_RADIUS, SATURN_FILM_H, SATURN_WATCH, saturnFilmFrame, aimUpright, earthCenter, earthFilmFrame, earthTurn, escapeRoom, fitScreen, portraitDistance, pointerScale, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
+import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, HOT_STAGE_MS, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, countdownMs, COUNT_HOLD_MS, cruiseWatch, abyssWatch, raceWatch, flightFog, spaceBackdrop, spaceSkyMode, drives, EARTH_RADIUS, EARTH_SURFACE, EARTH_LIMB_V, EARTH_TURN_MS, HANG_RADIUS, WORLD_RADIUS, SATURN_FILM_H, SATURN_WATCH, saturnFilmFrame, aimUpright, earthCenter, earthFilmFrame, earthTurn, padEarthSpin, escapeRoom, fitScreen, portraitDistance, pointerScale, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -550,8 +550,19 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.ok(Math.abs(home.carZ - released.carZ) < 1e-6, "start z " + home.carZ);
   assert.equal(home.carYaw, headingYaw(1, 0));
   assert.ok(Math.abs(home.carRoll) < 1e-9, "bank " + home.carRoll);
-  const lap = cruisePose(80000, "abyss", FLIGHT_SPACE);
-  assert.ok(Math.hypot(lap.carX - home.carX, lap.carZ - home.carZ) < 0.05, "lap " + lap.carX);
+  const away = (p) => Math.hypot(p.carX - p.worldX, p.carY - p.worldY, p.carZ - p.worldZ);
+  const early = cruisePose(8000, "abyss", FLIGHT_SPACE);
+  const inside = cruisePose(20000, "abyss", FLIGHT_SPACE);
+  const mid = cruisePose(40000, "abyss", FLIGHT_SPACE);
+  const beyond = cruisePose(70000, "abyss", FLIGHT_SPACE);
+  const far = cruisePose(80000, "abyss", FLIGHT_SPACE);
+  assert.ok(home.pathS < 0.001, "start " + home.pathS);
+  assert.ok(away(early) > HANG_RADIUS + 40, "left earth " + away(early));
+  assert.ok(away(inside) > away(early) + 150, "still leaving " + away(inside));
+  assert.ok(Math.abs(inside.pathS - inside.galaxyS) < inside.galaxyR, "in the milky way " + inside.pathS);
+  assert.ok(beyond.pathS > beyond.galaxyS + beyond.galaxyR, "past the milky way " + beyond.pathS);
+  const span = (p) => Math.hypot(p.carX - home.carX, p.carY - home.carY, p.carZ - home.carZ);
+  assert.ok(span(far) > span(mid) + 50, "still going " + span(far));
   const wildEarly = cruisePose(1000, "abyss", FLIGHT_SPACE);
   const wild = cruisePose(8000, "abyss", FLIGHT_SPACE);
   assert.equal(wildEarly.guestOn, false);
@@ -568,17 +579,15 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   const step = cruisePose(7000, "abyss", FLIGHT_SPACE);
   const nose = Math.abs(wild.carYaw - headingYaw(wild.carX - step.carX, wild.carZ - step.carZ));
   assert.ok(nose < 0.08, "nose " + nose);
-  const orbit = Math.hypot(wild.carX - wild.worldX, wild.carY - wild.worldY, wild.carZ - wild.worldZ);
-  assert.ok(Math.abs(orbit - HANG_RADIUS) < 0.05, "orbit " + orbit);
-  assert.ok(orbit > EARTH_RADIUS + 40);
-  assert.match(cruiseLine(0.1, "Go into the abyss"), /Gulf of America/);
-  assert.match(cruiseLine(0.1, "Go into the abyss"), /beautiful/);
+  assert.ok(away(wild) > HANG_RADIUS + 40, "not a hang orbit " + away(wild));
+  assert.match(cruiseLine(0.1, "Go into the abyss"), /Milky Way/);
+  assert.match(cruiseLine(0.1, "Go into the abyss"), /Leaving Earth/);
   assert.match(cruiseLine(0.1, "Go into the abyss"), /old roadster/);
-  assert.match(cruiseLine(0.1, "Go into the abyss"), /cruising for years/);
-  assert.match(spaceJoke(APPROACH_MS, "abyss").text, /Gulf of America/);
-  assert.match(spaceJoke(APPROACH_MS, "abyss").text, /beautiful/);
+  assert.match(cruiseLine(0.6, "Go into the abyss"), /abyss/);
+  assert.match(cruiseLine(1, "Go into the abyss"), /Beyond the Milky Way/);
+  assert.doesNotMatch(cruiseLine(0.1, "Go into the abyss"), /Gulf of America/);
+  assert.match(spaceJoke(APPROACH_MS, "abyss").text, /Milky Way/);
   assert.match(spaceJoke(APPROACH_MS, "abyss").text, /old roadster/);
-  assert.match(spaceJoke(APPROACH_MS, "abyss").text, /cruising for years/);
   const hop = cruisePose(0, "mars", FLIGHT_SPACE);
   assert.equal(hop.carYaw, headingYaw(1, 0));
   assert.equal(hop.carRoll, 0);
@@ -676,8 +685,12 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
     const alpha = Math.asin(Math.min(1, radius / ne));
     return (alpha - beta) * 180 / Math.PI;
   };
-  const raceLimb = disk(pair, wild.worldX, wild.worldY, wild.worldZ, EARTH_RADIUS);
-  assert.ok(raceLimb > 12 && raceLimb < 26, "race limb " + raceLimb);
+  const lookDir = [pair.lx - pair.x, pair.ly - pair.y, pair.lz - pair.z];
+  const earthDir = [wild.worldX - pair.x, wild.worldY - pair.y, wild.worldZ - pair.z];
+  const abyssLookLen = Math.hypot(...lookDir);
+  const abyssEarthLen = Math.hypot(...earthDir);
+  const intoSpace = (lookDir[0] * earthDir[0] + lookDir[1] * earthDir[1] + lookDir[2] * earthDir[2]) / (abyssLookLen * abyssEarthLen);
+  assert.ok(intoSpace < 0.2, "the window looks onward, Earth is behind " + intoSpace);
   for (const ms of [FLIGHT_ORBIT, FLIGHT_SECO, FLIGHT_RELEASE, FLIGHT_SPACE]) {
     const shot = flightCamera(ms);
     const limb = disk(shot, 0, earthCenter(), 0, EARTH_RADIUS);
@@ -728,6 +741,11 @@ test("the earth limb film sits on the real horizon and one play is one full turn
   assert.ok(Math.abs(lap - Math.PI * 2) < 1e-9, "full turn " + lap);
   const later = earthTurn(EARTH_TURN_MS + 250) - earthTurn(250);
   assert.ok(Math.abs(later - Math.PI * 2) < 1e-9, "closed " + later);
+  assert.ok(EARTH_TURN_MS > 30000, "slower than a ten second spin");
+  const step = earthTurn(1000) - earthTurn(0);
+  assert.ok(step < (1000 / 10042) * Math.PI * 2 * 0.5, "slower step " + step);
+  assert.ok(Math.abs(padEarthSpin(1, 1) - earthTurn(0)) < 1e-9, "a stuck flight clock is not the spin");
+  assert.ok(padEarthSpin(4000, 0) - padEarthSpin(0, 0) > 0.2, "the pad is already turning");
   const q0 = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, earthTurn(0), 0));
   const q1 = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, earthTurn(80), 0));
   const p0 = new THREE.Vector3(0, 0, 1).applyQuaternion(q0);
@@ -775,6 +793,17 @@ test("the earth limb film sits on the real horizon and one play is one full turn
   assert.ok(Math.abs(flight.earth.rotation.y - earthTurn(pose.ms)) < 1e-6, "yaw " + flight.earth.rotation.y);
   assert.equal(flight.earthFilm.visible, false);
   flight.earthFilm.userData.still = true;
+  placeFlight(flight, pose);
+  assert.equal(flight.earthFilm.visible, false, "a still photo does not cover the turning sphere");
+  flight.earthVideo = {
+    readyState: 2,
+    duration: 10,
+    currentTime: 0,
+    paused: true,
+    playbackRate: 1,
+    play() { this.paused = false; },
+  };
+  flight.earthFilm.userData.videoMap = { needsUpdate: false };
   placeFlight(flight, pose);
   assert.equal(flight.earthFilm.visible, true);
   assert.equal(flight.earthClouds.visible, false);
@@ -1024,6 +1053,8 @@ test("the roadster leaves the ship nose-first on +X", () => {
   assert.equal(flight.ship.visible, false);
   assert.equal(flight.worlds.mars.visible, false);
   assert.equal(flight.earth.visible, true);
+  assert.equal(flight.galaxy.visible, true);
+  assert.ok(flight.galaxy.position.distanceTo(new THREE.Vector3(race.galaxyX, race.galaxyY, race.galaxyZ)) < 1e-4);
   assert.ok(Math.abs(flight.earth.scale.x - EARTH_RADIUS) < 1e-6);
   assert.ok(flight.car.userData.flames.every((flame) => flame.scale.y < 2));
   flight.root.updateMatrixWorld(true);
@@ -1038,6 +1069,8 @@ test("the roadster leaves the ship nose-first on +X", () => {
   assert.ok(earthAlong > 0.9, "earth hood " + earthAlong);
   placeFlight(flight, cruisePose(1000, "abyss", FLIGHT_SPACE));
   assert.equal(flight.starman.visible, false);
+  placeFlight(flight, cruisePose(APPROACH_MS, "mars", FLIGHT_SPACE));
+  assert.equal(flight.galaxy.visible, false);
   const padLeft = flight.tower.getObjectByName("pad-left");
   const padRight = flight.tower.getObjectByName("pad-right");
   assert.ok(padLeft && padRight);

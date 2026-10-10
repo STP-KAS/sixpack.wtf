@@ -147,7 +147,7 @@ export const APPROACH_FAR = 48;
 export const FLIGHT_NOTE = "Space is broad. Speed and distance here are relative. Being among the stars in a vast space is hard, and with an average of 10 blocks per second it is possible. Enjoy the flight.";
 
 /** What Go into the abyss is. The old roadster is already out there. */
-export const ABYSS_HANG = "You hang out with the old roadster. It has been cruising for years.";
+export const ABYSS_HANG = "The roadster leaves Earth, crosses the Milky Way, and goes on into the abyss. The old roadster is already out there.";
 /** Unit sphere. The mesh scale is this radius, so the car stays a car in front of it. */
 export const EARTH_RADIUS = 280;
 /** The pad sits just above this. Launch and ejection use this fixed surface. */
@@ -157,17 +157,25 @@ export const HANG_ALT = 62;
 export const HANG_RADIUS = EARTH_RADIUS + HANG_ALT;
 /** Share of the orbit radius that sits above the equator. The rest is the horizontal circle. */
 const HANG_LIFT = 0.55;
-/** One calm lap. θ = 0 is the release point, tangent +X. */
-const HANG_LAP_MS = 80000;
-/** Photo yaw so the day side faces the hang camera. Launch uses the same coast. */
+/** Photo yaw so the day side faces the pad camera. Launch uses the same coast. */
 const EARTH_FACE = 1.15;
 /** Tips the pole so the pad sits on a mid-latitude coast, not the ice. */
 const EARTH_PAD_TILT = 1.05;
 /**
- * One play of the limb film. The mesh turns this far about its polar axis.
- * Positive yaw is west to east: from the north pole the surface moves counter-clockwise.
+ * One turn of the Earth, and one play of the limb film.
+ * The mesh turns this far about its polar axis. Positive yaw is west to east:
+ * from the north pole the surface moves counter-clockwise.
+ * The pad clock is wall time, so this turn is already going before liftoff.
  */
-export const EARTH_TURN_MS = 10042;
+export const EARTH_TURN_MS = 48000;
+/** The abyss run leaves Earth and is still going outward at this clock. */
+export const ABYSS_RUN_MS = 64000;
+/** Path length at the end of that run, scene units. Coasting continues after it. */
+export const ABYSS_RUN_FAR = 1400;
+/** Distance along the abyss path to the middle of the Milky Way disk. */
+export const ABYSS_GALAXY_S = 720;
+/** Radius of that disk. The path crosses it, then climbs out past the far rim. */
+export const ABYSS_GALAXY_R = 340;
 /** Texture v of the horizon in the portrait. Above it is space and is not drawn. */
 export const EARTH_LIMB_V = 0.61;
 /** Keeps the plate just outside the surface so the limb is not buried in the sphere. */
@@ -279,13 +287,13 @@ export function cruiseLine(progress, name) {
   const world = name || "that world";
   const abyss = /abyss/i.test(world);
   if (progress < APPROACH_MS / CRUISE_MS) {
-    if (abyss) return ABYSS_HANG + " The Gulf of America is beautiful.";
+    if (abyss) return "Leaving Earth. The Milky Way is ahead. The old roadster is already out there.";
     return "On the way to " + world + ". The climb already pitched downrange.";
   }
   if (abyss) {
-    if (progress < 0.55) return "The old roadster has been cruising for years. The Gulf of America. Wonderful.";
-    if (progress < 1) return ABYSS_HANG + " What a view. The gulf is wonderful.";
-    return "The old roadster has been cruising for years. The Gulf of America fills the window. Wonderful.";
+    if (progress < 0.55) return "Through the Milky Way. The old roadster has been out here for years.";
+    if (progress < 1) return "Past the Milky Way. This is the abyss. The old roadster is ahead.";
+    return "Beyond the Milky Way. The abyss goes on. The old roadster has been out here for years.";
   }
   if (progress < 1) return "At " + world + ". You can leave for another world, or go into the abyss.";
   return "At " + world + ". The bar is full. Leave for another world, or go into the abyss.";
@@ -336,10 +344,10 @@ const SPACE_JOKES = {
     "Saturn. The card can send you on.",
   ],
   abyss: [
-    ABYSS_HANG + " Look down. The Gulf of America is beautiful.",
-    "The old roadster has been cruising for years. Wonderful. That gulf fills the window.",
-    ABYSS_HANG + " The Gulf of America. Wonderful.",
-    "Beautiful. The old roadster has been cruising for years. The Gulf of America.",
+    "The Milky Way is ahead. The old roadster has been out here for years.",
+    "Through the galaxy. Earth is behind you. The old roadster is out here.",
+    "Past the Milky Way. This is the abyss.",
+    "Beyond the Milky Way. The old roadster is ahead. The abyss goes on.",
   ],
   any: [
     "The card stays open for the next hop.",
@@ -418,7 +426,7 @@ function jokeBursts(ms, sku, fromMs) {
   if (joke.index < 0) return [];
   const age = (t - APPROACH_MS - joke.index * JOKE_MS) / 1000;
   if (age >= 10) return [];
-  const at = sku === "abyss" ? abyssCar(t, fromMs) : orbitPoint(t, sku, fromMs);
+  const at = sku === "abyss" ? abyssPoint(t, fromMs) : orbitPoint(t, sku, fromMs);
   return [{
     index: joke.index,
     text: joke.text,
@@ -572,61 +580,99 @@ export function flightPose(ms) {
   };
 }
 
-/**
- * Earth orbit for the hang-out.
- * Center sits so θ = 0 is the release point. Circle is x = ρ sin θ, z = ρ cos θ, y = h.
- * Tangent (cos θ, −sin θ) matches headingYaw, the same −z nose as the town car.
- */
-function abyssCar(ms, fromMs) {
+/** Distance along the abyss path. Fast enough to leave Earth, then a long run outward. */
+function abyssDistance(ms) {
   const t = Math.max(0, ms);
+  const u = Math.min(1, t / ABYSS_RUN_MS);
+  const eased = 1 - (1 - u) * (1 - u);
+  const coast = Math.max(0, t - ABYSS_RUN_MS) / 1000 * 10;
+  return eased * ABYSS_RUN_FAR + coast;
+}
+
+/**
+ * Point on the departure path, relative to the release point.
+ * At s = 0 the tangent is +X, the same nose the ship used.
+ * Yaw and pitch derivatives stay 0 there, so headingYaw(1, 0) is the only start heading.
+ * The line rides the galactic plane, then climbs out past the far rim.
+ */
+function abyssLocal(s) {
+  const y = 40 * flightSmooth(s, 80, 260) + 180 * flightSmooth(s, 1000, 1320);
+  const z = 28 * flightSmooth(s, 120, 360) * (1 - flightSmooth(s, 860, 1080));
+  return { x: s, y, z };
+}
+
+/** Unit tangent of abyssLocal. Finite step, so the nose and the guest share one heading. */
+function abyssTangent(s) {
+  const a = abyssLocal(Math.max(0, s - 0.25));
+  const b = abyssLocal(s + 0.25);
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const dz = b.z - a.z;
+  const len = Math.hypot(dx, dy, dz) || 1;
+  return { tx: dx / len, ty: dy / len, tz: dz / len };
+}
+
+/** Release point and the Earth under it. The Earth stays put. The car leaves. */
+function abyssOrigin(fromMs) {
   const base = flightPose(Math.max(FLIGHT_SPACE, fromMs || FLIGHT_SPACE));
   const h = HANG_RADIUS * HANG_LIFT;
   const rho = HANG_RADIUS * Math.sqrt(1 - HANG_LIFT * HANG_LIFT);
-  const earthX = base.carX;
-  const earthY = base.carY - h;
-  const earthZ = base.carZ - rho;
-  const theta = (t / HANG_LAP_MS) * Math.PI * 2;
   return {
     base,
+    earthX: base.carX,
+    earthY: base.carY - h,
+    earthZ: base.carZ - rho,
+    x0: base.carX,
+    y0: base.carY,
+    z0: base.carZ,
+  };
+}
+
+/** Car on the abyss path. Jokes and the pose both read this. */
+function abyssPoint(ms, fromMs) {
+  const origin = abyssOrigin(fromMs);
+  const t = Math.max(0, ms);
+  const s = abyssDistance(t);
+  const local = abyssLocal(s);
+  const tan = abyssTangent(s);
+  return {
+    ...origin,
     t,
-    theta,
-    earthX,
-    earthY,
-    earthZ,
-    rho,
-    carX: earthX + rho * Math.sin(theta),
-    carY: earthY + h,
-    carZ: earthZ + rho * Math.cos(theta),
-    tx: Math.cos(theta),
-    tz: -Math.sin(theta),
+    s,
+    ...tan,
+    carX: origin.x0 + local.x,
+    carY: origin.y0 + local.y,
+    carZ: origin.z0 + local.z,
   };
 }
 
 /**
- * The old roadster leads on the same circle. The lead breathes, and a smaller
- * radial offset keeps the pass side by side instead of stacked on the look line.
- * At t = 8000 the along-track lead is about 8 scene units.
+ * The old roadster leads on the same path, ahead in the dark.
+ * The lead breathes. A small side step keeps the pass from stacking on the look line.
  */
-function guestChase(t, theta, rho) {
+function abyssGuest(t, s, tx, tz) {
   const phase = ((t - 8000) / 22000) * Math.PI * 2;
-  const lead = 0.028 + 0.012 * Math.sin(phase);
-  const guestTheta = theta + lead;
-  const grho = rho + 1.6 * Math.cos(phase);
+  const lead = 12 + 4 * Math.sin(phase);
+  const ahead = abyssLocal(s + lead);
   return {
-    theta: guestTheta,
-    rho: grho,
-    tx: Math.cos(guestTheta),
-    tz: -Math.sin(guestTheta),
+    ahead,
+    side: 1.6 * Math.cos(phase),
+    tx,
+    tz,
   };
 }
 
 function abyssPose(ms, fromMs) {
-  const at = abyssCar(ms, fromMs);
+  const at = abyssPoint(ms, fromMs);
   const t = at.t;
   const trip = tripBySku("abyss");
   const meet = t >= 2500;
-  const guest = guestChase(t, at.theta, at.rho);
+  const guest = abyssGuest(t, at.s, at.tx, at.tz);
   const bank = -0.26 * flightSmooth(t, 600, 2800);
+  const galaxy = abyssLocal(ABYSS_GALAXY_S);
+  const dx = at.carX - at.earthX;
+  const dy = at.carY - at.earthY;
+  const dz = at.carZ - at.earthZ;
   return {
     ...at.base,
     beat: "cruise",
@@ -634,16 +680,25 @@ function abyssPose(ms, fromMs) {
     dest: "abyss",
     destName: trip ? trip.name : "Go into the abyss",
     along: cruiseProgress(t),
-    theta: at.theta,
+    theta: Math.atan2(-at.tz, at.tx),
+    pathS: at.s,
+    galaxyS: ABYSS_GALAXY_S,
+    galaxyR: ABYSS_GALAXY_R,
     worldX: at.earthX,
     worldY: at.earthY,
     worldZ: at.earthZ,
-    orbitRadius: HANG_RADIUS,
+    galaxyX: at.x0 + galaxy.x,
+    galaxyY: at.y0 + galaxy.y,
+    galaxyZ: at.z0 + galaxy.z,
+    orbitRadius: Math.hypot(dx, dy, dz),
     carX: at.carX,
     carY: at.carY,
     carZ: at.carZ,
     carYaw: headingYaw(at.tx, at.tz),
     carRoll: bank,
+    tx: at.tx,
+    ty: at.ty,
+    tz: at.tz,
     nod: 0,
     spin: 0,
     earthSpin: earthTurn((fromMs || FLIGHT_SPACE) + t),
@@ -655,10 +710,10 @@ function abyssPose(ms, fromMs) {
     thrust: 1.1 * (1 - flightSmooth(t, 1200, 4500)),
     guestOn: meet,
     raceOpen: flightSmooth(t, 2500, 4800),
-    guestX: at.earthX + guest.rho * Math.sin(guest.theta),
-    guestY: at.carY,
-    guestZ: at.earthZ + guest.rho * Math.cos(guest.theta),
-    guestYaw: headingYaw(guest.tx, guest.tz),
+    guestX: at.x0 + guest.ahead.x + (-at.tz) * guest.side,
+    guestY: at.y0 + guest.ahead.y,
+    guestZ: at.z0 + guest.ahead.z + at.tx * guest.side,
+    guestYaw: headingYaw(at.tx, at.tz),
     guestRoll: bank,
     jokes: jokeBursts(t, "abyss", fromMs),
   };
@@ -807,20 +862,31 @@ export function raceWatch(pose, yaw = 0) {
   }, yaw, Math.PI / 2, dist);
 }
 
-/** Solo Earth shot, then a zoom out onto the race once the old roadster is in the window. */
-export function abyssWatch(pose, yaw = 0, pitch = 1.05) {
-  if (!pose.guestOn) return cruiseWatch(pose, yaw, pitch, 6);
-  const race = raceWatch(pose, yaw);
-  const open = pose.raceOpen != null ? pose.raceOpen : 1;
-  if (open >= 1) return race;
-  const solo = cruiseWatch(pose, yaw, Math.PI / 2, 6);
+/**
+ * Chase camera behind the roadster, looking ahead along the path.
+ * Earth falls behind. The Milky Way is the thing in the window.
+ * yaw steps to the side. pitch lifts the camera. Both cars stay on the look line.
+ */
+export function abyssWatch(pose, yaw = 0, pitch = Math.PI / 2) {
+  const tx = pose.tx != null ? pose.tx : 1;
+  const ty = pose.ty || 0;
+  const tz = pose.tz != null ? pose.tz : 0;
+  const guest = !!pose.guestOn;
+  const mx = guest ? (pose.carX + pose.guestX) / 2 : pose.carX;
+  const my = guest ? (pose.carY + pose.guestY) / 2 : pose.carY;
+  const mz = guest ? (pose.carZ + pose.guestZ) / 2 : pose.carZ;
+  const back = guest ? 22 : 16;
+  const level = Math.PI / 2;
+  const lift = 1.6 + ((pitch == null ? level : pitch) - level) * 6;
+  const side = Math.sin(yaw || 0) * 8;
+  const look = 40;
   return {
-    x: solo.x + (race.x - solo.x) * open,
-    y: solo.y + (race.y - solo.y) * open,
-    z: solo.z + (race.z - solo.z) * open,
-    lx: solo.lx + (race.lx - solo.lx) * open,
-    ly: solo.ly + (race.ly - solo.ly) * open,
-    lz: solo.lz + (race.lz - solo.lz) * open,
+    x: mx - tx * back + (-tz) * side,
+    y: my - ty * back + lift,
+    z: mz - tz * back + tx * side,
+    lx: mx + tx * look,
+    ly: my + ty * look,
+    lz: mz + tz * look,
   };
 }
 
@@ -842,10 +908,19 @@ export function earthCenter(_pose) {
   return EARTH_SURFACE - EARTH_RADIUS;
 }
 
-/** Yaw after one full turn. The same clock drives the limb film. */
+/** Yaw after elapsed milliseconds. The same clock drives the limb film. */
 export function earthTurn(ms) {
   const t = Math.max(0, Number(ms) || 0);
   return EARTH_FACE + (t / EARTH_TURN_MS) * Math.PI * 2;
+}
+
+/**
+ * Pad spin from wall time. origin is the first frame the flight scene is up.
+ * A stuck flight clock does not hold the Earth still.
+ */
+export function padEarthSpin(now, origin) {
+  const start = origin == null ? now : origin;
+  return earthTurn(Math.max(0, Number(now) - Number(start)));
 }
 
 function earthFocus(pose) {
@@ -2291,6 +2366,46 @@ export function padPair(clips, roll) {
   return { left, right: rest[i] };
 }
 
+/** Fixed Milky Way. The abyss path flies through the disk and out the far side. */
+function buildMilkyWay() {
+  const count = 3400;
+  const pos = new Float32Array(count * 3);
+  const col = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const arm = i % 5;
+    const u = Math.pow(hash(i, 1), 0.55);
+    const radius = 18 + u * ABYSS_GALAXY_R;
+    const spin = arm * (Math.PI * 2 / 5) + radius * 0.012 + hash(i, 2) * 0.45;
+    const x = Math.cos(spin) * radius;
+    const z = Math.sin(spin) * radius * 0.72;
+    const y = (hash(i, 3) - 0.5) * (8 + (1 - u) * 26);
+    pos[i * 3] = x;
+    pos[i * 3 + 1] = y;
+    pos[i * 3 + 2] = z;
+    const hot = hash(i, 4);
+    col[i * 3] = 0.72 + hot * 0.28;
+    col[i * 3 + 1] = 0.76 + hot * 0.16;
+    col[i * 3 + 2] = 0.92 + hot * 0.08;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  const points = new THREE.Points(
+    geo,
+    new THREE.PointsMaterial({
+      size: 2.4,
+      vertexColors: true,
+      sizeAttenuation: true,
+      fog: false,
+      depthWrite: false,
+    }),
+  );
+  points.name = "milky-way";
+  points.visible = false;
+  points.frustumCulled = false;
+  return points;
+}
+
 /** Stainless booster under a dark ship. The roadster rides in the bay, nose toward +X. */
 export function buildFlight() {
   const root = new THREE.Group();
@@ -2710,6 +2825,8 @@ export function buildFlight() {
   );
   stars.visible = false;
   root.add(stars);
+  const galaxy = buildMilkyWay();
+  root.add(galaxy);
   const splash = new THREE.Mesh(
     new THREE.CircleGeometry(3.4, 24),
     new THREE.MeshBasicMaterial({
@@ -2979,6 +3096,10 @@ export function buildFlight() {
     earthEl.playsInline = true;
     earthEl.preload = "auto";
     earthEl.src = "1984/earth.mp4";
+    earthEl.addEventListener("loadedmetadata", () => {
+      const duration = Number(earthEl.duration);
+      if (duration > 0) earthEl.playbackRate = (duration * 1000) / EARTH_TURN_MS;
+    });
     earthEl.setAttribute("playsinline", "");
     earthEl.setAttribute("muted", "");
     earthEl.setAttribute("aria-hidden", "true");
@@ -2989,7 +3110,7 @@ export function buildFlight() {
     earthFilm.userData.videoMap = videoMap;
     earthVideo = earthEl;
   }
-  return { root, pad, mount, tower, booster, ship, door, car, starman, plume, plumeHot, plumeSkirt, jets, diamonds, shipPlume, shipSkirt, shipJets, hullLine, fins, burn, earth, earthClouds, earthFilm, earthVideo, stars, steam, splash, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo, saturnFilm, saturnVideo, padScreens, padVideos, padFilmsDone: false };
+  return { root, pad, mount, tower, booster, ship, door, car, starman, plume, plumeHot, plumeSkirt, jets, diamonds, shipPlume, shipSkirt, shipJets, hullLine, fins, burn, earth, earthClouds, earthFilm, earthVideo, stars, galaxy, steam, splash, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo, saturnFilm, saturnVideo, padScreens, padVideos, padFilmsDone: false, spinOrigin: null };
 }
 
 function paintKoniCanvas(canvas, lines) {
@@ -3105,42 +3226,59 @@ function applyEarthFilm(film, frame) {
 }
 
 /**
- * The limb film plays while the real Earth is in the window.
+ * Keep the limb film on the pad spin.
+ * A playing file is left alone unless it has drifted a long way.
+ * A paused file is scrubbed, so a blocked play() still turns the picture.
+ */
+function syncEarthSpin(vid, spin) {
+  const duration = Number(vid.duration);
+  if (!(duration > 0)) return;
+  const rate = (duration * 1000) / EARTH_TURN_MS;
+  if (typeof vid.playbackRate === "number" && Math.abs((vid.playbackRate || 1) - rate) > 0.02) {
+    try { vid.playbackRate = rate; } catch (err) { /* the browser may lock the rate */ }
+  }
+  const turns = (spin - EARTH_FACE) / (Math.PI * 2);
+  const phase = ((turns % 1) + 1) % 1;
+  const vidPhase = (Number(vid.currentTime) % duration) / duration;
+  let delta = phase - vidPhase;
+  if (delta > 0.5) delta -= 1;
+  if (delta < -0.5) delta += 1;
+  const limit = vid.paused ? 0.01 : 0.2;
+  if (Math.abs(delta) > limit) vid.currentTime = phase * duration;
+}
+
+/**
+ * The limb film plays while the real Earth is in the launch window.
  * One play is one full turn. The climb sky stays the star field.
+ * The abyss leaves the plate down so the road into the galaxy stays clear.
+ * A still photograph does not cover the sphere: the sphere is what turns before the file plays.
  */
 function showEarthFilm(flight, pose) {
   const film = flight && flight.earthFilm;
   if (!film) return;
-  const show = !!(pose && flight.earth && flight.earth.visible);
+  const cruiseAway = !!(pose && pose.beat === "cruise" && pose.dest === "abyss");
+  const show = !!(pose && flight.earth && flight.earth.visible && !cruiseAway);
   const vid = flight.earthVideo;
   const videoMap = film.userData.videoMap;
-  const playing = !!(show && vid && videoMap && vid.readyState >= 2);
-  const picture = !!(show && (playing || film.userData.still));
-  film.visible = picture;
+  const ready = !!(show && vid && videoMap && vid.readyState >= 2 && Number(vid.duration) > 0);
+  film.visible = ready;
   if (!show) {
     if (vid && !vid.paused && typeof vid.pause === "function") vid.pause();
     return;
   }
+  if (!ready) return;
   let cam = null;
   if (pose.beat !== "cruise" && pose.ms != null) cam = flightCamera(pose.ms);
   else if (pose.carX != null) cam = { x: pose.carX, y: pose.carY, z: pose.carZ, lx: pose.worldX, ly: pose.worldY, lz: pose.worldZ };
   if (!cam) return;
   applyEarthFilm(film, earthFilmFrame(pose, cam));
-  if (!playing) return;
   if (!film.userData.videoOn && film.material.uniforms && film.material.uniforms.map) {
     film.material.uniforms.map.value = videoMap;
     film.userData.videoOn = true;
   }
   videoMap.needsUpdate = true;
-  const duration = Number(vid.duration);
-  if (duration > 0) {
-    const posePhase = ((pose.ms || 0) % EARTH_TURN_MS) / EARTH_TURN_MS;
-    const vidPhase = (vid.currentTime % duration) / duration;
-    let delta = posePhase - vidPhase;
-    if (delta > 0.5) delta -= 1;
-    if (delta < -0.5) delta += 1;
-    if (Math.abs(delta) > 0.08) vid.currentTime = posePhase * duration;
-  }
+  const spin = pose.earthSpin != null ? pose.earthSpin : earthTurn(pose.ms || 0);
+  syncEarthSpin(vid, spin);
   if (vid.paused && typeof vid.play === "function") {
     const pending = vid.play();
     if (pending && typeof pending.catch === "function") pending.catch(() => {});
@@ -3275,8 +3413,7 @@ export function placeFlight(flight, pose) {
     }
     flight.earth.scale.setScalar(EARTH_RADIUS);
     const spin = pose.earthSpin != null ? pose.earthSpin : earthTurn(pose.ms || 0);
-    if (hang) flight.earth.rotation.set(0, spin, 0);
-    else flight.earth.rotation.set(EARTH_PAD_TILT, spin, 0);
+    flight.earth.rotation.set(EARTH_PAD_TILT, spin, 0);
     if (flight.earthClouds) flight.earthClouds.rotation.y = spin * 0.4;
   }
   if (flight.worlds) {
@@ -3291,6 +3428,11 @@ export function placeFlight(flight, pose) {
       if (body.userData.ground) body.userData.ground.rotation.y = turn;
       else body.rotation.y = turn;
     }
+  }
+  if (flight.galaxy) {
+    const on = cruising && pose.dest === "abyss";
+    flight.galaxy.visible = on;
+    if (on) flight.galaxy.position.set(pose.galaxyX || 0, pose.galaxyY || 0, pose.galaxyZ || 0);
   }
   showSaturnFilm(flight, pose);
   showEarthFilm(flight, pose);
@@ -4682,6 +4824,8 @@ export function mountWorld(canvas, map, api) {
     flight.root.visible = true;
     const cruise = api.cruise ? api.cruise() : null;
     const pose = cruise ? cruisePose(cruise.ms, cruise.sku, cruise.from) : flightPose(ms);
+    if (flight.spinOrigin == null) flight.spinOrigin = now;
+    pose.earthSpin = padEarthSpin(now, flight.spinOrigin);
     placeFlight(flight, pose);
     // The corner card shows this line.
     if (flight.jokes) {
@@ -4781,6 +4925,7 @@ export function mountWorld(canvas, map, api) {
       renderer.render(scene, camera);
       return;
     }
+    flight.spinOrigin = null;
     if (flightWas !== 0) {
       lapLeft = 0;
       if (camera.fov !== 42) {

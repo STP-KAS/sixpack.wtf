@@ -18,7 +18,7 @@ import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=5";
 import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=8";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=8";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_RELEASE, FLIGHT_STAGE, HOT_STAGE_MS, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=62";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_RELEASE, FLIGHT_STAGE, HOT_STAGE_MS, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=63";
 import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=6";
 const TUNNEL = "https://authority-fireplace-earlier-spirit.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -248,12 +248,11 @@ function phoneLayout() {
   return window.matchMedia("(max-width: 980px)").matches;
 }
 
-/** On a phone the only joke is the abyss line about the old roadster and the Gulf of America. */
+/** On a phone the only jokes are the abyss lines. */
 function jokeForScreen(text, sku) {
   if (!text) return "";
   if (!phoneLayout()) return text;
   if (sku !== "abyss") return "";
-  if (!/old roadster/i.test(text) || !/gulf/i.test(text)) return "";
   return text;
 }
 
@@ -711,6 +710,11 @@ function endAllowed(now) {
   return flightOfferEnd(flightElapsed(now));
 }
 
+function setFlightOffer(on) {
+  const root = document.querySelector(".page-1984 .kw");
+  if (root) root.classList.toggle("flight-offer-on", !!on);
+}
+
 function endLaunch() {
   if (!endAllowed(performance.now())) return;
   stopLaunchSound();
@@ -736,6 +740,9 @@ function endLaunch() {
   if (bar) bar.hidden = true;
   if (note) note.hidden = true;
   if (end) end.hidden = true;
+  const endPop = document.getElementById("flight-end-pop");
+  if (endPop) endPop.hidden = true;
+  setFlightOffer(false);
   if (planets) planets.hidden = true;
   state.destOpen = false;
   const dest = document.getElementById("flight-dest");
@@ -770,6 +777,7 @@ function returnFromFlight() {
   state.destOpen = false;
   state.releasePlayed = false;
   state.commsPlayed = false;
+  setFlightOffer(false);
   state.aboard = true;
   state.path = [];
   state.arrived = null;
@@ -904,13 +912,16 @@ function paintFlightCard(now) {
   if (note) {
     note.hidden = !(offer || cruising);
     note.textContent = cruising && state.cruiseSku === "abyss"
-      ? ABYSS_HANG + " The Gulf of America is beautiful. Wonderful."
+      ? ABYSS_HANG
       : FLIGHT_NOTE;
   }
   const panel = document.getElementById("flight-offer");
   if (panel) panel.hidden = !offer;
   const end = document.getElementById("flight-end");
+  const endPop = document.getElementById("flight-end-pop");
   if (end) end.hidden = !offer;
+  if (endPop) endPop.hidden = !offer;
+  setFlightOffer(!!offer);
   if (!cruising && flightBeat(flightMs) === "liftoff") commsSound();
   if (!cruising && flightBeat(flightMs) !== "light") stopPadFilms();
   if (!cruising) syncFlightFilms(flightMs);
@@ -2906,8 +2917,8 @@ function paintGuide() {
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The mint and the bank open as soon as you walk in. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. Use a funded test address. This money is tKAS. With tKAS you can go to the bank.</li>" +
     "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is 87 times the standard Testnet 10 rate, and it is extra KAS. When a payment settles, it goes through. On a tKAS send, confirmations are still ongoing. The steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate.</li>" +
     "<li>Venn's bank opens as a swap. You pay one asset and you receive another: tKAS, POCencept, or KUSDT. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on the card.</li>" +
-    "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe, take a seat and the menu blinks, or order at the counter. The mint opens when you walk in. Launch, while you are in the car and outside, plays two short films beside the rocket first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. The tower stands beside it. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. After the booster is gone, the ship coasts, then the roadster leaves. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: you hang out with the old roadster. It has been cruising for years. The way there is ten seconds. Out there the two cars race in orbit around the Earth. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
-    "<li>The Moon map is NASA. Mars and Jupiter are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0. The Earth limb plays the Earth film. One play is one full turn, west to east. The Saturn cruise plays the Saturn film.</li>" +
+    "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe, take a seat and the menu blinks, or order at the counter. The mint opens when you walk in. Launch, while you are in the car and outside, plays two short films beside the rocket first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. The tower stands beside it. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. After the booster is gone, the ship coasts, then the roadster leaves. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: the roadster leaves Earth, flies through the Milky Way, and keeps going past it. The old roadster is already out there. The way there is ten seconds. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
+    "<li>The Moon map is NASA. Mars and Jupiter are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0. The Earth limb plays the Earth film. One play is one full turn, west to east. The Earth is already turning on the pad, before liftoff, and the turn is slow. The Saturn cruise plays the Saturn film.</li>" +
     "<li>The balances stay in a clear bar under the site tabs, on the square, in a shop, in the cinema, and on a flight. It reads tKAS, POC, and KUSDT, then the kaspatest address and the chosen .kas name. domain/address on that bar changes the default name. Bank is on that bar. With the bank open, that bar lists the minted tokens and the hunt you are in.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Every film is labeled this desk agrees. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. On a phone, the snacks start as a small tab so the film stays clear. Close snacks puts that list away. Snacks brings it back. Neither one starts a purchase. The current film stays up until the next one has a picture. The next film starts when one ends. Exit to the square leaves the cinema.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +

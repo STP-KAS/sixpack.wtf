@@ -317,6 +317,27 @@ body.page-1984 main.kw-stage {
 .flight-film[hidden] { display: none; }
 .kw.room .kw-launch,
 .kw.flight .kw-launch { display: none; }
+.flight-end-pop {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 8;
+  width: min(280px, calc(100% - 24px));
+  padding: 0.75rem 0.8rem;
+  background: rgba(12, 14, 18, 0.92);
+  border: 2px solid #e7c27a;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.flight-end-pop[hidden] { display: none; }
+.flight-end-pop button {
+  display: block;
+  width: 100%;
+  min-height: 3.4rem;
+  padding: 0.8rem 0.7rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-align: center;
+}
 .flight-card {
   position: absolute;
   left: auto;
@@ -325,7 +346,7 @@ body.page-1984 main.kw-stage {
   top: auto;
   transform: none;
   z-index: 6;
-  width: min(440px, calc(100% - 16px));
+  width: min(520px, calc(100% - 16px));
   max-height: calc(100dvh - 4.2rem);
   overflow-x: hidden;
   overflow-y: auto;
@@ -401,21 +422,27 @@ body.page-1984 main.kw-stage {
 .flight-planets {
   display: flex;
   flex-direction: column;
-  gap: 0.28rem;
-  margin-top: 0.35rem;
-  max-height: 240px;
+  gap: 0.5rem;
+  margin-top: 0.45rem;
+  max-height: min(52vh, 520px);
   overflow-y: auto;
 }
 .flight-dest-title {
   margin: 0;
   color: #f2d48a;
-  font-size: 0.95rem;
+  font-size: 1.45rem;
   font-weight: 700;
+}
+#flight-dest {
+  min-height: 3.6rem;
+  padding: 0.9rem 0.75rem;
+  font-size: 1.35rem;
 }
 .flight-planets .buy {
   width: 100%;
-  font-size: 0.82rem;
-  padding: 0.32rem 0.4rem;
+  font-size: 1.08rem;
+  min-height: 3.1rem;
+  padding: 0.7rem 0.55rem;
 }
 .flight-planets .rail-bar { width: 100%; }
 .flight-card .booth-tabs button,
@@ -1926,29 +1953,42 @@ a { color: #f2d48a; }
   .phone-fit .flight-bar { height: 1.15rem; }
   .phone-fit .flight-bar-label { font-size: 0.82rem; }
   .phone-fit #flight-dest {
-    font-size: 0.82rem;
-    padding: 0.32rem 0.4rem;
-    min-height: 2.2rem;
+    font-size: 1rem;
+    padding: 0.55rem 0.45rem;
+    min-height: 2.8rem;
+  }
+  .phone-fit .flight-end-pop {
+    left: 8px;
+    bottom: 8px;
+    width: min(220px, 46vw);
+    z-index: 8;
+    padding: 0.45rem 0.5rem;
+  }
+  .phone-fit .flight-end-pop button {
+    min-height: 2.8rem;
+    font-size: 0.95rem;
+    padding: 0.45rem 0.4rem;
+  }
+  .phone-fit .kw.flight-offer-on .flight-card,
+  .phone-fit .kw.flight-offer-on .flight-card.ended {
+    left: auto;
+    right: 8px;
+    width: calc(54% - 8px);
+    max-height: 58%;
   }
   .phone-fit .flight-planets {
-    position: fixed;
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    z-index: 30;
-    max-height: 46dvh;
+    position: static;
+    max-height: 34dvh;
     margin: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 0.4rem 0.45rem 0.5rem;
-    background: rgba(12, 14, 18, 0.94);
-    border: 2px solid #e7c27a;
+    padding: 0.15rem 0 0.2rem;
   }
   .phone-fit .flight-planets .buy,
   .phone-fit .flight-planets .booth-tabs button {
-    font-size: 0.78rem;
-    padding: 0.28rem 0.35rem;
-    min-height: 2.1rem;
+    font-size: 0.92rem;
+    padding: 0.45rem 0.4rem;
+    min-height: 2.6rem;
   }
   .phone-fit .show-card {
     left: 8px;
