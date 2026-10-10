@@ -18,7 +18,7 @@ import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=5";
 import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=8";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=8";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_RELEASE, FLIGHT_STAGE, HOT_STAGE_MS, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=63";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_RELEASE, FLIGHT_STAGE, HOT_STAGE_MS, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=64";
 import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=6";
 const TUNNEL = "https://authority-fireplace-earlier-spirit.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);

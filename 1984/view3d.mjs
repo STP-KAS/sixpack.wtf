@@ -162,12 +162,17 @@ const EARTH_FACE = 1.15;
 /** Tips the pole so the pad sits on a mid-latitude coast, not the ice. */
 const EARTH_PAD_TILT = 1.05;
 /**
- * One turn of the Earth, and one play of the limb film.
- * The mesh turns this far about its polar axis. Positive yaw is west to east:
- * from the north pole the surface moves counter-clockwise.
- * The pad clock is wall time, so this turn is already going before liftoff.
+ * One turn of the Earth after the stack is above the stratosphere, and one play of the limb film.
+ * 5,560 seconds is 92 minutes 40 seconds, one ISS orbit.
+ * From low orbit the ground comes around on that clock.
+ * Positive yaw is west to east: from the north pole the surface moves counter-clockwise.
+ * Until the stack clears the stratopause, the pad, the tower, and the rocket share one patch, so this clock does not run.
  */
-export const EARTH_TURN_MS = 48000;
+export const EARTH_TURN_MS = 5560000;
+/** The stratopause. The turn waits until the stack is above this. */
+export const STRATOPAUSE_KM = 50;
+/** Booster cutoff in this climb stands for a Falcon 9 cutoff near 72 km. */
+const BOOSTER_CUTOFF_KM = 72;
 /** The abyss run leaves Earth and is still going outward at this clock. */
 export const ABYSS_RUN_MS = 64000;
 /** Path length at the end of that run, scene units. Coasting continues after it. */
@@ -908,19 +913,37 @@ export function earthCenter(_pose) {
   return EARTH_SURFACE - EARTH_RADIUS;
 }
 
-/** Yaw after elapsed milliseconds. The same clock drives the limb film. */
-export function earthTurn(ms) {
-  const t = Math.max(0, Number(ms) || 0);
-  return EARTH_FACE + (t / EARTH_TURN_MS) * Math.PI * 2;
+/** Scene-unit altitude of the stratopause. Stage altitude stands for booster cutoff. */
+export function stratopauseAlt() {
+  return flightPose(FLIGHT_STAGE).stackY * (STRATOPAUSE_KM / BOOSTER_CUTOFF_KM);
+}
+
+let stratosphereExitCache = null;
+
+/** Flight clock when stackY first reaches the stratopause. The turn starts here. */
+export function stratosphereExitMs() {
+  if (stratosphereExitCache != null) return stratosphereExitCache;
+  const alt = stratopauseAlt();
+  let lo = FLIGHT_LIFTOFF;
+  let hi = FLIGHT_STAGE;
+  for (let i = 0; i < 28; i++) {
+    const mid = (lo + hi) / 2;
+    if (flightPose(mid).stackY < alt) lo = mid;
+    else hi = mid;
+  }
+  stratosphereExitCache = hi;
+  return stratosphereExitCache;
 }
 
 /**
- * Pad spin from wall time. origin is the first frame the flight scene is up.
- * A stuck flight clock does not hold the Earth still.
+ * Yaw after elapsed flight milliseconds. The same clock drives the limb film.
+ * The value stays on the pad face through the air. Above the stratosphere it advances one ISS orbit per turn.
  */
-export function padEarthSpin(now, origin) {
-  const start = origin == null ? now : origin;
-  return earthTurn(Math.max(0, Number(now) - Number(start)));
+export function earthTurn(ms) {
+  const t = Math.max(0, Number(ms) || 0);
+  const exit = stratosphereExitMs();
+  if (t <= exit) return EARTH_FACE;
+  return EARTH_FACE + ((t - exit) / EARTH_TURN_MS) * Math.PI * 2;
 }
 
 function earthFocus(pose) {
@@ -2565,7 +2588,10 @@ export function buildFlight() {
       padVideos.push(film);
     }
   }
-  root.add(pad, mount, tower);
+  const ground = new THREE.Group();
+  ground.name = "launch-ground";
+  ground.add(pad, mount, tower);
+  root.add(ground);
 
   const booster = new THREE.Group();
   const hull = new THREE.MeshStandardMaterial({ color: "#f4f7fb", metalness: 0.42, roughness: 0.28 });
@@ -2841,7 +2867,7 @@ export function buildFlight() {
   splash.rotation.x = -Math.PI / 2;
   splash.position.y = 0.05;
   splash.visible = false;
-  root.add(splash);
+  ground.add(splash);
   const steam = [];
   for (let i = 0; i < 5; i++) {
     const puff = new THREE.Mesh(
@@ -2849,7 +2875,7 @@ export function buildFlight() {
       new THREE.MeshBasicMaterial({ color: "#f4f7fb", transparent: true, opacity: 0, depthWrite: false }),
     );
     puff.position.set((i - 2) * 0.8, 0.6, 1.4);
-    root.add(puff);
+    ground.add(puff);
     steam.push(puff);
   }
   const worlds = {};
@@ -3098,7 +3124,12 @@ export function buildFlight() {
     earthEl.src = "1984/earth.mp4";
     earthEl.addEventListener("loadedmetadata", () => {
       const duration = Number(earthEl.duration);
-      if (duration > 0) earthEl.playbackRate = (duration * 1000) / EARTH_TURN_MS;
+      if (duration > 0) {
+        const rate = (duration * 1000) / EARTH_TURN_MS;
+        if (rate >= 0.0625 && rate <= 16) {
+          try { earthEl.playbackRate = rate; } catch (err) { /* the browser may lock the rate */ }
+        }
+      }
     });
     earthEl.setAttribute("playsinline", "");
     earthEl.setAttribute("muted", "");
@@ -3110,7 +3141,7 @@ export function buildFlight() {
     earthFilm.userData.videoMap = videoMap;
     earthVideo = earthEl;
   }
-  return { root, pad, mount, tower, booster, ship, door, car, starman, plume, plumeHot, plumeSkirt, jets, diamonds, shipPlume, shipSkirt, shipJets, hullLine, fins, burn, earth, earthClouds, earthFilm, earthVideo, stars, galaxy, steam, splash, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo, saturnFilm, saturnVideo, padScreens, padVideos, padFilmsDone: false, spinOrigin: null };
+  return { root, ground, pad, mount, tower, booster, ship, door, car, starman, plume, plumeHot, plumeSkirt, jets, diamonds, shipPlume, shipSkirt, shipJets, hullLine, fins, burn, earth, earthClouds, earthFilm, earthVideo, stars, galaxy, steam, splash, engines, worlds, jokes, koni, koniScreen, spaceSky, spaceVideo, saturnFilm, saturnVideo, padScreens, padVideos, padFilmsDone: false };
 }
 
 function paintKoniCanvas(canvas, lines) {
@@ -3234,8 +3265,13 @@ function syncEarthSpin(vid, spin) {
   const duration = Number(vid.duration);
   if (!(duration > 0)) return;
   const rate = (duration * 1000) / EARTH_TURN_MS;
-  if (typeof vid.playbackRate === "number" && Math.abs((vid.playbackRate || 1) - rate) > 0.02) {
-    try { vid.playbackRate = rate; } catch (err) { /* the browser may lock the rate */ }
+  const canPlay = rate >= 0.0625 && rate <= 16;
+  if (canPlay) {
+    if (typeof vid.playbackRate === "number" && Math.abs((vid.playbackRate || 1) - rate) > 0.02) {
+      try { vid.playbackRate = rate; } catch (err) { /* the browser may lock the rate */ }
+    }
+  } else if (!vid.paused && typeof vid.pause === "function") {
+    vid.pause();
   }
   const turns = (spin - EARTH_FACE) / (Math.PI * 2);
   const phase = ((turns % 1) + 1) % 1;
@@ -3279,10 +3315,32 @@ function showEarthFilm(flight, pose) {
   videoMap.needsUpdate = true;
   const spin = pose.earthSpin != null ? pose.earthSpin : earthTurn(pose.ms || 0);
   syncEarthSpin(vid, spin);
-  if (vid.paused && typeof vid.play === "function") {
+  const rate = (Number(vid.duration) * 1000) / EARTH_TURN_MS;
+  if (rate >= 0.0625 && rate <= 16 && vid.paused && typeof vid.play === "function") {
     const pending = vid.play();
     if (pending && typeof pending.catch === "function") pending.catch(() => {});
   }
+}
+
+/**
+ * Keep the pad, the tower, and the plume on the same patch of ground as the Earth yaw.
+ * The rocket stays on the flight root, so once the turn starts it leaves that patch.
+ * At the pad face the delta is identity and the built positions stay put.
+ */
+function parkLaunchGround(ground, spin) {
+  const probe = new THREE.Object3D();
+  probe.rotation.set(EARTH_PAD_TILT, EARTH_FACE, 0);
+  probe.updateMatrix();
+  const qFace = probe.quaternion.clone();
+  probe.rotation.set(EARTH_PAD_TILT, spin, 0);
+  probe.updateMatrix();
+  const qNow = probe.quaternion.clone();
+  qFace.invert();
+  qNow.multiply(qFace);
+  const center = new THREE.Vector3(0, earthCenter(), 0);
+  const spun = center.clone().applyQuaternion(qNow);
+  ground.quaternion.copy(qNow);
+  ground.position.copy(center).sub(spun);
 }
 
 /** The next launch may play the two films again. */
@@ -3405,6 +3463,7 @@ export function placeFlight(flight, pose) {
   }
   const hang = cruising && pose.dest === "abyss";
   flight.earth.visible = hang || !cruising;
+  const spin = pose.earthSpin != null ? pose.earthSpin : earthTurn(pose.ms || 0);
   if (flight.earth.visible) {
     if (hang) {
       flight.earth.position.set(pose.worldX, pose.worldY, pose.worldZ);
@@ -3412,9 +3471,16 @@ export function placeFlight(flight, pose) {
       flight.earth.position.set(0, earthCenter(pose), 0);
     }
     flight.earth.scale.setScalar(EARTH_RADIUS);
-    const spin = pose.earthSpin != null ? pose.earthSpin : earthTurn(pose.ms || 0);
     flight.earth.rotation.set(EARTH_PAD_TILT, spin, 0);
     if (flight.earthClouds) flight.earthClouds.rotation.y = spin * 0.4;
+  }
+  if (flight.ground) {
+    if (cruising) {
+      flight.ground.quaternion.identity();
+      flight.ground.position.set(0, 0, 0);
+    } else {
+      parkLaunchGround(flight.ground, spin);
+    }
   }
   if (flight.worlds) {
     for (const key of Object.keys(flight.worlds)) {
@@ -4824,8 +4890,6 @@ export function mountWorld(canvas, map, api) {
     flight.root.visible = true;
     const cruise = api.cruise ? api.cruise() : null;
     const pose = cruise ? cruisePose(cruise.ms, cruise.sku, cruise.from) : flightPose(ms);
-    if (flight.spinOrigin == null) flight.spinOrigin = now;
-    pose.earthSpin = padEarthSpin(now, flight.spinOrigin);
     placeFlight(flight, pose);
     // The corner card shows this line.
     if (flight.jokes) {
@@ -4925,7 +4989,6 @@ export function mountWorld(canvas, map, api) {
       renderer.render(scene, camera);
       return;
     }
-    flight.spinOrigin = null;
     if (flightWas !== 0) {
       lapLeft = 0;
       if (camera.fov !== 42) {

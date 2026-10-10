@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, HOT_STAGE_MS, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, countdownMs, COUNT_HOLD_MS, cruiseWatch, abyssWatch, raceWatch, flightFog, spaceBackdrop, spaceSkyMode, drives, EARTH_RADIUS, EARTH_SURFACE, EARTH_LIMB_V, EARTH_TURN_MS, HANG_RADIUS, WORLD_RADIUS, SATURN_FILM_H, SATURN_WATCH, saturnFilmFrame, aimUpright, earthCenter, earthFilmFrame, earthTurn, padEarthSpin, escapeRoom, fitScreen, portraitDistance, pointerScale, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
+import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, HOT_STAGE_MS, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, countdownMs, COUNT_HOLD_MS, cruiseWatch, abyssWatch, raceWatch, flightFog, spaceBackdrop, spaceSkyMode, drives, EARTH_RADIUS, EARTH_SURFACE, EARTH_LIMB_V, EARTH_TURN_MS, HANG_RADIUS, WORLD_RADIUS, SATURN_FILM_H, SATURN_WATCH, saturnFilmFrame, aimUpright, earthCenter, earthFilmFrame, earthTurn, stratosphereExitMs, stratopauseAlt, escapeRoom, fitScreen, portraitDistance, pointerScale, flightBeat, flightCamera, flightClock, flightLine, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
 
 test("a long left-button drag turns most of a circle and stays short of two", () => {
   const sweep = 1000 * LOOK_YAW;
@@ -736,18 +736,21 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.equal(spaceSkyMode(flightPose(0)), "off");
 });
 
-test("the earth limb film sits on the real horizon and one play is one full turn", () => {
-  const lap = earthTurn(EARTH_TURN_MS) - earthTurn(0);
-  assert.ok(Math.abs(lap - Math.PI * 2) < 1e-9, "full turn " + lap);
-  const later = earthTurn(EARTH_TURN_MS + 250) - earthTurn(250);
-  assert.ok(Math.abs(later - Math.PI * 2) < 1e-9, "closed " + later);
-  assert.ok(EARTH_TURN_MS > 30000, "slower than a ten second spin");
-  const step = earthTurn(1000) - earthTurn(0);
-  assert.ok(step < (1000 / 10042) * Math.PI * 2 * 0.5, "slower step " + step);
-  assert.ok(Math.abs(padEarthSpin(1, 1) - earthTurn(0)) < 1e-9, "a stuck flight clock is not the spin");
-  assert.ok(padEarthSpin(4000, 0) - padEarthSpin(0, 0) > 0.2, "the pad is already turning");
-  const q0 = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, earthTurn(0), 0));
-  const q1 = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, earthTurn(80), 0));
+test("the earth holds through the air, then turns one ISS orbit", () => {
+  const exit = stratosphereExitMs();
+  assert.ok(exit > FLIGHT_LIFTOFF && exit < FLIGHT_STAGE, "exit " + exit);
+  assert.ok(Math.abs(flightPose(exit).stackY - stratopauseAlt()) < 0.02, "stratopause " + flightPose(exit).stackY);
+  assert.ok(Math.abs(earthTurn(exit) - earthTurn(0)) < 1e-9, "held through the air");
+  assert.ok(Math.abs(earthTurn(FLIGHT_LIFTOFF) - earthTurn(0)) < 1e-9, "held on the pad");
+  const lap = earthTurn(exit + EARTH_TURN_MS) - earthTurn(exit);
+  assert.ok(Math.abs(lap - Math.PI * 2) < 1e-6, "full turn " + lap);
+  const later = earthTurn(exit + EARTH_TURN_MS + 250) - earthTurn(exit + 250);
+  assert.ok(Math.abs(later - Math.PI * 2) < 1e-6, "closed " + later);
+  assert.ok(EARTH_TURN_MS > 90 * 60 * 1000 && EARTH_TURN_MS < 100 * 60 * 1000, "ISS orbit " + EARTH_TURN_MS);
+  const step = earthTurn(exit + 1000) - earthTurn(exit);
+  assert.ok(step > 0 && step < (1000 / 10042) * Math.PI * 2 * 0.5, "slower step " + step);
+  const q0 = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, earthTurn(exit), 0));
+  const q1 = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, earthTurn(exit + 60000), 0));
   const p0 = new THREE.Vector3(0, 0, 1).applyQuaternion(q0);
   const p1 = new THREE.Vector3(0, 0, 1).applyQuaternion(q1);
   const east = new THREE.Vector3(1, 0, 0).applyQuaternion(q0);
@@ -789,6 +792,41 @@ test("the earth limb film sits on the real horizon and one play is one full turn
   } finally {
     globalThis.document = previous;
   }
+  const onEarth = (node) => {
+    flight.root.updateMatrixWorld(true);
+    return node.getWorldPosition(new THREE.Vector3()).applyMatrix4(flight.earth.matrixWorld.clone().invert());
+  };
+  placeFlight(flight, flightPose(0));
+  flight.root.updateMatrixWorld(true);
+  const padWorld0 = flight.pad.getWorldPosition(new THREE.Vector3());
+  const padHome = onEarth(flight.pad);
+  const column = flight.tower.getObjectByName("launch-tower");
+  const columnHome = onEarth(column);
+  const yawHome = flight.earth.rotation.y;
+  assert.equal(flight.pad.parent, flight.ground);
+  assert.equal(flight.mount.parent, flight.ground);
+  assert.equal(flight.tower.parent, flight.ground);
+  assert.equal(flight.booster.parent, flight.root);
+  assert.equal(flight.ship.parent, flight.root);
+  assert.ok(flight.ground.position.length() < 1e-4, "pad face stays built");
+  const air = flightPose(FLIGHT_LIFTOFF + 4000);
+  assert.ok(air.stackY > 5 && air.stackY < stratopauseAlt(), "still in the air " + air.stackY);
+  placeFlight(flight, air);
+  flight.root.updateMatrixWorld(true);
+  assert.ok(flight.pad.getWorldPosition(new THREE.Vector3()).distanceTo(padWorld0) < 1e-3, "pad stays put in the air");
+  assert.ok(Math.abs(flight.earth.rotation.y - yawHome) < 1e-9, "earth waits");
+  const lateMs = exit + 60000;
+  placeFlight(flight, flightPose(lateMs));
+  assert.ok(onEarth(flight.pad).distanceTo(padHome) < 1e-3, "base stays on its patch");
+  assert.ok(onEarth(column).distanceTo(columnHome) < 1e-3, "tower stays on its patch");
+  assert.ok(flight.earth.rotation.y - yawHome > 0.05, "orbit yaw " + (flight.earth.rotation.y - yawHome));
+  flight.root.updateMatrixWorld(true);
+  const padLateWorld = flight.pad.getWorldPosition(new THREE.Vector3());
+  const boostWorld = flight.booster.getWorldPosition(new THREE.Vector3());
+  const shipWorld = flight.ship.getWorldPosition(new THREE.Vector3());
+  assert.ok(boostWorld.distanceTo(padLateWorld) > 15, "rocket leaves the base " + boostWorld.distanceTo(padLateWorld));
+  assert.ok(shipWorld.distanceTo(padLateWorld) > 15, "ship leaves the base " + shipWorld.distanceTo(padLateWorld));
+  assert.ok(Math.abs(boostWorld.x - flightPose(lateMs).boosterX) < 2, "rocket keeps the flight path");
   placeFlight(flight, pose);
   assert.ok(Math.abs(flight.earth.rotation.y - earthTurn(pose.ms)) < 1e-6, "yaw " + flight.earth.rotation.y);
   assert.equal(flight.earthFilm.visible, false);
