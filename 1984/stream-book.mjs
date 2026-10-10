@@ -12,16 +12,62 @@ const KIND_IDS = new Set(STREAM_KINDS.map((row) => row.id));
 export const EXAMPLE_ID = "desk-example";
 export const EXAMPLE_CENTS = 15;
 
+export const STREAM_LEDE =
+  "Pictures for the audience. For years the studios put the lecture ahead of the story. This shelf keeps the older standard: a story, faces you can believe, and a world that looks made. Superintelligence makes the next pictures to that standard. Series, remakes, documentaries, and shorts. Free, or a price.";
+
+export const STREAM_STANDARD = Object.freeze({
+  title: "Life Is Beautiful",
+  line: "The standard. People still choose a story like this. New work on this shelf is held to that, not to a lecture. This desk does not sell this film.",
+  poster: "1984/stream/standard.jpg",
+});
+
 export const SEED = Object.freeze([
+  Object.freeze({
+    id: "clodyssey",
+    kind: "series",
+    title: "Clodyssey I: The Descent",
+    blurb: "The first part. A picture made with superintelligence. 0.15 on tKAS, POCencept, or KUSDT.",
+    cents: EXAMPLE_CENTS,
+    free: false,
+    owner: "desk",
+    file: "clodyssey.mp4",
+    poster: "1984/stream/clodyssey.jpg",
+    src: "",
+  }),
+  Object.freeze({
+    id: "cannae",
+    kind: "documentary",
+    title: "Cannae",
+    blurb: "August 216 BC. Rome and Carthage, in the numbers. A short documentary. 0.15 on tKAS, POCencept, or KUSDT.",
+    cents: EXAMPLE_CENTS,
+    free: false,
+    owner: "desk",
+    file: "cannae.mp4",
+    poster: "1984/stream/cannae.jpg",
+    src: "",
+  }),
+  Object.freeze({
+    id: "gray-march",
+    kind: "short",
+    title: "Gray march",
+    blurb: "A short made with superintelligence. Figures through gray water. 0.15 on tKAS, POCencept, or KUSDT.",
+    cents: EXAMPLE_CENTS,
+    free: false,
+    owner: "desk",
+    file: "gray-march.mp4",
+    poster: "1984/stream/gray-march.jpg",
+    src: "",
+  }),
   Object.freeze({
     id: EXAMPLE_ID,
     kind: "short",
     title: "Example",
-    blurb: "A short movie from this desk. 0.15 on tKAS, POCencept, or KUSDT.",
+    blurb: "A short from this desk. 0.15 on tKAS, POCencept, or KUSDT.",
     cents: EXAMPLE_CENTS,
     free: false,
     owner: "desk",
     file: "desk-example.mp4",
+    poster: "1984/stream/example.jpg",
     src: "",
   }),
 ]);
@@ -34,6 +80,12 @@ export function catalog(state) {
 export function titleById(state, id) {
   const key = String(id || "");
   return catalog(state).find((row) => row.id === key) || null;
+}
+
+function publicPoster(poster) {
+  const text = String(poster || "");
+  if (!/^1984\/stream\/[\w.-]+\.jpg$/.test(text)) return "";
+  return text;
 }
 
 export function publicTitle(row, unlocked) {
@@ -50,6 +102,7 @@ export function publicTitle(row, unlocked) {
     locked: !open,
     owner: row.owner || "",
     desk: row.owner === "desk",
+    poster: publicPoster(row.poster),
   };
 }
 
@@ -57,6 +110,8 @@ export function publicStream(state, ownedIds) {
   const owned = new Set(ownedIds || []);
   return {
     ok: true,
+    lede: STREAM_LEDE,
+    standard: STREAM_STANDARD,
     kinds: STREAM_KINDS.map((row) => ({ id: row.id, label: row.label })),
     titles: catalog(state).map((row) => publicTitle(row, owned.has(row.id))),
   };
@@ -150,7 +205,7 @@ export function addTitle(state, row) {
 
 export function removeTitle(state, id, address) {
   const key = String(id || "");
-  if (SEED.some((row) => row.id === key)) throw new Error("The desk example stays.");
+  if (SEED.some((row) => row.id === key)) throw new Error("The desk films stay.");
   const list = Array.isArray(state.streamTitles) ? state.streamTitles : [];
   const row = list.find((item) => item.id === key);
   if (!row) throw new Error("That title is not on SI stream.");

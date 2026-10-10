@@ -36,8 +36,18 @@ test("the desk example is a 0.15 short and the public shelf hides the file", () 
   assert.equal(Object.hasOwn(pub, "src"), false);
   const shelf = JSON.stringify(publicStream({ streamTitles: [] }, []));
   assert.match(shelf, /Example/);
+  assert.match(shelf, /Cannae/);
+  assert.match(shelf, /Clodyssey I: The Descent/);
+  assert.match(shelf, /Gray march/);
+  assert.match(shelf, /Life Is Beautiful/);
+  assert.match(shelf, /does not sell this film/);
+  assert.match(shelf, /1984\/stream\/standard\.jpg/);
   assert.match(shelf, /Short movies/);
+  assert.equal(JSON.parse(shelf).titles.some((row) => row.title === "Life Is Beautiful"), false);
   assert.doesNotMatch(shelf, /desk-example\.mp4/);
+  assert.doesNotMatch(shelf, /clodyssey\.mp4/);
+  assert.doesNotMatch(shelf, /cannae\.mp4/);
+  assert.doesNotMatch(shelf, /gray-march\.mp4/);
   assert.doesNotMatch(shelf, /AE575E66/);
 });
 
@@ -64,7 +74,7 @@ test("a share is https, a kind, and a price, and 0 is free", () => {
   );
   const kept = addTitle({ streamTitles: [] }, row);
   assert.equal(removeTitle(kept, row.id, USER).streamTitles.length, 0);
-  assert.throws(() => removeTitle({ streamTitles: [] }, EXAMPLE_ID, USER), /desk example/);
+  assert.throws(() => removeTitle({ streamTitles: [] }, EXAMPLE_ID, USER), /desk films/);
 });
 
 test("a byte range stays inside the file", () => {
@@ -210,9 +220,11 @@ test("the square tab is SI stream", () => {
   const html = readFileSync(new URL("../1984.html", import.meta.url), "utf8");
   assert.match(client, /\["sistream", "SI stream"\]/);
   assert.match(client, /data-si-buy/);
-  assert.match(client, /The example short is 0\.15/);
+  assert.match(client, /The desk films are 0\.15/);
+  assert.match(client, /does not sell that film/);
+  assert.match(client, /lecture ahead of the story/);
   assert.match(css, /\.kw-panel\.si-pop \{[\s\S]*left: 8px;[\s\S]*right: 8px;[\s\S]*top: 8px;[\s\S]*bottom: 8px;/);
   assert.match(css, /\.phone-fit \.kw-panel\.si-pop \{[\s\S]*top: 4px;[\s\S]*bottom: 4px;/);
-  assert.match(html, /1984\/client\.mjs\?v=138/);
-  assert.match(html, /1984\.css\?v=80/);
+  assert.match(html, /1984\/client\.mjs\?v=139/);
+  assert.match(html, /1984\.css\?v=81/);
 });

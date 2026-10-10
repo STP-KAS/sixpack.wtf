@@ -2893,7 +2893,8 @@ function paintStream() {
   panel.innerHTML =
     '<div class="si-stream">' +
     '<div class="si-head"><h2>SI stream</h2>' + placeActs("") + "</div>" +
-    '<p class="si-lede">Series, remakes, documentaries, and short movies. Free, or behind a price. Share one you made with a model.</p>' +
+    '<p class="si-lede" id="si-lede">Pictures for the audience. For years the studios put the lecture ahead of the story. This shelf keeps the older standard: a story, faces you can believe, and a world that looks made. Superintelligence makes the next pictures to that standard. Series, remakes, documentaries, and shorts. Free, or a price.</p>' +
+    '<div class="si-standard" id="si-standard"></div>' +
     '<div class="si-acts"><button type="button" id="si-share">Share a title</button></div>' +
     '<div id="si-body"><p class="fine">Loading the shelf.</p></div>' +
     "</div>";
@@ -2918,8 +2919,20 @@ function paintStream() {
       return;
     }
     state.streamBook = body;
+    const lede = document.getElementById("si-lede");
+    if (lede && body.lede) lede.textContent = body.lede;
+    paintStreamStandard(body);
     renderStreamBody();
   });
+}
+
+function paintStreamStandard(book) {
+  const box = document.getElementById("si-standard");
+  const std = book && book.standard;
+  if (!box || !std) return;
+  box.innerHTML =
+    (std.poster ? '<img src="' + esc(std.poster) + '" alt="' + esc(std.title || "") + '">' : "") +
+    "<div><p class=\"si-standard-title\">" + esc(std.title || "") + "</p><p>" + esc(std.line || "") + "</p></div>";
 }
 
 function renderStreamBody() {
@@ -2946,7 +2959,9 @@ function streamRowHtml(kind, rows) {
   const cards = rows.length
     ? rows.map((row) => {
       const price = row.free ? "Free" : formatCents(row.cents);
+      const poster = row.poster ? '<img src="' + esc(row.poster) + '" alt="">' : "";
       return '<button type="button" class="si-card" data-si="' + esc(row.id) + '">' +
+        poster +
         '<span class="si-kicker">' + esc(kind.label) + "</span>" +
         "<strong>" + esc(row.title) + "</strong>" +
         '<span class="si-price">' + esc(price) + "</span></button>";
@@ -2971,7 +2986,9 @@ function streamPlayerHtml(row) {
         : "")
     : "";
   const down = mine ? '<button type="button" data-si-remove="' + esc(row.id) + '">Take this title down</button>' : "";
+  const still = row.poster && row.locked ? '<img class="si-still" src="' + esc(row.poster) + '" alt="">' : "";
   return '<button type="button" class="si-back" data-si-back>Back to the shelf</button>' +
+    still +
     "<h3>" + esc(row.title) + "</h3>" +
     "<p>" + esc(row.blurb || "") + "</p>" +
     '<p class="si-meta">' + esc(price) + (who ? " · " + esc(who) : "") + "</p>" +
@@ -2987,7 +3004,7 @@ function shareFormHtml() {
     "<label>Price in dollars, 0 for free<input id=\"si-price\" value=\"0.15\" inputmode=\"decimal\"></label>" +
     "<label>https link to the video<input id=\"si-src\" placeholder=\"https://\"></label>" +
     '<button type="button" class="buy" id="si-post">Share</button>' +
-    '<p class="fine">The link stays hidden until the price is paid. A free title plays at once. This page stores the link, not the file. The desk example is the one film kept here.</p>' +
+    '<p class="fine">A price keeps the link hidden until it is paid. A free title plays at once. You send a link. This desk keeps the films it already has.</p>' +
     "</div>";
 }
 
@@ -3161,7 +3178,7 @@ function paintGuide() {
     "<li>The Moon map is NASA. Mars and Jupiter are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0. The Earth limb plays the Earth film. One play is one full turn, west to east. The Earth is already turning on the pad, before liftoff, and the turn is slow. The Saturn cruise plays the Saturn film.</li>" +
     "<li>The balances stay in a clear bar under the site tabs, on the square, in a shop, in the cinema, and on a flight. It reads tKAS, POC, and KUSDT, then the kaspatest address and the chosen .kas name. domain/address on that bar changes the default name. Bank is on that bar. With the bank open, that bar lists the minted tokens and the hunt you are in.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Every film is labeled this desk agrees. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. On a phone, the snacks start as a small tab so the film stays clear. Close snacks puts that list away. Snacks brings it back. Neither one starts a purchase. The current film stays up until the next one has a picture. The next film starts when one ends. Exit to the square leaves the cinema.</li>" +
-    "<li>SI stream is the tab next to Cinema. It is a shelf for series, remakes, documentaries, and short movies. A title is free, or the video stays behind a price on tKAS, POCencept, or KUSDT. Share a title with an https link. The example short is 0.15.</li>" +
+    "<li>SI stream is the tab next to Cinema. It keeps the older standard of pictures, story first, and it is where films made with superintelligence go up. A title is free, or the video stays behind a price on tKAS, POCencept, or KUSDT. The desk films are 0.15. Life Is Beautiful is the standard on that shelf. This desk does not sell that film.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Peer to peer is the payment. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled. This square is still the classroom.</li>" +
