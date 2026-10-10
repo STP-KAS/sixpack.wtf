@@ -40,6 +40,7 @@ test("the desk example is a 0.15 short and the public shelf hides the file", () 
   assert.match(shelf, /Clodyssey I: The Descent/);
   assert.match(shelf, /Gray march/);
   assert.match(shelf, /Life Is Beautiful/);
+  assert.match(shelf, /Normal people still choose a story like this/);
   assert.match(shelf, /does not sell this film/);
   assert.match(shelf, /1984\/stream\/standard\.jpg/);
   assert.match(shelf, /Short movies/);

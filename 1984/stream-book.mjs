@@ -17,7 +17,7 @@ export const STREAM_LEDE =
 
 export const STREAM_STANDARD = Object.freeze({
   title: "Life Is Beautiful",
-  line: "The standard. People still choose a story like this. New work on this shelf is held to that, not to a lecture. This desk does not sell this film.",
+  line: "The standard. Normal people still choose a story like this. New work on this shelf is held to that, not to a lecture. This desk does not sell this film.",
   poster: "1984/stream/standard.jpg",
 });
 
