@@ -37,6 +37,7 @@ test("the desk example is a 0.15 short and the public shelf hides the file", () 
   const shelf = JSON.stringify(publicStream({ streamTitles: [] }, []));
   assert.match(shelf, /Example/);
   assert.match(shelf, /Cannae/);
+  assert.match(shelf, /The sun will expand/);
   assert.match(shelf, /Clodyssey I: The Descent/);
   assert.match(shelf, /Gray march/);
   assert.match(shelf, /The column/);
@@ -50,6 +51,7 @@ test("the desk example is a 0.15 short and the public shelf hides the file", () 
   assert.doesNotMatch(shelf, /desk-example\.mp4/);
   assert.doesNotMatch(shelf, /clodyssey\.mp4/);
   assert.doesNotMatch(shelf, /cannae\.mp4/);
+  assert.doesNotMatch(shelf, /sun-expand\.mp4/);
   assert.doesNotMatch(shelf, /gray-march\.mp4/);
   assert.doesNotMatch(shelf, /the-column\.mp4/);
   assert.doesNotMatch(shelf, /AE575E66/);

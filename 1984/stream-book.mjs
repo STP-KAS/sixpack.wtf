@@ -47,6 +47,18 @@ export const SEED = Object.freeze([
     src: "",
   }),
   Object.freeze({
+    id: "sun-expand",
+    kind: "documentary",
+    title: "The sun will expand",
+    blurb: "The universe is 13.8 billion years old. Earth is four and a half. Then the sun expands. A short documentary. 0.15 on tKAS, POCencept, or KUSDT.",
+    cents: EXAMPLE_CENTS,
+    free: false,
+    owner: "desk",
+    file: "sun-expand.mp4",
+    poster: "1984/stream/sun-expand.jpg",
+    src: "",
+  }),
+  Object.freeze({
     id: "gray-march",
     kind: "short",
     title: "Gray march",
