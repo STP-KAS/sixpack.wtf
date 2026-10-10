@@ -231,6 +231,7 @@ export function publicAccount(state, address) {
     peg: chain.count > 0,
     practice: !!base.practice,
     roadster: !!base.roadster,
+    stream: Array.isArray(base.stream) ? base.stream.slice() : [],
     displayName: typeof base.displayName === "string" ? base.displayName : "",
     knsName: typeof base.knsName === "string" ? base.knsName : "",
     knsNames: accountNames(base),
@@ -733,6 +734,121 @@ export function applySpend(state, input, now) {
   return {
     state: next,
     result: { ok: true, receipt, account: publicAccount(next, address), item: item.name, shop: shop.name },
+  };
+}
+
+const STREAM_SHOP = "sistream";
+
+export function streamOwns(state, address, id) {
+  const clean = assertTestnet(address);
+  const account = state.accounts && state.accounts[clean.toLowerCase()];
+  const list = account && Array.isArray(account.stream) ? account.stream : [];
+  return list.includes(String(id || ""));
+}
+
+export function applyStreamBuy(state, input, now) {
+  const address = assertTestnet(input.address);
+  const id = String(input.id || "").trim();
+  const title = String(input.title || "SI stream").replace(/\s+/g, " ").trim().slice(0, 80) || "SI stream";
+  if (!/^[\w-]{1,40}$/.test(id)) throw new Error("That title is not on SI stream.");
+  const cents = BigInt(input.cents);
+  if (cents <= 0n || cents > 100000n) throw new Error("That price is not on SI stream.");
+  if (!RAILS.includes(input.rail)) throw new Error("Pick tKAS, POCencept, or KUSDT.");
+  const shop = { id: STREAM_SHOP };
+  const item = { sku: id, name: title, cents: Number(cents) };
+  const today = dayKey(now);
+  if (streamOwns(state, address, id)) {
+    return {
+      state,
+      result: { ok: true, already: true, account: publicAccount(state, address), item: title, shop: "SI stream" },
+    };
+  }
+  if (input.rail === "kas" && input.payment && state.txids && state.txids[input.payment.txid]) {
+    const need = sompiForCents(cents, input.usdPerKas);
+    if (bi(input.payment.paid) < need) throw new Error("The payment is smaller than the quote.");
+    const txid = input.payment.txid;
+    const seen = state.txids[txid];
+    if (!sameKasSpend(state, seen, address, shop, item, txid)) {
+      throw new Error("That transaction was already used.");
+    }
+    const found = spendReceipt(state, txid, shop.id, item.sku);
+    const receipt = found || {
+      id: seen.receiptId,
+      at: now,
+      address,
+      kind: "spend",
+      shop: shop.id,
+      sku: item.sku,
+      rail: "kas",
+      cents: String(cents),
+      sompi: "0",
+      txid,
+      seq: seen.receiptId || "",
+      kusdtSeq: "",
+      note: "SI stream · " + title,
+    };
+    return {
+      state,
+      result: { ok: true, receipt, account: publicAccount(state, address), item: title, shop: "SI stream" },
+    };
+  }
+  const peek = ensure(clone(state), address);
+  const gate = checkRules(peek, { shop: shop.id, rail: input.rail, cents, confirmed: !!input.confirmed }, today);
+  if (gate.needsConfirm) {
+    return {
+      state,
+      result: {
+        ok: false,
+        needsConfirm: true,
+        cents: Number(cents),
+        error: "This is over your confirm line. Confirm it to pay.",
+      },
+    };
+  }
+  const next = clone(state);
+  const account = ensure(next, address);
+  if (input.rail === "kusdt" && account.kusdtFrozen) {
+    throw new Error("KUSDT is frozen on this address. POCencept and tKAS are not.");
+  }
+  let sompi = 0n;
+  let txid = "";
+  if (input.rail === "kas") {
+    const need = sompiForCents(cents, input.usdPerKas);
+    if (!input.payment || bi(input.payment.paid) < need) {
+      throw new Error("The payment is smaller than the quote.");
+    }
+    sompi = bi(input.payment.paid);
+    txid = input.payment.txid;
+    if (next.txids[txid]) throw new Error("That transaction was already used.");
+  } else {
+    const prepaid = bi(input.prepaidCents || 0);
+    if (prepaid < 0n || prepaid > cents) throw new Error("The covenant part does not match this price.");
+    const due = cents - prepaid;
+    if (due > 0n) takeToken(account, input.rail, due);
+    sompi = bi(input.chainSompi || 0);
+    txid = input.chainTxid || "";
+  }
+  bumpSpent(account, today, cents);
+  const owned = Array.isArray(account.stream) ? account.stream.slice() : [];
+  owned.push(id);
+  account.stream = owned;
+  const receipt = pushReceipt(next, account, {
+    at: now,
+    kind: "spend",
+    shop: shop.id,
+    sku: item.sku,
+    rail: input.rail,
+    cents,
+    sompi,
+    txid,
+    note: "SI stream · " + title,
+  });
+  if (input.rail === "kas") {
+    next.txids[txid] = { address, kind: "spend", shop: shop.id, sku: item.sku, rail: "kas", receiptId: receipt.id };
+  }
+  return {
+    state: next,
+    result: { ok: true, receipt, account: publicAccount(next, address), item: title, shop: "SI stream" },
   };
 }
 

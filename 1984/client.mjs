@@ -84,6 +84,10 @@ const state = {
   reelAt: 0,
   snacksOpen: null,
   domainOpen: false,
+  streamPick: "",
+  streamShare: false,
+  streamBook: null,
+  streamSeq: 0,
 };
 
 const SIM_LINE = "You are back on the square, in the roadster. You returned to a simulation of a simulation of a simulation, 255524 deep.";
@@ -527,6 +531,7 @@ function paintChrome() {
     ["bank", "Bank"],
     ["roadster", "Roadster"],
     ["cinema", "Cinema"],
+    ["sistream", "SI stream"],
     ["rules", "Rules"],
     ["bench", "Bench"],
     ["guide", "Guide"],
@@ -1601,7 +1606,7 @@ function isVisit(mode) {
 function hidePanel() {
   panel.hidden = true;
   panel.innerHTML = "";
-  panel.classList.remove("swap-pop", "stall-pop", "mint-board");
+  panel.classList.remove("swap-pop", "stall-pop", "mint-board", "si-pop");
   stopMintWatch();
   hideLayerPop();
   const shade = document.getElementById("bank-shade");
@@ -2010,9 +2015,10 @@ function openMode(mode) {
   markRoom();
   paintChrome();
   const shade = document.getElementById("bank-shade");
-  const sheet = mode === "mint" || mode === "layer" || mode === "kachat" || mode === "vault";
+  const sheet = mode === "mint" || mode === "layer" || mode === "kachat" || mode === "vault" || mode === "sistream";
   panel.classList.toggle("swap-pop", mode === "bank");
-  panel.classList.toggle("stall-pop", (isVisit(mode) && mode !== "bank") || sheet);
+  panel.classList.toggle("si-pop", mode === "sistream");
+  panel.classList.toggle("stall-pop", ((isVisit(mode) && mode !== "bank") || sheet) && mode !== "sistream");
   panel.classList.toggle("mint-board", mode === "mint" || mode === "groceries");
   if (shade) shade.hidden = !(isVisit(mode) || sheet);
   if (mode === "world") {
@@ -2047,6 +2053,7 @@ function openMode(mode) {
   } else if (mode === "rules") paintRules();
   else if (mode === "bench") paintBench();
   else if (mode === "guide") paintGuide();
+  else if (mode === "sistream") paintStream();
   else {
     if (enteringShop && mode !== "hunt") {
       const shop = (state.home && state.home.shops ? state.home.shops : []).find((item) => item.id === mode);
@@ -2874,6 +2881,239 @@ async function promiseHunt(id) {
   }
 }
 
+function streamSrc(src) {
+  const text = String(src || "");
+  if (!text) return "";
+  if (/^https?:\/\//i.test(text)) return text;
+  if (location.protocol === "https:" && window.TOWN_API) return String(window.TOWN_API).replace(/\/$/, "") + text;
+  return text;
+}
+
+function paintStream() {
+  panel.innerHTML =
+    '<div class="si-stream">' +
+    '<div class="si-head"><h2>SI stream</h2>' + placeActs("") + "</div>" +
+    '<p class="si-lede">Series, remakes, documentaries, and short movies. Free, or behind a price. Share one you made with a model.</p>' +
+    '<div class="si-acts"><button type="button" id="si-share">Share a title</button></div>' +
+    '<div id="si-body"><p class="fine">Loading the shelf.</p></div>' +
+    "</div>";
+  wirePlaceExit();
+  const shareBtn = document.getElementById("si-share");
+  if (shareBtn) {
+    shareBtn.textContent = state.streamShare ? "Close share" : "Share a title";
+    shareBtn.onclick = () => {
+      state.streamShare = !state.streamShare;
+      state.streamPick = "";
+      paintStream();
+    };
+  }
+  const seq = (state.streamSeq = (state.streamSeq || 0) + 1);
+  const address = state.id && state.id.address ? state.id.address : "";
+  const path = "/api/1984/stream" + (address ? "?address=" + encodeURIComponent(address) : "");
+  api(path).then((body) => {
+    if (state.mode !== "sistream" || state.streamSeq !== seq) return;
+    const box = document.getElementById("si-body");
+    if (!body || !body.ok) {
+      if (box) box.innerHTML = "<p class=\"bad\">" + esc((body && body.error) || "SI stream is offline.") + "</p>";
+      return;
+    }
+    state.streamBook = body;
+    renderStreamBody();
+  });
+}
+
+function renderStreamBody() {
+  const box = document.getElementById("si-body");
+  if (!box || state.mode !== "sistream") return;
+  const book = state.streamBook || { kinds: [], titles: [] };
+  if (state.streamShare) {
+    box.innerHTML = shareFormHtml();
+    return;
+  }
+  const titles = book.titles || [];
+  const picked = titles.find((row) => row.id === state.streamPick);
+  if (picked) {
+    box.innerHTML = streamPlayerHtml(picked);
+    if (!picked.locked) startStreamPlay(picked);
+    else loadStreamQuote(picked);
+    return;
+  }
+  const kinds = book.kinds && book.kinds.length ? book.kinds : [];
+  box.innerHTML = kinds.map((kind) => streamRowHtml(kind, titles.filter((row) => row.kind === kind.id))).join("");
+}
+
+function streamRowHtml(kind, rows) {
+  const cards = rows.length
+    ? rows.map((row) => {
+      const price = row.free ? "Free" : formatCents(row.cents);
+      return '<button type="button" class="si-card" data-si="' + esc(row.id) + '">' +
+        '<span class="si-kicker">' + esc(kind.label) + "</span>" +
+        "<strong>" + esc(row.title) + "</strong>" +
+        '<span class="si-price">' + esc(price) + "</span></button>";
+    }).join("")
+    : '<p class="fine si-empty">None yet. Share one.</p>';
+  return '<section class="si-row"><h3>' + esc(kind.label) + '</h3><div class="si-rail">' + cards + "</div></section>";
+}
+
+function streamPlayerHtml(row) {
+  const price = row.free ? "Free" : formatCents(row.cents);
+  const who = row.desk ? "this desk" : (row.owner ? short(row.owner) : "");
+  const mine = !!(state.id.address && row.owner && String(row.owner).toLowerCase() === state.id.address.toLowerCase());
+  const pay = row.locked
+    ? '<p id="si-quote" class="fine">Loading the tKAS quote.</p>' +
+      '<div class="si-pay">' +
+      '<button type="button" class="buy" data-si-buy="kas">Pay with tKAS</button>' +
+      '<button type="button" class="buy" data-si-buy="poc">Pay ' + esc(price) + " POCencept</button>" +
+      '<button type="button" class="buy" data-si-buy="kusdt">Pay ' + esc(price) + " KUSDT</button>" +
+      "</div>" +
+      (state.id && state.id.address && state.id.kind !== "guest"
+        ? '<label class="si-txid">Testnet 10 txid, for a pasted tKAS payment<input id="si-txid" autocomplete="off"></label>'
+        : "")
+    : "";
+  const down = mine ? '<button type="button" data-si-remove="' + esc(row.id) + '">Take this title down</button>' : "";
+  return '<button type="button" class="si-back" data-si-back>Back to the shelf</button>' +
+    "<h3>" + esc(row.title) + "</h3>" +
+    "<p>" + esc(row.blurb || "") + "</p>" +
+    '<p class="si-meta">' + esc(price) + (who ? " · " + esc(who) : "") + "</p>" +
+    '<video id="si-video" controls playsinline webkit-playsinline' + (row.locked ? " hidden" : "") + "></video>" +
+    pay + down;
+}
+
+function shareFormHtml() {
+  return '<div class="si-share">' +
+    "<label>Title<input id=\"si-title\" maxlength=\"80\"></label>" +
+    "<label>Kind<select id=\"si-kind\"><option value=\"series\">Series</option><option value=\"remake\">Remake</option><option value=\"documentary\">Documentary</option><option value=\"short\">Short movie</option></select></label>" +
+    "<label>About<textarea id=\"si-blurb\" maxlength=\"280\"></textarea></label>" +
+    "<label>Price in dollars, 0 for free<input id=\"si-price\" value=\"0.15\" inputmode=\"decimal\"></label>" +
+    "<label>https link to the video<input id=\"si-src\" placeholder=\"https://\"></label>" +
+    '<button type="button" class="buy" id="si-post">Share</button>' +
+    '<p class="fine">The link stays hidden until the price is paid. A free title plays at once. This page stores the link, not the file. The desk example is the one film kept here.</p>' +
+    "</div>";
+}
+
+function loadStreamQuote(row) {
+  api("/api/1984/stream/quote?id=" + encodeURIComponent(row.id)).then((body) => {
+    if (state.mode !== "sistream" || state.streamPick !== row.id) return;
+    const line = document.getElementById("si-quote");
+    if (!line) return;
+    if (!body || !body.ok) {
+      line.textContent = (body && body.error) || "No tKAS quote.";
+      return;
+    }
+    line.textContent = formatTkas(body.sompi) + " tKAS at the live quote, or " + formatCents(row.cents) + " POCencept, or " + formatCents(row.cents) + " KUSDT.";
+  });
+}
+
+async function startStreamPlay(row) {
+  const address = state.id && state.id.address ? "&address=" + encodeURIComponent(state.id.address) : "";
+  const body = await api("/api/1984/stream/open?id=" + encodeURIComponent(row.id) + address);
+  if (state.mode !== "sistream" || state.streamPick !== row.id) return;
+  const video = document.getElementById("si-video");
+  if (!body || !body.ok || !body.src) {
+    say((body && body.error) || "That title did not open.", true);
+    return;
+  }
+  if (!video) return;
+  video.hidden = false;
+  video.src = streamSrc(body.src);
+  video.play().catch(() => {});
+}
+
+async function buyStreamTitle(rail) {
+  if (spendBusy) return;
+  if (!requireId()) return;
+  const row = ((state.streamBook && state.streamBook.titles) || []).find((item) => item.id === state.streamPick);
+  if (!row || !row.locked) return;
+  spendBusy = true;
+  try {
+    let price = formatCents(row.cents);
+    if (rail === "kas") {
+      const quote = await api("/api/1984/stream/quote?id=" + encodeURIComponent(row.id));
+      if (!quote.ok) {
+        say(quote.error || "No quote.", true);
+        return;
+      }
+      price = formatTkas(quote.sompi) + " tKAS";
+    } else price = formatCents(row.cents) + " " + (RAIL_NAMES[rail] || "");
+    const agreed = await askOk("Pay " + price + " for " + row.title + "?");
+    if (!agreed) return;
+    const guest = state.id.kind === "guest";
+    let txid = "";
+    if (rail === "kas" && !guest) {
+      const typed = document.getElementById("si-txid");
+      txid = typed ? typed.value.trim() : "";
+      if (!txid) {
+        say("Paste the Testnet 10 txid. The wallet stays closed for this title.", true);
+        return;
+      }
+    }
+    const path = guest && rail === "kas" ? "/api/1984/guest/stream/buy" : "/api/1984/stream/buy";
+    const body = await post(path, { id: row.id, rail, txid, token: guestToken(), confirmed: true }, 90000);
+    if (body && body.ready) {
+      say("Paste the Testnet 10 txid. The wallet stays closed for this title.", true);
+      return;
+    }
+    if (!body || !body.ok) {
+      say((body && body.error) || "SI stream refused the payment.", true);
+      return;
+    }
+    if (body.account) state.account = body.account;
+    row.locked = false;
+    row.free = false;
+    say(row.title + " is open.");
+    renderStreamBody();
+    paintChrome();
+  } catch (err) {
+    say(err && err.message ? err.message : "SI stream refused the payment.", true);
+  } finally {
+    spendBusy = false;
+  }
+}
+
+async function shareStream() {
+  if (!requireId()) return;
+  const titleEl = document.getElementById("si-title");
+  const kindEl = document.getElementById("si-kind");
+  const blurbEl = document.getElementById("si-blurb");
+  const priceEl = document.getElementById("si-price");
+  const srcEl = document.getElementById("si-src");
+  const title = titleEl ? titleEl.value : "";
+  const body = await post("/api/1984/stream/share", {
+    title,
+    kind: kindEl ? kindEl.value : "",
+    blurb: blurbEl ? blurbEl.value : "",
+    price: priceEl ? priceEl.value : "",
+    src: srcEl ? srcEl.value : "",
+    token: guestToken(),
+  });
+  if (!body || !body.ok) {
+    say((body && body.error) || "That title did not go up.", true);
+    return;
+  }
+  state.streamBook = body;
+  state.streamShare = false;
+  state.streamPick = body.id || "";
+  const shareBtn = document.getElementById("si-share");
+  if (shareBtn) shareBtn.textContent = "Share a title";
+  say(String(title || "The title").trim() + " is on SI stream.");
+  renderStreamBody();
+}
+
+async function removeStream(id) {
+  if (!requireId()) return;
+  const agreed = await askOk("Take this title down?");
+  if (!agreed) return;
+  const body = await post("/api/1984/stream/remove", { id, token: guestToken() });
+  if (!body || !body.ok) {
+    say((body && body.error) || "That title stayed up.", true);
+    return;
+  }
+  state.streamBook = body;
+  state.streamPick = "";
+  say("That title is down.");
+  renderStreamBody();
+}
+
 function paintRules() {
   const rules = (state.account && state.account.rules) || { dailyCapCents: 0, shops: [], rails: [], confirmOverCents: 0 };
   const shops = ["cafe", "restaurant", "groceries", "roadster"]
@@ -2921,6 +3161,7 @@ function paintGuide() {
     "<li>The Moon map is NASA. Mars and Jupiter are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0. The Earth limb plays the Earth film. One play is one full turn, west to east. The Earth is already turning on the pad, before liftoff, and the turn is slow. The Saturn cruise plays the Saturn film.</li>" +
     "<li>The balances stay in a clear bar under the site tabs, on the square, in a shop, in the cinema, and on a flight. It reads tKAS, POC, and KUSDT, then the kaspatest address and the chosen .kas name. domain/address on that bar changes the default name. Bank is on that bar. With the bank open, that bar lists the minted tokens and the hunt you are in.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Every film is labeled this desk agrees. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. On a phone, the snacks start as a small tab so the film stays clear. Close snacks puts that list away. Snacks brings it back. Neither one starts a purchase. The current film stays up until the next one has a picture. The next film starts when one ends. Exit to the square leaves the cinema.</li>" +
+    "<li>SI stream is the tab next to Cinema. It is a shelf for series, remakes, documentaries, and short movies. A title is free, or the video stays behind a price on tKAS, POCencept, or KUSDT. Share a title with an https link. The example short is 0.15.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Peer to peer is the payment. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled. This square is still the classroom.</li>" +
@@ -5667,6 +5908,34 @@ if (bankShade) bankShade.addEventListener("click", () => {
   else openMode("world");
 });
 panel.addEventListener("click", (ev) => {
+  if (state.mode === "sistream") {
+    if (ev.target.closest("[data-si-back]")) {
+      state.streamPick = "";
+      renderStreamBody();
+      return;
+    }
+    const card = ev.target.closest("[data-si]");
+    if (card && !ev.target.closest("[data-si-buy]") && !ev.target.closest("[data-si-remove]")) {
+      state.streamPick = card.getAttribute("data-si") || "";
+      state.streamShare = false;
+      renderStreamBody();
+      return;
+    }
+    const buy = ev.target.closest("[data-si-buy]");
+    if (buy) {
+      buyStreamTitle(buy.getAttribute("data-si-buy") || "").catch((err) => say(err.message, true));
+      return;
+    }
+    const down = ev.target.closest("[data-si-remove]");
+    if (down) {
+      removeStream(down.getAttribute("data-si-remove") || "").catch((err) => say(err.message, true));
+      return;
+    }
+    if (ev.target.closest("#si-post")) {
+      shareStream().catch((err) => say(err.message, true));
+      return;
+    }
+  }
   if (state.mode === "mint") {
     const copyBtn = ev.target.closest("[data-copy]");
     if (copyBtn) {
@@ -5797,5 +6066,9 @@ api("/api/1984").then((body) => {
   else if (state.oracleError) say(state.oracleError, true);
   paintChrome();
   if (state.mode !== "world") openMode(state.mode);
+  if (location.hash === "#sistream") openMode("sistream");
+});
+window.addEventListener("hashchange", () => {
+  if (location.hash === "#sistream" && state.mode !== "sistream") openMode("sistream");
 });
 if (state.id.address) refreshAccount();

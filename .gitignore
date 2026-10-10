@@ -13,6 +13,7 @@ faucet/ledger.json
 1984/guest-pool-issued.jsonl
 1984/guest-fund-log.jsonl
 1984/funded-list-refresh.log
+1984/stream-media/
 faucet/.local/
 .env
 grok/logs/

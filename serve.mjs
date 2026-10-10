@@ -9,6 +9,7 @@ import { listClaims, recordClaim } from "./faucet/ledger.mjs";
 import { payTn10 } from "./faucet/pay.mjs";
 import { handleGrokRequest } from "./grok/http.mjs";
 import { handle1984Request, service1984 } from "./1984/service.mjs";
+import { pipeVideo } from "./1984/stream-file.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 4020);
@@ -38,10 +39,9 @@ function readBody(req) {
   });
 }
 
-function sendJson(res, status, body, req) {
+function allowOrigin(req) {
   const origin = req && req.headers && req.headers.origin;
-  const allow =
-    origin === "http://127.0.0.1:4020" ||
+  return origin === "http://127.0.0.1:4020" ||
     origin === "http://127.0.0.1:4021" ||
     origin === "http://localhost:4020" ||
     origin === "http://localhost:4021" ||
@@ -50,8 +50,12 @@ function sendJson(res, status, body, req) {
     (typeof origin === "string" && /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/.test(origin)) ||
     (typeof origin === "string" && /^https:\/\/[a-z0-9-]+\.loca\.lt$/.test(origin)) ||
     (typeof origin === "string" && /^https:\/\/[a-z0-9]+\.lhr\.life$/.test(origin))
-      ? origin
-      : "";
+    ? origin
+    : "";
+}
+
+function sendJson(res, status, body, req) {
+  const allow = allowOrigin(req);
   const headers = {
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",
@@ -65,6 +69,40 @@ function sendJson(res, status, body, req) {
   const data = JSON.stringify(body);
   res.writeHead(status, headers);
   res.end(data);
+}
+
+function streamCors(req) {
+  const allow = allowOrigin(req);
+  if (!allow) return {};
+  return {
+    "access-control-allow-origin": allow,
+    "access-control-allow-methods": "GET, HEAD, OPTIONS",
+    "access-control-allow-headers": "content-type, bypass-tunnel-reminder, range",
+    "access-control-expose-headers": "content-length, content-range, accept-ranges",
+    vary: "Origin",
+  };
+}
+
+function serveStreamFile(req, res, url) {
+  const cors = streamCors(req);
+  if (req.method === "OPTIONS") {
+    res.writeHead(204, cors);
+    res.end();
+    return;
+  }
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    res.writeHead(405, cors);
+    res.end();
+    return;
+  }
+  const ticket = decodeURIComponent(url.pathname.slice("/api/1984/stream/file/".length)).split("/")[0];
+  const filePath = service1984().streamFile(ticket);
+  if (!filePath) {
+    res.writeHead(404, { ...cors, "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
+    res.end(JSON.stringify({ ok: false, error: "That play link has expired. Open the title again." }));
+    return;
+  }
+  pipeVideo(req, res, filePath, cors);
 }
 
 function clientIp(req) {
@@ -270,6 +308,10 @@ http
       });
       return;
     }
+    if (url.pathname.startsWith("/api/1984/stream/file/")) {
+      serveStreamFile(req, res, url);
+      return;
+    }
     if (url.pathname === "/api/kworld" || url.pathname.startsWith("/api/kworld/")) {
       url.pathname = "/api/1984" + url.pathname.slice("/api/kworld".length);
     }
@@ -297,6 +339,11 @@ http
     let filePath = decodeURIComponent(url.pathname);
     if (filePath.endsWith("/")) filePath += "index.html";
     if (filePath === "/") filePath = "/index.html";
+    if (filePath === "/1984/stream-media" || filePath.startsWith("/1984/stream-media/")) {
+      res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+      res.end("not found");
+      return;
+    }
     const resolved = path.normalize(path.join(root, filePath));
     if (!resolved.startsWith(root)) {
       res.writeHead(400);

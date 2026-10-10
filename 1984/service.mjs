@@ -1,5 +1,6 @@
 /** 1984 HTTP. Testnet-10 only. Village ledger on disk. tKAS reads and payouts go through the node. */
 
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,6 +23,7 @@ import {
   applyRules,
   applySnap,
   applySpend,
+  applyStreamBuy,
   applyToken,
   applyWithdrawPromise,
   attachTxid,
@@ -30,6 +32,7 @@ import {
   planSnap,
   publicAccount,
   publicHunts,
+  streamOwns,
   publicMints,
   publicOffers,
 } from "./ledger.mjs";
@@ -46,6 +49,7 @@ import {
 } from "./money.mjs";
 import { createPegLock } from "./peg-chain.mjs";
 import { openGuestLock, settleExchange, settleFreeze, settleRedeem, settleSpend } from "./peg-flow.mjs";
+import { addTitle, mediaName, normalizeShare, publicStream, removeTitle, titleById } from "./stream-book.mjs";
 import { HUNTS, SHOPS, itemBySku, shopById } from "./world.mjs";
 
 const DISCLAIMER =
@@ -60,6 +64,8 @@ export function create1984Service(deps) {
   let lock = Promise.resolve();
   let oracle = { price: 0, at: 0 };
   const hits = new Map();
+  const streamTickets = new Map();
+  const mediaDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "stream-media");
   const inscribing = new Set();
   const sealing = new Set();
   const pegging = new Set();
@@ -328,7 +334,157 @@ export function create1984Service(deps) {
         return { status: 200, body: out.result };
       });
     }
+    if (pathname === "/api/1984/guest/stream/buy") {
+      return await buyStream(address, body, true);
+    }
     return { status: 404, body: { ok: false, error: "Not found." } };
+  }
+
+  function ownedStreamIds(address) {
+    if (!address) return [];
+    try {
+      const clean = assertTestnet(address);
+      const account = state.accounts[clean.toLowerCase()];
+      return account && Array.isArray(account.stream) ? account.stream : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function issueStreamTicket(file) {
+    const name = mediaName(file);
+    if (!name) throw new Error("That film is not on this desk.");
+    const full = path.join(mediaDir, name);
+    if (!full.startsWith(mediaDir) || !fs.existsSync(full)) {
+      throw new Error("That film is not on this desk yet.");
+    }
+    const now = deps.now();
+    for (const [key, row] of streamTickets) {
+      if (!row || row.exp < now) streamTickets.delete(key);
+    }
+    const ticket = crypto.randomBytes(18).toString("base64url");
+    streamTickets.set(ticket, { file: name, exp: now + 2 * 60 * 60 * 1000 });
+    return "/api/1984/stream/file/" + ticket;
+  }
+
+  function playLink(row, address) {
+    const free = !!row.free || Number(row.cents) <= 0;
+    const owned = !!(address && streamOwns(state, address, row.id));
+    if (!free && !owned) return { locked: true, cents: Number(row.cents) || 0 };
+    if (row.file) return { locked: false, src: issueStreamTicket(row.file) };
+    if (row.src) return { locked: false, src: row.src };
+    throw new Error("That title has no video.");
+  }
+
+  async function buyStream(address, body, guest) {
+    const row = titleById(state, body && body.id);
+    if (!row) throw new Error("That title is not on SI stream.");
+    if (row.file) {
+      const name = mediaName(row.file);
+      const full = name ? path.join(mediaDir, name) : "";
+      if (!name || !full.startsWith(mediaDir) || !fs.existsSync(full)) {
+        throw new Error("That film is not on this desk yet.");
+      }
+    }
+    if (row.free || Number(row.cents) <= 0) throw new Error("This title is free. Play it.");
+    const rail = body && body.rail;
+    const already = streamOwns(state, address, row.id);
+    if (already) {
+      return {
+        status: 200,
+        body: {
+          ok: true,
+          already: true,
+          account: publicAccount(state, address),
+          ...playLink(row, address),
+        },
+      };
+    }
+    const usd = rail === "kas" ? await price() : 0;
+    let pay = null;
+    if (rail === "kas") {
+      const gate = checkRules(
+        state.accounts[address.toLowerCase()] || { rules: {}, spentDay: "", spentCents: "0" },
+        { shop: "sistream", rail: "kas", cents: row.cents, confirmed: !!(body && body.confirmed) },
+        dayKey(deps.now())
+      );
+      if (gate.needsConfirm) {
+        return {
+          status: 409,
+          body: { ok: false, needsConfirm: true, cents: row.cents, error: "This is over your confirm line. Confirm it to pay." },
+        };
+      }
+      if (guest) {
+        const need = sompiForCents(row.cents, usd);
+        const paid = await guestApi().pay({ token: body.token, address, sompi: need });
+        pay = await waitPayment(address, paid.txid, need);
+      } else {
+        const pasted = String((body && body.txid) || "").trim();
+        if (!pasted) {
+          return {
+            status: 200,
+            body: { ok: false, ready: true, cents: row.cents, sompi: sompiForCents(row.cents, usd).toString() },
+          };
+        }
+        pay = await waitPayment(address, pasted, sompiForCents(row.cents, usd));
+      }
+    }
+    return await queue(async () => {
+      let prepaid = null;
+      if (rail === "poc" || rail === "kusdt") {
+        const account = state.accounts[address.toLowerCase()] || { rules: {}, spentDay: "", spentCents: "0" };
+        const gate = checkRules(
+          account,
+          { shop: "sistream", rail, cents: row.cents, confirmed: !!(body && body.confirmed) },
+          dayKey(deps.now())
+        );
+        if (gate.needsConfirm) {
+          return {
+            status: 409,
+            body: { ok: false, needsConfirm: true, cents: row.cents, error: "This is over your confirm line. Confirm it to pay." },
+          };
+        }
+        prepaid = await settleSpend({
+          pegLock: deps.pegLock,
+          guests: deps.guests,
+          address,
+          token: body.token,
+          rail,
+          cents: BigInt(row.cents),
+          now: deps.now(),
+          getState: () => state,
+          setState: (next) => {
+            state = typeof next === "function" ? next(state) : next;
+            deps.save(state);
+          },
+        });
+      }
+      const out = applyStreamBuy(
+        state,
+        {
+          address,
+          id: row.id,
+          title: row.title,
+          cents: row.cents,
+          rail,
+          confirmed: !!(body && body.confirmed),
+          payment: pay,
+          usdPerKas: usd,
+          prepaidCents: prepaid && prepaid.prepaidCents,
+          chainSompi: prepaid && prepaid.chainSompi,
+          chainTxid: prepaid && prepaid.chainTxid,
+        },
+        deps.now()
+      );
+      if (out.result && out.result.needsConfirm) return { status: 409, body: out.result };
+      state = out.state;
+      deps.save(state);
+      const link = out.result.ok ? playLink(row, address) : {};
+      return {
+        status: 200,
+        body: { ...out.result, ...link, txids: prepaid && prepaid.txids, peg: !!(prepaid && prepaid.peg) },
+      };
+    });
   }
 
   async function home() {
@@ -530,6 +686,20 @@ export function create1984Service(deps) {
   }
 
   return {
+    streamFile(ticket) {
+      const key = String(ticket || "");
+      const row = streamTickets.get(key);
+      const now = deps.now();
+      if (!row || row.exp < now) {
+        if (row) streamTickets.delete(key);
+        return "";
+      }
+      const name = mediaName(row.file);
+      if (!name) return "";
+      const full = path.join(mediaDir, name);
+      if (!full.startsWith(mediaDir) || !fs.existsSync(full)) return "";
+      return full;
+    },
     forget(address) {
       return queue(async () => {
         let clean = "";
@@ -608,6 +778,31 @@ export function create1984Service(deps) {
             rate = floor;
           }
           return { status: 200, body: { ok: true, network: "testnet-10", feerate: rate } };
+        }
+        if (method === "GET" && pathname === "/api/1984/stream") {
+          const raw = query.get("address") || "";
+          const who = raw ? assertTestnet(raw) : "";
+          return { status: 200, body: publicStream(state, ownedStreamIds(who)) };
+        }
+        if (method === "GET" && pathname === "/api/1984/stream/open") {
+          const row = titleById(state, query.get("id"));
+          if (!row) throw new Error("That title is not on SI stream.");
+          const raw = query.get("address") || "";
+          const who = raw ? assertTestnet(raw) : "";
+          const link = playLink(row, who);
+          if (link.locked) {
+            return { status: 402, body: { ok: false, locked: true, cents: link.cents, error: "Pay for this title to play it." } };
+          }
+          return { status: 200, body: { ok: true, ...link } };
+        }
+        if (method === "GET" && pathname === "/api/1984/stream/quote") {
+          const row = titleById(state, query.get("id"));
+          if (!row) throw new Error("That title is not on SI stream.");
+          const usd = await price();
+          return {
+            status: 200,
+            body: { ok: true, cents: row.cents, sompi: sompiForCents(row.cents, usd).toString(), usd, name: row.title },
+          };
         }
         if (method === "GET" && pathname === "/api/1984/quote") {
           const shop = shopById(query.get("shop"));
@@ -1118,6 +1313,32 @@ export function create1984Service(deps) {
             state = out.state;
             deps.save(state);
             return { status: 200, body: out.result };
+          });
+        }
+        if (pathname === "/api/1984/stream/buy") return await buyStream(address, body, false);
+        if (pathname === "/api/1984/stream/open") {
+          const row = titleById(state, body.id);
+          if (!row) throw new Error("That title is not on SI stream.");
+          const link = playLink(row, address);
+          if (link.locked) {
+            return { status: 402, body: { ok: false, locked: true, cents: link.cents, error: "Pay for this title to play it." } };
+          }
+          return { status: 200, body: { ok: true, ...link } };
+        }
+        if (pathname === "/api/1984/stream/share") {
+          return await queue(async () => {
+            const row = normalizeShare(body, address);
+            row.at = now;
+            state = addTitle(state, row);
+            deps.save(state);
+            return { status: 200, body: { ok: true, id: row.id, ...publicStream(state, ownedStreamIds(address)) } };
+          });
+        }
+        if (pathname === "/api/1984/stream/remove") {
+          return await queue(async () => {
+            state = removeTitle(state, body.id, address);
+            deps.save(state);
+            return { status: 200, body: { ok: true, ...publicStream(state, ownedStreamIds(address)) } };
           });
         }
         return { status: 404, body: { ok: false, error: "Not found." } };

@@ -731,6 +731,46 @@ body.page-1984 main.kw-stage {
 .buy.short { color: #ffd0a8; }
 .paid-already { margin-top: 0.45rem; font-size: 0.75rem; color: #b7a88a; }
 .paid-already textarea { width: 100%; margin-top: 0.2rem; }
+.kw-panel.si-pop {
+  left: 8px;
+  right: 8px;
+  top: 8px;
+  bottom: 8px;
+  width: auto;
+  max-height: none;
+  z-index: 7;
+  background: #14110e;
+  color: #f3e6c8;
+}
+.si-stream { display: flex; flex-direction: column; gap: 0.45rem; min-height: 100%; }
+.si-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.si-head h2 { margin: 0; font-size: 1.45rem; color: #f2d48a; }
+.si-lede { margin: 0; font-size: 0.95rem; }
+.si-acts { display: flex; }
+.si-row h3 { margin: 0.35rem 0 0.3rem; font-size: 1.15rem; }
+.si-rail { display: flex; gap: 0.55rem; overflow-x: auto; padding-bottom: 0.35rem; }
+.si-card {
+  flex: 0 0 11.5rem;
+  min-height: 7.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.28rem;
+  text-align: left;
+  background: #221c16;
+  border: 2px solid #8a7040;
+  padding: 0.55rem 0.6rem;
+}
+.si-card strong { font-size: 1.05rem; }
+.si-kicker { font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; color: #b7a88a; }
+.si-price { color: #f2d48a; font-size: 1rem; }
+.si-empty { margin: 0.2rem 0 0.6rem; }
+.si-back { align-self: flex-start; }
+.si-meta { color: #f2d48a; }
+#si-video { width: 100%; max-height: 48vh; background: #000; }
+.si-pay { display: flex; flex-direction: column; gap: 0.35rem; max-width: 28rem; }
+.si-share label, .si-txid { display: block; margin: 0.35rem 0; }
+.si-share input, .si-share select, .si-share textarea, .si-txid input { width: 100%; }
 .kw-panel {
   position: absolute;
   left: auto;
@@ -2028,6 +2068,17 @@ a { color: #f2d48a; }
     z-index: 6;
     padding: 0.45rem 0.5rem 0.55rem;
   }
+  .phone-fit .kw-panel.si-pop {
+    left: 4px;
+    right: 4px;
+    top: 4px;
+    bottom: 4px;
+    width: auto;
+    max-height: none;
+    z-index: 7;
+  }
+  .phone-fit .si-card { flex-basis: 9.2rem; min-height: 6.4rem; }
+  .phone-fit #si-video { max-height: 36dvh; }
   .phone-fit .kw-panel.swap-pop,
   .phone-fit .kw-panel.stall-pop {
     left: 8px;
@@ -2164,4 +2215,5 @@ a { color: #f2d48a; }
   .phone-fit .flight-card p { margin-bottom: 0.18rem; }
   .phone-fit .flight-card:has(#flight-offer:not([hidden])) { max-height: 46%; }
   .phone-fit .kw-panel { max-height: 72%; }
+  .phone-fit .kw-panel.si-pop { max-height: none; top: 4px; bottom: 4px; }
 }
