@@ -761,7 +761,7 @@ export function cruisePose(ms, sku, fromMs) {
     carYaw: yaw,
     carRoll: bank ? -0.26 * bank : 0,
     nod: 0,
-    spin: (WORLD_FACE[sku] || 0) + Math.max(0, t - APPROACH_MS) * 0.000035,
+    spin: (WORLD_FACE[sku] || 0) + (Math.max(0, t - APPROACH_MS) / EARTH_TURN_MS) * Math.PI * 2,
     plume: 0,
     shipPlume: 0,
     sky: 1,
@@ -1034,14 +1034,17 @@ export function earthFilmFrame(pose, cam) {
 }
 
 /**
- * Just outside the vehicle, leaned off the Earth radial, so the limb crosses the window
- * the way the cruise does. yaw walks around that radial. dist is scene units from the subject.
+ * Just outside the vehicle, leaned off the radial, so the limb crosses the window.
+ * yaw walks around that radial. dist is scene units from the subject.
+ * center defaults to the Earth under the pad. A hop passes that world's center.
  */
-export function limbShot(x, y, z, dist, yaw = 0) {
-  const ey = earthCenter();
-  let ox = x;
+export function limbShot(x, y, z, dist, yaw = 0, center) {
+  const ex = center ? center.x : 0;
+  const ey = center ? center.y : earthCenter();
+  const ez = center ? center.z : 0;
+  let ox = x - ex;
   let oy = y - ey;
-  let oz = z;
+  let oz = z - ez;
   const olen = Math.hypot(ox, oy, oz) || 1;
   ox /= olen;
   oy /= olen;
@@ -3188,45 +3191,23 @@ export function erasePadFilms(flight) {
 }
 
 /**
- * The Saturn plate plays only on that cruise. The climb sky stays the star field.
- * Until the still or the film has a frame, the sharpened planet stays up.
+ * The Saturn plate stays down. The hop uses the same limb window as the Earth orbit,
+ * with the roadster in front of the real planet.
  */
 function showSaturnFilm(flight, pose) {
   const film = flight && flight.saturnFilm;
   if (!film) return;
-  const show = !!(pose && pose.beat === "cruise" && pose.dest === "saturn");
+  film.visible = false;
   const vid = flight.saturnVideo;
-  const videoMap = film.userData.videoMap;
-  const playing = !!(show && vid && videoMap && vid.readyState >= 2);
-  const picture = !!(show && (playing || film.userData.still));
-  film.visible = picture;
+  if (vid && !vid.paused && typeof vid.pause === "function") vid.pause();
   const parts = flight.worlds && flight.worlds.saturn && flight.worlds.saturn.userData.parts;
   if (parts) {
-    for (const part of parts) part.visible = !picture;
+    for (const part of parts) part.visible = true;
   }
-  if (!show) {
-    if (vid && !vid.paused && typeof vid.pause === "function") vid.pause();
-    return;
-  }
+  if (!(pose && pose.beat === "cruise" && pose.dest === "saturn")) return;
   const frame = saturnFilmFrame(pose);
   film.position.set(frame.x, frame.y, frame.z);
   aimUpright(film, frame.fx, frame.fy, frame.fz);
-  if (!playing) return;
-  if (film.material.map !== videoMap) {
-    film.material.map = videoMap;
-    film.material.needsUpdate = true;
-    film.userData.videoOn = true;
-    const glow = film.getObjectByName("saturn-film-glow");
-    if (glow) {
-      glow.material.map = videoMap;
-      glow.material.needsUpdate = true;
-    }
-  }
-  videoMap.needsUpdate = true;
-  if (vid.paused && typeof vid.play === "function") {
-    const pending = vid.play();
-    if (pending && typeof pending.catch === "function") pending.catch(() => {});
-  }
 }
 
 /** Still of the limb, until the film has a frame. The soundtrack is not shipped. */
@@ -3284,42 +3265,15 @@ function syncEarthSpin(vid, spin) {
 }
 
 /**
- * The limb film plays while the real Earth is in the launch window.
- * One play is one full turn. The climb sky stays the star field.
- * The abyss leaves the plate down so the road into the galaxy stays clear.
- * A still photograph does not cover the sphere: the sphere is what turns before the file plays.
+ * The limb plate stays down. It was a flat rectangle on the horizon through launch and separation.
+ * The sphere is the Earth.
  */
-function showEarthFilm(flight, pose) {
+function showEarthFilm(flight, _pose) {
   const film = flight && flight.earthFilm;
   if (!film) return;
-  const cruiseAway = !!(pose && pose.beat === "cruise" && pose.dest === "abyss");
-  const show = !!(pose && flight.earth && flight.earth.visible && !cruiseAway);
+  film.visible = false;
   const vid = flight.earthVideo;
-  const videoMap = film.userData.videoMap;
-  const ready = !!(show && vid && videoMap && vid.readyState >= 2 && Number(vid.duration) > 0);
-  film.visible = ready;
-  if (!show) {
-    if (vid && !vid.paused && typeof vid.pause === "function") vid.pause();
-    return;
-  }
-  if (!ready) return;
-  let cam = null;
-  if (pose.beat !== "cruise" && pose.ms != null) cam = flightCamera(pose.ms);
-  else if (pose.carX != null) cam = { x: pose.carX, y: pose.carY, z: pose.carZ, lx: pose.worldX, ly: pose.worldY, lz: pose.worldZ };
-  if (!cam) return;
-  applyEarthFilm(film, earthFilmFrame(pose, cam));
-  if (!film.userData.videoOn && film.material.uniforms && film.material.uniforms.map) {
-    film.material.uniforms.map.value = videoMap;
-    film.userData.videoOn = true;
-  }
-  videoMap.needsUpdate = true;
-  const spin = pose.earthSpin != null ? pose.earthSpin : earthTurn(pose.ms || 0);
-  syncEarthSpin(vid, spin);
-  const rate = (Number(vid.duration) * 1000) / EARTH_TURN_MS;
-  if (rate >= 0.0625 && rate <= 16 && vid.paused && typeof vid.play === "function") {
-    const pending = vid.play();
-    if (pending && typeof pending.catch === "function") pending.catch(() => {});
-  }
+  if (vid && !vid.paused && typeof vid.pause === "function") vid.pause();
 }
 
 /**
@@ -4912,12 +4866,13 @@ export function mountWorld(canvas, map, api) {
       }
     }
     const cruisingWatch = pose.beat === "cruise";
-    // Level with the car, just outside the circle, so the limb crosses the window.
-    // Saturn sits further out so the portrait fills the height.
+    // The abyss keeps its chase. Every other world uses the Earth limb window:
+    // the roadster in front, the planet's limb crossing the frame.
     const watchPitch = cruisingWatch ? (Math.PI / 2) * (flightPitch / 1.05) : flightPitch;
-    const watchDist = cruisingWatch && pose.dest === "saturn" ? SATURN_WATCH : 6;
     const cam = cruisingWatch
-      ? (pose.dest === "abyss" ? abyssWatch(pose, flightYaw, watchPitch) : cruiseWatch(pose, flightYaw, watchPitch, watchDist))
+      ? (pose.dest === "abyss"
+        ? abyssWatch(pose, flightYaw, watchPitch)
+        : limbShot(pose.carX, pose.carY, pose.carZ, 11, flightYaw, { x: pose.worldX, y: pose.worldY, z: pose.worldZ }))
       : flightCamera(ms, flightYaw, flightPitch);
     const kick = pose.plume > 0.4 ? 1 : 0;
     camera.position.set(cam.x + Math.sin(now / 28) * 0.15 * kick, cam.y + Math.cos(now / 24) * 0.1 * kick, cam.z);
