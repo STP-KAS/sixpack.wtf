@@ -3621,18 +3621,33 @@ function guestHere() {
   return !!(state.id && state.id.kind === "guest" && state.id.token && state.id.address);
 }
 
+function pickedDomain(raw) {
+  let text = String(raw || "").trim().toLowerCase();
+  if (text.endsWith(".kas")) text = text.slice(0, -4);
+  if (!text) return "";
+  if (!/^[a-z][a-z0-9-]{0,31}$/.test(text) || text.endsWith("-")) return "Use letters, digits, and hyphens.";
+  return text + ".kas";
+}
+
+function paintPicked(raw) {
+  const line = document.getElementById("layer-picked");
+  if (!line) return;
+  line.textContent = pickedDomain(raw);
+}
+
 function layerMakeHtml() {
   const guest = guestHere();
   const place = layerPlace || (guest ? "funded" : "this");
   const funded = guest
     ? '<button type="button" id="layer-funded"' + (place === "funded" ? ' class="on"' : "") + ">Funded test wallet</button> "
     : "";
-  return "<p><strong>Make a domain.</strong> Pick the funded test wallet, this address, or type one. This desk inscribes only the funded test wallet. It does not send tKAS to an address it cannot sign.</p>" +
-    '<label class="mint-line"><span>Name</span><input id="layer-name" maxlength="32" spellcheck="false" autocomplete="off" placeholder="name.kas"></label>' +
+  return "<p><strong>Make a domain.</strong> Type a name. This page adds .kas. Inscribe now uses the funded test wallet on this tab. Another address uses the KNS app. No tKAS is sent to an address this desk cannot sign.</p>" +
+    '<label class="mint-line"><span>Name</span><input id="layer-name" maxlength="36" spellcheck="false" autocomplete="off" placeholder="name"></label>' +
+    '<p id="layer-picked" class="layer-picked"></p>' +
     funded +
     '<button type="button" id="layer-this"' + (place === "this" ? ' class="on"' : "") + ">This address</button> " +
     '<label class="mint-line"><span>Address</span><input id="layer-choice" maxlength="80" spellcheck="false" autocomplete="off" placeholder="kaspatest:"></label>' +
-    '<button type="button" id="layer-make">Make this domain</button>';
+    '<button type="button" id="layer-make">Inscribe now</button>';
 }
 
 function sealFitText(text) {
@@ -3681,12 +3696,16 @@ function restoreLayerDrafts(drafts) {
   const fit = document.getElementById("layer-seal-fit");
   const note = document.getElementById("layer-note");
   if (fit && note && note.value) fit.textContent = sealFitText(note.value);
+  const name = document.getElementById("layer-name");
+  if (name) paintPicked(name.value);
 }
 
 function wireLayerMake() {
   const funded = document.getElementById("layer-funded");
   const here = document.getElementById("layer-this");
   const choice = document.getElementById("layer-choice");
+  const name = document.getElementById("layer-name");
+  if (name) name.oninput = () => paintPicked(name.value);
   const make = document.getElementById("layer-make");
   if (funded) funded.onclick = () => { layerPlace = "funded"; paintLayer(); };
   if (here) here.onclick = () => { layerPlace = "this"; paintLayer(); };
@@ -3776,7 +3795,7 @@ async function makeDomain() {
   if (!requireId()) return;
   const name = (document.getElementById("layer-name") || {}).value || "";
   if (!String(name).trim()) {
-    say("Type a .kas name.", true);
+    say("Type a name.", true);
     return;
   }
   const guest = guestHere();
@@ -3928,7 +3947,7 @@ function paintLayer() {
     '<button type="button" id="layer-open">Open</button> ' +
     '<button type="button" id="layer-bank">Bank</button>' +
     "<p><strong>What.</strong> Layer-Kaspa opens a .kas name from the KNS testnet index. Visitors can open a published page. Only the address that owns the name can change it.</p>" +
-    "<p><strong>How.</strong> Type a name and pick where it goes. Inscribe sends the KNS testnet fee from the funded test wallet on this tab. Click that wallet when this tab has one. Five letters or more is 35 tKAS. A shorter name costs more. This address, or an address you type, uses the <a href=\"https://app.knsdomains.org\" target=\"_blank\" rel=\"noopener\">KNS app</a>. More than one name can be inscribed. The first one is the default. domain/address on the balance bar changes it. The testnet index is <a href=\"https://tn10.knsdomains.org\" target=\"_blank\" rel=\"noopener\">tn10.knsdomains.org</a>. Open the name here. If this address owns it, a window opens with the page options. Visitors get the page without those controls. No covenant is deployed.</p>" +
+    "<p><strong>How.</strong> Type a name. This page adds .kas. The name you picked shows in red under the box. Inscribe now sends the KNS testnet fee from the funded test wallet on this tab. Click that wallet when this tab has one. Five letters or more is 35 tKAS. A shorter name costs more. This address, or an address you type, uses the <a href=\"https://app.knsdomains.org\" target=\"_blank\" rel=\"noopener\">KNS app</a>. More than one name can be inscribed. The first one is the default. domain/address on the balance bar changes it. The testnet index is <a href=\"https://tn10.knsdomains.org\" target=\"_blank\" rel=\"noopener\">tn10.knsdomains.org</a>. Open the name here. If this address owns it, a window opens with the page options. Visitors get the page without those controls. No covenant is deployed.</p>" +
     "<p><strong>Why.</strong> So a name you already own on the Kaspa testnet index can have a page on this square. It is not Tor, and it does not hide the path. No covenant is deployed.</p>" +
     "<p><strong>Index.</strong> This square's index lists names this desk inscribed or verified. The KNS testnet index is still the network record. While that network index is quiet or has not listed the name, the recorded owner can open and edit the page. When it names another address, that address wins. No covenant is deployed.</p>" +
     layerIndexHtml() +
@@ -4055,7 +4074,7 @@ async function refreshLayer() {
 async function openLayer(name) {
   const raw = String(name || "").trim();
   if (!raw) {
-    say("Type a .kas name.", true);
+    say("Type a name.", true);
     return;
   }
   layerVisit = raw;
@@ -4104,7 +4123,10 @@ async function inscribeLayer() {
     }),
   });
   if (!body.ok) {
-    say(body.error || "The name was not inscribed.", true);
+    const msg = body.error || "The name was not inscribed.";
+    const line = document.getElementById("layer-picked");
+    if (line && /not available/i.test(msg)) line.textContent = "This domain is not available.";
+    say(msg, true);
     return;
   }
   if (body.account) {

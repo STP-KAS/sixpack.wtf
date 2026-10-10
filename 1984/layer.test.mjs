@@ -113,6 +113,38 @@ test("the layer save route refuses a name this address does not own", async () =
   assert.equal(state.sites.lumbridge.owner, A);
 });
 
+test("a quiet owner route still lets this desk inscribe a name", async () => {
+  let state = { accounts: {}, receipts: [], seq: "0" };
+  let calls = 0;
+  const svc = create1984Service({
+    load: () => state,
+    save: (next) => {
+      state = next;
+    },
+    fetch: async () => {
+      throw new Error("down");
+    },
+    now: () => 10,
+    pay: async () => ({ txids: [] }),
+    inscribe: async () => {
+      calls += 1;
+      return { inscriptionId: "ab".repeat(32) + "i0", feeKas: 35, revealId: "ab".repeat(32) };
+    },
+  });
+  const inscribed = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/layer/inscribe",
+    query: new URLSearchParams(),
+    body: { address: A, network: "testnet-10", token: "tab", name: "harbor" },
+    ip: "layer-inscribe-quiet",
+  });
+  assert.equal(inscribed.status, 200, inscribed.body && inscribed.body.error);
+  assert.equal(calls, 1);
+  assert.equal(state.knsIndex[0].name, "harbor");
+  assert.equal(state.knsIndex[0].owner, A);
+  assert.match(inscribed.body.note, /No covenant was deployed/);
+});
+
 test("a quiet KNS index does not let an address customize", async () => {
   let state = { accounts: {}, receipts: [], seq: "0" };
   const svc = create1984Service({

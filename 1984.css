@@ -591,6 +591,16 @@ body.page-1984 main.kw-stage {
   line-height: 1.35;
   color: #f2d48a;
 }
+.layer-picked {
+  margin: 0.05rem 0 0.45rem;
+  padding-left: calc(1rem + 0.45rem);
+  min-height: 1.15rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #ff4d4d;
+}
+.layer-picked:empty { display: none; }
 .mint-open, .layer-scroll, .chat-scroll, .vault-scroll {
   margin: 0.2rem 0 0.4rem;
   padding: 0.15rem 0.35rem 0.15rem 0;

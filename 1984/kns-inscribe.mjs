@@ -49,7 +49,7 @@ async function freeOnIndex(plan, payer, fetchImpl) {
   const row = body && body.data && body.data.domains && body.data.domains[0];
   if (!row) throw new Error("The KNS testnet index did not say whether this name is free.");
   if (row.isReservedDomain === true) throw new Error("That name is reserved on the KNS testnet index.");
-  if (row.available !== true) throw new Error("That name is already on the KNS testnet index.");
+  if (row.available !== true) throw new Error("This domain is not available.");
 }
 
 function sleep(ms) {

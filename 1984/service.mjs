@@ -921,56 +921,22 @@ export function create1984Service(deps) {
               },
             };
           }
-          let found = null;
-          try {
-            found = await resolveName(name, deps.fetch);
-          } catch (err) {
-            const msg = String((err && err.message) || "");
-            if (/mainnet|Type a \.kas name/i.test(msg)) throw err;
-            throw new Error("The KNS testnet index did not answer. The name was not inscribed.");
+          const row = lookupSquareName(state, name);
+          if (row && row.owner.toLowerCase() !== key) {
+            throw new Error("That name is already on this square's index for another address.");
           }
-          if (found && found.address.toLowerCase() === key) {
-            return await queue(async () => {
-              const noted = recordSquareName(state, { name, owner: address, source: "kns" }, deps.now());
-              const listed = !noted.conflict;
-              if (listed) {
-                state = noted.state;
-                deps.save(state);
-              }
-              return {
-                status: 200,
-                body: {
-                  ok: true,
-                  already: true,
-                  name,
-                  names: accountNames(state.accounts && state.accounts[key]),
-                  kns: publicKnsIndex(state),
-                  note: listed
-                    ? "You already own this name on the KNS testnet index. This square's index lists it too. Open it to publish the page. No covenant was deployed."
-                    : "You already own this name on the KNS testnet index. Open it to publish the page. No covenant was deployed.",
-                },
-              };
-            });
-          }
-          if (found) throw new Error("That name is already on the KNS testnet index for another address.");
-          if (!found) {
-            const row = lookupSquareName(state, name);
-            if (row && row.owner.toLowerCase() !== key) {
-              throw new Error("That name is already on this square's index for another address.");
-            }
-            if (row && row.owner.toLowerCase() === key) {
-              return {
-                status: 200,
-                body: {
-                  ok: true,
-                  already: true,
-                  name,
-                  names: accountNames(held),
-                  kns: publicKnsIndex(state),
-                  note: "This square's index already lists " + name + ".kas for this address. The KNS testnet index has not listed it. No covenant was deployed.",
-                },
-              };
-            }
+          if (row && row.owner.toLowerCase() === key) {
+            return {
+              status: 200,
+              body: {
+                ok: true,
+                already: true,
+                name,
+                names: accountNames(held),
+                kns: publicKnsIndex(state),
+                note: "This square's index already lists " + name + ".kas for this address. The KNS testnet index has not listed it. No covenant was deployed.",
+              },
+            };
           }
           if (!body.token) {
             throw new Error("This desk inscribes the funded test wallet it handed you. A pasted address uses the KNS app.");

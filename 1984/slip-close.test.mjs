@@ -52,7 +52,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=135/);
+  assert.match(html, /1984\/client\.mjs\?v=136/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -183,8 +183,8 @@ test("the balances stay in a clear bar under the site tabs", () => {
   const stageAt = html.indexOf('<main class="kw-stage">');
   assert.ok(topEnd > 0 && barAt > topEnd && stageAt > barAt);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
-  assert.match(html, /1984\.css\?v=77/);
-  assert.match(html, /1984\/client\.mjs\?v=135/);
+  assert.match(html, /1984\.css\?v=78/);
+  assert.match(html, /1984\/client\.mjs\?v=136/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
@@ -279,6 +279,10 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(sliceFn(client, "layerVisitHtml"), /No covenant is deployed/);
   assert.match(sliceFn(client, "layerMakeHtml"), /id="layer-funded"/);
   assert.match(sliceFn(client, "layerMakeHtml"), /id="layer-make"/);
+  assert.match(sliceFn(client, "layerMakeHtml"), /id="layer-picked"/);
+  assert.match(sliceFn(client, "layerMakeHtml"), /placeholder="name"/);
+  assert.match(sliceFn(client, "layerMakeHtml"), /This page adds \.kas/);
+  assert.match(css, /\.layer-picked \{[\s\S]*color: #ff4d4d/);
   assert.match(sliceFn(client, "layerSealHtml"), /id="layer-seal"/);
   assert.match(sliceFn(client, "layerSealHtml"), /988 bytes/);
   assert.match(sliceFn(client, "layerSealHtml"), /No covenant is deployed/);
