@@ -83,12 +83,13 @@ const state = {
   ticketAsk: false,
   reelAt: 0,
   snacksOpen: null,
+  domainOpen: false,
 };
 
 const SIM_LINE = "You are back on the square, in the roadster. You returned to a simulation of a simulation of a simulation, 255524 deep.";
 
 const PRIVACY =
-  "A .kas name that contains your name, your X handle, or anything that points at you ties this public spending to you. Pay at a shop and that payment sits on Testnet-10 next to the name. This desk prefers a plain kaspatest address, or a .kas name that does not identify you. To register a name, use KNS. This page does not create one.";
+  "A .kas name that contains your name, your X handle, or anything that points at you ties this public spending to you. Pay at a shop and that payment sits on Testnet-10 next to the name. This desk prefers a plain kaspatest address, or a .kas name that does not identify you. To register a name for another address, use the KNS app. This page inscribes the funded test wallet on this tab.";
 
 let guestBusy = false;
 
@@ -442,6 +443,40 @@ function short(address) {
   return address.slice(0, 14) + "…" + address.slice(-6);
 }
 
+function clientNames(account) {
+  const out = [];
+  const seen = new Set();
+  const push = (value) => {
+    const text = String(value || "").trim().toLowerCase().replace(/\.kas$/, "");
+    if (!text || seen.has(text)) return;
+    seen.add(text);
+    out.push(text);
+  };
+  if (account && Array.isArray(account.knsNames)) account.knsNames.forEach(push);
+  if (account) {
+    push(account.knsName);
+    push(account.displayName);
+  }
+  return out;
+}
+
+function barChangerHtml() {
+  const id = state.id;
+  const account = state.account || {};
+  const names = clientNames(account);
+  const chosen = account.displayName || account.knsName || "";
+  const picks = names.map((name) => {
+    const on = name === chosen ? " on" : "";
+    return '<button type="button" class="bar-name' + on + '" data-kns="' + esc(name) + '">' + esc(name) + ".kas</button>";
+  }).join(" ");
+  return '<div class="bar-changer" id="bar-changer">' +
+    '<p class="bal-extra"><span class="bal-k">kaspatest:</span> ' + esc(id.address || "not chosen") + "</p>" +
+    '<p class="bal-extra"><span class="bal-k">Default:</span> ' + esc(chosen ? chosen + ".kas" : "the address") + "</p>" +
+    '<p class="bal-extra"><span class="bal-k">Change KNS name</span> ' + picks +
+    ' <button type="button" class="bar-name" data-kns="">address</button></p>' +
+    "</div>";
+}
+
 function paintChrome() {
   const addrDraft = document.getElementById("addr");
   const nameDraft = document.getElementById("kasname");
@@ -458,6 +493,13 @@ function paintChrome() {
   const guestLine = id.kind === "guest" ? " · this tab only" : "";
   const driving = state.account && state.account.roadster ? (state.aboard ? " · driving" : " · roadster is yours") : "";
   const bankOn = state.mode === "bank" ? " on" : "";
+  const names = clientNames(state.account);
+  const chosen = state.account && (state.account.displayName || state.account.knsName) || "";
+  const domainOn = state.domainOpen ? " on" : "";
+  const domainBtn = names.length
+    ? '<button type="button" id="bar-domain" class="bar-domain' + domainOn + '">domain/address</button>'
+    : "";
+  const changer = state.domainOpen && names.length ? barChangerHtml() : "";
   const bankLines = state.mode === "bank"
     ? '<p class="bal-extra"><span class="bal-k">Minted:</span> ' + esc(mintedBarText()) + "</p>" +
       '<p class="bal-extra"><span class="bal-k">Hunt:</span> ' + esc(huntBarText()) + "</p>"
@@ -467,7 +509,11 @@ function paintChrome() {
     '<p class="bal-line"><span class="bal-k">tKAS:</span> ' + esc(kasAmt) + "</p>" +
     '<p class="bal-line"><span class="bal-k">POC:</span> ' + esc(pocAmt) + "</p>" +
     '<p class="bal-line"><span class="bal-k">KUSDT:</span> ' + esc(kusdtAmt + frozen) + "</p>" +
+    '<p class="bal-line"><span class="bal-k">Address:</span> ' + esc(id.address ? short(id.address) : "not chosen") + "</p>" +
+    '<p class="bal-line"><span class="bal-k">Domain:</span> ' + esc(chosen ? chosen + ".kas" : "none") + "</p>" +
+    domainBtn +
     '<button type="button" id="bar-bank" class="bar-bank' + bankOn + '">Bank</button>' +
+    changer +
     bankLines;
 
   const buttons = [
@@ -2862,13 +2908,13 @@ function paintGuide() {
     "<li>Venn's bank opens as a swap. You pay one asset and you receive another: tKAS, POCencept, or KUSDT. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on the card.</li>" +
     "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe, take a seat and the menu blinks, or order at the counter. The mint opens when you walk in. Launch, while you are in the car and outside, plays two short films beside the rocket first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. The tower stands beside it. The ship lifts off the mount when the count reaches zero. When the booster lets go, that separation plays its voice while this ship and the booster stay on screen. After the booster is gone, the ship coasts, then the roadster leaves. The comms stop when the roadster leaves the bay. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: you hang out with the old roadster. It has been cruising for years. The way there is ten seconds. Out there the two cars race in orbit around the Earth. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>The Moon map is NASA. Mars and Jupiter are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0. The Earth limb plays the Earth film. One play is one full turn, west to east. The Saturn cruise plays the Saturn film.</li>" +
-    "<li>The balances stay in a clear bar under the site tabs, on the square, in a shop, in the cinema, and on a flight. It reads tKAS, POC, and KUSDT. Bank is on that bar. With the bank open, that bar lists the minted tokens and the hunt you are in.</li>" +
+    "<li>The balances stay in a clear bar under the site tabs, on the square, in a shop, in the cinema, and on a flight. It reads tKAS, POC, and KUSDT, then the kaspatest address and the chosen .kas name. domain/address on that bar changes the default name. Bank is on that bar. With the bank open, that bar lists the minted tokens and the hunt you are in.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Every film is labeled this desk agrees. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. On a phone, the snacks start as a small tab so the film stays clear. Close snacks puts that list away. Snacks brings it back. Neither one starts a purchase. The current film stays up until the next one has a picture. The next film starts when one ends. Exit to the square leaves the cinema.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Peer to peer is the payment. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled. This square is still the classroom.</li>" +
     "<li>Mint is the building with the Mint sign. Walk in and the mint card is open. The line on the card is supply on this square, not a KAS price. Mint, Trade, and About sit under that line. Trade offers one open name for another. Copy puts an address on the clipboard. Mint more, send, or open a new name. Open names sit on the card. Click a name to see the addresses, the amounts, and the ledger lines. A name that has reached its cap is under Completed. It is a square-ledger token under KCC-20 Last Call. It is not Final, and no covenant is deployed. Type 0 in Cap for no cap. There is no maximum.</li>" +
-    "<li>Layer-Kaspa is on the side rail. Open a .kas name. One name can be inscribed from the funded test wallet on this tab. The KNS testnet index records it. No covenant is deployed. Visitors see the page. Only the owner can change it. The owner can show that name instead of the tKAS address. The window has the title, a tagline, the welcome, a color, a link, and offers. A pasted address uses the KNS app. This layer does not hide the path. It is not Tor.</li>" +
+    "<li>Layer-Kaspa is on the side rail. Open a .kas name, or make one. The funded test wallet on this tab can inscribe more than one name. The first name is the default. domain/address on the balance bar changes it. The KNS testnet index records each name. No covenant is deployed. Visitors see the page. Only the owner can change it. The window has the title, a tagline, the welcome, a color, a link, and offers. A private note is separate. A short one is ciphertext in a Testnet-10 payload. A longer one stays encrypted on this desk. A pasted address uses the KNS app. This layer does not hide the path. It is not Tor.</li>" +
     "<li>Kachat is on the side rail. Paste the other kaspatest address and send a handshake. They accept it. Then you send messages. Each step is 0.01 POCencept. Messages only. The KaChat app on the chain is a different program.</li>" +
     "<li>Vault is on the side rail. It keeps a note on this square ledger and a rule for who may read it and when. The labels are a note, an NDA, an enterprise file, or other. A real secret does not belong here. This page checks the readers and the time. A covenant mark is a label. No covenant is deployed. Seal keeps the note and the rule.</li>" +
     "<li>Rules: a daily cap, a shop list, a rail list, a confirm line.</li>" +
@@ -3567,7 +3613,297 @@ function hideLayerPop() {
   pop.className = "kw-panel layer-pop";
 }
 
+let layerPlace = "";
+let sealPlace = "";
+let sealEcho = "";
+
+function guestHere() {
+  return !!(state.id && state.id.kind === "guest" && state.id.token && state.id.address);
+}
+
+function layerMakeHtml() {
+  const guest = guestHere();
+  const place = layerPlace || (guest ? "funded" : "this");
+  const funded = guest
+    ? '<button type="button" id="layer-funded"' + (place === "funded" ? ' class="on"' : "") + ">Funded test wallet</button> "
+    : "";
+  return "<p><strong>Make a domain.</strong> Pick the funded test wallet, this address, or type one. This desk inscribes only the funded test wallet. It does not send tKAS to an address it cannot sign.</p>" +
+    '<label class="mint-line"><span>Name</span><input id="layer-name" maxlength="32" spellcheck="false" autocomplete="off" placeholder="name.kas"></label>' +
+    funded +
+    '<button type="button" id="layer-this"' + (place === "this" ? ' class="on"' : "") + ">This address</button> " +
+    '<label class="mint-line"><span>Address</span><input id="layer-choice" maxlength="80" spellcheck="false" autocomplete="off" placeholder="kaspatest:"></label>' +
+    '<button type="button" id="layer-make">Make this domain</button>';
+}
+
+function sealFitText(text) {
+  const n = new TextEncoder().encode(text || "").length;
+  if (!n) return "Type a private note. 988 bytes or less can go on Testnet-10 from the funded test wallet. Up to 8000 bytes stays encrypted on this desk.";
+  if (n > 8000) return n + " bytes. A private note is at most 8000 bytes.";
+  if (n <= 988) return n + " bytes. The funded test wallet can put the ciphertext in a Testnet-10 payload.";
+  return n + " bytes. Too large for a payload. The ciphertext stays on this desk.";
+}
+
+function sealStatus() {
+  const seal = state.account && state.account.seal;
+  if (!seal && !sealEcho) return "";
+  const where = seal && seal.where === "chain" ? "Testnet-10 payload" : "this desk";
+  const tx = seal && seal.txid ? " Tx " + seal.txid.slice(0, 10) + "…." : "";
+  const held = seal && seal.deskHoldsKey
+    ? " This desk holds the funded test key, so it can read this note."
+    : " Open it here with the passphrase. This desk did not keep one.";
+  const opened = sealEcho ? "<p>" + esc(sealEcho) + "</p>" : "";
+  return "<p class=\"mint-cap-note\">A sealed note is on this tab (" + where + ")." + esc(tx) + held + "</p>" + opened;
+}
+
+function layerSealHtml() {
+  const guest = guestHere();
+  const place = sealPlace || (guest ? "funded" : "this");
+  const funded = guest
+    ? '<button type="button" id="seal-funded"' + (place === "funded" ? ' class="on"' : "") + ">Funded test wallet</button> "
+    : "";
+  return "<p><strong>Private note.</strong> The title, welcome, and offers stay readable. A note of 988 bytes or less goes out as ciphertext in a Testnet-10 payload when the funded test wallet signs it. A larger note, up to 8000 bytes, stays encrypted on this desk. This desk holds that test key, so it can read a note for the funded wallet. A chosen address is sealed in this browser. This desk stores the ciphertext and does not keep the passphrase. No tKAS is sent to that address. No covenant is deployed.</p>" +
+    '<label class="mint-line"><span>Note</span><textarea id="layer-note" class="layer-field" maxlength="8000" rows="3"></textarea></label>' +
+    '<p id="layer-seal-fit" class="mint-cap-note">' + esc(sealFitText("")) + "</p>" +
+    funded +
+    '<button type="button" id="seal-this"' + (place === "this" ? ' class="on"' : "") + ">This address</button> " +
+    '<label class="mint-line"><span>Address</span><input id="seal-choice" maxlength="80" spellcheck="false" autocomplete="off" placeholder="kaspatest:"></label>' +
+    '<label class="mint-line"><span>Passphrase</span><input id="layer-seal-pass" type="password" maxlength="200" autocomplete="new-password" spellcheck="false"></label>' +
+    '<button type="button" id="layer-seal">Seal note</button> ' +
+    '<button type="button" id="layer-seal-open">Read note</button>' +
+    sealStatus();
+}
+
+function restoreLayerDrafts(drafts) {
+  for (const [id, value] of Object.entries(drafts)) {
+    const el = document.getElementById(id);
+    if (el && value != null) el.value = value;
+  }
+  const fit = document.getElementById("layer-seal-fit");
+  const note = document.getElementById("layer-note");
+  if (fit && note && note.value) fit.textContent = sealFitText(note.value);
+}
+
+function wireLayerMake() {
+  const funded = document.getElementById("layer-funded");
+  const here = document.getElementById("layer-this");
+  const choice = document.getElementById("layer-choice");
+  const make = document.getElementById("layer-make");
+  if (funded) funded.onclick = () => { layerPlace = "funded"; paintLayer(); };
+  if (here) here.onclick = () => { layerPlace = "this"; paintLayer(); };
+  if (choice) choice.oninput = () => {
+    layerPlace = "choice";
+    const picked = document.getElementById("layer-funded");
+    const current = document.getElementById("layer-this");
+    if (picked) picked.classList.remove("on");
+    if (current) current.classList.remove("on");
+  };
+  if (make) make.onclick = () => { makeDomain().catch((err) => say(err.message, true)); };
+}
+
+function wireLayerSeal() {
+  const note = document.getElementById("layer-note");
+  const fit = document.getElementById("layer-seal-fit");
+  if (note && fit) note.oninput = () => { fit.textContent = sealFitText(note.value); };
+  const funded = document.getElementById("seal-funded");
+  const here = document.getElementById("seal-this");
+  const choice = document.getElementById("seal-choice");
+  if (funded) funded.onclick = () => { sealPlace = "funded"; paintLayer(); };
+  if (here) here.onclick = () => { sealPlace = "this"; paintLayer(); };
+  if (choice) choice.oninput = () => {
+    sealPlace = "choice";
+    const picked = document.getElementById("seal-funded");
+    const current = document.getElementById("seal-this");
+    if (picked) picked.classList.remove("on");
+    if (current) current.classList.remove("on");
+  };
+  const seal = document.getElementById("layer-seal");
+  const open = document.getElementById("layer-seal-open");
+  if (seal) seal.onclick = () => { sealNote().catch((err) => say(err.message, true)); };
+  if (open) open.onclick = () => { openSealedNote().catch((err) => say(err.message, true)); };
+}
+
+function bytesToB64(bytes) {
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+
+function b64ToBytes(text) {
+  const bin = atob(String(text || ""));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+async function sealInBrowser(plain, passphrase) {
+  if (!crypto.subtle) throw new Error("This browser cannot seal a note.");
+  const enc = new TextEncoder();
+  const hash = await crypto.subtle.digest("SHA-256", enc.encode("sixpack-layer-seal-v1\0" + passphrase));
+  const key = await crypto.subtle.importKey("raw", hash, "AES-GCM", false, ["encrypt"]);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const cipher = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(plain)));
+  const tag = cipher.slice(cipher.length - 16);
+  const body = cipher.slice(0, cipher.length - 16);
+  const packed = new Uint8Array(12 + 16 + body.length);
+  packed.set(iv, 0);
+  packed.set(tag, 12);
+  packed.set(body, 28);
+  return bytesToB64(packed);
+}
+
+async function openInBrowser(cipher, passphrase) {
+  if (!crypto.subtle) throw new Error("This browser cannot open a note.");
+  const packed = b64ToBytes(cipher);
+  if (packed.length < 29) throw new Error("The sealed note did not open.");
+  const iv = packed.slice(0, 12);
+  const tag = packed.slice(12, 28);
+  const body = packed.slice(28);
+  const merged = new Uint8Array(body.length + tag.length);
+  merged.set(body, 0);
+  merged.set(tag, body.length);
+  const enc = new TextEncoder();
+  const hash = await crypto.subtle.digest("SHA-256", enc.encode("sixpack-layer-seal-v1\0" + passphrase));
+  const key = await crypto.subtle.importKey("raw", hash, "AES-GCM", false, ["decrypt"]);
+  try {
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, merged);
+    return new TextDecoder().decode(plain);
+  } catch {
+    throw new Error("The sealed note did not open.");
+  }
+}
+
+async function makeDomain() {
+  if (!requireId()) return;
+  const name = (document.getElementById("layer-name") || {}).value || "";
+  if (!String(name).trim()) {
+    say("Type a .kas name.", true);
+    return;
+  }
+  const guest = guestHere();
+  const place = layerPlace || (guest ? "funded" : "this");
+  const typed = (document.getElementById("layer-choice") || {}).value || "";
+  if (place === "choice" && !typed.trim()) {
+    say("Type a kaspatest address, or click the funded test wallet.", true);
+    return;
+  }
+  const mine = guest && (place === "funded" || place === "this" || (place === "choice" && typed.trim().toLowerCase() === state.id.address.toLowerCase()));
+  if (!mine) {
+    say("This desk inscribes the funded test wallet it handed you. The address you chose uses the KNS app. No tKAS was sent.", true);
+    return;
+  }
+  layerVisit = name;
+  await inscribeLayer();
+}
+
+async function sealNote() {
+  if (!requireId()) return;
+  const text = (document.getElementById("layer-note") || {}).value || "";
+  const n = new TextEncoder().encode(text).length;
+  if (!text.trim()) {
+    say("Type the private note.", true);
+    return;
+  }
+  if (n > 8000) {
+    say("A private note is at most 8000 bytes.", true);
+    return;
+  }
+  const guest = guestHere();
+  const place = sealPlace || (guest ? "funded" : "this");
+  const typed = (document.getElementById("seal-choice") || {}).value || "";
+  if (place === "choice" && !typed.trim()) {
+    say("Type a kaspatest address, or click the funded test wallet.", true);
+    return;
+  }
+  const mine = guest && (place === "funded" || place === "this" || (place === "choice" && typed.trim().toLowerCase() === state.id.address.toLowerCase()));
+  const payload = { place, to: typed };
+  if (mine) {
+    payload.plain = text;
+    payload.token = state.id.token;
+    say(n <= 988 ? "Sealing this note into a Testnet-10 payload." : "This note is too large for a payload. Sealing it on this desk.");
+  } else {
+    const pass = (document.getElementById("layer-seal-pass") || {}).value || "";
+    if (!pass) {
+      say("Type a passphrase. This desk does not keep it.", true);
+      return;
+    }
+    payload.cipher = await sealInBrowser(text, pass);
+    payload.bytes = n + 28;
+    say("Sealing this note in the browser. This desk stores the ciphertext.");
+  }
+  const body = await post("/api/1984/layer/seal", payload, mine && n <= 988 ? 90000 : 20000);
+  if (!body.ok) {
+    say(body.error || "The note was not sealed.", true);
+    return;
+  }
+  if (body.account) state.account = body.account;
+  sealEcho = "";
+  say(body.note || "Sealed.");
+  paintChrome();
+  paintLayer();
+}
+
+async function openSealedNote() {
+  if (!requireId()) return;
+  const seal = state.account && state.account.seal;
+  if (!seal || !seal.cipher) {
+    say("This address has no sealed note.", true);
+    return;
+  }
+  if (seal.deskHoldsKey) {
+    if (!guestHere()) {
+      say("This desk opens a funded note for the test tab that sealed it.", true);
+      return;
+    }
+    const body = await post("/api/1984/layer/seal/open", { token: state.id.token });
+    if (!body.ok) {
+      say(body.error || "The sealed note did not open.", true);
+      return;
+    }
+    sealEcho = body.plain || "";
+    say("Opened. This desk holds the funded test key, so it can read this note.");
+    paintLayer();
+    return;
+  }
+  const pass = (document.getElementById("layer-seal-pass") || {}).value || "";
+  if (!pass) {
+    say("Type the passphrase. This desk did not keep it.", true);
+    return;
+  }
+  sealEcho = await openInBrowser(seal.cipher, pass);
+  say("Opened in this browser. This desk did not keep the passphrase.");
+  paintLayer();
+}
+
+async function chooseBarName(name) {
+  if (!requireId()) return;
+  const saved = await post("/api/1984/layer/default", { name });
+  if (!saved.ok) {
+    say(saved.error || "The default was not changed.", true);
+    return;
+  }
+  if (saved.account) {
+    state.account = saved.account;
+    syncDisplayName(saved.account);
+  }
+  if (saved.sites) {
+    if (!state.home) state.home = {};
+    state.home.sites = saved.sites;
+  }
+  state.domainOpen = true;
+  say(saved.note || "Saved.");
+  paintChrome();
+  if (state.mode === "layer") {
+    paintLayer();
+    if (layerVisit) paintLayerPop();
+  }
+}
+
 function paintLayer() {
+  const drafts = {};
+  for (const id of ["layer-name", "layer-choice", "layer-note", "seal-choice", "layer-seal-pass"]) {
+    const el = document.getElementById(id);
+    drafts[id] = el ? el.value : null;
+  }
   const sites = (state.home && state.home.sites) || [];
   const directory = sites.length
     ? "<ul class=\"layer-scroll\">" + sites.map((row) => {
@@ -3577,16 +3913,20 @@ function paintLayer() {
     : "<p class=\"mint-cap-note\">No page yet. Open a name that is owned on the KNS testnet index.</p>";
   panel.innerHTML =
     '<div class="stall-head"><h2>Layer-Kaspa</h2>' + placeActs("") + "</div>" +
-    "<p><strong>What.</strong> Layer-Kaspa opens a .kas name from the KNS testnet index. Visitors can open a published page. Only the address that owns the name can change it.</p>" +
-    "<p><strong>How.</strong> One name. Inscribe sends the KNS testnet fee from the funded test wallet on this tab. Five letters or more is 35 tKAS. A shorter name costs more. A pasted address still uses the <a href=\"https://app.knsdomains.org\" target=\"_blank\" rel=\"noopener\">KNS app</a>. The testnet index is <a href=\"https://tn10.knsdomains.org\" target=\"_blank\" rel=\"noopener\">tn10.knsdomains.org</a>. Open the name here. If this address owns it, a window opens with the page options. Visitors get the page without those controls. No covenant is deployed.</p>" +
-    "<p><strong>Why.</strong> So a name you already own on the Kaspa testnet index can have a page on this square. It is not Tor, and it does not hide the path. No covenant is deployed.</p>" +
-    '<label class="mint-line"><span>Name</span><input id="layer-name" maxlength="32" spellcheck="false" autocomplete="off" placeholder="name.kas"></label>' +
+    layerMakeHtml() +
+    layerSealHtml() +
     '<button type="button" id="layer-open">Open</button> ' +
     '<button type="button" id="layer-bank">Bank</button>' +
+    "<p><strong>What.</strong> Layer-Kaspa opens a .kas name from the KNS testnet index. Visitors can open a published page. Only the address that owns the name can change it.</p>" +
+    "<p><strong>How.</strong> Type a name and pick where it goes. Inscribe sends the KNS testnet fee from the funded test wallet on this tab. Click that wallet when this tab has one. Five letters or more is 35 tKAS. A shorter name costs more. This address, or an address you type, uses the <a href=\"https://app.knsdomains.org\" target=\"_blank\" rel=\"noopener\">KNS app</a>. More than one name can be inscribed. The first one is the default. domain/address on the balance bar changes it. The testnet index is <a href=\"https://tn10.knsdomains.org\" target=\"_blank\" rel=\"noopener\">tn10.knsdomains.org</a>. Open the name here. If this address owns it, a window opens with the page options. Visitors get the page without those controls. No covenant is deployed.</p>" +
+    "<p><strong>Why.</strong> So a name you already own on the Kaspa testnet index can have a page on this square. It is not Tor, and it does not hide the path. No covenant is deployed.</p>" +
     "<p><strong>Pages.</strong> Open one to visit. The owner is the only one who can change it.</p>" +
     directory;
   document.getElementById("layer-open").onclick = () => openLayer((document.getElementById("layer-name") || {}).value || "");
   document.getElementById("layer-bank").onclick = () => openMode("bank");
+  restoreLayerDrafts(drafts);
+  wireLayerMake();
+  wireLayerSeal();
   for (const button of panel.querySelectorAll("[data-visit]")) {
     button.onclick = () => openLayer(button.getAttribute("data-visit"));
   }
@@ -3608,10 +3948,10 @@ function layerVisitHtml(site) {
     if (layerKns === "") return "<p>Checking the KNS testnet index.</p>";
     if (layerKns === "error") return "<p>The KNS testnet index did not answer. Open the name again in a moment.</p>";
     if (layerKns === "other") return "<p>This name is on the KNS testnet index for another address. That owner has not published a page here. Visitors cannot change it.</p>";
-    if (state.account && state.account.knsName === layerKey(layerVisit)) {
+    if (clientNames(state.account).includes(layerKey(layerVisit))) {
       return "<p>This name was inscribed for this address. The KNS testnet index has not listed it yet. Open it again in a moment. No covenant was deployed.</p>";
     }
-    return "<p>This name is not on the KNS testnet index. One name. Inscribe it for the funded test wallet on this tab. The KNS fee for five letters or more is 35 tKAS. A shorter name costs more. A pasted address uses the <a href=\"https://app.knsdomains.org\" target=\"_blank\" rel=\"noopener\">KNS app</a>. No covenant is deployed.</p>" +
+    return "<p>This name is not on the KNS testnet index. Inscribe it for the funded test wallet on this tab. The KNS fee for five letters or more is 35 tKAS. A shorter name costs more. Another address uses the <a href=\"https://app.knsdomains.org\" target=\"_blank\" rel=\"noopener\">KNS app</a>. More names can follow. The first one is the default. No covenant is deployed.</p>" +
       '<button type="button" id="layer-inscribe">Inscribe this name</button>';
   }
   const link = site.linkUrl ? "<p><a href=\"" + esc(site.linkUrl) + "\" target=\"_blank\" rel=\"noopener\">" + esc(site.linkLabel || site.linkUrl) + "</a></p>" : "";
@@ -3646,7 +3986,7 @@ function paintLayerPop() {
     const picked = (value) => (site && site.accent === value ? " selected" : (!site && value === "stone" ? " selected" : ""));
     pop.innerHTML =
       '<div class="stall-head"><h2>' + esc(host) + '</h2><div class="stall-acts"><button type="button" id="layer-pop-close">Close</button></div></div>' +
-      "<p>You own this name on the KNS testnet index. Visitors can open the page. They cannot change it. No covenant is deployed.</p>" +
+      "<p>You own this name on the KNS testnet index. Visitors can open the page. They cannot change it. The private note is on the Layer card, and visitors do not see it. No covenant is deployed.</p>" +
       '<label class="mint-line"><span>Show</span><input id="layer-show-name" type="checkbox"' + (site && site.showName ? " checked" : "") + "> Show this name instead of the tKAS address</label>" +
       '<label class="mint-line"><span>Title</span><input id="layer-title" maxlength="48" value="' + esc(site ? site.title : "") + '"></label>' +
       '<label class="mint-line"><span>Tagline</span><input id="layer-tagline" maxlength="80" value="' + esc(site ? site.tagline : "") + '"></label>' +
@@ -3733,7 +4073,7 @@ async function inscribeLayer() {
     say("This desk inscribes the funded test wallet it handed you. A pasted address uses the KNS app.", true);
     return;
   }
-  say("Inscribing this one name on the KNS testnet index.");
+  say("Inscribing this name on the KNS testnet index.");
   const body = await api("/api/1984/layer/inscribe", {
     method: "POST",
     timeout: 120000,
@@ -3750,7 +4090,8 @@ async function inscribeLayer() {
   }
   if (body.account) {
     state.account = body.account;
-    if (syncDisplayName(body.account)) paintChrome();
+    syncDisplayName(body.account);
+    paintChrome();
   }
   say(body.note || "Inscribed.");
   if (!body.pending) await openLayer(layerVisit);
@@ -4960,6 +5301,16 @@ side.addEventListener("click", (ev) => {
   walkInto(button.getAttribute("data-go"));
 });
 bar.addEventListener("click", (ev) => {
+  if (ev.target.closest("#bar-domain")) {
+    state.domainOpen = !state.domainOpen;
+    paintChrome();
+    return;
+  }
+  const pick = ev.target.closest("[data-kns]");
+  if (pick) {
+    chooseBarName(pick.getAttribute("data-kns") || "").catch((err) => say(err.message, true));
+    return;
+  }
   if (!ev.target.closest("#bar-bank")) return;
   const notice = document.getElementById("need-swap");
   if (notice) notice.hidden = true;

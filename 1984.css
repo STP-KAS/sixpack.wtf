@@ -117,6 +117,27 @@ body.page-1984 .tabs button.on { background: #8a7040; color: #1a1612; }
   pointer-events: auto;
 }
 .kw-bar .bar-bank.on { color: #fff; }
+.kw-bar .bar-domain, .kw-bar .bar-name {
+  display: inline-block;
+  width: auto;
+  margin: 0;
+  min-height: 1.6rem;
+  padding: 0 0.15rem;
+  text-align: center;
+  font: inherit;
+  font-weight: 700;
+  color: #f2d48a;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.12rem;
+  pointer-events: auto;
+}
+.kw-bar .bar-domain.on, .kw-bar .bar-name.on { color: #fff; }
+.kw-bar .bar-changer { flex: 1 0 100%; margin: 0.15rem 0 0; }
+.kw-bar .bar-changer .bal-extra { white-space: normal; overflow-wrap: anywhere; }
 .kw-bar strong { color: #f2d48a; }
 .kw-bar .fine, .fine { color: #b7a88a; font-size: 0.75rem; margin: 0.1rem 0 0; }
 body.page-1984 main.kw-stage {
@@ -1811,10 +1832,13 @@ a { color: #f2d48a; }
     padding: 0.1rem 0.4rem 0.14rem;
     font-size: 0.72rem;
   }
-  .phone-fit .kw-bar .bar-bank {
+  .phone-fit .kw-bar .bar-bank,
+  .phone-fit .kw-bar .bar-domain,
+  .phone-fit .kw-bar .bar-name {
     min-height: 1.7rem;
     margin-top: 0;
   }
+  .phone-fit .kw-bar .bar-changer { font-size: 0.72rem; }
   .phone-fit .kw-logout {
     top: 6px;
     right: 6px;

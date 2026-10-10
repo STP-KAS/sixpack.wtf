@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { applyAccept, applyHandshake, applyMessage, publicChat } from "./kachat.mjs";
-import { applyClaim, applyDisplay, applyInscribed, applyOfferBuy, applySite, publicSites } from "./layer.mjs";
+import { applyClaim, applyDefault, applyDisplay, applyInscribed, applyOfferBuy, applySite, publicSites } from "./layer.mjs";
 import { create1984Service } from "./service.mjs";
 
 const A = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
@@ -138,7 +138,7 @@ test("a quiet KNS index does not let an address customize", async () => {
   assert.equal(state.sites, undefined);
 });
 
-test("one address inscribes one name, and can show that name instead of the address", async () => {
+test("one address can inscribe more than one name, and the bar default is the first until it is changed", async () => {
   let state = { accounts: {}, receipts: [], seq: "0", sites: {} };
   let calls = 0;
   let owned = false;
@@ -157,9 +157,8 @@ test("one address inscribes one name, and can show that name instead of the addr
     },
     now: () => 10,
     pay: async () => ({ txids: [] }),
-    inscribe: async ({ name }) => {
+    inscribe: async () => {
       calls += 1;
-      assert.equal(name, "lumbridge");
       return { inscriptionId: "ab".repeat(32) + "i0", feeKas: 35, revealId: "ab".repeat(32) };
     },
   });
@@ -184,6 +183,7 @@ test("one address inscribes one name, and can show that name instead of the addr
   assert.equal(calls, 1);
   assert.match(inscribed.body.note, /No covenant was deployed/);
   assert.equal(state.accounts[A.toLowerCase()].knsName, "lumbridge");
+  assert.equal(state.accounts[A.toLowerCase()].displayName, "lumbridge");
   const again = await svc.handle({
     method: "POST",
     pathname: "/api/1984/layer/inscribe",
@@ -191,9 +191,40 @@ test("one address inscribes one name, and can show that name instead of the addr
     body: { address: A, network: "testnet-10", token: "tab", name: "othername" },
     ip: "layer-kns",
   });
-  assert.equal(again.status, 400);
-  assert.match(again.body.error, /one name/);
-  assert.equal(calls, 1);
+  assert.equal(again.status, 200);
+  assert.equal(calls, 2);
+  assert.equal(state.accounts[A.toLowerCase()].knsName, "lumbridge");
+  assert.deepEqual(state.accounts[A.toLowerCase()].knsNames, ["lumbridge", "othername"]);
+  const repeat = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/layer/inscribe",
+    query: new URLSearchParams(),
+    body: { address: A, network: "testnet-10", token: "tab", name: "lumbridge" },
+    ip: "layer-kns",
+  });
+  assert.equal(repeat.status, 200);
+  assert.equal(repeat.body.already, true);
+  assert.equal(calls, 2);
+  const picked = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/layer/default",
+    query: new URLSearchParams(),
+    body: { address: A, network: "testnet-10", name: "othername" },
+    ip: "layer-kns",
+  });
+  assert.equal(picked.status, 200);
+  assert.equal(picked.body.displayName, "othername");
+  assert.equal(picked.body.account.knsName, "othername");
+  const back = await svc.handle({
+    method: "POST",
+    pathname: "/api/1984/layer/default",
+    query: new URLSearchParams(),
+    body: { address: A, network: "testnet-10", name: "" },
+    ip: "layer-kns",
+  });
+  assert.equal(back.status, 200);
+  assert.equal(back.body.displayName, "");
+  assert.equal(back.body.account.knsNames.length, 2);
   owned = true;
   const shown = await svc.handle({
     method: "POST",
@@ -209,10 +240,11 @@ test("one address inscribes one name, and can show that name instead of the addr
   assert.equal(publicSites(state)[0].inscribed, true);
   const local = applyDisplay(state, { address: A, name: "lumbridge", show: false }, 11);
   assert.equal(local.result.displayName, "");
-  assert.throws(
-    () => applyInscribed(local.state, { address: A, name: "othername", inscriptionId: "cd".repeat(32) + "i0" }, 12),
-    /one name/
-  );
+  const added = applyInscribed(local.state, { address: A, name: "thirdname", inscriptionId: "cd".repeat(32) + "i0" }, 12);
+  assert.equal(added.result.displayName, "");
+  assert.deepEqual(added.state.accounts[A.toLowerCase()].knsNames, ["lumbridge", "othername", "thirdname"]);
+  const chosen = applyDefault(added.state, { address: A, name: "thirdname" }, 13);
+  assert.equal(chosen.result.displayName, "thirdname");
 });
 
 test("Kachat takes a handshake before a message, and each step costs 0.01 POCencept", () => {

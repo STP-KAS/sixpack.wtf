@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 import { fetchBalance, fetchKoni, fetchPrice, fetchTx, paymentFromTx, resolveName } from "./chain.mjs";
 import { applyAccept, applyHandshake, applyMessage, publicChat } from "./kachat.mjs";
 import { applyVaultSave, applyVaultSeal, publicVaults } from "./vault.mjs";
-import { applyClaim, applyDisplay, applyInscribed, applyOfferBuy, applySite, normalizeLabel, publicSites } from "./layer.mjs";
+import { accountNames, applyClaim, applyDefault, applyDisplay, applyInscribed, applyOfferBuy, applySite, normalizeLabel, publicSites } from "./layer.mjs";
+import { applySeal, decryptNote, encryptNote } from "./seal.mjs";
 import { lookupAccepted, warmNodeWindow } from "./node-tx.mjs";
 import { guestDesk, GUEST_FUND_SOMPI } from "./guest.mjs";
 import { pageFeeRate } from "../faucet/fee-rate.mjs";
@@ -59,6 +60,7 @@ export function create1984Service(deps) {
   let oracle = { price: 0, at: 0 };
   const hits = new Map();
   const inscribing = new Set();
+  const sealing = new Set();
   const pegging = new Set();
   const pause = deps.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
 
@@ -372,6 +374,122 @@ export function create1984Service(deps) {
       }
       throw err;
     }
+  }
+
+  async function sessionFor(address, token) {
+    if (!token) return null;
+    const guests = guestApi();
+    return guests.sessionKey({ token, address });
+  }
+
+  async function sealForGuest({ address, token, payload }) {
+    const session = await sessionFor(address, token);
+    if (!session) throw new Error("The funded test wallet is the click on this tab. A pasted address uses a passphrase, and this desk does not sign it.");
+    const { sealOnChain } = await import("./seal-chain.mjs");
+    try {
+      return await sealOnChain({ privHex: session.key, from: session.address, payload });
+    } catch (err) {
+      const msg = String((err && err.message) || "");
+      if (session.key && msg.toLowerCase().includes(String(session.key).toLowerCase())) {
+        throw new Error("The note did not go on Testnet-10.");
+      }
+      throw err;
+    }
+  }
+
+  async function sealLayer(address, body) {
+    const place = String((body && body.place) || "");
+    let dest = address;
+    if (place === "funded" || place === "this") dest = address;
+    else if (place === "choice") dest = assertTestnet(body.to);
+    else throw new Error("Choose the funded test wallet, this address, or an address.");
+    let session = null;
+    if (body && body.token) {
+      try {
+        session = await sessionFor(address, body.token);
+      } catch (err) {
+        if (place === "funded") throw err;
+        session = null;
+      }
+    }
+    const same = !!(session && session.address.toLowerCase() === address.toLowerCase());
+    const funded = !!(same && (place === "funded" || place === "this" || (place === "choice" && dest.toLowerCase() === address.toLowerCase())));
+    if (place === "funded" && !funded) {
+      throw new Error("The funded test wallet is the click on this tab. Open one from the welcome gate.");
+    }
+    const key = address.toLowerCase();
+    if (sealing.has(key)) throw new Error("This note is already being sealed.");
+    sealing.add(key);
+    try {
+      if (funded) {
+        const sealed = encryptNote(body.plain, session.key);
+        let where = "desk";
+        let txid = "";
+        if (sealed.onChain) {
+          const run = deps.sealOnChain || sealForGuest;
+          const out = await run({ address, token: body.token, payload: sealed.payload });
+          txid = out && out.txid;
+          if (!txid) throw new Error("The payload did not return a transaction id.");
+          where = "chain";
+        }
+        return await queue(async () => {
+          const marked = applySeal(state, {
+            address,
+            dest: address,
+            cipher: sealed.cipher,
+            bytes: sealed.bytes,
+            where,
+            txid,
+            deskHoldsKey: true,
+          }, deps.now());
+          state = marked.state;
+          deps.save(state);
+          return { status: 200, body: { ...marked.result, account: publicAccount(state, address) } };
+        });
+      }
+      if (body && body.plain) {
+        throw new Error("A chosen address is sealed in the browser. Send the ciphertext. This desk does not keep the note.");
+      }
+      return await queue(async () => {
+        const marked = applySeal(state, {
+          address,
+          dest,
+          cipher: body.cipher,
+          bytes: Number(body.bytes) || 0,
+          where: "desk",
+          deskHoldsKey: false,
+        }, deps.now());
+        state = marked.state;
+        deps.save(state);
+        return { status: 200, body: { ...marked.result, account: publicAccount(state, address) } };
+      });
+    } finally {
+      sealing.delete(key);
+    }
+  }
+
+  async function openSeal(address, body) {
+    const session = await sessionFor(address, body && body.token);
+    if (!session || session.address.toLowerCase() !== address.toLowerCase()) {
+      throw new Error("This desk opens a funded note for the test tab that sealed it.");
+    }
+    const account = state.accounts[address.toLowerCase()];
+    const seal = account && account.seal;
+    if (!seal || !seal.cipher) throw new Error("This address has no sealed note.");
+    if (!seal.deskHoldsKey) {
+      throw new Error("This note was sealed in the browser. Open it there with the passphrase. This desk did not keep one.");
+    }
+    let plain = "";
+    try {
+      plain = decryptNote(seal.cipher, session.key);
+    } catch (err) {
+      const msg = String((err && err.message) || "");
+      if (session.key && msg.toLowerCase().includes(String(session.key).toLowerCase())) {
+        throw new Error("The sealed note did not open.");
+      }
+      throw err;
+    }
+    return { status: 200, body: { ok: true, plain, where: seal.where || "desk", txid: seal.txid || "" } };
   }
 
   return {
@@ -739,17 +857,18 @@ export function create1984Service(deps) {
           const name = normalizeLabel(body.name);
           const key = address.toLowerCase();
           const held = state.accounts && state.accounts[key];
-          if (held && held.knsName && held.knsName !== name) {
-            throw new Error("This address already inscribed one name. A layer has one.");
-          }
-          if (held && held.knsName === name) {
+          const names = accountNames(held);
+          if (names.includes(name)) {
+            const def = (held && (held.displayName || held.knsName)) || "";
+            const tail = def ? " The default is " + def + ".kas." : " The bar shows the address until you choose a default.";
             return {
               status: 200,
               body: {
                 ok: true,
                 already: true,
                 name,
-                note: "This address already inscribed " + name + ".kas. One name. No covenant was deployed.",
+                names,
+                note: "This address already inscribed " + name + ".kas." + tail + " No covenant was deployed.",
               },
             };
           }
@@ -788,7 +907,7 @@ export function create1984Service(deps) {
                   ok: true,
                   pending: true,
                   name,
-                  note: (out && out.note) || "The commit is on Testnet-10. Press Inscribe again to finish this one name.",
+                  note: (out && out.note) || "The commit is on Testnet-10. Press Inscribe again to finish this name.",
                 },
               };
             }
@@ -863,6 +982,20 @@ export function create1984Service(deps) {
             deps.save(state);
             return { status: 200, body: { ...out.result, account: publicAccount(state, address) } };
           });
+        }
+        if (pathname === "/api/1984/layer/default") {
+          return await queue(async () => {
+            const out = applyDefault(state, { address, name: body.name || "" }, now);
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: { ...out.result, account: publicAccount(state, address) } };
+          });
+        }
+        if (pathname === "/api/1984/layer/seal") {
+          return await sealLayer(address, body);
+        }
+        if (pathname === "/api/1984/layer/seal/open") {
+          return await openSeal(address, body);
         }
         if (pathname === "/api/1984/chat/handshake") {
           return await queue(async () => {

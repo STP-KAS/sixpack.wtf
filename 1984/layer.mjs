@@ -15,6 +15,26 @@ export function normalizeLabel(value) {
   return text;
 }
 
+export function accountNames(account) {
+  const out = [];
+  const seen = new Set();
+  const push = (value) => {
+    const text = String(value || "").trim().toLowerCase().replace(/\.kas$/, "");
+    if (!text || seen.has(text)) return;
+    if (!/^[a-z][a-z0-9-]{0,31}$/.test(text) || text.endsWith("-") || RESERVED.has(text)) return;
+    seen.add(text);
+    out.push(text);
+  };
+  if (account && Array.isArray(account.knsNames)) {
+    for (const name of account.knsNames) push(name);
+  }
+  if (account) {
+    push(account.knsName);
+    push(account.displayName);
+  }
+  return out;
+}
+
 function clone(state) {
   return structuredClone(state);
 }
@@ -166,7 +186,7 @@ export function applyClaim(state, input, now) {
     existing.kns = "tn10";
   }
   const account = next.accounts && next.accounts[address.toLowerCase()];
-  if (account && account.knsName === name) sites[name].inscribed = true;
+  if (account && accountNames(account).includes(name)) sites[name].inscribed = true;
   return {
     state: next,
     result: {
@@ -186,19 +206,32 @@ export function applyInscribed(state, input, now) {
   if (!/^[0-9a-f]{64}i0$/.test(id)) throw new Error("The inscription id did not come back.");
   const next = clone(state);
   const account = ensure(next, address);
-  if (account.knsName && account.knsName !== name) {
-    throw new Error("This address already inscribed one name. A layer has one.");
+  const names = accountNames(account);
+  const hadNames = names.length > 0;
+  const hadDefault = !!(account.knsName || account.displayName);
+  if (!names.includes(name)) names.push(name);
+  account.knsNames = names;
+  if (!hadDefault && !hadNames) {
+    account.knsName = name;
+    account.displayName = name;
   }
-  account.knsName = name;
   const row = book(next)[name];
   if (row && row.owner.toLowerCase() === address.toLowerCase()) row.inscribed = true;
+  const def = account.displayName || account.knsName || "";
+  const tail = def === name
+    ? "It is the default. Change it on the bar."
+    : def
+      ? "The default stays " + def + ".kas. Change it on the bar."
+      : "The bar shows the address until you choose a default.";
   return {
     state: next,
     result: {
       ok: true,
       name,
+      names,
+      displayName: def,
       inscriptionId: id,
-      note: "Inscribed " + name + ".kas on the KNS testnet index. One name. No covenant was deployed. Open it again once the index lists this address.",
+      note: "Inscribed " + name + ".kas on the KNS testnet index. " + tail + " No covenant was deployed. Open it again once the index lists this address.",
       at: now,
     },
   };
@@ -222,17 +255,61 @@ export function applyDisplay(state, input, now) {
   }
   row.showName = show;
   const account = ensure(next, address);
-  account.displayName = show ? name : "";
+  const names = accountNames(account);
+  if (show && !names.includes(name)) names.push(name);
+  account.knsNames = names;
+  if (show) {
+    account.knsName = name;
+    account.displayName = name;
+  } else if (account.knsName === name || account.displayName === name) {
+    account.knsName = "";
+    account.displayName = "";
+  }
   return {
     state: next,
     result: {
       ok: true,
       site: publicSites(next).find((item) => item.name === name),
       sites: publicSites(next),
-      displayName: account.displayName,
+      displayName: account.displayName || "",
+      names: account.knsNames,
       note: show
         ? "This square shows " + name + ".kas instead of the tKAS address."
         : "This square shows the tKAS address.",
+      at: now,
+    },
+  };
+}
+
+export function applyDefault(state, input, now) {
+  const address = assertTestnet(input.address);
+  const next = clone(state);
+  const account = ensure(next, address);
+  const names = accountNames(account);
+  account.knsNames = names;
+  const raw = String(input.name || "").trim();
+  let name = "";
+  if (raw) {
+    name = normalizeLabel(raw);
+    if (!names.includes(name)) throw new Error("Choose a KNS name this address already has.");
+  }
+  account.knsName = name;
+  account.displayName = name;
+  const sites = book(next);
+  for (const key of Object.keys(sites)) {
+    const row = sites[key];
+    if (row.owner && row.owner.toLowerCase() === address.toLowerCase()) row.showName = name !== "" && key === name;
+  }
+  return {
+    state: next,
+    result: {
+      ok: true,
+      displayName: name,
+      names,
+      sites: publicSites(next),
+      note: name
+        ? "The default is " + name + ".kas. The bar shows that name."
+        : "The bar shows the kaspatest address.",
       at: now,
     },
   };

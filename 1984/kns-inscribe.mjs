@@ -123,7 +123,7 @@ export async function inscribeTn10({ privHex, from, label, fetchImpl }) {
           domain: plan.domain,
           feeKas: plan.feeKas,
           commitId,
-          note: "The commit is on Testnet-10. Press Inscribe again to finish this one name.",
+          note: "The commit is on Testnet-10. Press Inscribe again to finish this name.",
         };
       }
       const { entries: fresh } = await rpc.getUtxosByAddresses([derived]);
@@ -155,7 +155,7 @@ export async function inscribeTn10({ privHex, from, label, fetchImpl }) {
         commitId,
         revealId: String(revealId).toLowerCase(),
         inscriptionId: String(revealId).toLowerCase() + "i0",
-        note: "Inscribed " + plan.domain + " on the KNS testnet index. One name. No covenant was deployed.",
+        note: "Inscribed " + plan.domain + " on the KNS testnet index. No covenant was deployed.",
       };
     } finally {
       await rpc.disconnect().catch(() => {});

@@ -16,6 +16,8 @@ import {
 } from "./money.mjs";
 import { extensionFor, holderMint, normalizeTick, requireIncrease, standardTransfer, tokenExtension } from "./kcc20.mjs";
 import { chainPublic } from "./peg-book.mjs";
+import { accountNames } from "./layer.mjs";
+import { publicSeal } from "./seal.mjs";
 import { SHOPS, huntById, itemBySku, shopById } from "./world.mjs";
 
 export function freshState() {
@@ -231,6 +233,8 @@ export function publicAccount(state, address) {
     roadster: !!base.roadster,
     displayName: typeof base.displayName === "string" ? base.displayName : "",
     knsName: typeof base.knsName === "string" ? base.knsName : "",
+    knsNames: accountNames(base),
+    seal: publicSeal(base.seal),
     rules: base.rules,
     spentDay: base.spentDay,
     spentCents: base.spentCents,
