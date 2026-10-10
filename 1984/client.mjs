@@ -2970,6 +2970,16 @@ function streamRowHtml(kind, rows) {
   return '<section class="si-row"><h3>' + esc(kind.label) + '</h3><div class="si-rail">' + cards + "</div></section>";
 }
 
+function streamBlurbHtml(text) {
+  const raw = String(text || "");
+  const mark = "https://kosspax.ai/";
+  const at = raw.indexOf(mark);
+  if (at < 0) return esc(raw);
+  return esc(raw.slice(0, at)) +
+    '<a href="https://kosspax.ai/" target="_blank" rel="noopener noreferrer">https://kosspax.ai/</a>' +
+    esc(raw.slice(at + mark.length));
+}
+
 function streamPlayerHtml(row) {
   const price = row.free ? "Free" : formatCents(row.cents);
   const who = row.desk ? "this desk" : (row.owner ? short(row.owner) : "");
@@ -2990,7 +3000,7 @@ function streamPlayerHtml(row) {
   return '<button type="button" class="si-back" data-si-back>Back to the shelf</button>' +
     still +
     "<h3>" + esc(row.title) + "</h3>" +
-    "<p>" + esc(row.blurb || "") + "</p>" +
+    "<p>" + streamBlurbHtml(row.blurb || "") + "</p>" +
     '<p class="si-meta">' + esc(price) + (who ? " · " + esc(who) : "") + "</p>" +
     '<video id="si-video" controls playsinline webkit-playsinline' + (row.locked ? " hidden" : "") + "></video>" +
     pay + down;

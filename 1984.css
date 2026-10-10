@@ -746,6 +746,8 @@ body.page-1984 main.kw-stage {
 .si-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .si-head h2 { margin: 0; font-size: 1.45rem; color: #f2d48a; }
 .si-lede { margin: 0; font-size: 0.95rem; }
+.si-stream p { overflow-wrap: anywhere; }
+.si-stream a { color: #f2d48a; }
 .si-standard { display: flex; gap: 0.75rem; align-items: center; }
 .si-standard img { width: 92px; height: auto; border: 2px solid #8a7040; background: #000; }
 .si-standard p { margin: 0.1rem 0; }

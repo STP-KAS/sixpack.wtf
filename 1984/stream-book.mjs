@@ -59,6 +59,18 @@ export const SEED = Object.freeze([
     src: "",
   }),
   Object.freeze({
+    id: "the-column",
+    kind: "short",
+    title: "The column",
+    blurb: "A Roman column through the fog pines. A short made with superintelligence. 0.15 on tKAS, POCencept, or KUSDT. Credit: https://kosspax.ai/",
+    cents: EXAMPLE_CENTS,
+    free: false,
+    owner: "desk",
+    file: "the-column.mp4",
+    poster: "1984/stream/the-column.jpg",
+    src: "",
+  }),
+  Object.freeze({
     id: EXAMPLE_ID,
     kind: "short",
     title: "Example",

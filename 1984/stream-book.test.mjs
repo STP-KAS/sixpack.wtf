@@ -39,6 +39,8 @@ test("the desk example is a 0.15 short and the public shelf hides the file", () 
   assert.match(shelf, /Cannae/);
   assert.match(shelf, /Clodyssey I: The Descent/);
   assert.match(shelf, /Gray march/);
+  assert.match(shelf, /The column/);
+  assert.match(shelf, /https:\/\/kosspax\.ai\//);
   assert.match(shelf, /Life Is Beautiful/);
   assert.match(shelf, /Normal people still choose a story like this/);
   assert.match(shelf, /does not sell this film/);
@@ -49,6 +51,7 @@ test("the desk example is a 0.15 short and the public shelf hides the file", () 
   assert.doesNotMatch(shelf, /clodyssey\.mp4/);
   assert.doesNotMatch(shelf, /cannae\.mp4/);
   assert.doesNotMatch(shelf, /gray-march\.mp4/);
+  assert.doesNotMatch(shelf, /the-column\.mp4/);
   assert.doesNotMatch(shelf, /AE575E66/);
 });
 
@@ -226,6 +229,6 @@ test("the square tab is SI stream", () => {
   assert.match(client, /lecture ahead of the story/);
   assert.match(css, /\.kw-panel\.si-pop \{[\s\S]*left: 8px;[\s\S]*right: 8px;[\s\S]*top: 8px;[\s\S]*bottom: 8px;/);
   assert.match(css, /\.phone-fit \.kw-panel\.si-pop \{[\s\S]*top: 4px;[\s\S]*bottom: 4px;/);
-  assert.match(html, /1984\/client\.mjs\?v=141/);
-  assert.match(html, /1984\.css\?v=81/);
+  assert.match(html, /1984\/client\.mjs\?v=142/);
+  assert.match(html, /1984\.css\?v=82/);
 });
