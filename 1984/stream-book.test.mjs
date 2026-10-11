@@ -45,6 +45,7 @@ test("the desk example is a 0.15 short and the public shelf hides the file", () 
   assert.match(shelf, /Life Is Beautiful/);
   assert.match(shelf, /Normal people still choose a story like this/);
   assert.match(shelf, /Plex server/);
+  assert.match(shelf, /The shelf mixes that work with real cinema/);
   assert.match(shelf, /does not sell this film/);
   assert.match(shelf, /1984\/stream\/standard\.jpg/);
   assert.match(shelf, /Short movies/);
@@ -232,6 +233,6 @@ test("the square tab is SI stream", () => {
   assert.match(client, /your own Plex server/);
   assert.match(css, /\.kw-panel\.si-pop \{[\s\S]*left: 8px;[\s\S]*right: 8px;[\s\S]*top: 8px;[\s\S]*bottom: 8px;/);
   assert.match(css, /\.phone-fit \.kw-panel\.si-pop \{[\s\S]*top: 4px;[\s\S]*bottom: 4px;/);
-  assert.match(html, /1984\/client\.mjs\?v=144/);
+  assert.match(html, /1984\/client\.mjs\?v=145/);
   assert.match(html, /1984\.css\?v=83/);
 });

@@ -13,7 +13,7 @@ export const EXAMPLE_ID = "desk-example";
 export const EXAMPLE_CENTS = 15;
 
 export const STREAM_LEDE =
-  "One shelf. Offer a film, a documentary, or a stream from your own Plex server, for other people to use on this tab. Free, a subscription, or a price. A payment for a picture is meant for the actors, the extras, their descendants, and the camera crew. Ten streaming shops cost more. One platform costs less and is easier to use. The longer note is 1984 raw idea.";
+  "SI stream is the picture shelf. Offer a film, a documentary, or a stream from your own Plex server, for other people to use on this tab. Publish a picture made with superintelligence here. The shelf mixes that work with real cinema. Free, a subscription, or a price. The explanation of the whole idea is 1984 raw idea.";
 
 export const STREAM_STANDARD = Object.freeze({
   title: "Life Is Beautiful",
