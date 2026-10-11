@@ -5977,7 +5977,12 @@ if (gateUseAddr) {
 if (gateUseName) gateUseName.addEventListener("click", () => useName(gateName));
 watchNameBox(gateName);
 paintGateAddress();
+const CLOSED_1984 = "Sixpack 1984 is closed until further notice (other priorities). New funded test addresses are no longer handed out.";
 function openFundedTest(button) {
+  if (button) button.disabled = true;
+  gateStatus(CLOSED_1984, true);
+  say(CLOSED_1984, true);
+  return;
   if (guestBusy) return;
   if (button) button.disabled = true;
   let last = "";
@@ -6011,6 +6016,7 @@ function openFundedTest(button) {
     });
 }
 const gateGuest = document.getElementById("gate-guest");
+if (gateGuest) gateGuest.disabled = true;
 if (gateGuest) gateGuest.addEventListener("click", () => openFundedTest(gateGuest));
 for (const [id, kind] of [["gate-kasware", "kasware"], ["gate-kastle", "kastle"]]) {
   const button = document.getElementById(id);
