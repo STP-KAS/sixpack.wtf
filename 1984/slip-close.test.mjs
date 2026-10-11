@@ -52,7 +52,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=142/);
+  assert.match(html, /1984\/client\.mjs\?v=143/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -190,8 +190,8 @@ test("the balances stay in a clear bar under the site tabs", () => {
   const stageAt = html.indexOf('<main class="kw-stage">');
   assert.ok(topEnd > 0 && barAt > topEnd && stageAt > barAt);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
-  assert.match(html, /1984\.css\?v=82/);
-  assert.match(html, /1984\/client\.mjs\?v=142/);
+  assert.match(html, /1984\.css\?v=83/);
+  assert.match(html, /1984\/client\.mjs\?v=143/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
@@ -306,10 +306,17 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(vaultCard, /value="nda"/);
   assert.match(sliceFn(client, "paintGuide"), /Vault is on the side rail/);
   assert.match(client, /Layer-Kaspa/);
-  assert.match(rails, /<h2>Goal<\/h2>/);
+  assert.match(rails, /<h1>1984 raw idea<\/h1>/);
+  assert.match(rails, /<h2>The platform<\/h2>/);
   assert.match(rails, /The goal of 1984 is a platform where people deploy their services, tools, and dapps/);
   assert.match(rails, /a monitor, or open source so anyone can come onto the platform/);
+  assert.match(rails, /Plex server/);
+  assert.match(rails, /the actors, the extras, their descendants, and the camera crew/);
+  assert.match(rails, /<h2>A use for crypto<\/h2>/);
+  assert.match(rails, /https:\/\/kaspa\.org\//);
+  assert.match(rails, /kaspaexplained\.com/);
   assert.match(rails, /<h2>The stag<\/h2>/);
+  assert.match(client, /\["raw", "Raw idea"\]/);
   assert.match(rails, /Layer-Kaspa/);
   assert.match(rails, /kachat\.app\/home/);
   assert.match(css, /\.kw-bar \{[\s\S]*?background: transparent/);

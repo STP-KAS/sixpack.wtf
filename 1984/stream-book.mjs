@@ -13,7 +13,7 @@ export const EXAMPLE_ID = "desk-example";
 export const EXAMPLE_CENTS = 15;
 
 export const STREAM_LEDE =
-  "Pictures for the audience. For years the studios put the lecture ahead of the story. This shelf keeps the older standard: a story, faces you can believe, and a world that looks made. Superintelligence makes the next pictures to that standard. Series, remakes, documentaries, and shorts. Free, or a price.";
+  "One shelf. Offer a film, a documentary, or a stream from your own Plex server, for other people to use on this tab. Free, a subscription, or a price. A payment for a picture is meant for the actors, the extras, their descendants, and the camera crew. Ten streaming shops cost more. One platform costs less and is easier to use. The longer note is 1984 raw idea.";
 
 export const STREAM_STANDARD = Object.freeze({
   title: "Life Is Beautiful",

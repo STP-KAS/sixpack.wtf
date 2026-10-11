@@ -748,6 +748,11 @@ body.page-1984 main.kw-stage {
 .si-lede { margin: 0; font-size: 0.95rem; }
 .si-stream p { overflow-wrap: anywhere; }
 .si-stream a { color: #f2d48a; }
+.raw-tabs { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.45rem 0; }
+.raw-tabs button.on { background: #8a7040; color: #1a1612; }
+#raw-topic details { margin: 0.35rem 0 0.8rem; }
+#raw-topic summary { cursor: pointer; color: #f2d48a; font-weight: 700; }
+#raw-topic a { color: #f2d48a; }
 .si-standard { display: flex; gap: 0.75rem; align-items: center; }
 .si-standard img { width: 92px; height: auto; border: 2px solid #8a7040; background: #000; }
 .si-standard p { margin: 0.1rem 0; }

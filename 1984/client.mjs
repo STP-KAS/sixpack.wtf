@@ -535,6 +535,7 @@ function paintChrome() {
     ["rules", "Rules"],
     ["bench", "Bench"],
     ["guide", "Guide"],
+    ["raw", "Raw idea"],
   ];
   side.innerHTML = buttons
     .map(([idName, text]) => {
@@ -2015,10 +2016,10 @@ function openMode(mode) {
   markRoom();
   paintChrome();
   const shade = document.getElementById("bank-shade");
-  const sheet = mode === "mint" || mode === "layer" || mode === "kachat" || mode === "vault" || mode === "sistream";
+  const sheet = mode === "mint" || mode === "layer" || mode === "kachat" || mode === "vault" || mode === "sistream" || mode === "raw";
   panel.classList.toggle("swap-pop", mode === "bank");
-  panel.classList.toggle("si-pop", mode === "sistream");
-  panel.classList.toggle("stall-pop", ((isVisit(mode) && mode !== "bank") || sheet) && mode !== "sistream");
+  panel.classList.toggle("si-pop", mode === "sistream" || mode === "raw");
+  panel.classList.toggle("stall-pop", ((isVisit(mode) && mode !== "bank") || sheet) && mode !== "sistream" && mode !== "raw");
   panel.classList.toggle("mint-board", mode === "mint" || mode === "groceries");
   if (shade) shade.hidden = !(isVisit(mode) || sheet);
   if (mode === "world") {
@@ -2053,6 +2054,7 @@ function openMode(mode) {
   } else if (mode === "rules") paintRules();
   else if (mode === "bench") paintBench();
   else if (mode === "guide") paintGuide();
+  else if (mode === "raw") paintRaw();
   else if (mode === "sistream") paintStream();
   else {
     if (enteringShop && mode !== "hunt") {
@@ -2893,7 +2895,7 @@ function paintStream() {
   panel.innerHTML =
     '<div class="si-stream">' +
     '<div class="si-head"><h2>SI stream</h2>' + placeActs("") + "</div>" +
-    '<p class="si-lede" id="si-lede">Pictures for the audience. For years the studios put the lecture ahead of the story. This shelf keeps the older standard: a story, faces you can believe, and a world that looks made. Superintelligence makes the next pictures to that standard. Series, remakes, documentaries, and shorts. Free, or a price.</p>' +
+    '<p class="si-lede" id="si-lede">One shelf. Offer a film, a documentary, or a stream from your own Plex server, for other people to use on this tab. Free, a subscription, or a price. A payment for a picture is meant for the actors, the extras, their descendants, and the camera crew. Ten streaming shops cost more. One platform costs less and is easier to use. The longer note is 1984 raw idea.</p>' +
     '<div class="si-standard" id="si-standard"></div>' +
     '<div class="si-acts"><button type="button" id="si-share">Share a title</button></div>' +
     '<div id="si-body"><p class="fine">Loading the shelf.</p></div>' +
@@ -3014,7 +3016,7 @@ function shareFormHtml() {
     "<label>Price in dollars, 0 for free<input id=\"si-price\" value=\"0.15\" inputmode=\"decimal\"></label>" +
     "<label>https link to the video<input id=\"si-src\" placeholder=\"https://\"></label>" +
     '<button type="button" class="buy" id="si-post">Share</button>' +
-    '<p class="fine">A price keeps the link hidden until it is paid. A free title plays at once. You send a link. This desk keeps the films it already has.</p>' +
+    '<p class="fine">A price keeps the link hidden until it is paid. A free title plays at once. You send a link. A Plex server belongs here as an https link: films, documentaries, and streams. This desk keeps the films it already has.</p>' +
     "</div>";
 }
 
@@ -3141,6 +3143,57 @@ async function removeStream(id) {
   renderStreamBody();
 }
 
+function paintRaw() {
+  panel.innerHTML =
+    '<div class="stall-head"><h2>1984 raw idea</h2>' + placeActs("") + "</div>" +
+    '<div id="raw-body"><p class="fine">Loading the note.</p></div>';
+  wirePlaceExit();
+  const seq = (state.rawSeq = (state.rawSeq || 0) + 1);
+  fetch("rails.html").then((res) => res.text()).then((text) => {
+    if (state.mode !== "raw" || state.rawSeq !== seq) return;
+    const box = document.getElementById("raw-body");
+    if (!box) return;
+    const doc = new DOMParser().parseFromString(text, "text/html");
+    const lede = doc.querySelector(".lede");
+    const sections = [...doc.querySelectorAll("main section")];
+    if (!sections.length) {
+      box.innerHTML = '<p>The note is on <a href="rails.html">1984 raw idea</a>.</p>';
+      return;
+    }
+    const tabs = sections.map((section, i) => {
+      const title = (section.querySelector("h2") || {}).textContent || "Topic";
+      return '<button type="button" data-raw="' + i + '"' + (i === 0 ? ' class="on"' : "") + ">" + esc(title) + "</button>";
+    }).join("");
+    box.innerHTML =
+      (lede ? "<p>" + esc(lede.textContent) + "</p>" : "") +
+      '<div class="raw-tabs" id="raw-tabs">' + tabs + "</div>" +
+      '<div id="raw-topic"></div>';
+    const show = (index) => {
+      const section = sections[index];
+      const topic = document.getElementById("raw-topic");
+      if (!topic || !section) return;
+      topic.innerHTML = section.innerHTML;
+      box.querySelectorAll("[data-raw]").forEach((btn) => {
+        btn.classList.toggle("on", Number(btn.getAttribute("data-raw")) === index);
+      });
+    };
+    const row = document.getElementById("raw-tabs");
+    if (row) {
+      row.onclick = (ev) => {
+        const btn = ev.target.closest("[data-raw]");
+        if (!btn) return;
+        show(Number(btn.getAttribute("data-raw")));
+      };
+    }
+    show(0);
+  }).catch(() => {
+    const box = document.getElementById("raw-body");
+    if (box && state.mode === "raw" && state.rawSeq === seq) {
+      box.innerHTML = '<p>The note is on <a href="rails.html">1984 raw idea</a>.</p>';
+    }
+  });
+}
+
 function paintRules() {
   const rules = (state.account && state.account.rules) || { dailyCapCents: 0, shops: [], rails: [], confirmOverCents: 0 };
   const shops = ["cafe", "restaurant", "groceries", "roadster"]
@@ -3179,7 +3232,7 @@ function paintGuide() {
     "<ol>" +
     "<li>A funded wallet is prefunded with tKAS. Spend it at will. There is no risk. tKAS is worthless. The welcome gate takes that address. This money is tKAS, Testnet-10 KAS. With tKAS you can go to the bank. The same browser gets the same funded wallet. If this desk cannot tell it is the same browser, it says so. A mainnet address is refused.</li>" +
     "<li>A kaspatest address, or a .kas name that already resolves on TN10, is accepted when that address already holds tKAS. An empty address stays outside. The welcome gate takes a funded address.</li>" +
-    "<li>Need coins: Use a funded test address on the welcome gate. The list of those addresses is on the economics tab. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
+    "<li>Need coins: Use a funded test address on the welcome gate. The list of those addresses is on 1984 raw idea. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank opens as a swap. In the cafe, take a seat and the menu blinks, or order at the blinking counter. The mint opens as soon as you walk in. The market opens at the counter. Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Once it is yours, Launch into space is the gold button. The showroom still opens when you click Pike or the sign. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The mint and the bank open as soon as you walk in. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. Use a funded test address. This money is tKAS. With tKAS you can go to the bank.</li>" +
     "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is 87 times the standard Testnet 10 rate, and it is extra KAS. When a payment settles, it goes through. On a tKAS send, confirmations are still ongoing. The steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate.</li>" +
@@ -3188,7 +3241,7 @@ function paintGuide() {
     "<li>The Moon map is NASA. Mars and Jupiter are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0. The Earth limb plays the Earth film. One play is one full turn, west to east. The Earth is already turning on the pad, before liftoff, and the turn is slow. The Saturn cruise plays the Saturn film.</li>" +
     "<li>The balances stay in a clear bar under the site tabs, on the square, in a shop, in the cinema, and on a flight. It reads tKAS, POC, and KUSDT, then the kaspatest address and the chosen .kas name. domain/address on that bar changes the default name. Bank is on that bar. With the bank open, that bar lists the minted tokens and the hunt you are in.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Every film is labeled this desk agrees. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. On a phone, the snacks start as a small tab so the film stays clear. Close snacks puts that list away. Snacks brings it back. Neither one starts a purchase. The current film stays up until the next one has a picture. The next film starts when one ends. Exit to the square leaves the cinema.</li>" +
-    "<li>SI stream is the tab next to Cinema. It keeps the older standard of pictures, story first, and it is where films made with superintelligence go up. A title is free, or the video stays behind a price on tKAS, POCencept, or KUSDT. The desk films are 0.15. Life Is Beautiful is the standard on that shelf. This desk does not sell that film.</li>" +
+    "<li>SI stream is the tab next to Cinema. A person can offer a film, a documentary, or a stream from their own Plex server, for other people to use on this tab. A title is free, a subscription, or a price on tKAS, POCencept, or KUSDT. A payment for a picture is meant for the actors, the extras, their descendants, and the camera crew. The desk films are 0.15. Life Is Beautiful is the standard on that shelf. This desk does not sell that film. The longer note is Raw idea, on the side rail, and on 1984 raw idea.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Peer to peer is the payment. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled. This square is still the classroom.</li>" +
@@ -6094,8 +6147,10 @@ api("/api/1984").then((body) => {
   paintChrome();
   if (state.mode !== "world") openMode(state.mode);
   if (location.hash === "#sistream") openMode("sistream");
+  if (location.hash === "#raw") openMode("raw");
 });
 window.addEventListener("hashchange", () => {
   if (location.hash === "#sistream" && state.mode !== "sistream") openMode("sistream");
+  if (location.hash === "#raw" && state.mode !== "raw") openMode("raw");
 });
 if (state.id.address) refreshAccount();
