@@ -96,6 +96,40 @@ body.page-1984 .tabs button.on { background: #8a7040; color: #1a1612; }
   overflow: auto;
 }
 .kw-bar .bal-line { margin: 0; white-space: nowrap; }
+.kw-bar .bal-addr {
+  flex: 1 1 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.kw-bar .addr-copy,
+.kw-panel .addr-copy {
+  display: inline;
+  width: auto;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #f3e6c8;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 0.12rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+.copied-note:empty { display: none; }
+.copied-note {
+  color: #f2d48a;
+  font-weight: 700;
+}
+.kw-panel .bal-addr { margin: 0 0 0.45rem; overflow-wrap: anywhere; }
 .kw-bar .bal-extra { flex: 1 0 100%; margin: 0; }
 .kw-bar .bal-k { color: #f2d48a; font-weight: 700; }
 .kw-bar .bar-bank {

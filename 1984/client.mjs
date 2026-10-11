@@ -474,6 +474,12 @@ function clientNames(account) {
   return out;
 }
 
+function payingAddressHtml() {
+  const address = state.id.address || "";
+  if (!address) return '<p class="bal-line bal-addr"><span class="bal-k">Address:</span> not chosen</p>';
+  return '<p class="bal-line bal-addr"><span class="bal-k">Address:</span> <button type="button" class="addr-copy" data-copy-addr>' + esc(address) + '</button> <span class="copied-note"></span></p>';
+}
+
 function barChangerHtml() {
   const id = state.id;
   const account = state.account || {};
@@ -483,8 +489,11 @@ function barChangerHtml() {
     const on = name === chosen ? " on" : "";
     return '<button type="button" class="bar-name' + on + '" data-kns="' + esc(name) + '">' + esc(name) + ".kas</button>";
   }).join(" ");
+  const kaspatest = id.address
+    ? '<button type="button" class="addr-copy" data-copy-addr>' + esc(id.address) + '</button> <span class="copied-note"></span>'
+    : "not chosen";
   return '<div class="bar-changer" id="bar-changer">' +
-    '<p class="bal-extra"><span class="bal-k">kaspatest:</span> ' + esc(id.address || "not chosen") + "</p>" +
+    '<p class="bal-extra"><span class="bal-k">kaspatest:</span> ' + kaspatest + "</p>" +
     '<p class="bal-extra"><span class="bal-k">Default:</span> ' + esc(chosen ? chosen + ".kas" : "the address") + "</p>" +
     '<p class="bal-extra"><span class="bal-k">Change KNS name</span> ' + picks +
     ' <button type="button" class="bar-name" data-kns="">address</button></p>' +
@@ -523,7 +532,7 @@ function paintChrome() {
     '<p class="bal-line"><span class="bal-k">tKAS:</span> ' + esc(kasAmt) + "</p>" +
     '<p class="bal-line"><span class="bal-k">POC:</span> ' + esc(pocAmt) + "</p>" +
     '<p class="bal-line"><span class="bal-k">KUSDT:</span> ' + esc(kusdtAmt + frozen) + "</p>" +
-    '<p class="bal-line"><span class="bal-k">Address:</span> ' + esc(id.address ? short(id.address) : "not chosen") + "</p>" +
+    payingAddressHtml() +
     '<p class="bal-line"><span class="bal-k">Domain:</span> ' + esc(chosen ? chosen + ".kas" : "none") + "</p>" +
     domainBtn +
     '<button type="button" id="bar-bank" class="bar-bank' + bankOn + '">Bank</button>' +
@@ -2586,7 +2595,7 @@ function paintBank() {
       bankFine() +
       "</div>";
   }
-  panel.innerHTML = '<div class="swap">' + body + "</div>";
+  panel.innerHTML = '<div class="swap">' + payingAddressHtml() + body + "</div>";
   if (clerk !== "books") {
     if (dexFrom === "kas") {
       paintLockPreview();
@@ -2667,7 +2676,7 @@ function setSwapBusy(on) {
   const root = panel.querySelector(".swap");
   if (!root) return;
   for (const button of root.querySelectorAll("button")) {
-    if (button.id === "bank-close" || button.id === "clerk-back" || button.id === "place-exit" || button.id === "dex-flip") continue;
+    if (button.id === "bank-close" || button.id === "clerk-back" || button.id === "place-exit" || button.id === "dex-flip" || button.hasAttribute("data-copy-addr")) continue;
     button.disabled = on || button.getAttribute("data-hold") === "1";
   }
 }
@@ -5129,6 +5138,26 @@ function syncMintView() {
   }
 }
 
+let addrCopyTimer = 0;
+
+async function copyPayingAddress() {
+  const address = state.id.address || "";
+  if (!address) return;
+  try {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error("copy");
+    await navigator.clipboard.writeText(address);
+  } catch {
+    say("Copy did not land.", true);
+    return;
+  }
+  const notes = document.querySelectorAll("#bar .copied-note, #panel .copied-note");
+  for (const note of notes) note.textContent = "copied";
+  clearTimeout(addrCopyTimer);
+  addrCopyTimer = setTimeout(() => {
+    for (const note of document.querySelectorAll("#bar .copied-note, #panel .copied-note")) note.textContent = "";
+  }, 1600);
+}
+
 async function copySquareText(text) {
   const value = String(text || "");
   if (!value) {
@@ -5689,6 +5718,10 @@ side.addEventListener("click", (ev) => {
   walkInto(button.getAttribute("data-go"));
 });
 bar.addEventListener("click", (ev) => {
+  if (ev.target.closest("[data-copy-addr]")) {
+    copyPayingAddress();
+    return;
+  }
   if (ev.target.closest("#bar-domain")) {
     state.domainOpen = !state.domainOpen;
     paintChrome();
@@ -5998,6 +6031,10 @@ if (bankShade) bankShade.addEventListener("click", () => {
   else openMode("world");
 });
 panel.addEventListener("click", (ev) => {
+  if (ev.target.closest("[data-copy-addr]")) {
+    copyPayingAddress();
+    return;
+  }
   if (state.mode === "sistream") {
     if (ev.target.closest("[data-si-back]")) {
       state.streamPick = "";
