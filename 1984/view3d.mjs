@@ -121,13 +121,18 @@ export const FLIGHT_LIFTOFF = 15000;
 export const FLIGHT_CLIMB = 21000;
 /** Most booster engines cut. Flight 14 did this at 2:20. The hot-staging clip starts here. */
 export const FLIGHT_STAGE = 28000;
-/** Length of 1984/hotstage.mp4. The voice starts here. The picture does not wait for the rest of the file. */
+/** Length of 1984/hotstage.mp4. The separation call uses the start of this file. The shot does not wait for the rest. */
 export const HOT_STAGE_MS = 65493;
 /**
  * The booster lets go, the ship pulls clear, and the booster finishes its half turn.
  * That turn is done just after 24s. The camera stays with the ship once the turn is clear.
  */
 export const SEP_MS = 27000;
+/**
+ * The separation call. It ends when the booster starts its flip.
+ * The shot keeps going. The climb, the coast, and the release stay quiet.
+ */
+export const SEP_COMMS_MS = 14500;
 /** The camera leaves the booster and stays with the ship. */
 export const FLIGHT_ORBIT = FLIGHT_STAGE + SEP_MS;
 /** Ship engine cutoff after separation, then the coast. */
@@ -207,21 +212,23 @@ export function flightBeat(ms) {
   return "space";
 }
 
+/** Launch through liftoff, then a short call on separation. Quiet on the climb, the coast, and the release. */
+export function flightVoice(ms) {
+  const t = Math.max(0, Number(ms) || 0);
+  if (t < FLIGHT_CLIMB) return "launch";
+  if (t >= FLIGHT_STAGE && t < FLIGHT_STAGE + SEP_COMMS_MS) return "separation";
+  return "";
+}
+
 export function flightLine(beat, ms) {
   if (beat === "light") return "Countdown.";
   if (beat === "liftoff") return "Liftoff.";
-  if (beat === "climb") return "Climbing out.";
   if (beat === "stage") {
     const t = Math.max(0, ms || 0);
+    if (flightVoice(t) !== "separation") return "";
     const marks = stageMarks();
-    if (t <= marks.letGo) return "The booster is on the ship.";
-    if (t < marks.flipStart) return "Hot staging. The ship pulls away.";
-    return "The booster turns for the boostback.";
-  }
-  if (beat === "orbit") {
-    const t = Math.max(0, ms || 0);
-    if (t < FLIGHT_SECO) return "The ship keeps climbing.";
-    return "The ship is coasting.";
+    if (t <= marks.letGo) return "Booster on the ship.";
+    return "Ship pulls away.";
   }
   return "";
 }
@@ -465,7 +472,7 @@ function stackPoint(originX, originY, localX, localY, roll) {
  */
 function stageMarks() {
   const letGo = FLIGHT_STAGE + 10500;
-  const flipStart = FLIGHT_STAGE + 14500;
+  const flipStart = FLIGHT_STAGE + SEP_COMMS_MS;
   const flipEnd = FLIGHT_STAGE + 24500;
   return {
     meco: FLIGHT_STAGE + 7500,

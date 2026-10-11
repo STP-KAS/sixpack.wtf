@@ -52,7 +52,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=143/);
+  assert.match(html, /1984\/client\.mjs\?v=144/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -95,7 +95,7 @@ test("the landing gate takes a funded test address", () => {
   assert.match(client, /old roadster/);
   assert.match(sliceFn(client, "syncFlightFilms"), /stopCommsSound\(\)/);
   assert.doesNotMatch(sliceFn(client, "syncFlightFilms"), /currentTime = 0\.49/);
-  assert.match(sliceFn(client, "syncFlightFilms"), /HOT_STAGE_MS/);
+  assert.match(sliceFn(client, "syncFlightFilms"), /flightVoice\(ms\)/);
   assert.match(phone, /\.phone-fit \.kw-side \{[^}]*width: 4\.4rem/);
   assert.doesNotMatch(phone, /\.kw \.kw-launch/);
   assert.doesNotMatch(phone, /p\.only-phone \{ display: block; \}/);
@@ -191,7 +191,7 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.ok(topEnd > 0 && barAt > topEnd && stageAt > barAt);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
   assert.match(html, /1984\.css\?v=83/);
-  assert.match(html, /1984\/client\.mjs\?v=143/);
+  assert.match(html, /1984\/client\.mjs\?v=144/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
@@ -315,6 +315,9 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(rails, /<h2>A use for crypto<\/h2>/);
   assert.match(rails, /https:\/\/kaspa\.org\//);
   assert.match(rails, /kaspaexplained\.com/);
+  assert.match(rails, /a raw idea from this Grok STP desk/);
+  assert.match(rails, /nothing to do with Kaspa core development/);
+  assert.match(rails, /A link is not a referral from them/);
   assert.match(rails, /<h2>The stag<\/h2>/);
   assert.match(client, /\["raw", "Raw idea"\]/);
   assert.match(rails, /Layer-Kaspa/);
