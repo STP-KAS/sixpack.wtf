@@ -306,6 +306,9 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(vaultCard, /value="nda"/);
   assert.match(sliceFn(client, "paintGuide"), /Vault is on the side rail/);
   assert.match(client, /Layer-Kaspa/);
+  assert.match(rails, /<h2>Goal<\/h2>/);
+  assert.match(rails, /The goal of 1984 is a platform where people deploy their services, tools, and dapps/);
+  assert.match(rails, /a monitor, or open source so anyone can come onto the platform/);
   assert.match(rails, /<h2>The stag<\/h2>/);
   assert.match(rails, /Layer-Kaspa/);
   assert.match(rails, /kachat\.app\/home/);
