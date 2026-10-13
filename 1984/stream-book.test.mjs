@@ -115,6 +115,7 @@ test("the shelf route lists the example and a guest buy unlocks it", async () =>
   const txid = "cd".repeat(32);
   let state = null;
   const svc = create1984Service({
+    squareOpen: true,
     load: () => state || { accounts: {}, txids: {}, receipts: [], redeemedSompi: "0", seq: "0" },
     save: (next) => {
       state = next;
@@ -241,6 +242,6 @@ test("the square tab is SI stream", () => {
   assert.match(client, /your own Plex server/);
   assert.match(css, /\.kw-panel\.si-pop \{[\s\S]*left: 8px;[\s\S]*right: 8px;[\s\S]*top: 8px;[\s\S]*bottom: 8px;/);
   assert.match(css, /\.phone-fit \.kw-panel\.si-pop \{[\s\S]*top: 4px;[\s\S]*bottom: 4px;/);
-  assert.match(html, /1984\/client\.mjs\?v=149/);
+  assert.match(html, /1984\/client\.mjs\?v=150/);
   assert.match(html, /1984\.css\?v=84/);
 });

@@ -53,6 +53,7 @@ test("the layer save route refuses a name this address does not own", async () =
   let state = { accounts: {}, txids: {}, receipts: [], redeemedSompi: "0", seq: "0", hunts: {}, mints: {} };
   let mode = "none";
   const svc = create1984Service({
+    squareOpen: true,
     load: () => state,
     save: (next) => {
       state = next;
@@ -122,6 +123,7 @@ test("a quiet owner route still lets this desk inscribe a name", async () => {
   let state = { accounts: {}, receipts: [], seq: "0" };
   let calls = 0;
   const svc = create1984Service({
+    squareOpen: true,
     load: () => state,
     save: (next) => {
       state = next;
@@ -158,6 +160,7 @@ test("a quiet owner route still lets this desk inscribe a name", async () => {
 test("a quiet KNS index does not let an address customize", async () => {
   let state = { accounts: {}, receipts: [], seq: "0" };
   const svc = create1984Service({
+    squareOpen: true,
     load: () => state,
     save: (next) => {
       state = next;
@@ -190,6 +193,7 @@ test("this square's index opens a name it inscribed when the KNS testnet index i
   let mode = "miss";
   const id = "ab".repeat(32) + "i0";
   const svc = create1984Service({
+    squareOpen: true,
     load: () => state,
     save: (next) => {
       state = next;
@@ -308,6 +312,7 @@ test("one address can inscribe more than one name, and the bar default is the fi
   let calls = 0;
   let owned = false;
   const svc = create1984Service({
+    squareOpen: true,
     load: () => state,
     save: (next) => {
       state = next;

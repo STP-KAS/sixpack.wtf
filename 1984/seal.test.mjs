@@ -26,6 +26,7 @@ test("a funded short note goes on chain, a long note and a chosen address stay c
   let state = { accounts: {}, receipts: [], seq: "0", sites: {} };
   let chain = 0;
   const svc = create1984Service({
+    squareOpen: true,
     load: () => state,
     save: (next) => {
       state = next;

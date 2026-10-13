@@ -227,6 +227,7 @@ test("the hall sits east of the lot and the other buildings stay put", () => {
 test("the hunts route lists the catalog and hides the open pack", async () => {
   let state = null;
   const svc = create1984Service({
+    squareOpen: true,
     load: () => freshState(),
     save: (next) => {
       state = next;

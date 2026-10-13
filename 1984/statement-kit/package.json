@@ -1,0 +1,10 @@
+{
+  "name": "statement-kit",
+  "private": true,
+  "description": "BIP-340 and blake2b for the 1984 bank statement. Run npm install in this folder before verify-statement.mjs.",
+  "license": "ISC",
+  "dependencies": {
+    "@noble/curves": "1.9.7",
+    "@noble/hashes": "1.8.0"
+  }
+}

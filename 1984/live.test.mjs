@@ -3,7 +3,8 @@ import test from "node:test";
 import { extractPayment, fetchBalance, fetchPrice, fetchTx } from "./chain.mjs";
 import { RESERVE } from "./money.mjs";
 
-const COINBASE = "2a915694924fadc2a93f682dd0c8edc3f792e18f2e9b7d440a2d2ae6f972ab4c";
+const TN10 = "https://api-tn10.kaspa.org";
+const COINBASE_SUB = "0100000000000000000000000000000000000000";
 
 test("Testnet-10 balance and the live price both answer", async () => {
   const [price, balance] = await Promise.all([fetchPrice(fetch), fetchBalance(RESERVE, fetch)]);
@@ -12,7 +13,30 @@ test("Testnet-10 balance and the live price both answer", async () => {
 });
 
 test("a miner coinbase cannot be claimed as a shop payment", async () => {
-  const tx = await fetchTx(COINBASE, fetch);
-  assert.equal(tx.is_accepted, true);
-  assert.throws(() => extractPayment(tx, { from: RESERVE, to: RESERVE, need: 1n }));
+  const dagRes = await fetch(TN10 + "/info/blockdag", { headers: { accept: "application/json" } });
+  assert.equal(dagRes.ok, true);
+  const dag = await dagRes.json();
+  let hash = String(dag.sink || "").toLowerCase();
+  let tx = null;
+  for (let step = 0; step < 24 && /^[0-9a-f]{64}$/.test(hash); step += 1) {
+    const blockRes = await fetch(TN10 + "/blocks/" + hash, { headers: { accept: "application/json" } });
+    if (!blockRes.ok) break;
+    const block = await blockRes.json();
+    const list = Array.isArray(block.transactions) ? block.transactions : [];
+    const coin = list.find((row) => String(row.subnetworkId || row.subnetwork_id || "").toLowerCase().replace(/^0x/, "") === COINBASE_SUB);
+    const id = String(coin && coin.verboseData && coin.verboseData.transactionId || "").toLowerCase();
+    if (/^[0-9a-f]{64}$/.test(id)) {
+      try {
+        const got = await fetchTx(id, fetch);
+        const body = got.transaction || got;
+        if (body.is_accepted === true) {
+          tx = got;
+          break;
+        }
+      } catch { /* the tip can be ahead of the indexer */ }
+    }
+    hash = String(block.verboseData && block.verboseData.selectedParentHash || "").toLowerCase();
+  }
+  assert.ok(tx, "no accepted coinbase");
+  assert.throws(() => extractPayment(tx, { from: RESERVE, to: RESERVE, need: 1n }), /coinbase/);
 });

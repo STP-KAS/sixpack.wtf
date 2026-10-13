@@ -21,6 +21,7 @@ function desk(extra = {}) {
   const rest = { ...extra };
   delete rest.guests;
   const svc = create1984Service({
+    squareOpen: true,
     load: () => state || { accounts: {}, txids: {}, receipts: [], redeemedSompi: "0", seq: "0", mints: {}, vaults: {} },
     save: (next) => {
       state = next;
@@ -118,4 +119,24 @@ test("a closed square refuses a new test wallet and a ledger write, and a read s
   });
   assert.equal(look.status, 200);
   assert.equal(look.body.ok, true);
+});
+
+test("an unset square flag stays open, and SQUARE_OPEN=0 closes it", async () => {
+  const prev = process.env.SQUARE_OPEN;
+  delete process.env.SQUARE_OPEN;
+  try {
+    const open = desk({ squareOpen: undefined });
+    const guest = await post(open.svc, "/api/1984/guest", {});
+    assert.equal(guest.status, 200);
+    assert.equal(open.opened.length, 1);
+    process.env.SQUARE_OPEN = "0";
+    const shut = desk({ squareOpen: undefined });
+    const third = await post(shut.svc, "/api/1984/guest", {});
+    assert.equal(third.status, 503);
+    assert.match(third.body.error, /Closed until further notice/);
+    assert.equal(shut.opened.length, 0);
+  } finally {
+    if (prev == null) delete process.env.SQUARE_OPEN;
+    else process.env.SQUARE_OPEN = prev;
+  }
 });

@@ -459,9 +459,9 @@ export function createGuestDesk(deps) {
 }
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
-const guestFile = path.join(dir, "guests.json");
-const poolFile = path.join(dir, "guest-pool.json");
-const issuedFile = path.join(dir, "guest-pool-issued.jsonl");
+const guestFile = process.env.GUEST_FILE || path.join(dir, "guests.json");
+const poolFile = process.env.GUEST_POOL_FILE || path.join(dir, "guest-pool.json");
+const issuedFile = process.env.GUEST_ISSUED_FILE || path.join(dir, "guest-pool-issued.jsonl");
 let singleton;
 
 function claimPrepared() {

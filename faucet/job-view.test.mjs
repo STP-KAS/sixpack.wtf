@@ -57,10 +57,13 @@ describe("faucet popup leaves Loading when the job finishes", () => {
     assert.match(source, /AbortSignal\.timeout\(8000\)/);
   });
 
-  it("publishes the finished payout before the ledger write", () => {
+  it("a closed faucet refuses a payout and does not write the ledger", () => {
     const serve = readFileSync(new URL("../serve.mjs", import.meta.url), "utf8");
-    const doneAt = serve.indexOf('status: "done"');
-    const claimAt = serve.indexOf("recordClaim({ key: plan.addrKey");
-    assert.ok(doneAt > 0 && claimAt > doneAt);
+    const postAt = serve.indexOf('url.pathname === "/api/faucet" && req.method === "POST"');
+    assert.ok(postAt > 0);
+    const window = serve.slice(postAt, postAt + 280);
+    assert.match(window, /sendJson\(res, 403/);
+    assert.match(window, /Closed\. Mine your own tKAS\./);
+    assert.equal(serve.includes("recordClaim("), false);
   });
 });

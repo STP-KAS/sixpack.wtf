@@ -38,6 +38,17 @@ import {
 } from "./ledger.mjs";
 import { BENCH, POST, REPOS } from "./links.mjs";
 import {
+  canonical,
+  domainHex,
+  fileStore,
+  memoryStore,
+  readBondFile,
+  readKeyFile,
+  signStatementText,
+  statementBody,
+  utcDay,
+} from "./statement.mjs";
+import {
   GUEST_DISCLAIMER,
   RESERVE,
   assertNotMainnetNetwork,
@@ -222,6 +233,75 @@ export function create1984Service(deps) {
       );
     }
     throw last;
+  }
+
+  function statementStore() {
+    if (deps.statementStore) return deps.statementStore;
+    if (process.env.STATEMENT_DIR) return fileStore(process.env.STATEMENT_DIR);
+    if (!deps._statementMemory) deps._statementMemory = memoryStore();
+    return deps._statementMemory;
+  }
+
+  function bondCard() {
+    if (deps.bond) return deps.bond;
+    if (process.env.STATEMENT_BOND_FILE) return readBondFile(process.env.STATEMENT_BOND_FILE);
+    return { id: "", outpoint: "", status: "gone" };
+  }
+
+  function attesterHex() {
+    if (typeof deps.attesterKey === "string") return deps.attesterKey;
+    if (process.env.STATEMENT_KEY) return readKeyFile(process.env.STATEMENT_KEY);
+    return "";
+  }
+
+  function publicStatement(record, extra) {
+    return {
+      ok: true,
+      network: "testnet-10",
+      day: String(record.day),
+      domain: record.domain,
+      text: record.text,
+      body: record.body,
+      statement: record.statement,
+      signature: record.signature || "",
+      attester: record.attester || "",
+      bond: record.bond || bondCard(),
+      signed: !!record.signature,
+      ...(extra || {}),
+    };
+  }
+
+  async function statementOf(query) {
+    const raw = query.get("day");
+    const day = raw == null || String(raw).trim() === "" ? utcDay(deps.now()) : Number(raw);
+    if (!Number.isInteger(day) || day < 0) throw new Error("Type the UTC day number.");
+    const store = statementStore();
+    const saved = store.read(day);
+    const text = canonical(await statementBody(state, day));
+    if (saved && saved.signature) {
+      const moved = saved.text !== text;
+      return { status: 200, body: publicStatement(saved, moved ? { booksMoved: true } : {}) };
+    }
+    const key = attesterHex();
+    if (!key) {
+      return {
+        status: 200,
+        body: publicStatement({
+          day: String(day),
+          domain: domainHex(),
+          text,
+          body: "",
+          statement: "",
+          signature: "",
+          attester: "",
+          bond: bondCard(),
+        }),
+      };
+    }
+    const signed = await signStatementText({ keyHex: key, text, day });
+    const record = { ...signed, bond: bondCard() };
+    store.write(day, record);
+    return { status: 200, body: publicStatement(record) };
   }
 
   function guestApi() {
@@ -836,6 +916,9 @@ export function create1984Service(deps) {
             body: { ok: true, cents: row.cents, sompi: sompiForCents(row.cents, usd).toString(), usd, name: row.title },
           };
         }
+        if (method === "GET" && pathname === "/api/1984/statement") {
+          return await statementOf(query);
+        }
         if (method === "GET" && pathname === "/api/1984/quote") {
           const shop = shopById(query.get("shop"));
           const item = shop && itemBySku(shop.id, query.get("sku"));
@@ -1384,7 +1467,7 @@ export function create1984Service(deps) {
 }
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
-const ledgerFile = path.join(dir, "ledger.json");
+const ledgerFile = process.env.LEDGER_FILE || path.join(dir, "ledger.json");
 
 function loadFile() {
   try {

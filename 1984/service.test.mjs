@@ -20,6 +20,7 @@ function harness(pay, extra = {}) {
   let state = null;
   const saved = [];
   const svc = create1984Service({
+    squareOpen: true,
     load: () =>
       state || {
         accounts: {},

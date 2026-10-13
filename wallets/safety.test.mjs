@@ -45,7 +45,7 @@ describe("sixpack wallet safety", () => {
   it("POS default receive is groks-wallet testnet", () => {
     const pos = readFileSync(join(root, "original-pos", "pos.js"), "utf8");
     assert.match(pos, /kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx/);
-    assert.match(pos, /SixpackWallet/);
+    assert.doesNotMatch(pos, /mnemonic|seed phrase|private key/i);
   });
 
   it("node page points at groks TN10 wallet and bot start files", () => {

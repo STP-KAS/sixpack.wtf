@@ -75,6 +75,7 @@ test("the square home does not return a vault note", async () => {
   let state = empty();
   const clock = { t: 1_000 };
   const svc = create1984Service({
+    squareOpen: true,
     load: () => state,
     save: (next) => {
       state = next;

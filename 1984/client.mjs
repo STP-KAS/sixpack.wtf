@@ -2528,6 +2528,26 @@ function paintLedgerPreview() {
   }
 }
 
+function bondWord(status) {
+  if (status === "live") return "bond live";
+  if (status === "unbonding") return "bond unbonding";
+  return "bond gone";
+}
+
+async function fillBooksLine() {
+  const line = document.getElementById("books-line");
+  if (!line) return;
+  const body = await api("/api/1984/statement");
+  const bond = body && body.bond;
+  const digest = body && body.statement;
+  if (!body || body.ok === false || !digest) {
+    line.textContent = "Books · " + bondWord(bond && bond.status);
+    return;
+  }
+  const id = bond && bond.id ? bond.id : "";
+  line.textContent = "Books · day " + body.day + " · " + digest + " · " + id + " · " + bondWord(bond && bond.status);
+}
+
 function paintBank() {
   rememberSwapFields();
   const clerk = state.bankClerk || "";
@@ -2554,6 +2574,7 @@ function paintBank() {
       "<p>A tKAS payment smaller than the quote does not buy the item and does not mint a tag.</p>" +
       "<p>Sending the same accepted txid again, for the same address and the same purchase, returns the receipt already written. A different item or a different address with that txid is refused.</p>" +
       "<p>A lock writes the tag at the quote in that moment and has to increase the amount. Redeem returns the tKAS that was locked. A later quote does not reprice it. A negative threshold counts as zero. POCencept and KUSDT keep different extension commitments, so they do not mix. A freeze changes the KUSDT commitment. A funded test wallet on this tab locks tKAS in a SquarePeg covenant. The script returns that tKAS on redeem. A shop spend sends that share to the reserve. An exchange flips the rail and keeps the sompi. A pasted address still sends tKAS to the reserve, because this tab cannot sign that covenant. Practice coins stay on this square. KCC-20 is Last Call, not Final.</p>" +
+      '<p id="books-line" class="fine">Books</p>' +
       '<div class="swap-bals">' +
       card("POCencept", formatCents(poc.have), "locked " + formatCents(poc.lock) + " · purse " + formatCents(poc.purse)) +
       card("KUSDT", formatCents(kusdt.have), "locked " + formatCents(kusdt.lock) + " · purse " + formatCents(kusdt.purse) + (frozen ? " · frozen" : "")) +
@@ -2596,6 +2617,7 @@ function paintBank() {
       "</div>";
   }
   panel.innerHTML = '<div class="swap">' + payingAddressHtml() + body + "</div>";
+  if (clerk === "books") fillBooksLine();
   if (clerk !== "books") {
     if (dexFrom === "kas") {
       paintLockPreview();
