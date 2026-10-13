@@ -566,6 +566,7 @@ function paintChrome() {
     ["groceries", "Market"],
     ["hunt", "Hunt"],
     ["bank", "Bank"],
+    ["olaf", "OLAF"],
     ["roadster", "Roadster"],
     ["cinema", "Cinema"],
     ["sistream", "SI stream"],
@@ -2064,17 +2065,26 @@ function openMode(mode) {
     if (state.mode !== "world") state.arrived = null;
   }
   state.mode = mode;
+  if (mode === "olaf") {
+    if (location.hash !== "#olaf") {
+      history.replaceState(null, "", location.pathname + location.search + "#olaf");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    }
+  } else if (location.hash === "#olaf") {
+    history.replaceState(null, "", location.pathname + location.search);
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  }
   if (mode !== "mint") stopMintWatch();
   if (mode !== "layer") hideLayerPop();
   markRoom();
   paintChrome();
   const shade = document.getElementById("bank-shade");
   const sheet = mode === "mint" || mode === "layer" || mode === "kachat" || mode === "vault" || mode === "sistream" || mode === "raw";
-  panel.classList.toggle("swap-pop", mode === "bank");
+  panel.classList.toggle("swap-pop", mode === "bank" || mode === "olaf");
   panel.classList.toggle("si-pop", mode === "sistream" || mode === "raw");
   panel.classList.toggle("stall-pop", ((isVisit(mode) && mode !== "bank") || sheet) && mode !== "sistream" && mode !== "raw");
   panel.classList.toggle("mint-board", mode === "mint" || mode === "groceries");
-  if (shade) shade.hidden = !(isVisit(mode) || sheet);
+  if (shade) shade.hidden = !(isVisit(mode) || sheet || mode === "olaf");
   if (mode === "world") {
     panel.hidden = true;
     panel.innerHTML = "";
@@ -2104,7 +2114,8 @@ function openMode(mode) {
     }
     paintBank();
     refreshBankHunts();
-  } else if (mode === "rules") paintRules();
+  } else if (mode === "olaf") paintOlaf();
+  else if (mode === "rules") paintRules();
   else if (mode === "bench") paintBench();
   else if (mode === "guide") paintGuide();
   else if (mode === "raw") paintRaw();
@@ -2356,7 +2367,30 @@ async function sendOlaf() {
   say("Sent " + formatCents(cents) + " OLAF. The pool total stayed the same.");
   await refreshOlaf(true);
   paintChrome();
-  if (counterFace(state.mode) === "bank") paintBank();
+  if (state.mode === "olaf") paintOlaf();
+  else if (counterFace(state.mode) === "bank") paintBank();
+}
+
+function paintOlaf() {
+  panel.innerHTML =
+    '<div class="swap">' +
+    payingAddressHtml() +
+    '<div class="swap-head"><h2>OLAF</h2>' + placeActs('<button type="button" id="olaf-close">Close</button>') + "</div>" +
+    olafDeskHtml() +
+    '<p class="fine">The bank swaps tKAS into this note. It does not redeem it. POCencept and KUSDT stay on the bank.</p>' +
+    '<button type="button" id="olaf-bank">Swap tKAS for OLAF</button>' +
+    "</div>";
+  wireOlafDesk();
+  const shut = document.getElementById("olaf-close");
+  if (shut) shut.onclick = () => openMode("world");
+  const toBank = document.getElementById("olaf-bank");
+  if (toBank) toBank.onclick = () => {
+    dexFrom = "kas";
+    dexTo = "olaf";
+    state.bankClerk = "";
+    openMode("bank");
+  };
+  wirePlaceExit();
 }
 
 function listedCents(shop, sku) {
@@ -2862,7 +2896,6 @@ function paintBank() {
       '<div class="dex">' +
       '<div class="swap-head"><h2>Swap</h2>' + close + "</div>" +
       railLegendHtml(dexFrom) +
-      olafDeskHtml() +
       '<div class="dex-box"><div class="dex-box-top"><span>You pay</span><span>' + esc(clerkFigure(dexFrom)) + "</span></div>" +
       '<div class="dex-row"><input id="' + payId + '" class="dex-amt" value="' + esc(payValue) + '" inputmode="decimal" autocomplete="off" placeholder="0">' +
       '<select id="dex-from" class="dex-token">' + opt(dexFrom) + "</select></div></div>" +
@@ -3588,8 +3621,8 @@ function paintGuide() {
     "<li>Need coins: Use a funded test address on the welcome gate. The list of those addresses is on 1984 raw idea. The faucet is closed. Mine your own tKAS. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank opens as a swap. In the cafe, take a seat and the menu blinks, or order at the blinking counter. The mint opens as soon as you walk in. The market opens at the counter. Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Once it is yours, Launch into space is the gold button. The showroom still opens when you click Pike or the sign. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The mint and the bank open as soon as you walk in. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. Use a funded test address. This money is tKAS. With tKAS you can go to the bank.</li>" +
-    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. To hold OLAF, shield tKAS at the bank. The note stays in this browser. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is 87 times the standard Testnet 10 rate, and it is extra KAS. When a payment settles, it goes through. On a tKAS send, confirmations are still ongoing. The steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate.</li>" +
-    "<li>Venn's bank opens as a swap. You pay one asset and you receive another. tKAS is the coin. POCencept is a public tag on a lock of tKAS, and redeem returns that lock. KUSDT is the other public tag, and the freeze is only on that tag. OLAF is a shielded dollar note. 1.00 is one dollar of tKAS at the quote when the note was made. A later quote does not reprice it. Redeem does not pay that tKAS back. The key stays in this browser. The books desk shows that private balance. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on the card. What are the rails? opens the same note. Rails is the short page.</li>" +
+    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. To hold OLAF, shield tKAS at the bank. The OLAF tab holds the receive code and a private send. The note stays in this browser. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is 87 times the standard Testnet 10 rate, and it is extra KAS. When a payment settles, it goes through. On a tKAS send, confirmations are still ongoing. The steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate.</li>" +
+    "<li>Venn's bank opens as a swap. You pay one asset and you receive another. tKAS is the coin. POCencept is a public tag on a lock of tKAS, and redeem returns that lock. KUSDT is the other public tag, and the freeze is only on that tag. OLAF is a shielded dollar note. 1.00 is one dollar of tKAS at the quote when the note was made. A later quote does not reprice it. Redeem does not pay that tKAS back. The bank only swaps tKAS into OLAF. The OLAF tab holds the note. The key stays in this browser. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on the card. What are the rails? opens the same note. Rails is the short page.</li>" +
     "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe, take a seat and the menu blinks, or order at the counter. The mint opens when you walk in. Launch, while you are in the car and outside, plays two short films beside the rocket first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. The tower stands beside it. The ship lifts off the mount when the count reaches zero. Communications play on the launch, then stay quiet on the climb. When the booster lets go, a short call plays while this ship and the booster stay on screen. That call ends before the booster finishes its turn. After the booster is gone, the ship coasts, then the roadster leaves. The coast and the release stay quiet. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, KUSDT stable, or OLAF. Go into the abyss: the roadster leaves Earth, flies through the Milky Way, and keeps going past it. The old roadster is already out there. The way there is ten seconds. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>The Moon map is NASA. Mars and Jupiter are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0. The Earth limb plays the Earth film. One play is one full turn, west to east. The Earth is already turning on the pad, before liftoff, and the turn is slow. The Saturn cruise plays the Saturn film.</li>" +
     "<li>The balances stay in a clear bar under the site tabs, on the square, in a shop, in the cinema, and on a flight. It reads tKAS, POC, KUSDT, and OLAF, then the kaspatest address and the chosen .kas name. domain/address on that bar changes the default name. Bank is on that bar. With the bank open, that bar lists the minted tokens and the hunt you are in.</li>" +
@@ -5664,7 +5697,7 @@ function mintHoldingsHtml() {
 function olafMintCard() {
   const code = state.olafCode || "The receive code appears when this page opens.";
   return '<div class="mint-olaf"><p><strong>OLAF</strong> ' + esc(formatCents(olafHeld())) + " shielded. 1.00 is one dollar of tKAS at the quote when the note was made.</p>" +
-    "<p>The old public supply is deleted. 25 tKAS, 50 tKAS, or Max shields a new note to this browser. The till checks it and does not keep the secret. There is no chain payout.</p>" +
+    "<p>The old public supply is deleted. 25 tKAS, 50 tKAS, or Max shields a new note to this browser. The till checks it and does not keep the secret. There is no chain payout. The OLAF tab holds the receive code and a private send.</p>" +
     '<p class="mint-addr">' + esc(code) + "</p>" +
     mintTkasButtons("OLAF") + "</div>";
 }
@@ -6732,9 +6765,11 @@ api("/api/1984").then(async (body) => {
   if (state.mode !== "world") openMode(state.mode);
   if (location.hash === "#sistream") openMode("sistream");
   if (location.hash === "#raw") openMode("raw");
+  if (location.hash === "#olaf") openMode("olaf");
 });
 window.addEventListener("hashchange", () => {
   if (location.hash === "#sistream" && state.mode !== "sistream") openMode("sistream");
   if (location.hash === "#raw" && state.mode !== "raw") openMode("raw");
+  if (location.hash === "#olaf" && state.mode !== "olaf") openMode("olaf");
 });
 if (state.id.address) refreshAccount();

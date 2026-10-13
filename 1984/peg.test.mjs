@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
@@ -14,6 +15,14 @@ import { covenantSignature } from "./peg-chain.mjs";
 
 const A = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 const B = "kaspatest:qpppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp";
+
+test("a POCencept or KUSDT covenant output is polled quickly", () => {
+  const source = readFileSync(new URL("./peg-chain.mjs", import.meta.url), "utf8");
+  assert.match(source, /PEG_POLL_MS = 100/);
+  assert.match(source, /sleep\(PEG_POLL_MS\)/);
+  assert.doesNotMatch(source, /sleep\(2000\)/);
+  assert.match(source, /feeCache\.at < 15_000/);
+});
 
 test("the birth message is the known little-endian vector", () => {
   assert.equal(birthMessage(5, 100_000_000, 50_000).toString("hex"), "050000000000000000e1f5050000000050c3000000000000");

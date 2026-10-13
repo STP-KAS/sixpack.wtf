@@ -3,6 +3,7 @@
   const items = [
     { href: "./", files: ["", "index.html"], label: "Home" },
     { href: "rails-why.html", files: ["rails-why.html"], label: "Rails" },
+    { href: "1984.html#olaf", files: ["1984.html", "kworld.html"], hash: "#olaf", label: "OLAF" },
     { href: "farce.html", files: ["farce.html"], label: "Farce" },
     { href: "eulogy.html", files: ["eulogy.html"], label: "Eulogy" },
     { href: "random.html", files: ["random.html"], label: "Random" },
@@ -13,18 +14,27 @@
     { href: "grok.html", files: ["grok.html"], label: "SI helpdesk" },
     { href: "help.html", files: ["help.html"], label: "Help" },
   ];
-  for (const nav of document.querySelectorAll("[data-site-nav]")) {
-    nav.classList.add("tabs");
-    nav.setAttribute("aria-label", "Site");
-    nav.replaceChildren();
-    for (const item of items) {
-      const a = document.createElement("a");
-      a.href = item.href;
-      a.textContent = item.label;
-      if (item.files.includes(file)) a.className = "on";
-      nav.append(a);
+  function paint() {
+    const hash = (location.hash || "").toLowerCase();
+    const hashed = items.some((item) => item.hash && item.hash === hash && item.files.includes(file));
+    for (const nav of document.querySelectorAll("[data-site-nav]")) {
+      nav.classList.add("tabs");
+      nav.setAttribute("aria-label", "Site");
+      nav.replaceChildren();
+      for (const item of items) {
+        const a = document.createElement("a");
+        a.href = item.href;
+        a.textContent = item.label;
+        const on = item.hash
+          ? item.hash === hash && item.files.includes(file)
+          : item.files.includes(file) && !hashed;
+        if (on) a.className = "on";
+        nav.append(a);
+      }
     }
   }
+  paint();
+  window.addEventListener("hashchange", paint);
 
   const src = document.currentScript && document.currentScript.src;
   const root = src ? src.replace(/nav\.js(\?.*)?$/, "") : "";

@@ -52,7 +52,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=162/);
+  assert.match(html, /1984\/client\.mjs\?v=163/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -178,7 +178,7 @@ test("exit to the square is on the shop card", () => {
   assert.match(client, /Exit to the square is on the shop, the bank, Hunt Hall, and the cinema/);
   const wire = sliceFn(client, "wirePlaceExit");
   assert.match(wire, /openMode\("world"\)/);
-  for (const name of ["paintShop", "paintBank", "paintHunt", "paintRules", "paintBench", "paintGuide", "paintMint", "paintLayer", "paintKachat", "paintVault"]) {
+  for (const name of ["paintShop", "paintBank", "paintOlaf", "paintHunt", "paintRules", "paintBench", "paintGuide", "paintMint", "paintLayer", "paintKachat", "paintVault"]) {
     assert.match(sliceFn(client, name), /placeActs\(/);
     assert.match(sliceFn(client, name), /wirePlaceExit\(\)/);
   }
@@ -206,7 +206,7 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.ok(topEnd > 0 && barAt > topEnd && stageAt > barAt);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
   assert.match(html, /1984\.css\?v=86/);
-  assert.match(html, /1984\/client\.mjs\?v=162/);
+  assert.match(html, /1984\/client\.mjs\?v=163/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
@@ -363,8 +363,15 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(nav, /label: "Rails"/);
   const homeAt = nav.indexOf('label: "Home"');
   const railsAt = nav.indexOf('label: "Rails"');
+  const olafAt = nav.indexOf('label: "OLAF"');
   const farceAt = nav.indexOf('label: "Farce"');
-  assert.ok(homeAt >= 0 && railsAt > homeAt && farceAt > railsAt);
+  assert.ok(homeAt >= 0 && railsAt > homeAt && olafAt > railsAt && farceAt > olafAt);
+  assert.match(nav, /1984\.html#olaf/);
+  assert.match(client, /\["olaf", "OLAF"\]/);
+  assert.match(client, /location\.hash === "#olaf"/);
+  assert.match(sliceFn(client, "paintOlaf"), /olafDeskHtml\(\)/);
+  assert.match(sliceFn(client, "paintOlaf"), /Swap tKAS for OLAF/);
+  assert.doesNotMatch(sliceFn(client, "paintBank"), /olafDeskHtml\(\)/);
   assert.match(railsWhy, /<strong>tKAS<\/strong> the coin/);
   assert.match(railsWhy, /<strong>POCencept<\/strong> public tag, no freeze/);
   assert.match(railsWhy, /<strong>KUSDT<\/strong> public tag, freeze/);

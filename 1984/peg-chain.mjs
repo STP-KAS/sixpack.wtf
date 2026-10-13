@@ -27,6 +27,8 @@ const SHAPE = "The covenant transaction was not shaped for this lock. Nothing wa
 const FEE = "This wallet needs a coin for the miner fee. The lock was not spent.";
 
 let kaspaPromise;
+const PEG_POLL_MS = 100;
+let feeCache = { at: 0, rate: 0 };
 
 function scrub(err, keys) {
   let msg = (err && err.message) || "The covenant did not broadcast.";
@@ -156,14 +158,21 @@ async function compileRow(row) {
 }
 
 async function feeRate() {
+  const now = Date.now();
+  if (feeCache.rate > 0 && now - feeCache.at < 15_000) return feeCache.rate;
   try {
     const { quotedPageFeeRate } = await import("../faucet/pay.mjs");
     const n = Number(await quotedPageFeeRate());
-    if (Number.isFinite(n) && n > 0) return n;
+    if (Number.isFinite(n) && n > 0) {
+      feeCache = { at: now, rate: n };
+      return n;
+    }
   } catch {
     /* The floor below is the page rate. */
   }
-  return pageFeeRate(null);
+  const floor = pageFeeRate(null);
+  feeCache = { at: now, rate: floor };
+  return floor;
 }
 
 function sleep(ms) {
@@ -357,7 +366,7 @@ export function createPegLock() {
           if (hit) {
             return { txid: String(txid), index: Number(hit.outpoint.index), amount: String(hit.amount) };
           }
-          await sleep(2000);
+          await sleep(PEG_POLL_MS);
         }
         throw new Error("The covenant output is not on Testnet 10 yet. Press Swap again. That does not send a second time.");
       });
