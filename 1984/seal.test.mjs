@@ -84,7 +84,7 @@ test("a funded short note goes on chain, a long note and a chosen address stay c
   const leaked = await svc.handle({
     ...posted,
     pathname: "/api/1984/layer/seal",
-    body: { address: A, network: "testnet-10", place: "choice", to: B, plain: NOTE },
+    body: { address: A, network: "testnet-10", token: "tab", place: "choice", to: B, plain: NOTE },
   });
   assert.equal(leaked.status, 400);
   assert.match(leaked.body.error, /ciphertext/);
@@ -93,7 +93,7 @@ test("a funded short note goes on chain, a long note and a chosen address stay c
   const chosen = await svc.handle({
     ...posted,
     pathname: "/api/1984/layer/seal",
-    body: { address: A, network: "testnet-10", place: "choice", to: B, cipher: foreign.cipher, bytes: foreign.bytes },
+    body: { address: A, network: "testnet-10", token: "tab", place: "choice", to: B, cipher: foreign.cipher, bytes: foreign.bytes },
   });
   assert.equal(chosen.status, 200);
   assert.equal(chain, 1);

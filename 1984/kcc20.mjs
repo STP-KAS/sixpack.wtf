@@ -142,7 +142,7 @@ export function blake3Hex(bytes) {
   return hex;
 }
 
-const RESERVED_TICKS = new Set(["POC", "POCEPT", "POCENCEPT", "KUSDT", "KAS", "TKAS"]);
+const RESERVED_TICKS = new Set(["POC", "POCEPT", "POCENCEPT", "KUSDT", "KAS", "TKAS", "USDT", "1984"]);
 
 /** A mint name on this desk. Letters and digits, 1 to 12, starting with a letter. */
 export function normalizeTick(name) {

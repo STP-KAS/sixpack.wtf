@@ -236,6 +236,11 @@ test("the hunts route lists the catalog and hides the open pack", async () => {
     pay: async () => {
       throw new Error("no pay");
     },
+    guests: {
+      async sessionKey({ address }) {
+        return { key: "11".repeat(32), address };
+      },
+    },
   });
   for (const address of [A, B]) {
     const opened = await svc.handle({

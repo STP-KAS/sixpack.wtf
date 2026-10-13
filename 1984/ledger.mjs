@@ -270,6 +270,7 @@ export function publicMints(state) {
         extension,
         supply: String(row.supply || "0"),
         cap: String(row.cap || "0"),
+        opener: typeof row.opener === "string" ? row.opener : "",
         done: cap > 0n && supply >= cap,
         holderCount: holders.length,
         holders,
@@ -527,11 +528,17 @@ export function applyToken(state, input, now) {
     if (cap > 0n && cap < amount) {
       throw new Error("The cap is smaller than this amount. Type 0 for no cap, or raise the cap to at least " + amount.toString() + ".");
     }
-    next.mints[extension] = { name, extension, supply: "0", cap: String(cap) };
+    next.mints[extension] = { name, extension, supply: "0", cap: String(cap), opener: address };
   } else if (!existing || existing.name !== name) {
     throw new Error("That token is not open yet. Open it first.");
   }
   const book = next.mints[extension];
+  if (option === "more") {
+    const opener = String(book.opener || "");
+    if (!opener || opener.toLowerCase() !== address.toLowerCase()) {
+      throw new Error("Only the address that opened this token can mint more.");
+    }
+  }
   const account = ensure(next, address);
   if (!account.tokens) account.tokens = {};
   const held = bi(account.tokens[extension]);

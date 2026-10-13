@@ -66,6 +66,11 @@ test("the layer save route refuses a name this address does not own", async () =
     },
     now: () => 10,
     pay: async () => ({ txids: [] }),
+    guests: {
+      async sessionKey({ address }) {
+        return { key: "11".repeat(32), address };
+      },
+    },
   });
   const refused = await svc.handle({
     method: "POST",
@@ -126,6 +131,11 @@ test("a quiet owner route still lets this desk inscribe a name", async () => {
     },
     now: () => 10,
     pay: async () => ({ txids: [] }),
+    guests: {
+      async sessionKey({ address }) {
+        return { key: "11".repeat(32), address };
+      },
+    },
     inscribe: async () => {
       calls += 1;
       return { inscriptionId: "ab".repeat(32) + "i0", feeKas: 35, revealId: "ab".repeat(32) };
@@ -157,6 +167,11 @@ test("a quiet KNS index does not let an address customize", async () => {
     },
     now: () => 10,
     pay: async () => ({ txids: [] }),
+    guests: {
+      async sessionKey({ address }) {
+        return { key: "11".repeat(32), address };
+      },
+    },
   });
   const refused = await svc.handle({
     method: "POST",
@@ -190,6 +205,11 @@ test("this square's index opens a name it inscribed when the KNS testnet index i
     },
     now: () => 10,
     pay: async () => ({ txids: [] }),
+    guests: {
+      async sessionKey({ address }) {
+        return { key: "11".repeat(32), address };
+      },
+    },
     inscribe: async () => ({ inscriptionId: id, feeKas: 35, revealId: "ab".repeat(32) }),
   });
   const inscribed = await svc.handle({
@@ -302,6 +322,11 @@ test("one address can inscribe more than one name, and the bar default is the fi
     },
     now: () => 10,
     pay: async () => ({ txids: [] }),
+    guests: {
+      async sessionKey({ address }) {
+        return { key: "11".repeat(32), address };
+      },
+    },
     inscribe: async () => {
       calls += 1;
       return { inscriptionId: "ab".repeat(32) + "i0", feeKas: 35, revealId: "ab".repeat(32) };

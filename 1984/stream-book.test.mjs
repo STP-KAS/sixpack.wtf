@@ -141,6 +141,14 @@ test("the shelf route lists the example and a guest buy unlocks it", async () =>
     txTries: 1,
     guests: { async pay() { return { txid }; } },
     pay: async () => ({ txids: [] }),
+    guests: {
+      async sessionKey({ address }) {
+        return { key: "11".repeat(32), address };
+      },
+      async pay() {
+        return { txid };
+      },
+    },
   });
   const shelf = await svc.handle({
     method: "GET",
@@ -233,6 +241,6 @@ test("the square tab is SI stream", () => {
   assert.match(client, /your own Plex server/);
   assert.match(css, /\.kw-panel\.si-pop \{[\s\S]*left: 8px;[\s\S]*right: 8px;[\s\S]*top: 8px;[\s\S]*bottom: 8px;/);
   assert.match(css, /\.phone-fit \.kw-panel\.si-pop \{[\s\S]*top: 4px;[\s\S]*bottom: 4px;/);
-  assert.match(html, /1984\/client\.mjs\?v=148/);
+  assert.match(html, /1984\/client\.mjs\?v=149/);
   assert.match(html, /1984\.css\?v=84/);
 });

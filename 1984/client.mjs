@@ -3264,7 +3264,7 @@ function paintGuide() {
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Peer to peer is the payment. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled. This square is still the classroom.</li>" +
-    "<li>Mint is the building with the Mint sign. Walk in and the mint card is open. The line on the card is supply on this square, not a KAS price. Mint, Trade, and About sit under that line. Trade offers one open name for another. Copy puts an address on the clipboard. Mint more, send, or open a new name. Open names sit on the card. Click a name to see the addresses, the amounts, and the ledger lines. A name that has reached its cap is under Completed. It is a square-ledger token under KCC-20 Last Call. It is not Final, and no covenant is deployed. Type 0 in Cap for no cap. There is no maximum.</li>" +
+    "<li>Mint is the building with the Mint sign. Walk in and the mint card is open. The line on the card is supply on this square, not a KAS price. Mint, Trade, and About sit under that line. Trade offers one open name for another. Copy puts an address on the clipboard. Mint more, send, or open a new name. Only the address that opened a name can mint more of it. The card shows that address. KAS, tKAS, USDT, KUSDT, POC, POCencept, and 1984 are reserved. Open names sit on the card. Click a name to see the addresses, the amounts, and the ledger lines. A name that has reached its cap is under Completed. It is a square-ledger token under KCC-20 Last Call. It is not Final, and no covenant is deployed. Type 0 in Cap for no cap. There is no maximum.</li>" +
     "<li>Layer-Kaspa is on the side rail. Open a .kas name, or make one. The funded test wallet on this tab can inscribe more than one name. The first name is the default. domain/address on the balance bar changes it. This square keeps an index of names it inscribed or verified. The KNS testnet index is still the network record. No covenant is deployed. Visitors see the page. Only the owner can change it. The window has the title, a tagline, the welcome, a color, a link, and offers. A private note is separate. A short one is ciphertext in a Testnet-10 payload. A longer one stays encrypted on this desk. A pasted address uses the KNS app. This layer does not hide the path. It is not Tor.</li>" +
     "<li>Kachat is on the side rail. Paste the other kaspatest address and send a handshake. They accept it. Then you send messages. Each step is 0.01 POCencept. Messages only. The KaChat app on the chain is a different program.</li>" +
     "<li>Vault is on the side rail. It keeps a note on this square ledger and a rule for who may read it and when. The labels are a note, an NDA, an enterprise file, or other. A real secret does not belong here. This page checks the readers and the time. A covenant mark is a label. No covenant is deployed. Seal keeps the note and the rule.</li>" +
@@ -3286,9 +3286,10 @@ function requireId() {
 }
 
 async function post(path, body, timeout) {
+  const token = body && Object.prototype.hasOwnProperty.call(body, "token") ? body.token : guestToken();
   return api(path, {
     method: "POST",
-    body: JSON.stringify({ ...body, address: state.id.address, network: "testnet-10" }),
+    body: JSON.stringify({ ...body, token, address: state.id.address, network: "testnet-10" }),
     timeout,
   });
 }
@@ -5194,7 +5195,10 @@ function mintDetail(row) {
   const join = mintIsDone(row)
     ? "<p class=\"mint-cap-note\">This name has reached its cap.</p>"
     : '<button type="button" data-join="' + esc(row.name) + '">Join</button>';
-  return "<div class=\"mint-detail\"><p><strong>Holders.</strong> " + esc(String(row.holderCount || holders.length)) + " addresses.</p>" +
+  const opener = row.opener
+    ? "<p><strong>Opened by.</strong> <span class=\"mint-addr\">" + esc(row.opener) + "</span></p>"
+    : "<p><strong>Opened by.</strong> This name has no opener on the book.</p>";
+  return "<div class=\"mint-detail\">" + opener + "<p><strong>Holders.</strong> " + esc(String(row.holderCount || holders.length)) + " addresses.</p>" +
     people +
     "<p><strong>Lines.</strong> These are this square's ledger lines. A mint here does not broadcast a Kaspa transaction.</p>" +
     lines + join + "</div>";

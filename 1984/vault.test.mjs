@@ -82,6 +82,11 @@ test("the square home does not return a vault note", async () => {
     fetch: async () => ({ ok: false, status: 404, json: async () => ({}) }),
     now: () => clock.t,
     pay: async () => ({ txids: [] }),
+    guests: {
+      async sessionKey({ address }) {
+        return { key: "11".repeat(32), address };
+      },
+    },
   });
   const posted = await svc.handle({
     method: "POST",

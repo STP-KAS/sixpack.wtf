@@ -105,6 +105,36 @@ export function create1984Service(deps) {
     return assertTestnet(body && body.address);
   }
 
+  function fail(status, message) {
+    const err = new Error(message);
+    err.status = status;
+    throw err;
+  }
+
+  function squareIsOpen() {
+    if (typeof deps.squareOpen === "boolean") return deps.squareOpen;
+    const raw = process.env.SQUARE_OPEN;
+    if (raw == null || String(raw).trim() === "") return true;
+    return raw === "1" || String(raw).toLowerCase() === "true";
+  }
+
+  function assertOpen() {
+    if (!squareIsOpen()) fail(503, "Closed until further notice.");
+  }
+
+  async function assertWriter(address, token) {
+    assertOpen();
+    const guests = deps.guests;
+    if (!guests || typeof guests.sessionKey !== "function") {
+      fail(401, "A pasted address can read this square. It cannot change the books.");
+    }
+    try {
+      await guests.sessionKey({ token, address });
+    } catch (err) {
+      fail(401, (err && err.message) || "This test tab does not match that address.");
+    }
+  }
+
   async function squareResolve(name) {
     let official = null;
     let quiet = false;
@@ -201,6 +231,8 @@ export function create1984Service(deps) {
 
   async function guestCall(pathname, body, ip) {
     assertNotMainnetNetwork(body && body.network);
+    const housekeeping = pathname === "/api/1984/guest/keep" || pathname === "/api/1984/guest/close";
+    if (!housekeeping) assertOpen();
     const guests = guestApi();
     if (pathname === "/api/1984/guest") {
       if (body && body.progress === true && typeof guests.start === "function") {
@@ -821,6 +853,7 @@ export function create1984Service(deps) {
           return await guestCall(pathname, body || {}, ip || "unknown");
         }
         const address = guard(body || {});
+        await assertWriter(address, body && body.token);
         const now = deps.now();
 
         if (pathname === "/api/1984/practice") {
@@ -1343,7 +1376,8 @@ export function create1984Service(deps) {
         }
         return { status: 404, body: { ok: false, error: "Not found." } };
       } catch (err) {
-        return { status: 400, body: { ok: false, error: err.message || String(err), moved: !!err.moved } };
+        const status = Number(err && err.status) || 400;
+        return { status, body: { ok: false, error: err.message || String(err), moved: !!err.moved } };
       }
     },
   };
