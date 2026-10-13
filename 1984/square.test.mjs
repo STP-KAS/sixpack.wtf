@@ -13,7 +13,7 @@ import {
   publicAccount,
 } from "./ledger.mjs";
 import { RESERVE, assertTestnet, centsForSompi, lockShare, sompiForCents } from "./money.mjs";
-import { LOT_LINE, PARKING_BAYS, ROADSTER_PARK, SHOPS, counterFace, findPath, nearShop, shopVisit, standTile, walkable, world } from "./world.mjs";
+import { LOT_LINE, PARKING_BAYS, ROADSTER_PARK, SHOPS, counterFace, driveTile, findPath, nearShop, shopVisit, standTile, walkable, world } from "./world.mjs";
 
 const USER = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 const USD = 0.05;
@@ -301,9 +301,20 @@ test("the roadster stops on a path and never indoors", () => {
     for (let x = 0; x < map.w; x++) {
       const stand = standTile(map, x, y);
       const got = map.grid[stand.y][stand.x];
-      assert.equal(walkable(got) && got !== "i", true, x + "," + y + " -> " + got);
+      assert.equal(driveTile(got), true, x + "," + y + " -> " + got);
     }
   }
+  for (const b of map.buildings) {
+    const path = findPath(map.grid, map.spawn, { x: b.npc.x, y: b.npc.y }, driveTile);
+    assert.ok(path, b.id);
+    for (const step of path) {
+      const tile = map.grid[step.y][step.x];
+      assert.equal(driveTile(tile), true, b.id + " " + step.x + "," + step.y);
+      const inside = step.x >= b.x && step.x < b.x + b.w && step.y >= b.y && step.y < b.y + b.h;
+      assert.equal(inside, false, b.id);
+    }
+  }
+  assert.equal(findPath(map.grid, { x: 8, y: 11 }, { x: 8, y: 5 }, driveTile), null);
 });
 
 test("a shop or the bank is the indoor room, and the rules are not", () => {

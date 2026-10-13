@@ -1,7 +1,7 @@
 /** LUMBRIDGE in 3D. Original meshes. The camera turns around the player through a full circle. */
 
 import * as THREE from "./vendor/three.module.js";
-import { HUNTS, PARKING_BAYS, ROADSTER_PARK, SHOPS, standTile, tripBySku } from "./world.mjs?v=6";
+import { HUNTS, PARKING_BAYS, ROADSTER_PARK, SHOPS, driveTile, standTile, tripBySku } from "./world.mjs?v=7";
 
 const TILE = 1.15;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -1182,15 +1182,15 @@ export function flightCamera(ms, yaw = 0, pitch = 1.05) {
   return limbShot(pose.carX || 0, pose.carY, pose.carZ || 0, 11, yaw);
 }
 
-/** Outdoors with the keys, the car is the body. A shop interior is on foot. */
+/** Outdoors with the keys, the car is the body. A door and a shop floor are on foot. */
 export function drives(owns, tile) {
-  return !!owns && tile !== "i";
+  return !!owns && driveTile(tile);
 }
 
-/** none before the sale, foot when walking or indoors, drive when the seat is chosen outdoors. */
+/** none before the sale, foot when walking or in a building, drive on an open tile. */
 export function seat(owns, aboard, tile) {
   if (!owns) return "none";
-  if (tile === "i" || !aboard) return "foot";
+  if (!aboard || !driveTile(tile)) return "foot";
   return "drive";
 }
 

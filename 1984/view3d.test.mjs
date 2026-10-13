@@ -83,7 +83,7 @@ test("the roadster hood follows the way the car travels", () => {
 
 test("you drive on the grass and walk inside a shop", () => {
   assert.equal(drives(true, "g"), true);
-  assert.equal(drives(true, "d"), true);
+  assert.equal(drives(true, "d"), false);
   assert.equal(drives(true, "i"), false);
   assert.equal(drives(false, "g"), false);
   assert.equal(drives(false, "i"), false);
@@ -95,7 +95,7 @@ test("get in drives outdoors, get out walks, and a shop is on foot", () => {
   assert.equal(seat(false, true, "g"), "none");
   assert.equal(seat(true, false, "g"), "foot");
   assert.equal(seat(true, true, "g"), "drive");
-  assert.equal(seat(true, true, "d"), "drive");
+  assert.equal(seat(true, true, "d"), "foot");
   assert.equal(seat(true, true, "i"), "foot");
   assert.equal(seat(true, false, "i"), "foot");
 });

@@ -19,8 +19,8 @@ import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, t
 import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=10";
 import { OLAF_NOTE, OLAF_PAY_LINE } from "./olaf-note.mjs?v=2";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=8";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, flightVoice, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=67";
-import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=6";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, flightVoice, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=68";
+import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, driveTile, findPath, huntById, nearShop, shopVisit, standTile, tripBySku, walkable, world } from "./world.mjs?v=7";
 const TUNNEL = "https://especially-supporting-herald-broken.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 const map = world();
@@ -613,7 +613,7 @@ function groundTile() {
 
 function canLaunch() {
   const owns = !!(state.account && state.account.roadster);
-  const outside = groundTile() !== "i" && !state.inside && !state.venue;
+  const outside = driveTile(groundTile()) && !state.inside && !state.venue;
   return owns && state.aboard && outside && !state.flightStart && !state.preRoll;
 }
 
@@ -629,7 +629,7 @@ function syncRide() {
     launch.hidden = !canLaunch();
     launch.textContent = "Launch into space";
   }
-  const outside = groundTile() !== "i" && !state.inside && !state.venue && !state.flightStart && !state.preRoll;
+  const outside = driveTile(groundTile()) && !state.inside && !state.venue && !state.flightStart && !state.preRoll;
   const showLot = !owns && outside && !gateIsOpen();
   const lot = document.getElementById("lot-buy");
   if (lot) {
@@ -5704,14 +5704,21 @@ function step(now) {
     const ground = map.grid[state.player.y] && map.grid[state.player.y][state.player.x];
     const pace = state.inside ? WALK_MS : seat(!!(state.account && state.account.roadster), state.aboard, ground) === "drive" ? DRIVE_MS : WALK_MS;
     if (state.path.length && now - state.stepAt > pace) {
-      const next = state.path.shift();
-      state.facing = { x: next.x - state.player.x, y: next.y - state.player.y };
-      state.player = next;
-      state.stepAt = now;
-      if (!state.path.length && state.arrived) {
-        const fn = state.arrived;
+      const next = state.path[0];
+      const nextTile = map.grid[next.y] && map.grid[next.y][next.x];
+      if (state.aboard && state.account && state.account.roadster && !state.inside && !driveTile(nextTile)) {
+        state.path = [];
         state.arrived = null;
-        fn();
+      } else {
+        state.path.shift();
+        state.facing = { x: next.x - state.player.x, y: next.y - state.player.y };
+        state.player = next;
+        state.stepAt = now;
+        if (!state.path.length && state.arrived) {
+          const fn = state.arrived;
+          state.arrived = null;
+          fn();
+        }
       }
     }
   }
@@ -5726,7 +5733,14 @@ function walkTo(x, y, then) {
     say("That is not a path.", true);
     return;
   }
-  const path = findPath(map.grid, state.player, dest);
+  const driving = !!(state.account && state.account.roadster && state.aboard) && !state.inside && !state.venue;
+  let goal = dest;
+  if (driving && !driveTile(map.grid[goal.y] && map.grid[goal.y][goal.x])) {
+    const beside = standTile(map, goal.x, goal.y);
+    goal = { x: beside.x, y: beside.y, shop: null };
+    then = null;
+  }
+  const path = findPath(map.grid, state.player, goal, driving ? driveTile : walkable);
   if (!path) {
     say("No path there.", true);
     return;
@@ -5818,7 +5832,10 @@ const worldView = mountWorld(view, map, {
     for (const t of tries) {
       const x = state.player.x + t.x;
       const y = state.player.y + t.y;
-      if (y >= 0 && x >= 0 && y < map.h && x < map.w && walkable(map.grid[y][x])) {
+      if (y < 0 || x < 0 || y >= map.h || x >= map.w) continue;
+      const tile = map.grid[y][x];
+      const driving = !!(state.account && state.account.roadster && state.aboard) && !state.inside && !state.venue;
+      if (driving ? driveTile(tile) : walkable(tile)) {
         state.player = { x, y };
         state.facing = { x: t.x, y: t.y };
         return;

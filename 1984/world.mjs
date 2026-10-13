@@ -159,6 +159,11 @@ export function walkable(tile) {
   return tile === "g" || tile === "c" || tile === "p" || tile === "d" || tile === "i" || tile === "f";
 }
 
+/** Grass, cobble, path, and flowers. A door and a shop floor are on foot. */
+export function driveTile(tile) {
+  return tile === "g" || tile === "c" || tile === "p" || tile === "f";
+}
+
 /** Three stalls on the cobble in front of Pike. The car uses the middle one, nose north. */
 export const PARKING_BAYS = [
   { x: 16, y: 21 },
@@ -191,7 +196,7 @@ export function standTile(map, x, y) {
         if (Math.max(Math.abs(xx - tx), Math.abs(yy - ty)) !== r) continue;
         if (yy < 0 || xx < 0 || yy >= map.h || xx >= map.w) continue;
         const tile = map.grid[yy][xx];
-        if (walkable(tile) && tile !== "i") return { x: xx, y: yy };
+        if (driveTile(tile)) return { x: xx, y: yy };
       }
     }
   }
@@ -328,8 +333,8 @@ export function world() {
   return cached;
 }
 
-export function findPath(grid, from, to) {
-  if (!inBounds(to.x, to.y) || !walkable(grid[to.y][to.x])) return null;
+export function findPath(grid, from, to, allow = walkable) {
+  if (!inBounds(to.x, to.y) || !allow(grid[to.y][to.x])) return null;
   if (from.x === to.x && from.y === to.y) return [{ x: from.x, y: from.y }];
   const key = (x, y) => y * MAP_W + x;
   const prev = new Map();
@@ -346,7 +351,7 @@ export function findPath(grid, from, to) {
     for (const [dx, dy] of dirs) {
       const x = cur.x + dx;
       const y = cur.y + dy;
-      if (!inBounds(x, y) || !walkable(grid[y][x])) continue;
+      if (!inBounds(x, y) || !allow(grid[y][x])) continue;
       const k = key(x, y);
       if (prev.has(k)) continue;
       prev.set(k, cur);
