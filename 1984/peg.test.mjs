@@ -10,6 +10,7 @@ import { applyClaim, applyOfferBuy, applySite } from "./layer.mjs";
 import { applySpend, publicAccount } from "./ledger.mjs";
 import { KNOWN_DIGEST, birthDigestHex, birthMessage } from "./peg.mjs";
 import { afterMove, chainWouldCover, planTake } from "./peg-book.mjs";
+import { covenantSignature } from "./peg-chain.mjs";
 
 const A = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 const B = "kaspatest:qpppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp";
@@ -155,6 +156,48 @@ test("chat and an offer refuse a SquarePeg lock when the purse is short", () => 
     () => applyOfferBuy(sites, { address: B, name: "lumbridge", offer: "1", rail: "poc" }, 3),
     /SquarePeg lock is not this payment/
   );
+});
+
+test("a schnorr address owner is the 32-byte key, not the bech32 text", async () => {
+  const wasmPath = `${homedir().replace(/\\/g, "/")}/grok-test-cascade-work/wasm-sdk/kaspa-wasm32-sdk/nodejs/kaspa/kaspa.js`;
+  const wsFrom = `${homedir().replace(/\\/g, "/")}/grok-test-cascade-work/wasm-sdk/kaspa-wasm32-sdk/examples/nodejs/javascript/transactions/simple-transaction.js`;
+  const require = createRequire(wsFrom);
+  globalThis.WebSocket = require("websocket").w3cwebsocket;
+  const kaspa = await import(pathToFileURL(wasmPath).href);
+  const pair = kaspa.Keypair.random();
+  const priv = new kaspa.PrivateKey(String(pair.privateKey));
+  const address = priv.toAddress("testnet-10");
+  const payload = String(address.payload || "");
+  assert.equal(String(address.version), "PubKey");
+  assert.equal(/^[0-9a-f]{64}$/.test(payload), false);
+  const fromKey = String(priv.toKeypair().xOnlyPublicKey).trim().toLowerCase();
+  const fromAddress = String(kaspa.XOnlyPublicKey.fromAddress(address)).trim().toLowerCase();
+  assert.equal(fromKey, fromAddress);
+  assert.match(fromKey, /^[0-9a-f]{64}$/);
+  const spk = kaspa.payToAddressScript(address);
+  const txid = "ab".repeat(32);
+  const { transactions } = await kaspa.createTransactions({
+    entries: [{
+      outpoint: { transactionId: txid, index: 0 },
+      amount: 200_000_000n,
+      scriptPublicKey: spk,
+      blockDaaScore: 0n,
+      isCoinbase: false,
+    }],
+    outputs: [{ address: String(address), amount: 100_000_000n }],
+    changeAddress: String(address),
+    priorityFee: 1000n,
+    networkId: "testnet-10",
+  });
+  const raw = String(await transactions[0].createInputSignature(0, priv)).trim().toLowerCase();
+  assert.equal(raw.length, 132);
+  assert.equal(raw.startsWith("41"), true);
+  assert.equal(raw.endsWith("01"), true);
+  const sig = covenantSignature(raw);
+  assert.equal(sig.length, 130);
+  assert.equal(sig, raw.slice(2));
+  assert.equal(covenantSignature(sig), sig);
+  assert.throws(() => covenantSignature(raw.slice(2, 130)), /covenant signature was short/);
 });
 
 test("the wasm locking script matches the encoder for one opening", async () => {

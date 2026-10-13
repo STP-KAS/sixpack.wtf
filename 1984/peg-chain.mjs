@@ -104,13 +104,25 @@ function hexKey(value) {
   return text;
 }
 
+/** The covenant argument is the 65-byte sig. The wallet prefixes that with OP_DATA_65. */
+export function covenantSignature(raw) {
+  let signature = String(raw || "").trim().replace(/^0x/i, "").toLowerCase();
+  if (/^41[0-9a-f]{128}01$/.test(signature)) signature = signature.slice(2);
+  if (!/^[0-9a-f]{128}01$/.test(signature)) throw new Error("The covenant signature was short. Nothing was sent.");
+  return signature;
+}
+
 async function ownerPub(kaspa, ownerKey, address) {
   const priv = new kaspa.PrivateKey(String(ownerKey || "").trim());
   const derived = String(priv.toAddress("testnet-10")).trim();
   if (derived.toLowerCase() !== String(address || "").trim().toLowerCase()) {
     throw new Error("The signing key does not match the address.");
   }
-  return hexKey(new kaspa.Address(derived).payload);
+  // Address.payload is the bech32 body, not the 32-byte x-only key.
+  const fromKey = String(priv.toKeypair().xOnlyPublicKey || "").trim().toLowerCase();
+  const fromAddress = String(kaspa.XOnlyPublicKey.fromAddress(new kaspa.Address(derived)) || "").trim().toLowerCase();
+  if (fromKey !== fromAddress) throw new Error("This address is not a schnorr lock.");
+  return hexKey(fromKey);
 }
 
 async function pegAddress(kaspa, built) {
@@ -251,8 +263,7 @@ async function submitEntry({ lock, entry, take, covenantKey, feeKey, feeAddress,
       const feePriv = new kaspa.PrivateKey(fee);
       pending.sign([feePriv], false);
       const signer = new kaspa.PrivateKey(key);
-      const signature = String(await pending.createInputSignature(0, signer)).trim().replace(/^0x/, "");
-      if (!/^[0-9a-fA-F]{130}$/.test(signature)) throw new Error("The covenant signature was short. Nothing was sent.");
+      const signature = covenantSignature(await pending.createInputSignature(0, signer));
       const job = { op: "encode", entry, sig: signature, ...openingJob(lock) };
       if (take != null) job.take = asNum(take);
       const encoded = await askEncoder(job);
