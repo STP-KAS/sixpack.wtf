@@ -34,7 +34,6 @@ export const RAILS_NOTE = Object.freeze({
   ]),
   links: Object.freeze([
     Object.freeze(["Why, what, how", "https://github.com/STP-KAS/1984-why-what-how"]),
-    Object.freeze(["The rails note", "https://github.com/STP-KAS/1984-rails"]),
     Object.freeze(["1984 raw idea", "https://sixpack.wtf/rails.html"]),
     Object.freeze(["Rails", "https://sixpack.wtf/rails-why.html"]),
   ]),

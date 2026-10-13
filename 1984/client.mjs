@@ -1,5 +1,5 @@
 import { browserMarker, clearGuest, readIdentity, writeIdentity } from "./identity.mjs";
-import { BENCH, REPOS } from "./links.mjs?v=4";
+import { BENCH, REPOS } from "./links.mjs?v=5";
 import {
   GUEST_DISCLAIMER,
   RESERVE,
@@ -16,7 +16,7 @@ import {
 } from "./money.mjs?v=2";
 import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=5";
-import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, railLegendHtml, railStripHtml, shortRail, swapNeed } from "./rails-note.mjs?v=14";
+import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, railLegendHtml, railStripHtml, shortRail, swapNeed } from "./rails-note.mjs?v=15";
 import { OLAF_NOTE, OLAF_PAY_LINE } from "./olaf-note.mjs?v=4";
 import {
   createDepositNote,

@@ -59,7 +59,7 @@ test("the rails note is short and points at the public note", () => {
   assert.match(RAILS_NOTE.lines[5], /rented service/);
   const hrefs = RAILS_NOTE.links.map((pair) => pair[1]);
   assert.ok(hrefs.includes("https://github.com/STP-KAS/1984-why-what-how"));
-  assert.ok(hrefs.includes("https://github.com/STP-KAS/1984-rails"));
+  assert.ok(!hrefs.includes("https://github.com/STP-KAS/1984-rails"));
   assert.ok(hrefs.includes("https://sixpack.wtf/rails.html"));
   assert.ok(hrefs.includes("https://sixpack.wtf/rails-why.html"));
   assert.match(RAILS_NOTE.lines[6], /swap tKAS for POCencept and KUSDT at the bank/);
