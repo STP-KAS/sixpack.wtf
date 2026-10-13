@@ -131,6 +131,46 @@ body.page-1984 .tabs button.on { background: #8a7040; color: #1a1612; }
 }
 .kw-panel .bal-addr { margin: 0 0 0.45rem; overflow-wrap: anywhere; }
 .kw-bar .bal-extra { flex: 1 0 100%; margin: 0; }
+.kw-bar .rail-strip { white-space: normal; }
+.kw-bar .rail-strip-btn {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.04rem 0 0.08rem;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #f2d48a;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 0.12rem;
+  white-space: normal;
+}
+.rail-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.75rem;
+  width: 100%;
+  margin: 0 0 0.4rem;
+  padding: 0;
+  list-style: none;
+  color: #f3e6c8;
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+.rail-legend li { margin: 0; }
+.rail-legend strong { color: #f2d48a; }
+.rail-legend li.on strong { color: #fff; }
+.kw-gate .rail-legend {
+  display: block;
+  margin: 0.45rem 0 0.35rem;
+  font-size: 0.95rem;
+}
+.kw-gate .rail-legend li { margin: 0.18rem 0; }
 .kw-bar .bal-k { color: #f2d48a; font-weight: 700; }
 .kw-bar .bar-bank {
   display: inline-block;
@@ -479,6 +519,8 @@ body.page-1984 main.kw-stage {
   padding: 0.7rem 0.55rem;
 }
 .flight-planets .rail-bar { width: 100%; }
+.flight-card .rail-legend,
+.show-card .rail-legend { font-size: 0.74rem; margin-bottom: 0.25rem; }
 .flight-card .booth-tabs button,
 .show-card .booth-tabs button { width: auto; flex: 1 1 0; }
 .rails-open {
@@ -2041,6 +2083,9 @@ a { color: #f2d48a; }
     margin-top: 0;
   }
   .phone-fit .kw-bar .bar-changer { font-size: 0.72rem; }
+  .phone-fit .kw-bar .rail-strip-btn { font-size: 0.68rem; }
+  .phone-fit .rail-legend { font-size: 0.72rem; gap: 0.1rem 0.4rem; }
+  .phone-fit .kw-gate .rail-legend { font-size: 0.82rem; }
   .phone-fit .kw-logout {
     top: 6px;
     right: 6px;

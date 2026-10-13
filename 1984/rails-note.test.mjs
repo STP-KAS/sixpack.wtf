@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs";
+import { RAIL_DIFF, RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, railLegendHtml, railStripHtml, shortRail, swapNeed } from "./rails-note.mjs";
 
 test("every buy can pick tKAS, POCencept, or KUSDT", () => {
   assert.equal(payRail("kas"), "kas");
@@ -18,6 +18,21 @@ test("every buy can pick tKAS, POCencept, or KUSDT", () => {
   const olafBar = railBarHtml("olaf");
   assert.match(olafBar, /data-rail-pick="olaf" class="on"/);
   assert.match(bar, /What are the rails\?/);
+  assert.match(bar, /class="rail-legend"/);
+  assert.match(bar, /data-rail="kas" class="on"/);
+  assert.doesNotMatch(bar, /data-rail="olaf" class="on"/);
+  assert.match(olafBar, /data-rail="olaf" class="on"/);
+  assert.match(bar, /<strong>tKAS<\/strong> the coin/);
+  assert.match(bar, /<strong>POCencept<\/strong> public tag, no freeze/);
+  assert.match(bar, /<strong>KUSDT<\/strong> public tag, freeze/);
+  assert.match(bar, /<strong>OLAF<\/strong> private dollar/);
+  const legend = railLegendHtml();
+  assert.equal(RAIL_DIFF.length, 4);
+  assert.doesNotMatch(legend, /class="on"/);
+  const strip = railStripHtml();
+  assert.match(strip, /class="bal-extra rail-strip"/);
+  assert.match(strip, /data-rails/);
+  assert.match(strip, /tKAS the coin · POCencept public tag, no freeze · KUSDT public tag, freeze · OLAF private dollar/);
   assert.equal(RAIL_NAMES.kas, "tKAS");
   assert.equal(RAIL_NAMES.poc, "POCencept stable");
   assert.equal(RAIL_NAMES.kusdt, "KUSDT stable");

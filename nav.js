@@ -2,13 +2,13 @@
   const file = (location.pathname.split("/").pop() || "index.html").toLowerCase();
   const items = [
     { href: "./", files: ["", "index.html"], label: "Home" },
+    { href: "rails-why.html", files: ["rails-why.html"], label: "Rails" },
     { href: "farce.html", files: ["farce.html"], label: "Farce" },
     { href: "eulogy.html", files: ["eulogy.html"], label: "Eulogy" },
     { href: "random.html", files: ["random.html"], label: "Random" },
     { href: "aigen.html", files: ["aigen.html"], label: "SI gen" },
     { href: "faucet.html", files: ["faucet.html"], label: "Faucet" },
     { href: "rails.html", files: ["rails.html"], label: "1984 raw idea" },
-    { href: "rails-why.html", files: ["rails-why.html"], label: "Rails" },
     { href: "1984.html", files: ["1984.html", "kworld.html"], label: "1984" },
     { href: "grok.html", files: ["grok.html"], label: "SI helpdesk" },
     { href: "help.html", files: ["help.html"], label: "Help" },

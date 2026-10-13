@@ -16,7 +16,7 @@ import {
 } from "./money.mjs?v=2";
 import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=5";
-import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=13";
+import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, railLegendHtml, railStripHtml, shortRail, swapNeed } from "./rails-note.mjs?v=14";
 import { OLAF_NOTE, OLAF_PAY_LINE } from "./olaf-note.mjs?v=4";
 import {
   createDepositNote,
@@ -548,6 +548,7 @@ function paintChrome() {
     '<p class="bal-line"><span class="bal-k">POC:</span> ' + esc(pocAmt) + "</p>" +
     '<p class="bal-line"><span class="bal-k">KUSDT:</span> ' + esc(kusdtAmt + frozen) + "</p>" +
     '<p class="bal-line"><span class="bal-k">OLAF:</span> ' + esc(olafAmt) + "</p>" +
+    railStripHtml() +
     payingAddressHtml() +
     '<p class="bal-line"><span class="bal-k">Domain:</span> ' + esc(chosen ? chosen + ".kas" : "none") + "</p>" +
     domainBtn +
@@ -2830,6 +2831,7 @@ function paintBank() {
       '<div class="swap-bal"><span>' + esc(title) + "</span><strong>" + esc(amount) + "</strong><small>" + esc(detail) + "</small></div>";
     body =
       '<div class="swap-head"><h2>The books</h2>' + back + "</div>" +
+      railLegendHtml() +
       "<p>Locked tags came from a real tKAS send. That part can come back as tKAS.</p>" +
       "<p>The purse is practice coins. Shops spend the purse first. The purse does not come back as tKAS.</p>" +
       "<p>A swap between POCencept and KUSDT moves each pile as itself. Locked tKAS moves with the locked part. The purse stays a purse. No extra tKAS is locked or freed.</p>" +
@@ -2859,6 +2861,7 @@ function paintBank() {
     body =
       '<div class="dex">' +
       '<div class="swap-head"><h2>Swap</h2>' + close + "</div>" +
+      railLegendHtml(dexFrom) +
       olafDeskHtml() +
       '<div class="dex-box"><div class="dex-box-top"><span>You pay</span><span>' + esc(clerkFigure(dexFrom)) + "</span></div>" +
       '<div class="dex-row"><input id="' + payId + '" class="dex-amt" value="' + esc(payValue) + '" inputmode="decimal" autocomplete="off" placeholder="0">' +
@@ -6228,6 +6231,10 @@ side.addEventListener("click", (ev) => {
   walkInto(button.getAttribute("data-go"));
 });
 bar.addEventListener("click", (ev) => {
+  if (ev.target.closest("[data-rails]")) {
+    openRailsNote();
+    return;
+  }
   if (ev.target.closest("[data-copy-addr]")) {
     copyPayingAddress();
     return;

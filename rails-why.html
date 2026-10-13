@@ -10,6 +10,8 @@
   <style>
     main section { margin-top: 1.35rem; }
     main h3 { margin-bottom: 0.2rem; }
+    .rail-lead { list-style: none; padding: 0; margin: 0.35rem 0 1rem; font-size: 1.12rem; }
+    .rail-lead li { margin: 0.38rem 0; }
   </style>
   <script>
     try { if (sessionStorage.getItem("sixpack-intro") === "1") document.documentElement.classList.add("intro-done"); } catch (e) {}
@@ -23,7 +25,13 @@
 <main>
   <p class="eyebrow">Testnet 10</p>
   <h1>Rails</h1>
-  <p class="lede">Four ways to pay sit on the 1984 square. They are not the same object. This page says what each one is and why it is here. The longer essay is <a href="rails.html">1984 raw idea</a>. The square is <a href="1984.html">1984</a>. This is a classroom. It is not Kaspa core.</p>
+  <ul class="rail-lead">
+    <li><strong>tKAS</strong> the coin. The miner fee is always KAS.</li>
+    <li><strong>POCencept</strong> public tag, no freeze. It locks tKAS. Redeem returns that lock.</li>
+    <li><strong>KUSDT</strong> public tag, freeze. It locks tKAS the same way. The issuer can freeze the tag.</li>
+    <li><strong>OLAF</strong> private dollar. 1.00 is one dollar of tKAS at the quote when the note was made.</li>
+  </ul>
+  <p class="lede">Four ways to pay sit on the 1984 square. They are not the same object. The lines above are the difference. The sections below say why. The longer essay is <a href="rails.html">1984 raw idea</a>. The square is <a href="1984.html">1984</a>. This is a classroom. It is not Kaspa core.</p>
 
   <section id="rail-kas">
     <h2>tKAS</h2>
@@ -67,6 +75,6 @@
     <p>Do not weld them. A promise on this square does not buy a car, an SI service, a game, or a rental. The spend gate stays shut. The platform essay is <a href="rails.html">1984 raw idea</a>.</p>
   </section>
 </main>
-<script src="nav.js?v=64"></script>
+<script src="nav.js?v=65"></script>
 </body>
 </html>

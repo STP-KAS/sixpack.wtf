@@ -1,4 +1,4 @@
-/** The three ways to pay, in the words the page shows. */
+/** The ways to pay, in the words the page shows. */
 
 export const RAIL_NAMES = Object.freeze({
   poc: "POCencept stable",
@@ -6,6 +6,14 @@ export const RAIL_NAMES = Object.freeze({
   kas: "tKAS",
   olaf: "OLAF",
 });
+
+/** The four-way difference, short enough to stay on the picker and the balance bar. */
+export const RAIL_DIFF = Object.freeze([
+  Object.freeze({ id: "kas", name: "tKAS", short: "the coin" }),
+  Object.freeze({ id: "poc", name: "POCencept", short: "public tag, no freeze" }),
+  Object.freeze({ id: "kusdt", name: "KUSDT", short: "public tag, freeze" }),
+  Object.freeze({ id: "olaf", name: "OLAF", short: "private dollar" }),
+]);
 
 /** The rail a buy will use. An unknown choice is POCencept, the same default as the counter. OLAF stays OLAF. */
 export function payRail(selected) {
@@ -54,7 +62,22 @@ export function shortRail(rail, have) {
   return "";
 }
 
-/** The picker plus the button that opens the note. */
+/** One line per rail. A known selection gets class "on". */
+export function railLegendHtml(selected) {
+  const onId = selected === "kas" || selected === "poc" || selected === "kusdt" || selected === "olaf" ? selected : "";
+  return '<ul class="rail-legend">' + RAIL_DIFF.map((row) => {
+    const on = row.id === onId ? ' class="on"' : "";
+    return '<li data-rail="' + row.id + '"' + on + "><strong>" + row.name + "</strong> " + row.short + "</li>";
+  }).join("") + "</ul>";
+}
+
+/** The same four lines as one bar control. A click opens the long note. */
+export function railStripHtml() {
+  const text = RAIL_DIFF.map((row) => row.name + " " + row.short).join(" · ");
+  return '<p class="bal-extra rail-strip"><button type="button" class="rail-strip-btn" data-rails>' + text + "</button></p>";
+}
+
+/** The difference, the picker, and the button that opens the note. */
 export function railBarHtml(selected) {
   const rail = payRail(selected);
   const picks = ["poc", "kusdt", "kas"].map((id) => {
@@ -63,5 +86,5 @@ export function railBarHtml(selected) {
   }).join("");
   const olafOn = rail === "olaf" ? ' class="on"' : "";
   const olaf = '<button type="button" data-rail-pick="olaf"' + olafOn + ">OLAF</button>";
-  return '<div class="rail-bar"><div class="booth-tabs">' + picks + olaf + '</div><button type="button" class="rails-open" data-rails>What are the rails?</button></div>';
+  return '<div class="rail-bar">' + railLegendHtml(rail) + '<div class="booth-tabs">' + picks + olaf + '</div><button type="button" class="rails-open" data-rails>What are the rails?</button></div>';
 }
