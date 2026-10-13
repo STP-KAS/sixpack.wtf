@@ -52,7 +52,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=150/);
+  assert.match(html, /1984\/client\.mjs\?v=156/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -120,7 +120,18 @@ test("the landing gate takes a funded test address", () => {
   const guest = sliceFn(client, "startGuest");
   assert.match(guest, /hideGate\(\)/);
   assert.match(client, /function openFundedTest\(/);
+  assert.match(client, /function startFundedTest\(/);
   assert.match(client, /getElementById\("gate-guest"\)/);
+  assert.match(client, /gateGuest\.addEventListener\("pointerdown", startFundedTest\)/);
+  assert.match(client, /gateGuest\.addEventListener\("click", startFundedTest\)/);
+  assert.match(client, /dataset\.pressed === "1"/);
+  assert.match(html, /button\.dataset\.pressed = "1"/);
+  assert.match(client, /you\.addEventListener\("pointerdown"/);
+  const open = sliceFn(client, "openFundedTest");
+  assert.match(open, /paintGuestWait\("", ""\)/);
+  assert.doesNotMatch(open, /showed = true/);
+  assert.doesNotMatch(open, /askOk/);
+  assert.doesNotMatch(sliceFn(client, "startFundedTest"), /askOk/);
 });
 
 test("the cinema snacks close to a small tab", () => {
@@ -194,14 +205,15 @@ test("the balances stay in a clear bar under the site tabs", () => {
   const stageAt = html.indexOf('<main class="kw-stage">');
   assert.ok(topEnd > 0 && barAt > topEnd && stageAt > barAt);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
-  assert.match(html, /1984\.css\?v=84/);
-  assert.match(html, /1984\/client\.mjs\?v=150/);
+  assert.match(html, /1984\.css\?v=85/);
+  assert.match(html, /1984\/client\.mjs\?v=156/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
   assert.match(chrome, /<span class="bal-k">tKAS:<\/span>/);
   assert.match(chrome, /<span class="bal-k">POC:<\/span>/);
   assert.match(chrome, /<span class="bal-k">KUSDT:<\/span>/);
+  assert.match(chrome, /<span class="bal-k">OLAF:<\/span>/);
   assert.match(chrome, /payingAddressHtml\(\)/);
   assert.match(chrome, /<span class="bal-k">Domain:<\/span>/);
   const addrLine = sliceFn(client, "payingAddressHtml");
@@ -250,6 +262,9 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(mintCard, /id="mint-book"/);
   assert.match(mintCard, /id="mint-find"/);
   assert.match(mintCard, /Any funded address can mint more/);
+  assert.match(mintCard, /data-mint-tkas="25"/);
+  assert.match(mintCard, /data-mint-tkas="50"/);
+  assert.match(mintCard, /data-mint-tkas="max"/);
   assert.match(mintCard, /data-mint-view="trade"/);
   assert.match(mintCard, /You pay/);
   assert.match(mintCard, /You receive/);
@@ -276,8 +291,15 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(html, /id="mint-open-pop"/);
   assert.match(html, /id="mint-done-pop"/);
   const boards = sliceFn(client, "paintMintBoards");
-  assert.match(boards, /<h3>Open<\/h3>/);
+  assert.match(boards, /<h3>Your holdings<\/h3>/);
+  assert.match(boards, /<h3>Available mints<\/h3>/);
+  assert.match(sliceFn(client, "olafMintCard"), /Fully minted/);
+  assert.match(sliceFn(client, "fillRailsNote"), /OLAF_NOTE/);
+  assert.match(html, /id="need-swap-olaf"/);
   assert.match(boards, /Completed/);
+  assert.match(sliceFn(client, "saveMint"), /mintChosenName\(\)/);
+  assert.match(css, /\.mint-board \.mint-hold \{[\s\S]*background: #1a140f/);
+  assert.match(css, /\.mint-board \.mint-avail \{[\s\S]*background: #121820/);
   assert.match(sliceFn(client, "mintDetail"), /data-join/);
   assert.match(sliceFn(client, "mintDetail"), /mint-addr/);
   assert.match(css, /#mint-open-pop \{[\s\S]*?max-height: 52%/);

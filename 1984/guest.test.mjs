@@ -49,8 +49,8 @@ function harness(seed, extra = {}) {
       return { txids: ["11".repeat(32)], sompi: sompi.toString() };
     },
     async pay(input) {
-      paid.push({ from: input.from, sompi: input.sompi.toString() });
-      if (!input.key || input.to) throw new Error("pay shape");
+      paid.push({ from: input.from, sompi: input.sompi.toString(), to: input.to || "" });
+      if (!input.key) throw new Error("pay shape");
       return { txid: "22".repeat(32), sompi: input.sompi.toString() };
     },
     poolOnly: extra.poolOnly === true,
@@ -138,9 +138,11 @@ test("a new test wallet is funded and the answer has no key", async () => {
   assert.equal(paid.txid.length, 64);
   assert.equal(h.paid[0].from, opened.address);
   assert.equal(JSON.stringify(paid).includes(h.key()), false);
+  const over = await h.desk.pay({ token: opened.token, address: opened.address, sompi: GUEST_FUND_SOMPI + 1n });
+  assert.equal(over.sompi, (GUEST_FUND_SOMPI + 1n).toString());
   await assert.rejects(
-    () => h.desk.pay({ token: opened.token, address: opened.address, sompi: GUEST_FUND_SOMPI + 1n }),
-    /50000 tKAS/
+    () => h.desk.pay({ token: opened.token, address: opened.address, sompi: 0n }),
+    /above zero/
   );
 });
 
@@ -314,6 +316,16 @@ test("a prepared wallet is handed out with its own tKAS and no new send", async 
   assert.equal(h.funded.length, 0);
   assert.equal(h.book().sessions[opened.token].home, home);
   assert.equal(h.book().sessions[opened.token].key, key);
+  const peg = addr(3);
+  const swapped = await h.desk.payTo({
+    token: opened.token,
+    address: opened.address,
+    sompi: 5000n * 100_000_000n,
+    to: peg,
+  });
+  assert.equal(swapped.sompi, (5000n * 100_000_000n).toString());
+  assert.equal(h.paid.at(-1).to, peg);
+  assert.equal(h.book().sessions[opened.token].funded, (2000n * 100_000_000n).toString());
   const empty = harness(emptyBook(), { usePool: true, poolOnly: true, ready: [] });
   const blocked = await empty.desk.open({ ip: "203.0.113.10", life: "none" }).then(
     () => null,

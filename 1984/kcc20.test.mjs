@@ -12,6 +12,7 @@ import {
   extensionFor,
   holderMint,
   normalizeTick,
+  olafExtension,
   requireIncrease,
   standardTransfer,
   tokenExtension,
@@ -45,6 +46,9 @@ test("a short name hashes with unkeyed BLAKE3", () => {
   assert.notEqual(ash, POC_EXTENSION);
   assert.equal(normalizeTick(" ash "), "ASH");
   assert.throws(() => normalizeTick("POCencept"), /already a rail/);
+  assert.throws(() => normalizeTick("OLAF"), /already minted/);
+  assert.equal(olafExtension(), blake3Hex(new TextEncoder().encode("OLAF")));
+  assert.notEqual(olafExtension(), POC_EXTENSION);
   assert.throws(() => holderMint(5n, 5n, ash, "holder"), /increase/);
   holderMint(5n, 8n, ash, "holder");
 });

@@ -402,7 +402,11 @@ test("a missing node payment stays unswapped", async () => {
   });
   assert.equal(out.body.ok, false);
   assert.match(out.body.error, /public transaction list is behind/);
-  assert.equal(read(), null);
+  assert.equal(read().accounts[USER], undefined);
+  assert.equal(read().txids["e".repeat(64)], undefined);
+  const olaf = Object.values(read().mints).find((row) => row.name === "OLAF");
+  assert.equal(olaf.supply, "100000000");
+  assert.equal(olaf.sealed, true);
 });
 
 test("a wallet shop buy is refused or marked ready before any Testnet 10 lookup", async () => {
@@ -841,4 +845,68 @@ test("a guest covenant lock is not a reserve liability, and redeem does not pay 
   assert.equal(read().accounts[USER].pocBacked, "0");
   assert.equal(read().accounts[USER].chainLocks.length, 0);
   assert.equal(JSON.stringify(redeemed.body).includes("openSig"), false);
+});
+
+test("a second swap shares the lock already being written", async () => {
+  const txid = "cd".repeat(32);
+  const sompi = "100000000";
+  const peg = "kaspatest:qpegpegpegpegpegpegpegpegpegpegpegpegpegpegpegpegpegpegpeg";
+  let pays = 0;
+  let release;
+  const hold = new Promise((resolve) => {
+    release = resolve;
+  });
+  const { svc, read } = harness(async () => ({ txids: ["zz"] }), {
+    guests: {
+      async sessionKey() {
+        return { key: "ab".repeat(32), address: USER };
+      },
+      async payTo() {
+        pays += 1;
+        return { txid };
+      },
+    },
+    pegLock: {
+      async plan() {
+        return {
+          id: "pending-share",
+          address: USER,
+          rail: "poc",
+          cents: "5",
+          sompi,
+          owner: "11".repeat(32),
+          quoteMicro: "50000",
+          bornCents: "5",
+          bornSompi: sompi,
+          openSig: "22".repeat(64),
+          issuer: "33".repeat(32),
+          reserve: "44".repeat(32),
+          pegAddress: peg,
+        };
+      },
+      async waitOutput() {
+        await hold;
+        return { txid, index: 0, amount: sompi };
+      },
+    },
+  });
+  const call = () =>
+    svc.handle({
+      method: "POST",
+      pathname: "/api/1984/guest/convert",
+      query: new URLSearchParams(),
+      body: { address: USER, network: "testnet-10", token: "tok", rail: "poc", amount: "1" },
+      ip: "127.0.0.1",
+    });
+  const first = call();
+  const second = call();
+  for (let i = 0; i < 50 && pays < 1; i += 1) await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(pays, 1);
+  release();
+  const [a, b] = await Promise.all([first, second]);
+  assert.equal(a.body.ok, true, a.body && a.body.error);
+  assert.equal(b.body.ok, true, b.body && b.body.error);
+  assert.equal(b.body.cents, a.body.cents);
+  assert.equal(pays, 1);
+  assert.equal(read().accounts[USER].chainLocks.length, 1);
 });

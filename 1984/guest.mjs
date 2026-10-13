@@ -374,14 +374,9 @@ export function createGuestDesk(deps) {
         throw new Error("This test tab is closing. Open a new one, or use your Testnet-10 wallet.");
       }
       const amount = BigInt(sompi);
-      const cap = BigInt(row.funded || 0);
-      if (cap <= 0n || amount <= 0n || amount > cap) {
-        throw new Error(
-          "This test wallet holds " +
-            (cap / 100_000_000n).toString() +
-            " tKAS. That payment is outside it. This money is tKAS. With tKAS you can go to the bank."
-        );
-      }
+      if (amount <= 0n) throw new Error("Type a tKAS amount above zero.");
+      // row.funded is the original gift. Coins added later are spendable.
+      // The node send refuses an amount the live coins do not cover.
       const target = dest ? assertTestnet(dest) : "";
       row.touched = now;
       persist();

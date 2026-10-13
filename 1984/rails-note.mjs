@@ -4,10 +4,12 @@ export const RAIL_NAMES = Object.freeze({
   poc: "POCencept stable",
   kusdt: "KUSDT stable",
   kas: "tKAS",
+  olaf: "OLAF",
 });
 
-/** The rail a buy will use. An unknown choice is POCencept, the same default as the counter. */
+/** The rail a buy will use. An unknown choice is POCencept, the same default as the counter. OLAF stays OLAF. */
 export function payRail(selected) {
+  if (selected === "olaf") return "olaf";
   return selected === "kas" || selected === "kusdt" ? selected : "poc";
 }
 
@@ -45,6 +47,7 @@ export function shortRail(rail, have) {
   if (rail === "kas") return none ? "No tKAS. Go to the bank." : "Not enough tKAS. Go to the bank.";
   if (rail === "poc") return none ? "No POCencept. Go to the bank and swap." : "Not enough POCencept. Go to the bank and swap.";
   if (rail === "kusdt") return none ? "No KUSDT. Go to the bank and swap." : "Not enough KUSDT. Go to the bank and swap.";
+  if (rail === "olaf") return none ? "No OLAF. Swap tKAS for it at the bank, or take a transfer." : "Not enough OLAF. Swap more tKAS at the bank, or take a transfer.";
   return "";
 }
 
@@ -55,5 +58,7 @@ export function railBarHtml(selected) {
     const on = id === rail ? ' class="on"' : "";
     return '<button type="button" data-rail-pick="' + id + '"' + on + ">" + RAIL_NAMES[id] + "</button>";
   }).join("");
-  return '<div class="rail-bar"><div class="booth-tabs">' + picks + '</div><button type="button" class="rails-open" data-rails>What are the rails?</button></div>';
+  const olafOn = rail === "olaf" ? ' class="on"' : "";
+  const olaf = '<button type="button" data-rail-pick="olaf"' + olafOn + ">OLAF</button>";
+  return '<div class="rail-bar"><div class="booth-tabs">' + picks + olaf + '</div><button type="button" class="rails-open" data-rails>What are the rails?</button></div>';
 }

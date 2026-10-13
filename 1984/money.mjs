@@ -7,6 +7,7 @@ const BECH_CHAR = /[qpzry9x8gf2tvdw0s3jn54khce6mua7l]/i;
 const SCALE = 1_000_000_000_000n;
 const SOMPI = 100_000_000n;
 
+/** The three classroom rails. OLAF is a fixed ledger token beside this list, not a member of it. */
 export const RAILS = ["kas", "poc", "kusdt"];
 export const PRACTICE_CENTS = 2000n;
 export const MAX_REDEEM_SOMPI = 10_000n * SOMPI;
@@ -145,6 +146,7 @@ export function railName(rail) {
   if (rail === "kas") return "tKAS";
   if (rail === "poc") return "POCencept";
   if (rail === "kusdt") return "KUSDT";
+  if (rail === "olaf") return "OLAF";
   return rail;
 }
 

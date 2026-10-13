@@ -5,6 +5,11 @@ import { create1984Service } from "./service.mjs";
 const USER = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 const OTHER = "kaspatest:qpppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp";
 
+function supplyOf(book, name) {
+  const row = Object.values(book || {}).find((item) => item && item.name === name);
+  return row ? row.supply : undefined;
+}
+
 function desk(extra = {}) {
   let state = null;
   const opened = [];
@@ -51,7 +56,7 @@ test("a ledger write without the test-tab token is refused and the books stay", 
   const { svc, read } = desk();
   const minted = await post(svc, "/api/1984/mint", { token: "good", option: "new", name: "ash", amount: "4", cap: "10" });
   assert.equal(minted.status, 200);
-  assert.equal(read().mints[Object.keys(read().mints)[0]].supply, "4");
+  assert.equal(supplyOf(read().mints, "ASH"), "4");
   const sent = await post(svc, "/api/1984/mint", { option: "send", name: "ASH", amount: "1", to: OTHER });
   assert.equal(sent.status, 401);
   assert.match(sent.body.error, /does not match/);
@@ -72,7 +77,7 @@ test("a ledger write without the test-tab token is refused and the books stay", 
 
   const wrong = await post(svc, "/api/1984/mint", { token: "nope", option: "more", name: "ASH", amount: "1" });
   assert.equal(wrong.status, 401);
-  assert.equal(read().mints[Object.keys(read().mints)[0]].supply, "4");
+  assert.equal(supplyOf(read().mints, "ASH"), "4");
 });
 
 test("only the opener can mint more, and reserved names stay closed", async () => {
@@ -90,7 +95,7 @@ test("only the opener can mint more, and reserved names stay closed", async () =
   const more = await post(svc, "/api/1984/mint", { token: "good", address: OTHER, option: "more", name: "ASH", amount: "1" });
   assert.equal(more.status, 400);
   assert.match(more.body.error, /Only the address that opened/);
-  assert.equal(read().mints[Object.keys(read().mints)[0]].supply, "2");
+  assert.equal(supplyOf(read().mints, "ASH"), "2");
   for (const name of ["KAS", "USDT"]) {
     const reserved = await post(svc, "/api/1984/mint", { token: "good", option: "new", name, amount: "1", cap: "1" });
     assert.equal(reserved.status, 400, name);
@@ -107,9 +112,11 @@ test("a closed square refuses a new test wallet and a ledger write, and a read s
   assert.equal(guest.status, 503);
   assert.match(guest.body.error, /Closed until further notice/);
   assert.equal(opened.length, 0);
+  const before = JSON.stringify(read());
   const write = await post(svc, "/api/1984/practice", { token: "good" });
   assert.equal(write.status, 503);
-  assert.equal(read(), null);
+  assert.equal(JSON.stringify(read()), before);
+  assert.equal(read().accounts[USER], undefined);
   const look = await svc.handle({
     method: "GET",
     pathname: "/api/1984/account",

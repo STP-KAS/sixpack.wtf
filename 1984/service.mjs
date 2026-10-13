@@ -22,9 +22,12 @@ import {
   applyRedeem,
   applyRules,
   applySnap,
+  applyOlafBuy,
+  applyOlafSend,
   applySpend,
   applyStreamBuy,
   applyToken,
+  ensureOlaf,
   applyWithdrawPromise,
   attachTxid,
   checkRules,
@@ -61,6 +64,8 @@ import {
 import { createPegLock } from "./peg-chain.mjs";
 import { openGuestLock, settleExchange, settleFreeze, settleRedeem, settleSpend } from "./peg-flow.mjs";
 import { addTitle, mediaName, normalizeShare, publicStream, removeTitle, titleById } from "./stream-book.mjs";
+import { OLAF_DECIMALS } from "./kcc20.mjs";
+import { OLAF_NOTE } from "./olaf-note.mjs";
 import { HUNTS, SHOPS, itemBySku, shopById } from "./world.mjs";
 
 const DISCLAIMER =
@@ -71,7 +76,10 @@ function clone(state) {
 }
 
 export function create1984Service(deps) {
-  let state = deps.load();
+  let state = deps.load() || freshState();
+  const born = ensureOlaf(state, typeof deps.now === "function" ? deps.now() : 0);
+  state = born.state;
+  if (born.minted && typeof deps.save === "function") deps.save(state);
   let lock = Promise.resolve();
   let oracle = { price: 0, at: 0 };
   const hits = new Map();
@@ -79,7 +87,26 @@ export function create1984Service(deps) {
   const mediaDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "stream-media");
   const inscribing = new Set();
   const sealing = new Set();
-  const pegging = new Set();
+  const pegging = new Map();
+
+  function sharePeg(key, rail, sompiText, run) {
+    const previous = pegging.get(key);
+    if (previous && previous.rail === rail && previous.sompi === sompiText) return previous.promise;
+    let release;
+    const opened = new Promise((resolve) => {
+      release = resolve;
+    });
+    const entry = { rail, sompi: sompiText, promise: null };
+    entry.promise = opened.then(async () => {
+      if (previous) await previous.promise.catch(() => {});
+      return run();
+    }).finally(() => {
+      if (pegging.get(key) === entry) pegging.delete(key);
+    });
+    pegging.set(key, entry);
+    release();
+    return entry.promise;
+  }
   const pause = deps.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
 
   function queue(fn) {
@@ -412,12 +439,20 @@ export function create1984Service(deps) {
     if (pathname === "/api/1984/guest/convert") {
       const usd = await price();
       const sompi = parseTkas(body.amount);
+      if (body.rail === "olaf") {
+        const paid = await guests.pay({ token: body.token, address, sompi });
+        const seen = await waitPayment(address, paid.txid, sompi);
+        return queue(async () => {
+          const out = applyOlafBuy(state, { address, payment: seen, usdPerKas: usd }, deps.now());
+          state = out.state;
+          deps.save(state);
+          return { status: 200, body: out.result };
+        });
+      }
       if (deps.pegLock) {
         const key = address.toLowerCase();
-        if (pegging.has(key)) throw new Error("This lock is already being written.");
-        pegging.add(key);
-        try {
-          return await openGuestLock({
+        return sharePeg(key, String(body.rail || ""), sompi.toString(), () =>
+          openGuestLock({
             pegLock: deps.pegLock,
             guests,
             address,
@@ -432,10 +467,8 @@ export function create1984Service(deps) {
                 state = typeof next === "function" ? next(state) : next;
                 deps.save(state);
               }),
-          });
-        } finally {
-          pegging.delete(key);
-        }
+          })
+        );
       }
       const paid = await guests.pay({ token: body.token, address, sompi });
       const seen = await waitPayment(address, paid.txid, sompi);
@@ -919,6 +952,25 @@ export function create1984Service(deps) {
         if (method === "GET" && pathname === "/api/1984/statement") {
           return await statementOf(query);
         }
+        if (method === "GET" && pathname === "/api/1984/olaf") {
+          const row = publicMints(state).find((item) => item.name === "OLAF");
+          return {
+            status: 200,
+            body: {
+              ok: true,
+              network: "testnet-10",
+              tick: "OLAF",
+              decimals: OLAF_DECIMALS,
+              supply: row ? row.supply : "0",
+              cap: row ? row.cap : "0",
+              sealed: !!(row && row.sealed),
+              remaining: row && row.remaining != null ? String(row.remaining) : "0",
+              extension: row ? row.extension : "",
+              note: OLAF_NOTE.lines,
+              experimental: true,
+            },
+          };
+        }
         if (method === "GET" && pathname === "/api/1984/quote") {
           const shop = shopById(query.get("shop"));
           const item = shop && itemBySku(shop.id, query.get("sku"));
@@ -942,6 +994,14 @@ export function create1984Service(deps) {
         if (pathname === "/api/1984/practice") {
           return await queue(async () => {
             const out = applyPractice(state, { address }, now);
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: out.result };
+          });
+        }
+        if (pathname === "/api/1984/olaf/send") {
+          return await queue(async () => {
+            const out = applyOlafSend(state, { address, to: body.to, amount: body.amount }, now);
             state = out.state;
             deps.save(state);
             return { status: 200, body: out.result };
@@ -1145,7 +1205,9 @@ export function create1984Service(deps) {
           const usd = await price();
           const pay = await waitPayment(address, body.txid, 1n);
           return await queue(async () => {
-            const out = applyConvert(state, { address, rail: body.rail, payment: pay, usdPerKas: usd }, now);
+            const out = body.rail === "olaf"
+              ? applyOlafBuy(state, { address, payment: pay, usdPerKas: usd }, now)
+              : applyConvert(state, { address, rail: body.rail, payment: pay, usdPerKas: usd }, now);
             state = out.state;
             deps.save(state);
             return { status: 200, body: out.result };

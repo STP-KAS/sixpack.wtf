@@ -16,9 +16,10 @@ import {
 } from "./money.mjs?v=2";
 import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=5";
-import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=8";
+import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=10";
+import { OLAF_NOTE, OLAF_PAY_LINE } from "./olaf-note.mjs?v=2";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=8";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, flightVoice, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=66";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, flightVoice, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=67";
 import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=6";
 const TUNNEL = "https://especially-supporting-herald-broken.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -512,6 +513,7 @@ function paintChrome() {
   const kasAmt = !id.address ? "—" : state.kasSompi == null ? "…" : formatTkas(state.kasSompi);
   const pocAmt = state.account ? formatCents(state.account.poc) : "—";
   const kusdtAmt = state.account ? formatCents(state.account.kusdt) : "—";
+  const olafAmt = state.account ? formatCents(olafHeld()) : "—";
   const frozen = state.account && state.account.kusdtFrozen ? " frozen" : "";
   const guestLine = id.kind === "guest" ? " · this tab only" : "";
   const driving = state.account && state.account.roadster ? (state.aboard ? " · driving" : " · roadster is yours") : "";
@@ -532,6 +534,7 @@ function paintChrome() {
     '<p class="bal-line"><span class="bal-k">tKAS:</span> ' + esc(kasAmt) + "</p>" +
     '<p class="bal-line"><span class="bal-k">POC:</span> ' + esc(pocAmt) + "</p>" +
     '<p class="bal-line"><span class="bal-k">KUSDT:</span> ' + esc(kusdtAmt + frozen) + "</p>" +
+    '<p class="bal-line"><span class="bal-k">OLAF:</span> ' + esc(olafAmt) + "</p>" +
     payingAddressHtml() +
     '<p class="bal-line"><span class="bal-k">Domain:</span> ' + esc(chosen ? chosen + ".kas" : "none") + "</p>" +
     domainBtn +
@@ -839,10 +842,10 @@ function paintPlanets() {
   const shop = ((state.home && state.home.shops) || []).find((item) => item.id === "orbit");
   const items = shop && shop.items ? shop.items : [];
   if (!items.length) return;
-  const sig = rail + ":" + items.map((trip) => trip.sku + "@" + trip.cents).join(",") + ":" + (state.oracle || "") + ":" + (state.kasSompi || "") + ":" + (state.account && state.account.kusdtFrozen ? "f" : "");
+  const sig = rail + ":" + items.map((trip) => trip.sku + "@" + trip.cents).join(",") + ":" + (state.oracle || "") + ":" + (state.kasSompi || "") + ":" + olafHeld().toString() + ":" + (state.account && state.account.kusdtFrozen ? "f" : "");
   if (box.dataset.sig !== sig) {
     box.dataset.sig = sig;
-    box.innerHTML = '<p class="flight-dest-title">Choose destination</p><p class="fine">' + esc(SWAP_PAY) + "</p>" + railBarHtml(rail) + items.map((trip) => saleButton(rail, "orbit", trip.sku, trip.cents, trip.name, true)).join("");
+    box.innerHTML = '<p class="flight-dest-title">Choose destination</p><p class="fine">' + esc(SWAP_PAY) + "</p>" + railBarHtml(rail) + olafFine(rail) + items.map((trip) => saleButton(rail, "orbit", trip.sku, trip.cents, trip.name, true)).join("");
   }
 }
 
@@ -1759,7 +1762,7 @@ function paintShow() {
   const ticket = shop && shop.items ? shop.items.find((item) => item.sku === "reel") : null;
   const pay = document.getElementById("show-pay");
   if (pay && ticket) {
-    pay.innerHTML = "<p>The ticket is " + esc(formatCents(ticket.cents)) + " on this ledger.</p><p class=\"fine\">" + esc(SWAP_PAY) + "</p>" + saleButton(rail, "cinema", "reel", ticket.cents, ticket.name, false);
+    pay.innerHTML = "<p>The ticket is " + esc(formatCents(ticket.cents)) + " on this ledger.</p><p class=\"fine\">" + esc(SWAP_PAY) + "</p>" + olafFine(rail) + saleButton(rail, "cinema", "reel", ticket.cents, ticket.name, false);
   }
   const box = document.getElementById("show-snacks");
   if (!box || !shop) return;
@@ -2107,6 +2110,7 @@ function balanceSheet() {
     "<p><strong>tKAS</strong> " + esc(kas) + "</p>" +
     "<p><strong>POCencept stable</strong> " + esc(formatCents(poc.have)) + " · locked " + esc(formatCents(poc.lock)) + " · purse " + esc(formatCents(poc.purse)) + "</p>" +
     "<p><strong>KUSDT stable</strong> " + esc(formatCents(kusdt.have)) + " · locked " + esc(formatCents(kusdt.lock)) + " · purse " + esc(formatCents(kusdt.purse)) + esc(frozen) + "</p>" +
+    "<p><strong>OLAF</strong> " + esc(state.account ? formatCents(olafHeld()) : "—") + "</p>" +
     (lockedKas ? '<p class="fine">' + esc(lockedKas) + "</p>" : "") +
     "</div>"
   );
@@ -2126,7 +2130,9 @@ function saleButton(rail, shop, sku, cents, name, withName) {
   if (canPay(rail, cents) === false) {
     const have = rail === "kas"
       ? BigInt(state.kasSompi || 0)
-      : BigInt(rail === "kusdt" ? (state.account && state.account.kusdt) || 0 : (state.account && state.account.poc) || 0);
+      : rail === "olaf"
+        ? olafHeld()
+        : BigInt(rail === "kusdt" ? (state.account && state.account.kusdt) || 0 : (state.account && state.account.poc) || 0);
     const line = shortRail(rail, have);
     return blocked(line, line);
   }
@@ -2137,7 +2143,7 @@ function saleButton(rail, shop, sku, cents, name, withName) {
 }
 
 function setShopRail(rail) {
-  if (rail !== "kas" && rail !== "poc" && rail !== "kusdt") return;
+  if (rail !== "kas" && rail !== "poc" && rail !== "kusdt" && rail !== "olaf") return;
   state.shopRail = payRail(rail);
   if (state.mode === "groceries") paintMarket();
   else if (isVisit(state.mode) && state.mode !== "hunt") paintShop(state.mode);
@@ -2157,7 +2163,10 @@ function fillRailsNote() {
   const links = RAILS_NOTE.links
     .map(([label, href]) => '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(label) + "</a>")
     .join(" · ");
-  body.innerHTML = RAILS_NOTE.lines.map((line) => "<p>" + esc(line) + "</p>").join("") + "<p>" + links + "</p>";
+  body.innerHTML = RAILS_NOTE.lines.map((line) => "<p>" + esc(line) + "</p>").join("") +
+    "<h3>" + esc(OLAF_NOTE.title) + "</h3>" +
+    OLAF_NOTE.lines.map((line) => "<p>" + esc(line) + "</p>").join("") +
+    "<p>" + links + "</p>";
   body.dataset.ready = "1";
 }
 
@@ -2174,6 +2183,16 @@ function closeRailsNote() {
   if (note) note.hidden = true;
 }
 
+function olafHeld() {
+  const rows = state.account && Array.isArray(state.account.tokens) ? state.account.tokens : [];
+  const row = rows.find((item) => item && item.name === "OLAF");
+  return BigInt(row && row.amount ? row.amount : 0);
+}
+
+function olafFine(rail) {
+  return rail === "olaf" ? '<p class="fine">' + esc(OLAF_PAY_LINE) + "</p>" : "";
+}
+
 function canPay(rail, cents) {
   if (rail === "kas") {
     const sompi = quoteSompi(cents);
@@ -2181,6 +2200,7 @@ function canPay(rail, cents) {
     return BigInt(state.kasSompi) >= sompi;
   }
   if (!state.account) return null;
+  if (rail === "olaf") return olafHeld() >= BigInt(cents);
   const have = BigInt(rail === "kusdt" ? state.account.kusdt || 0 : state.account.poc || 0);
   return have >= BigInt(cents);
 }
@@ -2255,6 +2275,7 @@ function paintShop(shopId) {
     "<p>" + esc(shop.line) + "</p>" +
     balanceSheet() +
     railBarHtml(rail) +
+    olafFine(rail) +
     rows + txid +
     "<p class=\"fine\">" + esc(payKind("shop")) + "</p>" +
     "<p class=\"fine\">" + esc(SWAP_PAY) + " No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap.</p>" +
@@ -2365,8 +2386,9 @@ function paintMarket() {
     '<p class="mint-cap-note">Select amount</p>' +
     amounts +
     railBarHtml(rail) +
+    olafFine(rail) +
     pay + txid +
-    '<p class="fine">Names are for identification. This desk is not Coinsbee and it is not those brands. A buy writes a ledger receipt on tKAS, POCencept, or KUSDT. It does not email a brand code.</p>' +
+    '<p class="fine">Names are for identification. This desk is not Coinsbee and it is not those brands. A buy writes a ledger receipt on tKAS, POCencept, KUSDT, or OLAF. It does not email a brand code.</p>' +
     '<p class="fine"><a href="https://www.coinsbee.com/en/buy-gift-cards-with-kaspa/" target="_blank" rel="noopener">Coinsbee Kaspa checkout</a> is where a real code is sent. US face values. The region on that site can differ.</p>' +
     "</div>" +
     '<section class="mint-floor">' +
@@ -2400,7 +2422,7 @@ let redeemDraft = "";
 let swapNoteText = "Type an amount, then swap.";
 let dexFrom = "kas";
 let dexTo = "poc";
-const DEX_ASSET = { kas: "tKAS", poc: "POCencept", kusdt: "KUSDT" };
+const DEX_ASSET = { kas: "tKAS", poc: "POCencept", kusdt: "KUSDT", olaf: "OLAF" };
 let swapNoteKind = "";
 let swapBusy = false;
 let swapTold = false;
@@ -2447,9 +2469,16 @@ function paintLockPreview() {
   }
   const cents = centsForSompi(sompi, state.oracle);
   const tag = formatCents(cents);
-  el.textContent = cents > 0n
-    ? formatTkas(sompi) + " tKAS becomes about " + tag + " at $" + Number(state.oracle).toFixed(4) + ". Redeem returns this tKAS. A later price does not change the lock."
-    : formatTkas(sompi) + " tKAS is below 0.01 at this price. Swap more tKAS.";
+  const price = "$" + Number(state.oracle).toFixed(4);
+  if (cents <= 0n) {
+    el.textContent = formatTkas(sompi) + " tKAS is below 0.01 at this price. Swap more tKAS.";
+    return;
+  }
+  if (dexTo === "olaf") {
+    el.textContent = formatTkas(sompi) + " tKAS buys about " + tag + " OLAF at " + price + ". The tKAS goes to the reserve. OLAF does not lock it and does not redeem.";
+    return;
+  }
+  el.textContent = formatTkas(sompi) + " tKAS becomes about " + tag + " at " + price + ". Redeem returns this tKAS. A later price does not change the lock.";
 }
 
 function clerkFigure(id) {
@@ -2458,6 +2487,7 @@ function clerkFigure(id) {
     if (state.kasSompi == null) return "…";
     return formatTkas(state.kasSompi) + " tKAS";
   }
+  if (id === "olaf") return formatCents(olafHeld()) + " OLAF";
   if (!state.account) return "—";
   const cents = id === "poc" ? state.account.poc : state.account.kusdt;
   const frozen = id === "kusdt" && state.account.kusdtFrozen ? " · frozen" : "";
@@ -2556,7 +2586,7 @@ function paintBank() {
   const back = placeActs('<button type="button" id="clerk-back" data-clerk="">Back</button>');
   if (clerk === "kas" || clerk === "poc" || clerk === "kusdt") {
     dexFrom = clerk;
-    if (dexTo === dexFrom) dexTo = dexFrom === "kas" ? "poc" : "kas";
+    if (dexTo === dexFrom || (dexTo === "olaf" && clerk !== "kas")) dexTo = dexFrom === "kas" ? "poc" : "kas";
   }
   let body;
   if (clerk === "books") {
@@ -2578,6 +2608,7 @@ function paintBank() {
       '<div class="swap-bals">' +
       card("POCencept", formatCents(poc.have), "locked " + formatCents(poc.lock) + " · purse " + formatCents(poc.purse)) +
       card("KUSDT", formatCents(kusdt.have), "locked " + formatCents(kusdt.lock) + " · purse " + formatCents(kusdt.purse) + (frozen ? " · frozen" : "")) +
+      card("OLAF", formatCents(olafHeld()), "1,000,000.00 minted once. Remaining 0. Buy it with tKAS.") +
       "</div>" +
       '<div class="kw-row"><button type="button" id="purse" data-act>Practice purse</button><button type="button" id="freeze" data-act>' + (frozen ? "Thaw KUSDT" : "Freeze KUSDT") + "</button></div>" +
       statusLine() + bankFine();
@@ -2588,12 +2619,13 @@ function paintBank() {
     const payId = payKas ? "lock-amt" : "redeem-amt";
     const payValue = payKas ? lockDraft : redeemDraft;
     const previewId = payKas ? "lock-preview" : "ledger-preview";
-    const opt = (selected) => ["kas", "poc", "kusdt"].map((id) =>
+    const opt = (selected) => ["kas", "poc", "kusdt", "olaf"].map((id) =>
       '<option value="' + id + '"' + (id === selected ? " selected" : "") + ">" + DEX_ASSET[id] + "</option>"
     ).join("");
     body =
       '<div class="dex">' +
       '<div class="swap-head"><h2>Swap</h2>' + close + "</div>" +
+      '<p class="olaf-bank"><strong>OLAF</strong> ' + esc(formatCents(olafHeld())) + " held. Fully minted 1,000,000.00. Remaining 0. Choose OLAF to buy it with tKAS.</p>" +
       '<div class="dex-box"><div class="dex-box-top"><span>You pay</span><span>' + esc(clerkFigure(dexFrom)) + "</span></div>" +
       '<div class="dex-row"><input id="' + payId + '" class="dex-amt" value="' + esc(payValue) + '" inputmode="decimal" autocomplete="off" placeholder="0">' +
       '<select id="dex-from" class="dex-token">' + opt(dexFrom) + "</select></div></div>" +
@@ -2608,7 +2640,9 @@ function paintBank() {
       (payKas
         ? '<details class="paid-already"' + (lockTxid ? " open" : "") + '><summary>Already sent tKAS? Paste the txid</summary><textarea id="lock-txid" rows="2">' + esc(lockTxid) + "</textarea></details>"
         : "") +
-      '<p class="fine">Only the part that came from tKAS can come back. Practice stays a shop coin.</p>' +
+      (dexTo === "olaf"
+        ? '<p class="fine">tKAS buys OLAF from the sealed supply at the live KAS quote. KCC-20 Last Call. The mint allowance is already 0. The tKAS is not locked, and OLAF does not come back as tKAS.</p>'
+        : '<p class="fine">Only the part that came from tKAS can come back. Practice stays a shop coin.</p>') +
       '<button type="button" class="rails-open" data-rails>What are the rails?</button>' +
       '<button type="button" class="clerk-books" data-clerk="books">The books</button>' +
       statusLine() +
@@ -2657,12 +2691,16 @@ function paintBank() {
 }
 
 function setDexSide(which, value) {
-  if (value !== "kas" && value !== "poc" && value !== "kusdt") return;
+  if (value !== "kas" && value !== "poc" && value !== "kusdt" && value !== "olaf") return;
   if (swapBusy) return;
   rememberSwapFields();
-  if (which === "from") {
+  if (value === "olaf") {
+    dexFrom = "kas";
+    dexTo = "olaf";
+  } else if (which === "from") {
     dexFrom = value;
     if (dexTo === value) dexTo = value === "kas" ? "poc" : "kas";
+    if (dexTo === "olaf" && dexFrom !== "kas") dexTo = "kas";
   } else {
     dexTo = value;
     if (dexFrom === value) dexFrom = value === "kas" ? "poc" : "kas";
@@ -2675,6 +2713,15 @@ function setDexSide(which, value) {
 function flipDex() {
   if (swapBusy) return;
   rememberSwapFields();
+  if (dexFrom === "olaf" || dexTo === "olaf") {
+    dexFrom = "kas";
+    dexTo = "olaf";
+    state.bankRail = dexFrom;
+    state.bankClerk = "";
+    paintBank();
+    swapNote("OLAF is bought with tKAS. It does not redeem.", "");
+    return;
+  }
   const next = dexFrom;
   dexFrom = dexTo;
   dexTo = next;
@@ -2686,6 +2733,10 @@ function flipDex() {
 function runDexSwap() {
   if (dexFrom === dexTo) {
     say("Pick two different assets.", true);
+    return;
+  }
+  if (dexFrom === "olaf" || (dexTo === "olaf" && dexFrom !== "kas")) {
+    swapNote("OLAF is bought with tKAS. It does not redeem.", "bad");
     return;
   }
   if (dexFrom === "kas") lock(dexTo);
@@ -3033,6 +3084,7 @@ function streamPlayerHtml(row) {
       '<button type="button" class="buy" data-si-buy="kas">Pay with tKAS</button>' +
       '<button type="button" class="buy" data-si-buy="poc">Pay ' + esc(price) + " POCencept</button>" +
       '<button type="button" class="buy" data-si-buy="kusdt">Pay ' + esc(price) + " KUSDT</button>" +
+      '<button type="button" class="buy" data-si-buy="olaf">Pay ' + esc(price) + " OLAF</button>" +
       "</div>" +
       (state.id && state.id.address && state.id.kind !== "guest"
         ? '<label class="si-txid">Testnet 10 txid, for a pasted tKAS payment<input id="si-txid" autocomplete="off"></label>'
@@ -3045,7 +3097,9 @@ function streamPlayerHtml(row) {
     "<h3>" + esc(row.title) + "</h3>" +
     "<p>" + streamBlurbHtml(row.blurb || "") + "</p>" +
     '<p class="si-meta">' + esc(price) + (who ? " · " + esc(who) : "") + "</p>" +
-    '<video id="si-video" controls playsinline webkit-playsinline' + (row.locked ? " hidden" : "") + "></video>" +
+    (row.locked
+      ? ""
+      : '<div class="si-screen"><video id="si-video" controls playsinline webkit-playsinline preload="auto"></video></div>') +
     pay + down;
 }
 
@@ -3070,8 +3124,16 @@ function loadStreamQuote(row) {
       line.textContent = (body && body.error) || "No tKAS quote.";
       return;
     }
-    line.textContent = formatTkas(body.sompi) + " tKAS at the live quote, or " + formatCents(row.cents) + " POCencept, or " + formatCents(row.cents) + " KUSDT.";
+    line.textContent = formatTkas(body.sompi) + " tKAS at the live quote, or " + formatCents(row.cents) + " POCencept, or " + formatCents(row.cents) + " KUSDT, or " + formatCents(row.cents) + " OLAF.";
   });
+}
+
+function holdStreamFrame(video) {
+  const frame = video && video.closest ? video.closest(".si-screen") : null;
+  if (!frame || frame.dataset.fit === "1") return;
+  if (!(video.videoWidth > 0) || !(video.videoHeight > 0)) return;
+  frame.dataset.fit = "1";
+  frame.style.aspectRatio = video.videoWidth + " / " + video.videoHeight;
 }
 
 async function startStreamPlay(row) {
@@ -3085,7 +3147,11 @@ async function startStreamPlay(row) {
   }
   if (!video) return;
   video.hidden = false;
-  video.src = streamSrc(body.src);
+  video.preload = "auto";
+  const src = streamSrc(body.src);
+  if (video.getAttribute("src") !== src) video.src = src;
+  video.addEventListener("loadedmetadata", () => holdStreamFrame(video), { once: true });
+  if (video.readyState >= 1) holdStreamFrame(video);
   video.play().catch(() => {});
 }
 
@@ -3240,8 +3306,8 @@ function paintRules() {
   const shops = ["cafe", "restaurant", "groceries", "roadster"]
     .map((id) => '<label><input type="checkbox" data-shop value="' + id + '"' + (rules.shops.includes(id) ? " checked" : "") + "> " + id + "</label>")
     .join("");
-  const rails = ["kas", "poc", "kusdt"]
-    .map((id) => '<label><input type="checkbox" data-rail value="' + id + '"' + (rules.rails.includes(id) ? " checked" : "") + "> " + id + "</label>")
+  const rails = ["kas", "poc", "kusdt", "olaf"]
+    .map((id) => '<label><input type="checkbox" data-rail value="' + id + '"' + (rules.rails.includes(id) ? " checked" : "") + "> " + (id === "olaf" ? "OLAF" : id) + "</label>")
     .join("");
   panel.innerHTML =
     '<div class="stall-head"><h2>Spending rules</h2>' + placeActs("") + "</div>" +
@@ -3277,16 +3343,16 @@ function paintGuide() {
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank opens as a swap. In the cafe, take a seat and the menu blinks, or order at the blinking counter. The mint opens as soon as you walk in. The market opens at the counter. Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Once it is yours, Launch into space is the gold button. The showroom still opens when you click Pike or the sign. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The mint and the bank open as soon as you walk in. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. Use a funded test address. This money is tKAS. With tKAS you can go to the bank.</li>" +
     "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is 87 times the standard Testnet 10 rate, and it is extra KAS. When a payment settles, it goes through. On a tKAS send, confirmations are still ongoing. The steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate.</li>" +
-    "<li>Venn's bank opens as a swap. You pay one asset and you receive another: tKAS, POCencept, or KUSDT. The books desk explains locked coins and the practice purse. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on the card.</li>" +
-    "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe, take a seat and the menu blinks, or order at the counter. The mint opens when you walk in. Launch, while you are in the car and outside, plays two short films beside the rocket first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. The tower stands beside it. The ship lifts off the mount when the count reaches zero. Communications play on the launch, then stay quiet on the climb. When the booster lets go, a short call plays while this ship and the booster stay on screen. That call ends before the booster finishes its turn. After the booster is gone, the ship coasts, then the roadster leaves. The coast and the release stay quiet. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, or KUSDT stable. Go into the abyss: the roadster leaves Earth, flies through the Milky Way, and keeps going past it. The old roadster is already out there. The way there is ten seconds. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
+    "<li>Venn's bank opens as a swap. You pay one asset and you receive another: tKAS, POCencept, KUSDT, or OLAF. OLAF is bought with tKAS from a supply that was minted once. It does not redeem. The books desk explains locked coins, the practice purse, and that OLAF balance. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on the card.</li>" +
+    "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe, take a seat and the menu blinks, or order at the counter. The mint opens when you walk in. Launch, while you are in the car and outside, plays two short films beside the rocket first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. The tower stands beside it. The ship lifts off the mount when the count reaches zero. Communications play on the launch, then stay quiet on the climb. When the booster lets go, a short call plays while this ship and the booster stay on screen. That call ends before the booster finishes its turn. After the booster is gone, the ship coasts, then the roadster leaves. The coast and the release stay quiet. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, KUSDT stable, or OLAF. Go into the abyss: the roadster leaves Earth, flies through the Milky Way, and keeps going past it. The old roadster is already out there. The way there is ten seconds. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>The Moon map is NASA. Mars and Jupiter are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0. The Earth limb plays the Earth film. One play is one full turn, west to east. The Earth is already turning on the pad, before liftoff, and the turn is slow. The Saturn cruise plays the Saturn film.</li>" +
-    "<li>The balances stay in a clear bar under the site tabs, on the square, in a shop, in the cinema, and on a flight. It reads tKAS, POC, and KUSDT, then the kaspatest address and the chosen .kas name. domain/address on that bar changes the default name. Bank is on that bar. With the bank open, that bar lists the minted tokens and the hunt you are in.</li>" +
-    "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, or KUSDT stable. What are the rails? opens the short note. That button is the opener on the whole square. One ticket plays every film, from a seat. Every film is labeled this desk agrees. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. On a phone, the snacks start as a small tab so the film stays clear. Close snacks puts that list away. Snacks brings it back. Neither one starts a purchase. The current film stays up until the next one has a picture. The next film starts when one ends. Exit to the square leaves the cinema.</li>" +
-    "<li>SI stream is the tab next to Cinema. It stays on the picture shelf. A person can offer a film, a documentary, or a stream from their own Plex server, for other people to use on this tab. They can publish a picture made with superintelligence here. The shelf mixes that work with real cinema. A title is free, a subscription, or a price on tKAS, POCencept, or KUSDT. The desk films are 0.15. Life Is Beautiful is the standard on that shelf. This desk does not sell that film. The explanation of the whole idea is Raw idea, on the side rail, and on 1984 raw idea.</li>" +
+    "<li>The balances stay in a clear bar under the site tabs, on the square, in a shop, in the cinema, and on a flight. It reads tKAS, POC, KUSDT, and OLAF, then the kaspatest address and the chosen .kas name. domain/address on that bar changes the default name. Bank is on that bar. With the bank open, that bar lists the minted tokens and the hunt you are in.</li>" +
+    "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, KUSDT stable, or OLAF. What are the rails? opens the short note, and OLAF is under it. That button is the opener on the whole square. One ticket plays every film, from a seat. Every film is labeled this desk agrees. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. On a phone, the snacks start as a small tab so the film stays clear. Close snacks puts that list away. Snacks brings it back. Neither one starts a purchase. The current film stays up until the next one has a picture. The next film starts when one ends. Exit to the square leaves the cinema.</li>" +
+    "<li>SI stream is the tab next to Cinema. It stays on the picture shelf. A person can offer a film, a documentary, or a stream from their own Plex server, for other people to use on this tab. They can publish a picture made with superintelligence here. The shelf mixes that work with real cinema. A title is free, a subscription, or a price on tKAS, POCencept, KUSDT, or OLAF. The desk films are 0.15. Life Is Beautiful is the standard on that shelf. This desk does not sell that film. The explanation of the whole idea is Raw idea, on the side rail, and on 1984 raw idea.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an AI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Peer to peer is the payment. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled. This square is still the classroom.</li>" +
-    "<li>Mint is the building with the Mint sign. Walk in and the mint card is open. The line on the card is supply on this square, not a KAS price. Mint, Trade, and About sit under that line. Trade offers one open name for another. Copy puts an address on the clipboard. Mint more, send, or open a new name. Only the address that opened a name can mint more of it. The card shows that address. KAS, tKAS, USDT, KUSDT, POC, POCencept, and 1984 are reserved. Open names sit on the card. Click a name to see the addresses, the amounts, and the ledger lines. A name that has reached its cap is under Completed. It is a square-ledger token under KCC-20 Last Call. It is not Final, and no covenant is deployed. Type 0 in Cap for no cap. There is no maximum.</li>" +
+    "<li>Mint is the building with the Mint sign. Walk in and the mint card is open. OLAF is already there, fully minted at 1,000,000.00. 100 units are 1.00. Remaining is 0. 25 tKAS, 50 tKAS, or Max buys it. The tKAS goes to the reserve. OLAF does not lock that tKAS and does not redeem. The line on the card is supply on this square, not a KAS price. Mint, Trade, and About sit under that line. Trade offers one open name for another. Copy puts an address on the clipboard. Mint more, send, or open a new name. Only the address that opened a name can mint more of it. The card shows that address. KAS, tKAS, USDT, KUSDT, POC, POCencept, OLAF, and 1984 are reserved. Open names sit on the card. Click a name to see the addresses, the amounts, and the ledger lines. A name that has reached its cap is under Completed. It is a square-ledger token under KCC-20 Last Call. It is not Final, and no covenant is deployed. Type 0 in Cap for no cap. There is no maximum.</li>" +
     "<li>Layer-Kaspa is on the side rail. Open a .kas name, or make one. The funded test wallet on this tab can inscribe more than one name. The first name is the default. domain/address on the balance bar changes it. This square keeps an index of names it inscribed or verified. The KNS testnet index is still the network record. No covenant is deployed. Visitors see the page. Only the owner can change it. The window has the title, a tagline, the welcome, a color, a link, and offers. A private note is separate. A short one is ciphertext in a Testnet-10 payload. A longer one stays encrypted on this desk. A pasted address uses the KNS app. This layer does not hide the path. It is not Tor.</li>" +
     "<li>Kachat is on the side rail. Paste the other kaspatest address and send a handshake. They accept it. Then you send messages. Each step is 0.01 POCencept. Messages only. The KaChat app on the chain is a different program.</li>" +
     "<li>Vault is on the side rail. It keeps a note on this square ledger and a rule for who may read it and when. The labels are a note, an NDA, an enterprise file, or other. A real secret does not belong here. This page checks the readers and the time. A covenant mark is a label. No covenant is deployed. Seal keeps the note and the rule.</li>" +
@@ -3714,8 +3780,9 @@ async function lock(rail) {
     return;
   }
   const shown = formatTkas(sompi) + " tKAS";
+  const buying = rail === "olaf";
   setSwapBusy(true);
-  swapNote("Locking " + shown + " into " + name + "…", "wait");
+  swapNote(buying ? "Buying " + name + " with " + shown + "…" : "Locking " + shown + " into " + name + "…", "wait");
   let sent = false;
   try {
     let body;
@@ -4855,14 +4922,10 @@ async function sealVault() {
 
 function paintMint() {
   const open = ((state.home && state.home.mints) || []).filter((row) => !mintIsDone(row));
-  const mine = (state.account && state.account.tokens) || [];
   const names = open.map((row) => {
     return '<option value="' + esc(row.name) + '">' + esc(row.name) + "</option>";
   }).join("");
   const start = names ? "more" : "new";
-  const held = mine.length
-    ? mine.map((row) => '<span class="dex-chip">' + esc(row.amount) + " " + esc(row.name) + "</span>").join("")
-    : '<span class="dex-chip">None yet.</span>';
   const tab = (value, label) =>
     '<label class="dex-tab"><input type="radio" name="mint-opt" value="' + value + '"' + (start === value ? " checked" : "") + "><span>" + label + "</span></label>";
   panel.innerHTML =
@@ -4894,8 +4957,13 @@ function paintMint() {
     "</div>" +
     '<div class="dex-box" id="mint-to-row" hidden><div class="dex-box-top"><span>To</span></div>' +
     '<input id="mint-to" class="dex-addr" spellcheck="false" autocomplete="off" placeholder="kaspatest address"></div>' +
+    '<div class="market-amounts mint-tkas">' +
+    '<button type="button" data-mint-tkas="25">25 tKAS</button>' +
+    '<button type="button" data-mint-tkas="50">50 tKAS</button>' +
+    '<button type="button" data-mint-tkas="max">Max</button>' +
+    "</div>" +
     '<button type="button" id="mint-go" class="dex-go">Mint</button>' +
-    '<p class="fine">Square ledger. KCC-20 Last Call. It is not Final. No covenant is deployed. Any funded address can mint more. Type 0 in Cap for no cap.</p>' +
+    '<p class="fine">25 tKAS, 50 tKAS, or Max buys OLAF. Max spends the tKAS in this wallet and leaves the miner fee. A name you opened still mints that many units. Square ledger. KCC-20 Last Call. It is not Final. No covenant is deployed. Any funded address can mint more of a name it opened. Type 0 in Cap for no cap.</p>' +
     "</div>" +
     '<div id="mint-pane-trade" hidden>' +
     '<div class="dex-box"><div class="dex-box-top"><span>You pay</span></div>' +
@@ -4916,8 +4984,7 @@ function paintMint() {
     '<section class="mint-floor">' +
     '<label class="mint-find">Find a name<input id="mint-find" type="search" spellcheck="false" autocomplete="off" placeholder="Name"></label>' +
     '<div id="mint-book"></div>' +
-    "</section></div>" +
-    '<div class="dex-yours"><span>Yours</span>' + held + "</div></div></div>";
+    "</section></div></div></div>";
   const pick = document.getElementById("mint-pick");
   if (pick) {
     pick.onchange = () => {
@@ -5020,6 +5087,7 @@ let mintSeen = "";
 let offerSeen = "";
 let mintFocus = "";
 let mintView = "mint";
+let mintBusy = false;
 
 function mintIsDone(row) {
   if (!row || row.cap == null || row.cap === "" || row.cap === "0") return false;
@@ -5266,12 +5334,20 @@ function paintMintBoards() {
     : '<p class="mint-cap-note">' + empty + "</p>";
   const openEmpty = needle ? "No open name matches." : "No open mint yet.";
   const doneEmpty = needle ? "No completed name matches." : "No mint has reached its cap.";
-  const openHead = '<div class="mint-section"><h3>Open</h3><span>' + open.length + "</span></div>";
+  const olaf = rows.find((row) => row && row.name === "OLAF");
+  const showOlaf = !needle || "olaf".includes(needle);
+  const available = open.filter((row) => row.name !== "OLAF");
+  const finished = done.filter((row) => row.name !== "OLAF");
+  const availHead = '<div class="mint-section"><h3>Available mints</h3><span>' + (available.length + (showOlaf ? 1 : 0)) + "</span></div>";
   const cols = "<div class=\"mint-cols\"><span>Name</span><span>Supply</span><span>Holders</span><span>Minted</span><span>Age</span></div>";
-  book.innerHTML = needle && !open.length && !done.length
-    ? openHead + '<p class="mint-cap-note">No name matches.</p>'
-    : openHead + cols + list(open, openEmpty) +
-      "<details class=\"dex-done\"><summary>Completed <span>" + done.length + "</span></summary>" + list(done, doneEmpty) + "</details>";
+  const olafCard = showOlaf ? olafMintCard(olaf) : "";
+  const openList = available.length
+    ? cols + '<ul class="dex-market">' + available.map(mintRow).join("") + "</ul>"
+    : (showOlaf ? "" : '<p class="mint-cap-note">' + openEmpty + "</p>");
+  book.innerHTML =
+    '<section class="mint-hold"><h3>Your holdings</h3>' + mintHoldingsHtml() + "</section>" +
+    '<section class="mint-avail">' + availHead + olafCard + openList + "</section>" +
+    "<details class=\"dex-done\"><summary>Completed <span>" + finished.length + "</span></summary>" + list(finished, doneEmpty) + "</details>";
   book.scrollTop = scroll;
   paintMintFace();
 }
@@ -5317,7 +5393,144 @@ function startMintWatch() {
   bindMintPops();
   paintMintBoards();
   refreshMints();
+  refreshAccount(true).then(() => {
+    if (state.mode === "mint") paintMintBoards();
+  });
   mintPoll = setInterval(() => { refreshMints(); }, 2000);
+}
+
+function mintHoldingsHtml() {
+  const mine = (state.account && state.account.tokens) || [];
+  if (!mine.length) return '<p class="mint-cap-note">No holdings yet.</p>';
+  return '<ul class="mint-hold-list">' + mine.map((row) => {
+    const amount = row.name === "OLAF" ? formatCents(row.amount) : String(row.amount);
+    return "<li><strong>" + esc(row.name) + "</strong><span>" + esc(amount) + "</span></li>";
+  }).join("") + "</ul>";
+}
+
+function olafMintCard(row) {
+  const supply = row && row.supply ? formatCents(row.supply) : "1000000.00";
+  const people = row && row.holderCount != null ? String(row.holderCount) + " holders. " : "";
+  return '<div class="mint-olaf"><p><strong>OLAF</strong> Fully minted. ' + esc(supply) + " OLAF. Remaining 0.</p>" +
+    "<p>" + people + "100 units are 1.00. The whole supply was minted once, KCC-20 Last Call. It is not Final. No covenant was broadcast. Buy it with tKAS. It does not redeem.</p>" +
+    mintTkasButtons("OLAF") + "</div>";
+}
+
+function mintTkasButtons(name) {
+  const who = esc(name || "");
+  return '<div class="market-amounts mint-tkas">' +
+    '<button type="button" data-mint-tkas="25" data-mint-for="' + who + '">25 tKAS</button>' +
+    '<button type="button" data-mint-tkas="50" data-mint-for="' + who + '">50 tKAS</button>' +
+    '<button type="button" data-mint-tkas="max" data-mint-for="' + who + '">Max</button>' +
+    "</div>";
+}
+
+function mintTkasSompi(kind) {
+  if (kind === "max") {
+    if (state.kasSompi == null) throw new Error("The tKAS balance is not in yet.");
+    const have = BigInt(state.kasSompi);
+    if (have <= 0n) throw new Error("This wallet has no tKAS to mint with.");
+    return have;
+  }
+  if (kind !== "25" && kind !== "50") throw new Error("Pick 25 tKAS, 50 tKAS, or Max.");
+  return BigInt(kind) * 100_000_000n;
+}
+
+/** The guest payer keeps rate × 250,000 sompi aside for the miner. Max leaves that in the wallet. */
+async function olafFeeReserve() {
+  let rate = pageFeeRate(null);
+  try {
+    rate = await walletFeeRate();
+  } catch {
+    rate = pageFeeRate(null);
+  }
+  const scaled = BigInt(Math.ceil(Number(rate))) * 250_000n;
+  const floor = 50_000_000n;
+  return scaled > floor ? scaled : floor;
+}
+
+async function olafSpendSompi(kind) {
+  const sompi = mintTkasSompi(kind);
+  if (kind !== "max") return sompi;
+  const reserve = await olafFeeReserve();
+  if (sompi <= reserve) throw new Error("Not enough tKAS left after the miner fee.");
+  return sompi - reserve;
+}
+
+async function buyOlafFromMint(sompi) {
+  if (!requireId()) return;
+  const shown = formatTkas(sompi) + " tKAS";
+  say("Buying OLAF with " + shown + "…");
+  try {
+    let body;
+    if (state.id.kind === "guest") {
+      body = await post("/api/1984/guest/convert", {
+        token: state.id.token,
+        rail: "olaf",
+        amount: formatTkas(sompi),
+      }, 90000);
+    } else {
+      const plan = await signerForSpend();
+      if (plan !== "kit" && plan !== "kasware" && plan !== "kastle") {
+        say(signerRefusal(plan), true);
+        return;
+      }
+      const txid = await sendFromWallet(plan, sompi);
+      body = await post("/api/1984/convert", { rail: "olaf", txid });
+    }
+    if (!body.ok) {
+      say(body.error || "The mint did not land.", true);
+      return;
+    }
+    const got = body.cents == null || body.cents === "" ? "" : formatCents(body.cents);
+    say(got ? "Bought " + got + " OLAF with " + shown + "." : "OLAF bought.");
+    await refreshAccount(true);
+    if (state.mode === "mint") paintMint();
+  } catch (err) {
+    say((err && err.message) || "The mint did not land.", true);
+  }
+}
+
+async function mintWithTkas(kind, name) {
+  if (!requireId()) return;
+  if (mintBusy) return;
+  mintBusy = true;
+  try {
+    const picked = String(name || mintChosenName() || "").trim();
+    const buyOlaf = !picked || picked.toUpperCase() === "OLAF";
+    let sompi;
+    try {
+      sompi = buyOlaf ? await olafSpendSompi(kind) : mintTkasSompi(kind);
+    } catch (err) {
+      say(err.message, true);
+      return;
+    }
+    if (state.kasSompi != null && sompi > BigInt(state.kasSompi)) {
+      say("That is more tKAS than this wallet holds.", true);
+      return;
+    }
+    if (buyOlaf) {
+      await buyOlafFromMint(sompi);
+      return;
+    }
+    const box = document.getElementById("mint-name");
+    if (box) box.value = picked;
+    const pick = document.getElementById("mint-pick");
+    if (pick && [...pick.options].some((option) => option.value === picked)) pick.value = picked;
+    const amount = document.getElementById("mint-amount");
+    if (amount) amount.value = (sompi / 100_000_000n).toString();
+    await saveMint();
+  } finally {
+    mintBusy = false;
+  }
+}
+
+function mintChosenName() {
+  const picked = panel.querySelector('input[name="mint-opt"]:checked');
+  const option = picked ? picked.value : "new";
+  if (option === "new") return (document.getElementById("mint-name") || {}).value || "";
+  const pick = document.getElementById("mint-pick");
+  return (pick && pick.value) || (document.getElementById("mint-name") || {}).value || "";
 }
 
 function syncMintPick() {
@@ -5387,7 +5600,15 @@ async function saveMint() {
   if (!requireId()) return;
   const picked = panel.querySelector('input[name="mint-opt"]:checked');
   const option = picked ? picked.value : "new";
-  const name = (document.getElementById("mint-name") || {}).value || "";
+  const name = String(mintChosenName() || "").trim();
+  if (!name) {
+    say("Choose a name. 25 tKAS, 50 tKAS, or Max buys OLAF.", true);
+    return;
+  }
+  if (name.toUpperCase() === "OLAF") {
+    say("OLAF is already minted. Buy it with 25 tKAS, 50 tKAS, or Max.", true);
+    return;
+  }
   const amount = (document.getElementById("mint-amount") || {}).value || "";
   const capRaw = String((document.getElementById("mint-cap") || {}).value || "").trim();
   const cap = capRaw === "" ? "0" : capRaw;
@@ -5767,11 +5988,15 @@ bar.addEventListener("click", (ev) => {
   }
   walkInto("bank");
 });
+you.addEventListener("pointerdown", (ev) => {
+  if (!ev.target.closest("#use-guest")) return;
+  startFundedTest(ev);
+});
 you.addEventListener("click", (ev) => {
   if (ev.target.id === "log-out") logOut().catch((err) => say(err.message, true));
   if (ev.target.id === "use-kasware") connectWallet("kasware").catch((err) => say(err.message, true));
   if (ev.target.id === "use-kastle") connectWallet("kastle").catch((err) => say(err.message, true));
-  if (ev.target.id === "use-guest") openFundedTest(ev.target);
+  if (ev.target.closest("#use-guest")) startFundedTest(ev);
   if (ev.target.closest("#use-addr")) useAddress(document.getElementById("addr"));
   if (ev.target.closest("#use-name")) useName(document.getElementById("kasname"));
 });
@@ -5816,6 +6041,7 @@ function roadsterCents() {
 
 function railHave(rail) {
   if (rail === "kas") return BigInt(state.kasSompi || 0);
+  if (rail === "olaf") return olafHeld();
   if (rail === "kusdt") return BigInt((state.account && state.account.kusdt) || 0);
   return BigInt((state.account && state.account.poc) || 0);
 }
@@ -5823,7 +6049,7 @@ function railHave(rail) {
 let roadsterCard = false;
 
 function setRoadsterBuys(shown) {
-  for (const id of ["need-swap-poc", "need-swap-kusdt", "need-swap-kas"]) {
+  for (const id of ["need-swap-poc", "need-swap-kusdt", "need-swap-kas", "need-swap-olaf"]) {
     const el = document.getElementById(id);
     if (el) el.hidden = !shown;
   }
@@ -5833,20 +6059,21 @@ function roadsterBalanceLine() {
   const kas = !state.id.address ? "— tKAS" : state.kasSompi == null ? "… tKAS" : formatTkas(state.kasSompi) + " tKAS";
   const poc = state.account ? formatCents(state.account.poc) + " POCencept" : "— POCencept";
   const kusdt = state.account ? formatCents(state.account.kusdt) + " KUSDT" : "— KUSDT";
-  return kas + " · " + poc + " · " + kusdt;
+  const olaf = state.account ? formatCents(olafHeld()) + " OLAF" : "— OLAF";
+  return kas + " · " + poc + " · " + kusdt + " · " + olaf;
 }
 
 function showRoadsterChoice() {
   const card = document.getElementById("need-swap");
   const line = document.getElementById("need-swap-line");
   const title = document.getElementById("need-swap-title");
-  const text = roadsterBalanceLine() + ". The roadster is " + formatCents(roadsterCents()) + " on this ledger. Buy it with POCencept, KUSDT, or tKAS. To convert tKAS, POCencept, or KUSDT, go to the bank.";
+  const text = roadsterBalanceLine() + ". The roadster is " + formatCents(roadsterCents()) + " on this ledger. Buy it with POCencept, KUSDT, or tKAS, or with OLAF. To convert tKAS, POCencept, or KUSDT, go to the bank.";
   roadsterCard = true;
   setRoadsterBuys(true);
   if (title) title.textContent = "Buy a roadster";
   if (line) line.textContent = text;
   if (card) card.hidden = false;
-  say("Buy the roadster with POCencept, KUSDT, or tKAS. To convert, go to the bank.");
+  say("Buy the roadster with POCencept, KUSDT, or tKAS, or with OLAF. To convert, go to the bank.");
 }
 
 function buyRoadsterOn(rail) {
@@ -5916,7 +6143,7 @@ if (needSwapBank) {
     say(converting ? "Convert tKAS, POCencept, or KUSDT at the bank." : SWAP_PAY);
   });
 }
-for (const [id, rail] of [["need-swap-poc", "poc"], ["need-swap-kusdt", "kusdt"], ["need-swap-kas", "kas"]]) {
+for (const [id, rail] of [["need-swap-poc", "poc"], ["need-swap-kusdt", "kusdt"], ["need-swap-kas", "kas"], ["need-swap-olaf", "olaf"]]) {
   const button = document.getElementById(id);
   if (button) button.addEventListener("click", () => buyRoadsterOn(rail));
 }
@@ -6003,22 +6230,27 @@ if (gateUseAddr) {
 if (gateUseName) gateUseName.addEventListener("click", () => useName(gateName));
 watchNameBox(gateName);
 paintGateAddress();
+function startFundedTest(ev) {
+  if (ev && ev.button != null && ev.button !== 0) return;
+  const fromEvent = ev && ev.target && ev.target.closest ? ev.target.closest("#gate-guest, #use-guest") : null;
+  const button = fromEvent || (ev && ev.currentTarget ? ev.currentTarget : null);
+  if (!button) return;
+  openFundedTest(button);
+}
 function openFundedTest(button) {
   if (guestBusy) return;
   if (button) button.disabled = true;
+  const gateEl = document.getElementById("gate");
+  if (gateEl && !gateEl.hidden) paintGuestWait("", "");
+  else say("Opening a funded test address.");
   let last = "";
-  let showed = false;
-  const timer = setTimeout(() => {
-    showed = true;
-  }, 700);
   startGuest((step, detail) => {
     const line = detail ? step + " (" + detail + ")" : step;
     if (!line || line === last) return;
     last = line;
-    const gateEl = document.getElementById("gate");
-    if (gateEl && !gateEl.hidden) {
-      if (showed) paintGuestWait(step, detail);
-    } else if (showed) say(line);
+    const gateNow = document.getElementById("gate");
+    if (gateNow && !gateNow.hidden) paintGuestWait(step, detail);
+    else say(line);
   })
     .then((result) => {
       if (result && result.ok) return;
@@ -6032,12 +6264,15 @@ function openFundedTest(button) {
       say(err.message, true);
     })
     .finally(() => {
-      clearTimeout(timer);
       if (button) button.disabled = false;
     });
 }
 const gateGuest = document.getElementById("gate-guest");
-if (gateGuest) gateGuest.addEventListener("click", () => openFundedTest(gateGuest));
+if (gateGuest) {
+  gateGuest.addEventListener("pointerdown", startFundedTest);
+  gateGuest.addEventListener("click", startFundedTest);
+  if (gateGuest.dataset.pressed === "1") openFundedTest(gateGuest);
+}
 for (const [id, kind] of [["gate-kasware", "kasware"], ["gate-kastle", "kastle"]]) {
   const button = document.getElementById(id);
   if (!button) continue;
@@ -6114,6 +6349,11 @@ panel.addEventListener("click", (ev) => {
     const join = ev.target.closest("[data-join]");
     if (join) {
       joinMint(join.getAttribute("data-join") || "");
+      return;
+    }
+    const tkas = ev.target.closest("[data-mint-tkas]");
+    if (tkas) {
+      mintWithTkas(tkas.getAttribute("data-mint-tkas") || "", tkas.getAttribute("data-mint-for") || "").catch((err) => say((err && err.message) || "The mint did not land.", true));
       return;
     }
     const mintBtn = ev.target.closest("[data-mint]");

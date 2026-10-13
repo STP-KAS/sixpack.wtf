@@ -6,12 +6,17 @@ test("every buy can pick tKAS, POCencept, or KUSDT", () => {
   assert.equal(payRail("kas"), "kas");
   assert.equal(payRail("kusdt"), "kusdt");
   assert.equal(payRail("poc"), "poc");
+  assert.equal(payRail("olaf"), "olaf");
   assert.equal(payRail("nope"), "poc");
   assert.equal(payRail(undefined), "poc");
   const bar = railBarHtml("kas");
   assert.match(bar, /data-rail-pick="poc"/);
   assert.match(bar, /data-rail-pick="kusdt"/);
   assert.match(bar, /data-rail-pick="kas" class="on"/);
+  assert.match(bar, /data-rail-pick="olaf"/);
+  assert.doesNotMatch(bar, /data-rail-pick="olaf" class="on"/);
+  const olafBar = railBarHtml("olaf");
+  assert.match(olafBar, /data-rail-pick="olaf" class="on"/);
   assert.match(bar, /What are the rails\?/);
   assert.equal(RAIL_NAMES.kas, "tKAS");
   assert.equal(RAIL_NAMES.poc, "POCencept stable");
@@ -58,4 +63,6 @@ test("an empty POCencept or KUSDT balance says to swap tKAS at the bank", () => 
   assert.equal(shortRail("kas", 10n), "Not enough tKAS. Go to the bank.");
   assert.equal(shortRail("poc", 0n), "No POCencept. Go to the bank and swap.");
   assert.equal(shortRail("kusdt", 4n), "Not enough KUSDT. Go to the bank and swap.");
+  assert.equal(shortRail("olaf", 0n), "No OLAF. Swap tKAS for it at the bank, or take a transfer.");
+  assert.equal(shortRail("olaf", 4n), "Not enough OLAF. Swap more tKAS at the bank, or take a transfer.");
 });

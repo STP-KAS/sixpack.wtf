@@ -144,6 +144,14 @@ export function blake3Hex(bytes) {
 
 const RESERVED_TICKS = new Set(["POC", "POCEPT", "POCENCEPT", "KUSDT", "KAS", "TKAS", "USDT", "1984"]);
 
+/** OLAF is already minted in full. The open-ended mint desk cannot mint it again. */
+export const OLAF_TICK = "OLAF";
+/** Two decimals, the same cent scale as a shop price. 100 units are 1.00 OLAF. Not sompi. */
+export const OLAF_DECIMALS = 2;
+/** 1,000,000.00 OLAF. The whole supply is minted once. */
+export const OLAF_SUPPLY = 100_000_000n;
+const FIXED_TICKS = new Set([OLAF_TICK]);
+
 /** A mint name on this desk. Letters and digits, 1 to 12, starting with a letter. */
 export function normalizeTick(name) {
   const tick = String(name || "").trim().toUpperCase();
@@ -151,7 +159,13 @@ export function normalizeTick(name) {
     throw new Error("A token name is 1 to 12 letters and digits, and it starts with a letter.");
   }
   if (RESERVED_TICKS.has(tick)) throw new Error("That name is already a rail on this square.");
+  if (FIXED_TICKS.has(tick)) throw new Error("OLAF is already minted. Send it. There is no second mint.");
   return tick;
+}
+
+/** Unkeyed BLAKE3 of OLAF. The mint desk rejects this name, so this hash is computed beside that check. */
+export function olafExtension() {
+  return blake3Hex(new TextEncoder().encode(OLAF_TICK));
 }
 
 /** Unkeyed BLAKE3 of the token name. The same name keeps the same extension. */

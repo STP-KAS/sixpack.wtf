@@ -242,6 +242,12 @@ test("the square tab is SI stream", () => {
   assert.match(client, /your own Plex server/);
   assert.match(css, /\.kw-panel\.si-pop \{[\s\S]*left: 8px;[\s\S]*right: 8px;[\s\S]*top: 8px;[\s\S]*bottom: 8px;/);
   assert.match(css, /\.phone-fit \.kw-panel\.si-pop \{[\s\S]*top: 4px;[\s\S]*bottom: 4px;/);
-  assert.match(html, /1984\/client\.mjs\?v=150/);
-  assert.match(html, /1984\.css\?v=84/);
+  assert.match(css, /\.si-screen \{[\s\S]*aspect-ratio: 16 \/ 9;/);
+  assert.match(css, /\.si-screen video[\s\S]*object-fit: contain;/);
+  assert.match(client, /class="si-screen"/);
+  assert.match(client, /function holdStreamFrame\(/);
+  assert.match(client, /frame\.style\.aspectRatio/);
+  assert.match(client, /streamPictureUp|view3d\.mjs\?v=67/);
+  assert.match(html, /1984\/client\.mjs\?v=156/);
+  assert.match(html, /1984\.css\?v=85/);
 });

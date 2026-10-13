@@ -85,6 +85,13 @@ export function pointerScale(layout, visual) {
   return frame / box;
 }
 
+/** The SI stream film is on the page. The town draw stays still so that picture does not shake. */
+export function streamPictureUp(mode, video) {
+  if (mode !== "sistream" || !video || video.hidden) return false;
+  const src = video.currentSrc || (video.getAttribute && video.getAttribute("src")) || "";
+  return src.length > 0;
+}
+
 /** Scale the picture mesh. scale 1 fills the glass, which is only right for that exact shape. */
 export function fitScreen(mesh, videoW, videoH) {
   const fit = screenFit(videoW, videoH);
@@ -4933,6 +4940,7 @@ export function mountWorld(canvas, map, api) {
   }
 
   function render(now) {
+    if (typeof document !== "undefined" && streamPictureUp(api.mode && api.mode(), document.getElementById("si-video"))) return;
     resize();
     const padFilms = flight.padVideos || [];
     for (let i = 0; i < padFilms.length; i++) {
