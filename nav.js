@@ -8,6 +8,7 @@
     { href: "aigen.html", files: ["aigen.html"], label: "SI gen" },
     { href: "faucet.html", files: ["faucet.html"], label: "Faucet" },
     { href: "rails.html", files: ["rails.html"], label: "1984 raw idea" },
+    { href: "rails-why.html", files: ["rails-why.html"], label: "Rails" },
     { href: "1984.html", files: ["1984.html", "kworld.html"], label: "1984" },
     { href: "grok.html", files: ["grok.html"], label: "SI helpdesk" },
     { href: "help.html", files: ["help.html"], label: "Help" },

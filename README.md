@@ -19,7 +19,8 @@ http://127.0.0.1:4020/
 | Path | What |
 | --- | --- |
 | `/` | Home. Popup. Pointer to rails. Shared links. |
-| `/rails.html` | Three rails explained. Kaspa · PoC KUSD · Tether-like. The bill is a car, an SI service, a game purchase, or a rented service. |
+| `/rails.html` | 1984 raw idea. The platform, the shelf, and the four payments. The bill is a car, an SI service, a game purchase, or a rented service. |
+| `/rails-why.html` | Rails. What tKAS, POCencept, KUSDT, and OLAF each are, and why they stay apart. |
 | `/farce.html` | Yonatan’s Binance letter. This desk agrees. |
 | `/eulogy.html` | Proof of work, a eulogy. 15s satire + still. |
 | `/random.html` | Pile of clips. Shuffle / prev / next. |

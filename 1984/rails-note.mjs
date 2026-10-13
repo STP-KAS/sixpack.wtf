@@ -14,18 +14,21 @@ export function payRail(selected) {
 }
 
 export const RAILS_NOTE = Object.freeze({
-  title: "Three ways to pay",
+  title: "What each rail is",
   lines: Object.freeze([
-    "tKAS is the Testnet 10 label for KAS, the coin that moves. With tKAS you can go to the bank and swap it for a ledger tag. This tab can spend tKAS at a counter, at the cinema, or on a hop. The miner fee is always KAS.",
-    "POCencept stable is a tag in this village ledger. It is not a dollar. KUSDT stable is the other tag. It can be frozen. A freeze blocks only KUSDT stable.",
-    "Pick one rail. The page asks, then OK. The same three are on every counter, the ticket, the snacks, a hop, and every row in Hunt Hall.",
-    "Those rails are for a bill a stranger can take: a car, an SI service, a game purchase, and a rented service. This square is the classroom for that bill. A promise here does not buy the car, the service, the game, or the rental.",
-    "To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap.",
+    "tKAS is Testnet-10 KAS, the coin that moves. The miner fee is always KAS. Take it to the bank.",
+    "POCencept is a public tag. It locks tKAS. Redeem returns that lock. It is not a dollar. It cannot be frozen.",
+    "KUSDT is the other public tag. It locks tKAS the same way, and redeem returns that lock. The issuer can freeze the tag. A freeze blocks KUSDT. The locked tKAS can still be redeemed. It is not a dollar, and it is not Tether.",
+    "OLAF is a shielded dollar note. 1.00 is one dollar of tKAS at the quote when the note was made. A later quote does not reprice it. The book does not show the owner. Redeem does not pay the tKAS back.",
+    "A counter, the ticket, the snacks, a hop, gifts, SI stream, and the roadster take all four. Hunt Hall takes tKAS, POCencept, and KUSDT.",
+    "Those rails are for a bill a stranger can take: a car, an SI service, a game purchase, and a rented service. This square is the classroom. A promise here does not buy the car, the service, the game, or the rental.",
+    "To pay with a public tag, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. To hold OLAF, shield tKAS at the bank.",
   ]),
   links: Object.freeze([
     Object.freeze(["Why, what, how", "https://github.com/STP-KAS/1984-why-what-how"]),
     Object.freeze(["The rails note", "https://github.com/STP-KAS/1984-rails"]),
-    Object.freeze(["Rails on this site", "https://sixpack.wtf/rails.html"]),
+    Object.freeze(["1984 raw idea", "https://sixpack.wtf/rails.html"]),
+    Object.freeze(["Rails", "https://sixpack.wtf/rails-why.html"]),
   ]),
 });
 

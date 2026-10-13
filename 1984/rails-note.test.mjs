@@ -24,27 +24,32 @@ test("every buy can pick tKAS, POCencept, or KUSDT", () => {
 });
 
 test("the rails note is short and points at the public note", () => {
-  assert.equal(RAILS_NOTE.title, "Three ways to pay");
-  assert.equal(RAILS_NOTE.lines.length, 5);
+  assert.equal(RAILS_NOTE.title, "What each rail is");
+  assert.equal(RAILS_NOTE.lines.length, 7);
   assert.match(RAILS_NOTE.lines[0], /tKAS/);
   assert.match(RAILS_NOTE.lines[0], /miner fee is always KAS/);
   assert.match(RAILS_NOTE.lines[1], /POCencept/);
-  assert.match(RAILS_NOTE.lines[1], /KUSDT/);
-  assert.match(RAILS_NOTE.lines[2], /ticket/);
-  assert.match(RAILS_NOTE.lines[2], /snacks/);
-  assert.match(RAILS_NOTE.lines[2], /hop/);
-  assert.match(RAILS_NOTE.lines[2], /Hunt Hall/);
-  assert.match(RAILS_NOTE.lines[3], /car/);
-  assert.match(RAILS_NOTE.lines[3], /SI service/);
-  assert.match(RAILS_NOTE.lines[3], /game purchase/);
-  assert.match(RAILS_NOTE.lines[3], /rented service/);
+  assert.match(RAILS_NOTE.lines[1], /cannot be frozen/);
+  assert.match(RAILS_NOTE.lines[2], /KUSDT/);
+  assert.match(RAILS_NOTE.lines[2], /freeze/);
+  assert.match(RAILS_NOTE.lines[3], /OLAF/);
+  assert.match(RAILS_NOTE.lines[3], /does not reprice/);
+  assert.match(RAILS_NOTE.lines[4], /ticket/);
+  assert.match(RAILS_NOTE.lines[4], /snacks/);
+  assert.match(RAILS_NOTE.lines[4], /hop/);
+  assert.match(RAILS_NOTE.lines[4], /Hunt Hall/);
+  assert.match(RAILS_NOTE.lines[5], /car/);
+  assert.match(RAILS_NOTE.lines[5], /SI service/);
+  assert.match(RAILS_NOTE.lines[5], /game purchase/);
+  assert.match(RAILS_NOTE.lines[5], /rented service/);
   const hrefs = RAILS_NOTE.links.map((pair) => pair[1]);
   assert.ok(hrefs.includes("https://github.com/STP-KAS/1984-why-what-how"));
   assert.ok(hrefs.includes("https://github.com/STP-KAS/1984-rails"));
   assert.ok(hrefs.includes("https://sixpack.wtf/rails.html"));
-  assert.match(RAILS_NOTE.lines[4], /swap tKAS for POCencept and KUSDT at the bank/);
-  assert.match(RAILS_NOTE.lines[4], /No tKAS, go to the bank/);
-  assert.match(RAILS_NOTE.lines[4], /go to the bank and swap/);
+  assert.ok(hrefs.includes("https://sixpack.wtf/rails-why.html"));
+  assert.match(RAILS_NOTE.lines[6], /swap tKAS for POCencept and KUSDT at the bank/);
+  assert.match(RAILS_NOTE.lines[6], /No tKAS, go to the bank/);
+  assert.match(RAILS_NOTE.lines[6], /go to the bank and swap/);
 });
 
 test("an empty POCencept or KUSDT balance says to swap tKAS at the bank", () => {

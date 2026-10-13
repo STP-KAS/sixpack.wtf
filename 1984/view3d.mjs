@@ -320,6 +320,8 @@ export function cruiseLine(progress, name) {
 
 /** One joke holds the screen for this long, then the next one. */
 export const JOKE_MS = 10000;
+/** Quiet after the bay is clear, then the Earth lines. They are not a paid hop. */
+export const EARTH_JOKE_DELAY = 2000;
 
 /** Body radius in scene units. The car stays a car in front of the disk. Jupiter fits the camera far plane. */
 export const WORLD_RADIUS = { moon: 100, mars: 150, jupiter: 340, saturn: 270 };
@@ -408,6 +410,48 @@ export function spaceJoke(ms, sku) {
   return { index, text: list[index % list.length] };
 }
 
+/** Two lines while the roadster is still around Earth, after ejection. They do not repeat. */
+export const EARTH_JOKES = [
+  "Gulf of America looks great from outer space.",
+  "Oh, there is Iran. The regime is once more killing its own civilians at scale. The lunatic left takes note, and rests in silence.",
+];
+
+/** The Gulf line, then Iran, then nothing. ms is the launch clock, not a hop clock. */
+export function earthJoke(ms) {
+  const along = Math.max(0, ms) - FLIGHT_SPACE - EARTH_JOKE_DELAY;
+  if (along < 0) return { index: -1, text: "" };
+  const index = Math.floor(along / JOKE_MS);
+  if (index >= EARTH_JOKES.length) return { index: -1, text: "" };
+  return { index, text: EARTH_JOKES[index] };
+}
+
+/** Word rows for the joke board. A measure that cannot report a width keeps one row. */
+export function jokeRows(text, measure, maxWidth) {
+  const words = String(text || "").trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [""];
+  const width = maxWidth > 0 ? maxWidth : 672;
+  if (typeof measure !== "function") return [words.join(" ")];
+  const lines = [];
+  let line = "";
+  for (const word of words) {
+    const next = line ? line + " " + word : word;
+    let box;
+    try {
+      box = measure(next);
+    } catch (_) {
+      return [words.join(" ")];
+    }
+    if (line && box && typeof box.width === "number" && box.width > width) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  }
+  if (line) lines.push(line);
+  return lines.length ? lines : [""];
+}
+
 /**
  * A circle around the paid world, the same lift as the Earth hang.
  * θ = 0 puts the car where the ship let it go, nose on headingYaw(1, 0), toward +X.
@@ -452,6 +496,22 @@ function jokeBursts(ms, sku, fromMs) {
     x: at.carX,
     y: at.carY + 1.45,
     z: at.carZ,
+    fade: age < 9.2 ? 1 : Math.max(0, 1 - (age - 9.2) / 0.8),
+  }];
+}
+
+/** The Earth lines sit above the car. They start after the bay is clear and they stop. */
+function earthBursts(t, carX, carY, carZ) {
+  const joke = earthJoke(t);
+  if (joke.index < 0) return [];
+  const age = (t - FLIGHT_SPACE - EARTH_JOKE_DELAY - joke.index * JOKE_MS) / 1000;
+  if (age < 0 || age >= 10) return [];
+  return [{
+    index: joke.index,
+    text: joke.text,
+    x: carX,
+    y: carY + 1.45,
+    z: carZ,
     fade: age < 9.2 ? 1 : Math.max(0, 1 - (age - 9.2) / 0.8),
   }];
 }
@@ -592,6 +652,7 @@ export function flightPose(ms) {
     shipPlume,
     sky,
     line: flightLine(beat, t),
+    jokes: earthBursts(t, carX, bay.y, carZ),
     separated: t > marks.letGo,
     released: carX > 0.2,
     beatCruise: false,
@@ -1842,15 +1903,36 @@ function pose(group, now, moving) {
 }
 
 function paintJokeCanvas(g, canvas, text) {
+  const font = "700 22px Segoe UI, sans-serif";
+  if (g) g.font = font;
+  const measure = g && typeof g.measureText === "function" ? (value) => g.measureText(value) : null;
+  const lines = jokeRows(text, measure, 672);
+  const tall = lines.length > 1;
+  canvas.width = 720;
+  canvas.height = tall ? 28 + lines.length * 30 : 96;
+  if (!g) return;
+  g.font = font;
   g.clearRect(0, 0, canvas.width, canvas.height);
-  g.fillStyle = "#07080c";
-  g.fillRect(8, 14, canvas.width - 16, 68);
-  g.strokeStyle = "#e7c27a";
-  g.strokeRect(8.5, 14.5, canvas.width - 17, 67);
-  g.fillStyle = "#f2d48a";
-  g.font = "700 22px Segoe UI, sans-serif";
   g.textAlign = "center";
-  g.fillText(text, canvas.width / 2, 56);
+  g.strokeStyle = "#e7c27a";
+  if (!tall) {
+    g.fillStyle = "#07080c";
+    g.fillRect(8, 14, canvas.width - 16, 68);
+    g.strokeRect(8.5, 14.5, canvas.width - 17, 67);
+    g.fillStyle = "#f2d48a";
+    g.fillText(lines[0] || "", canvas.width / 2, 56);
+    return;
+  }
+  const boxTop = 14;
+  const boxH = canvas.height - 28;
+  g.fillStyle = "#07080c";
+  g.fillRect(8, boxTop, canvas.width - 16, boxH);
+  g.strokeRect(8.5, boxTop + 0.5, canvas.width - 17, boxH - 1);
+  g.fillStyle = "#f2d48a";
+  g.textBaseline = "middle";
+  const step = 28;
+  const first = boxTop + boxH / 2 - ((lines.length - 1) * step) / 2;
+  for (let i = 0; i < lines.length; i++) g.fillText(lines[i], canvas.width / 2, first + i * step);
 }
 
 function jokeSprite(text) {
@@ -1861,7 +1943,7 @@ function jokeSprite(text) {
   const material = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, depthWrite: false, opacity: 0 });
   material.map.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(material);
-  sprite.scale.set(5.2, 0.72, 1);
+  sprite.scale.set(5.2, 0.72 * (canvas.height / 96), 1);
   sprite.visible = false;
   sprite.userData.label = text;
   return sprite;
@@ -1871,6 +1953,7 @@ function writeJoke(sprite, text) {
   const canvas = sprite.material.map.image;
   paintJokeCanvas(canvas.getContext("2d"), canvas, text);
   sprite.material.map.needsUpdate = true;
+  sprite.scale.set(5.2, 0.72 * (canvas.height / 96), 1);
   sprite.userData.label = text;
 }
 

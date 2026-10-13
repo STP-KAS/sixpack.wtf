@@ -16,8 +16,8 @@ import {
 } from "./money.mjs?v=2";
 import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=5";
-import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=12";
-import { OLAF_NOTE, OLAF_PAY_LINE } from "./olaf-note.mjs?v=3";
+import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=13";
+import { OLAF_NOTE, OLAF_PAY_LINE } from "./olaf-note.mjs?v=4";
 import {
   createDepositNote,
   createIdentity,
@@ -28,7 +28,7 @@ import {
   scanNotes,
 } from "./olaf-pool.mjs?v=1";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=9";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, flightVoice, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=68";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, earthJoke, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, flightVoice, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=69";
 import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, driveTile, findPath, huntById, nearShop, shopVisit, standTile, tripBySku, walkable, world } from "./world.mjs?v=7";
 const TUNNEL = "https://especially-supporting-herald-broken.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -266,11 +266,11 @@ function phoneLayout() {
   return window.matchMedia("(max-width: 980px)").matches;
 }
 
-/** On a phone the only jokes are the abyss lines. */
+/** On a phone the flight card keeps the Earth lines and the abyss lines. */
 function jokeForScreen(text, sku) {
   if (!text) return "";
   if (!phoneLayout()) return text;
-  if (sku !== "abyss") return "";
+  if (sku !== "abyss" && sku !== "earth") return "";
   return text;
 }
 
@@ -922,7 +922,7 @@ function paintFlightCard(now) {
   const clock = document.getElementById("flight-clock");
   if (clock) clock.textContent = flightClock(ms);
   const beat = cruising ? "cruise" : flightBeat(flightMs);
-  if (beat !== state.flightBeat || cruising || beat === "stage" || beat === "orbit") {
+  if (beat !== state.flightBeat || cruising || beat === "stage" || beat === "orbit" || beat === "space") {
     state.flightBeat = beat;
     const line = document.getElementById("flight-line");
     if (line) {
@@ -932,6 +932,21 @@ function paintFlightCard(now) {
         line.textContent = cruiseLine(progress, trip ? trip.name : "that world");
         const joke = spaceJoke(ms, state.cruiseSku);
         const lineJoke = jokeForScreen(joke.text, state.cruiseSku);
+        const shown = document.getElementById("flight-joke");
+        if (joke.index !== state.jokeSent) {
+          state.jokeSent = joke.index;
+          if (lineJoke) say(lineJoke);
+        }
+        if (shown) {
+          shown.hidden = !lineJoke;
+          shown.textContent = lineJoke;
+        }
+      } else if (beat === "space") {
+        const said = flightLine(beat, flightMs);
+        line.textContent = said;
+        line.hidden = !said;
+        const joke = earthJoke(flightMs);
+        const lineJoke = jokeForScreen(joke.text, "earth");
         const shown = document.getElementById("flight-joke");
         if (joke.index !== state.jokeSent) {
           state.jokeSent = joke.index;
@@ -3570,8 +3585,8 @@ function paintGuide() {
     "<li>Need coins: Use a funded test address on the welcome gate. The list of those addresses is on 1984 raw idea. The faucet is closed. Mine your own tKAS. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank opens as a swap. In the cafe, take a seat and the menu blinks, or order at the blinking counter. The mint opens as soon as you walk in. The market opens at the counter. Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Once it is yours, Launch into space is the gold button. The showroom still opens when you click Pike or the sign. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The mint and the bank open as soon as you walk in. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. Use a funded test address. This money is tKAS. With tKAS you can go to the bank.</li>" +
-    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is 87 times the standard Testnet 10 rate, and it is extra KAS. When a payment settles, it goes through. On a tKAS send, confirmations are still ongoing. The steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate.</li>" +
-    "<li>Venn's bank opens as a swap. You pay one asset and you receive another: tKAS, POCencept, KUSDT, or OLAF. OLAF is a shielded dollar note. tKAS shields it at the live quote. The key stays in this browser. The books desk shows that private balance. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on the card.</li>" +
+    "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. To hold OLAF, shield tKAS at the bank. The note stays in this browser. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is 87 times the standard Testnet 10 rate, and it is extra KAS. When a payment settles, it goes through. On a tKAS send, confirmations are still ongoing. The steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate.</li>" +
+    "<li>Venn's bank opens as a swap. You pay one asset and you receive another. tKAS is the coin. POCencept is a public tag on a lock of tKAS, and redeem returns that lock. KUSDT is the other public tag, and the freeze is only on that tag. OLAF is a shielded dollar note. 1.00 is one dollar of tKAS at the quote when the note was made. A later quote does not reprice it. Redeem does not pay that tKAS back. The key stays in this browser. The books desk shows that private balance. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on the card. What are the rails? opens the same note. Rails is the short page.</li>" +
     "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe, take a seat and the menu blinks, or order at the counter. The mint opens when you walk in. Launch, while you are in the car and outside, plays two short films beside the rocket first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. The tower stands beside it. The ship lifts off the mount when the count reaches zero. Communications play on the launch, then stay quiet on the climb. When the booster lets go, a short call plays while this ship and the booster stay on screen. That call ends before the booster finishes its turn. After the booster is gone, the ship coasts, then the roadster leaves. The coast and the release stay quiet. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, KUSDT stable, or OLAF. Go into the abyss: the roadster leaves Earth, flies through the Milky Way, and keeps going past it. The old roadster is already out there. The way there is ten seconds. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>The Moon map is NASA. Mars and Jupiter are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0. The Earth limb plays the Earth film. One play is one full turn, west to east. The Earth is already turning on the pad, before liftoff, and the turn is slow. The Saturn cruise plays the Saturn film.</li>" +
     "<li>The balances stay in a clear bar under the site tabs, on the square, in a shop, in the cinema, and on a flight. It reads tKAS, POC, KUSDT, and OLAF, then the kaspatest address and the chosen .kas name. domain/address on that bar changes the default name. Bank is on that bar. With the bank open, that bar lists the minted tokens and the hunt you are in.</li>" +
@@ -6315,7 +6330,7 @@ function showRoadsterChoice() {
   const card = document.getElementById("need-swap");
   const line = document.getElementById("need-swap-line");
   const title = document.getElementById("need-swap-title");
-  const text = roadsterBalanceLine() + ". The roadster is " + formatCents(roadsterCents()) + " on this ledger. Buy it with POCencept, KUSDT, or tKAS, or with OLAF. To convert tKAS, POCencept, or KUSDT, go to the bank.";
+  const text = roadsterBalanceLine() + ". The roadster is " + formatCents(roadsterCents()) + " on this ledger. Buy it with POCencept, KUSDT, or tKAS, or with OLAF. To convert tKAS, POCencept, or KUSDT, go to the bank. Shield OLAF there. The note stays in this browser.";
   roadsterCard = true;
   setRoadsterBuys(true);
   if (title) title.textContent = "Buy a roadster";
