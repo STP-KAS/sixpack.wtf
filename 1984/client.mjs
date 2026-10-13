@@ -20,7 +20,7 @@ import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swap
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=8";
 import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, flightVoice, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=66";
 import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, findPath, huntById, nearShop, shopVisit, tripBySku, walkable, world } from "./world.mjs?v=6";
-const TUNNEL = "https://authority-fireplace-earlier-spirit.trycloudflare.com";
+const TUNNEL = "https://especially-supporting-herald-broken.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 const map = world();
 const view = document.getElementById("view");
@@ -3251,7 +3251,7 @@ function paintGuide() {
     "<ol>" +
     "<li>A funded wallet is prefunded with tKAS. Spend it at will. There is no risk. tKAS is worthless. The welcome gate takes that address. This money is tKAS, Testnet-10 KAS. With tKAS you can go to the bank. The same browser gets the same funded wallet. If this desk cannot tell it is the same browser, it says so. A mainnet address is refused.</li>" +
     "<li>A kaspatest address, or a .kas name that already resolves on TN10, is accepted when that address already holds tKAS. An empty address stays outside. The welcome gate takes a funded address.</li>" +
-    "<li>Need coins: Use a funded test address on the welcome gate. The list of those addresses is on 1984 raw idea. The faucet tab pays 0.6 tKAS. At the live price that is a few cents, so it will not buy supper. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
+    "<li>Need coins: Use a funded test address on the welcome gate. The list of those addresses is on 1984 raw idea. The faucet is closed. Mine your own tKAS. The practice purse is in the books desk at the bank. That purse is play money.</li>" +
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank opens as a swap. In the cafe, take a seat and the menu blinks, or order at the blinking counter. The mint opens as soon as you walk in. The market opens at the counter. Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Once it is yours, Launch into space is the gold button. The showroom still opens when you click Pike or the sign. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The mint and the bank open as soon as you walk in. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. Use a funded test address. This money is tKAS. With tKAS you can go to the bank.</li>" +
     "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is 87 times the standard Testnet 10 rate, and it is extra KAS. When a payment settles, it goes through. On a tKAS send, confirmations are still ongoing. The steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate.</li>" +
@@ -5977,12 +5977,7 @@ if (gateUseAddr) {
 if (gateUseName) gateUseName.addEventListener("click", () => useName(gateName));
 watchNameBox(gateName);
 paintGateAddress();
-const CLOSED_1984 = "Sixpack 1984 is closed until further notice (other priorities). New funded test addresses are no longer handed out.";
 function openFundedTest(button) {
-  if (button) button.disabled = true;
-  gateStatus(CLOSED_1984, true);
-  say(CLOSED_1984, true);
-  return;
   if (guestBusy) return;
   if (button) button.disabled = true;
   let last = "";
@@ -6016,7 +6011,6 @@ function openFundedTest(button) {
     });
 }
 const gateGuest = document.getElementById("gate-guest");
-if (gateGuest) gateGuest.disabled = true;
 if (gateGuest) gateGuest.addEventListener("click", () => openFundedTest(gateGuest));
 for (const [id, kind] of [["gate-kasware", "kasware"], ["gate-kastle", "kastle"]]) {
   const button = document.getElementById(id);

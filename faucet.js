@@ -166,12 +166,10 @@ import { classifyFaucetJob } from "./faucet/job-view.mjs?v=1";
           "h · not kaspanet";
       }
       paintStats(found.j);
-      if (availEl) availEl.textContent = LIMIT_LINE;
-      say("Ready. Paste kaspatest: and Submit. Not kaspanet.");
-      if (go) go.disabled = false;
+      if (availEl) availEl.textContent = "Closed. Mine your own tKAS.";
+      if (statusEl) statusEl.textContent = "Closed. Mine your own tKAS.";
       return;
     }
-    if (go) go.disabled = false;
     if (found && found.sawHtml) {
       if (statusEl) statusEl.textContent = "Tunnel warning page (common on iPhone).";
       if (availEl) availEl.textContent = "Open the tunnel once, then refresh this page.";

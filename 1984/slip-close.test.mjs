@@ -52,7 +52,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=146/);
+  assert.match(html, /1984\/client\.mjs\?v=148/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -106,6 +106,10 @@ test("the landing gate takes a funded test address", () => {
   assert.ok(town && tunnel && faucetApi);
   assert.equal(town[1], faucetApi[1]);
   assert.equal(tunnel[1], faucetApi[1]);
+  assert.match(html, /id="gate-guest">Use a funded test address/);
+  assert.doesNotMatch(html, /closed until further notice/);
+  assert.match(faucet, /Closed\. Mine your own tKAS/);
+  assert.match(faucet, /kaspanet\/rusty-kaspa\/blob\/master\/docs\/testnet10-transition\.md/);
   assert.match(client, /Bypass-Tunnel-Reminder/);
   assert.doesNotMatch(html, /Same kaspatest address, same history/);
   assert.doesNotMatch(html, /id="gate-addr"/);
@@ -191,7 +195,7 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.ok(topEnd > 0 && barAt > topEnd && stageAt > barAt);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
   assert.match(html, /1984\.css\?v=84/);
-  assert.match(html, /1984\/client\.mjs\?v=146/);
+  assert.match(html, /1984\/client\.mjs\?v=148/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);

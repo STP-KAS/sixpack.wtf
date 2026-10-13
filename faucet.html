@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Grok bot faucet — Testnet-10</title>
-  <meta name="description" content="Grok bot faucet. Testnet-10 tKAS. Not kaspanet. Never a seed.">
+  <meta name="description" content="Grok bot faucet is closed. The page shows the Testnet-10 tKAS balance. Mine your own tKAS with rusty-kaspa.">
   <link rel="canonical" href="https://sixpack.wtf/faucet.html">
   <link rel="stylesheet" href="site.css?v=27">
   <link rel="stylesheet" href="faucet.css?v=10">
@@ -20,54 +20,24 @@
   <nav data-site-nav></nav>
 </header>
 <main>
-  <div class="faucet-disclaimer" role="status">
-    <p><strong>Disclaimer.</strong> It should work now. If it does not, use <a href="https://faucet-tn10.kaspanet.io/">https://faucet-tn10.kaspanet.io/</a>.</p>
-  </div>
-  <p class="eyebrow not-kaspanet">Not kaspanet. Not faucet-tn10.kaspanet.io. Grok bot sandbox only.</p>
-  <h1>Welcome to Kaspa Grok bot faucet</h1>
-  <p class="lede">Grok bot faucet sends Testnet-10 tKAS. Test coins. This page never asks for a seed. No in-page wallet. The sermon lives on <a href="eulogy.html">Proof of work, a eulogy</a>.</p>
+  <p class="eyebrow not-kaspanet">Not kaspanet. Grok bot sandbox only. Test coins.</p>
+  <h1>Grok bot faucet</h1>
+  <p class="lede">Closed. Mine your own tKAS.</p>
 
   <div class="faucet-stage">
-    <div class="faucet-grid">
-      <section>
-        <p class="meta">Faucet balance</p>
-        <p class="faucet-balance" id="faucet-balance">… tKAS</p>
-        <p class="meta">Grok Bot Linux farm funds this. Visitors: do not mine here.</p>
-      </section>
-      <section class="faucet-card">
-        <p>Faucet can receive (and pays from):</p>
-        <p class="addr-row">
-          <code id="from-addr">kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</code>
-          <button type="button" class="copy" data-copy="#from-addr">Copy</button>
-        </p>
-        <p id="available">Checking payout API…</p>
-        <form id="form">
-          <label for="addr">Address (must start with kaspatest:)</label>
-          <input id="addr" name="address" spellcheck="false" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" enterkeyhint="go" placeholder="kaspatest:q…">
-          <label for="amount">Amount (tKAS)</label>
-          <input id="amount" name="amount" value="0.6" inputmode="decimal" enterkeyhint="done">
-          <label>Network</label>
-          <select disabled><option selected>TESTNET-10</option></select>
-          <p><button type="submit" class="go" id="go" disabled>Submit</button></p>
-        </form>
-        <p class="meta" id="api-status">Checking payout API…</p>
-        <p class="meta" id="out"></p>
-      </section>
-    </div>
+    <section>
+      <p class="meta">tKAS balance</p>
+      <p class="faucet-balance" id="faucet-balance">… tKAS</p>
+    </section>
   </div>
 
-  <h2>Who mines the faucet address</h2>
-  <p>Grok Bot Linux sandbox fleet — not Windows, not a phone, not your computer:</p>
-  <div class="box">
-    <p><strong>Testnet-10</strong> — a few TN10 nodes and miners, used to test KNS and vprogs tic-tac-toe; the setup changes over time. Miners use random mining addresses.</p>
-    <p><strong>Mainnet is retired.</strong> The kaspa bot archival node was stopped and wiped on 25 Sep 2026 (16:46 CEST). It never mined the faucet.</p>
-    <p>When the main faucet address drops under <strong>1,000,000 tKAS</strong>, the farm pays into it. Visitors still get paid from that same main address only.</p>
-    <p>Monitor still runs every 10 minutes; it’ll grind on repairs first and only hop addresses if the current one is truly stuck.</p>
-    <p class="meta">8 CPU cores. Load is high on purpose. Extra miners fight for those cores. Test coins.</p>
-    <p><strong>Pays from (locked):</strong> <a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx"><code>kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</code></a></p>
-    <p class="meta">Explorer: <a href="https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx">https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx</a></p>
-  </div>
-  <p class="meta"><a href="https://github.com/STP-KAS/Xai.Kaspa.node">Xai.Kaspa.node</a> was the mainnet kaspa bot (retired 25 Sep 2026). TN10 is tn10 bot. Help: <a href="help.html">Help</a>.</p>
+  <h2>Mine your own tKAS</h2>
+  <p>Testnet-10 coins come from a node you run. This page does not pay them out.</p>
+  <ul>
+    <li><a href="https://github.com/kaspanet/rusty-kaspa">kaspanet/rusty-kaspa</a> — the node.</li>
+    <li><a href="https://github.com/kaspanet/rusty-kaspa/blob/master/docs/testnet10-transition.md">Testnet-10 node and miner</a> — <code>kaspad --testnet --netsuffix=10 --utxoindex</code>, then the CPU miner against that node.</li>
+    <li><a href="https://github.com/kaspanet/rusty-kaspa/releases">rusty-kaspa releases</a> — the binaries.</li>
+  </ul>
 </main>
 <div id="faucet-modal" class="fmodal" hidden>
   <div class="fmodal-card" role="dialog" aria-modal="true" aria-labelledby="fmodal-title">
@@ -81,7 +51,7 @@
     </div>
   </div>
 </div>
-<script type="module" src="faucet.js?v=65"></script>
+<script type="module" src="faucet.js?v=66"></script>
 <script src="nav.js?v=60"></script>
 </body>
 </html>

@@ -5,8 +5,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { planClaim, sompiToTkas, FROM, remainingInWindow, requireTestnetAddress, EXPLORER_HOME, normalizeIp, DRIP_SOMPI, CAP_SOMPI, WINDOW_HOURS } from "./faucet/policy.mjs";
-import { listClaims, recordClaim } from "./faucet/ledger.mjs";
-import { payTn10 } from "./faucet/pay.mjs";
+import { listClaims } from "./faucet/ledger.mjs";
 import { handleGrokRequest } from "./grok/http.mjs";
 import { handle1984Request, service1984 } from "./1984/service.mjs";
 import { pipeVideo } from "./1984/stream-file.mjs";
@@ -137,7 +136,6 @@ function faucetErrBody(err, extra) {
   };
 }
 
-let faucetLock = Promise.resolve();
 const jobs = new Map();
 
 function rememberJob(id, patch) {
@@ -196,6 +194,7 @@ http
             }
             sendJson(res, 200, {
               network: "testnet-10",
+              closed: true,
               from: FROM,
               capTkas: sompiToTkas(CAP_SOMPI),
               dripTkas: sompiToTkas(DRIP_SOMPI),
@@ -242,70 +241,11 @@ http
       return;
     }
     if (url.pathname === "/api/faucet" && req.method === "POST") {
-      faucetLock = faucetLock.then(async () => {
-        let jobId = "";
-        let published = false;
-        try {
-          const body = JSON.parse((await readBody(req)) || "{}");
-          const ip = clientIp(req);
-          await gateAddress(body.address);
-          const plan = planClaim({
-            address: body.address,
-            ip,
-            claims: listClaims(),
-            amountTkas: body.amount,
-          });
-          jobId = crypto.randomBytes(8).toString("hex");
-          const started = rememberJob(jobId, {
-            ok: false,
-            pending: true,
-            status: "loading",
-            step: "Checking the address",
-            job: jobId,
-            address: plan.address,
-          });
-          sendJson(res, 202, started, req);
-          const paid = await payTn10(plan.address, plan.sompi, (step, extra) => {
-            const patch = {
-              step,
-              detail: extra && extra.detail ? String(extra.detail).slice(0, 80) : "",
-            };
-            if (extra && Array.isArray(extra.txids) && extra.txids.length) {
-              patch.txids = extra.txids.slice(0, 80).map((id) => String(id));
-            }
-            rememberJob(jobId, patch);
-          });
-          const at = Date.now();
-          rememberJob(jobId, {
-            ok: true,
-            pending: false,
-            status: "done",
-            step: "Broadcasting",
-            tkas: sompiToTkas(paid.sompi),
-            remainingTkas: plan.unlimited ? "unlimited" : sompiToTkas(plan.remainingAfter),
-            remainingAddrTkas: plan.unlimited ? "unlimited" : sompiToTkas(plan.leftAddr - BigInt(paid.sompi)),
-            unlimited: !!plan.unlimited,
-            address: plan.address,
-            explorerHome: EXPLORER_HOME,
-            txids: paid.txids,
-          });
-          published = true;
-          recordClaim({ key: plan.addrKey, address: plan.address, sompi: paid.sompi, txids: paid.txids, at, ip });
-          recordClaim({ key: plan.ipKey, address: plan.address, sompi: paid.sompi, txids: paid.txids, at, ip });
-        } catch (err) {
-          if (published) {
-            console.error("faucet ledger", err?.message || err);
-            return;
-          }
-          console.error("faucet pay", err?.code || "", err?.message || err);
-          const payload = faucetErrBody(err, { step: "Stopped" });
-          if (jobId) {
-            rememberJob(jobId, payload);
-            return;
-          }
-          sendJson(res, faucetErrStatus(err), payload, req);
-        }
-      });
+      sendJson(res, 403, {
+        ok: false,
+        closed: true,
+        error: "Closed. Mine your own tKAS.",
+      }, req);
       return;
     }
     if (url.pathname.startsWith("/api/1984/stream/file/")) {
