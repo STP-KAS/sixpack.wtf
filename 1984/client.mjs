@@ -16,7 +16,7 @@ import {
 } from "./money.mjs?v=2";
 import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=5";
-import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=11";
+import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=12";
 import { OLAF_NOTE, OLAF_PAY_LINE } from "./olaf-note.mjs?v=3";
 import {
   createDepositNote,
