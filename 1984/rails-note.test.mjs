@@ -35,7 +35,7 @@ test("the rails note is short and points at the public note", () => {
   assert.match(RAILS_NOTE.lines[2], /hop/);
   assert.match(RAILS_NOTE.lines[2], /Hunt Hall/);
   assert.match(RAILS_NOTE.lines[3], /car/);
-  assert.match(RAILS_NOTE.lines[3], /AI service/);
+  assert.match(RAILS_NOTE.lines[3], /SI service/);
   assert.match(RAILS_NOTE.lines[3], /game purchase/);
   assert.match(RAILS_NOTE.lines[3], /rented service/);
   const hrefs = RAILS_NOTE.links.map((pair) => pair[1]);

@@ -5,7 +5,7 @@
     { href: "farce.html", files: ["farce.html"], label: "Farce" },
     { href: "eulogy.html", files: ["eulogy.html"], label: "Eulogy" },
     { href: "random.html", files: ["random.html"], label: "Random" },
-    { href: "aigen.html", files: ["aigen.html"], label: "ai gen" },
+    { href: "aigen.html", files: ["aigen.html"], label: "SI gen" },
     { href: "faucet.html", files: ["faucet.html"], label: "Faucet" },
     { href: "rails.html", files: ["rails.html"], label: "1984 raw idea" },
     { href: "1984.html", files: ["1984.html", "kworld.html"], label: "1984" },
@@ -35,7 +35,7 @@
     document.head.appendChild(s);
   }
   if (root) {
-    if (file === "help.html") load(root + "sources.js?v=37");
+    if (file === "help.html") load(root + "sources.js?v=38");
     if (file !== "faucet.html" && file !== "random.html" && file !== "grok.html" && file !== "aigen.html" && file !== "1984.html" && file !== "kworld.html") load(root + "intro.js?v=17");
   }
 })();

@@ -37,7 +37,7 @@
     { id: "r38", title: "Don't mention the war", duration: 263, w: 1350, h: 1080 },
     { id: "r39", title: "Clip", duration: 58, w: 1280, h: 720 },
     { id: "r40", title: "Liftoff", duration: 46, w: 3840, h: 2160 },
-    { id: "r41", title: "What do you think about AI", duration: 70, w: 576, h: 624 },
+    { id: "r41", title: "What do you think about SI", duration: 70, w: 576, h: 624 },
     { id: "r42", title: "Joint address", duration: 43, w: 576, h: 1024 },
     { id: "r43", title: "Orbital data centers", duration: 270, w: 1920, h: 1080 },
     { id: "r44", title: "Is not an option", duration: 14, w: 720, h: 1280 },

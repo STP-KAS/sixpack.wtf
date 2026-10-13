@@ -39,7 +39,7 @@ const RANDOM = [
   ["r38", "Don't mention the war"],
   ["r39", "Clip"],
   ["r40", "Liftoff"],
-  ["r41", "What do you think about AI"],
+  ["r41", "What do you think about SI"],
   ["r42", "Joint address"],
   ["r43", "Orbital data centers"],
   ["r44", "Is not an option"],
