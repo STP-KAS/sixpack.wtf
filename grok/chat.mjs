@@ -11,6 +11,9 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
 const XAI = "https://api.x.ai/v1";
 const MODEL = process.env.GROK_MODEL || "grok-4.6";
+export const DESK_NAME = "SI helpdesk";
+export const REASONING_EFFORT = "low";
+const LIVE_RECHECK = /\b(recheck|look it up|look this up|search the web|as of today|just merged|open pull requests?)\b/i;
 const JOKE_BOOTHS = [
   ["Block Permit Office", "/dmv", "Two arrivals, two records."],
   ["Queue Jump Arcade", "/arcade", "Queue order, payout variance, an issuance schedule."],
@@ -20,6 +23,10 @@ const JOKE_BOOTHS = [
   ["Gift Shop", "/souvenirs", "A harmless explanation you can take home."],
   ["Industry back hall", "/industry", "A drawer, a coat check, a yield that brought its assumptions."],
 ];
+
+export function wantsLiveSearch(question) {
+  return LIVE_RECHECK.test(String(question || ""));
+}
 
 export function pickJokeBooth(question) {
   const q = String(question || "");
@@ -67,15 +74,22 @@ function read(name) {
 }
 
 export function systemPrompt() {
-  let changed = false;
+  const now = Date.now();
+  if (promptCache.text && now - promptCache.at < 60_000) return promptCache.text;
   try {
-    changed = ensureMasterFeed().changed;
+    ensureMasterFeed();
   } catch {
     /* keep the last board if the master file is unreadable */
   }
-  const now = Date.now();
-  if (!changed && promptCache.text && now - promptCache.at < 8000) return promptCache.text;
-  const parts = [read("system.md"), "", read("feed.md"), "", lessonsBlock(), "", read("catalog.md")];
+  const parts = [
+    read("system.md"),
+    "",
+    read("feed.md"),
+    "",
+    lessonsBlock(),
+    "",
+    "# Pin catalog\n\nThe long snapshot stays in catalog.md. Answer from this feed and the Now block. The Now block wins when they disagree. Beginners start at https://kaspaexplained.com/start-here and https://kaspa.org.\n",
+  ];
   try {
     parts.push("", read("now.md"));
   } catch {
@@ -111,7 +125,7 @@ export function grokHealth() {
   }
   return {
     ok: Boolean(resolveApiKey()),
-    name: "Grok.SPCXAI.KAS",
+    name: DESK_NAME,
     engine: "spacexai-feed",
     model: MODEL,
     not: "grok.com",
@@ -143,8 +157,8 @@ function openStream(res) {
   res.write(":" + " ".repeat(2048) + "\n\n");
 }
 
-function toolsFor(jail) {
-  if (jail) return [];
+function toolsFor(jail, question) {
+  if (jail || !wantsLiveSearch(question)) return [];
   const handles = (sources().x_handles || []).slice(0, 20);
   return [
     { type: "web_search" },
@@ -168,13 +182,15 @@ async function streamXai({ question, history, jail, onDelta, onStatus, onThink, 
     onStatus(text, id);
   }
   pushStatus("feed", "Opening the Kaspa feed. Slow: the catalog is a brick.");
+  const tools = toolsFor(jail, question);
   const body = {
     model: MODEL,
     stream: true,
+    reasoning: { effort: REASONING_EFFORT },
     instructions: systemPrompt() + jokeNote(pickJokeBooth(question)),
     input,
-    tools: toolsFor(jail),
   };
+  if (tools.length) body.tools = tools;
   pushStatus("up", "SpaceXAI is chewing the feed. Admit it: this takes a while.");
   const res = await fetch(XAI + "/responses", {
     method: "POST",

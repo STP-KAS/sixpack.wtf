@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { applyRelease, ensureMasterFeed, loadNowSection, masterHead, releasePin, renderNow } from "./sync-master.mjs";
-import { systemPrompt, grokHealth } from "./chat.mjs";
+import { systemPrompt, grokHealth, wantsLiveSearch, REASONING_EFFORT } from "./chat.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -44,7 +44,12 @@ test("the desk prompt ends on the master board", () => {
   assert.doesNotMatch(board.slice(0, 400), /Latest release pin \*\*v2\.0\.1\*\*/);
   const health = grokHealth();
   assert.equal(health.master, masterHead().sha);
-  assert.equal(health.name, "Grok.SPCXAI.KAS");
+  assert.equal(health.name, "SI helpdesk");
+  assert.doesNotMatch(prompt, /If you just showed up/);
+  assert.equal(REASONING_EFFORT, "low");
+  assert.equal(wantsLiveSearch("what does GHOSTDAG do"), false);
+  assert.equal(wantsLiveSearch("tell me a joke"), false);
+  assert.equal(wantsLiveSearch("recheck the rusty release as of today"), true);
 });
 
 test("sixpack pin pages name the same release", () => {

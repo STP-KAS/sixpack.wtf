@@ -9,7 +9,7 @@
     { href: "faucet.html", files: ["faucet.html"], label: "Faucet" },
     { href: "rails.html", files: ["rails.html"], label: "1984 raw idea" },
     { href: "1984.html", files: ["1984.html", "kworld.html"], label: "1984" },
-    { href: "grok.html", files: ["grok.html"], label: "Grok.SPCXAI.KAS" },
+    { href: "grok.html", files: ["grok.html"], label: "SI helpdesk" },
     { href: "help.html", files: ["help.html"], label: "Help" },
   ];
   for (const nav of document.querySelectorAll("[data-site-nav]")) {
@@ -35,7 +35,7 @@
     document.head.appendChild(s);
   }
   if (root) {
-    if (file === "help.html") load(root + "sources.js?v=38");
+    if (file === "help.html") load(root + "sources.js?v=39");
     if (file !== "faucet.html" && file !== "random.html" && file !== "grok.html" && file !== "aigen.html" && file !== "1984.html" && file !== "kworld.html") load(root + "intro.js?v=17");
   }
 })();

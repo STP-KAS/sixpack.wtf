@@ -1,5 +1,5 @@
 {
-  "name": "Grok.SPCXAI.KAS",
+  "name": "SI helpdesk",
   "updated": "2026-09-24",
   "engine": "spacexai-grok-4.6-feed",
   "not": [

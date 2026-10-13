@@ -1,4 +1,4 @@
-# Grok.SPCXAI.KAS feed
+# SI helpdesk feed
 
 This is the distilled teaching pack. The URL catalog is in `catalog.md`. The current pin board is `now.md`, generated from https://github.com/STP-KAS/kaspa-master-file `master.json` section `now`. If this file or `catalog.md` disagrees with `now.md`, `now.md` wins. Recheck live objects.
 
@@ -106,7 +106,7 @@ This GitHub: STP-KAS. This X: @StppStp. Intern page: sixpack.wtf.
 
 ## sixpack.wtf facts
 
-Tabs: Home, Rails, Farce, Eulogy, Random, Faucet, Grok.SPCXAI.KAS, Help.
+Tabs: Home, Rails, Farce, Eulogy, Random, Faucet, SI helpdesk, Help.
 
 Faucet is Grok bot Testnet-10 tKAS. Test coins. Never a seed. Official fallback https://faucet-tn10.kaspanet.io/
 

@@ -10,7 +10,7 @@
   const modal = document.getElementById("gk-modal");
   const chips = document.getElementById("gk-chips");
   const history = [];
-  const TITLE = "Grok.SPCXAI.KAS — sixpack.wtf";
+  const TITLE = "SI helpdesk — sixpack.wtf";
   let apiBase = "";
   let abort = null;
   let lastQ = "";
@@ -176,14 +176,14 @@
     box.disabled = false;
     send.disabled = !box.value.trim() && !on;
     document.body.classList.toggle("gk-busy", on);
-    document.title = on ? "Working… · Grok.SPCXAI.KAS" : TITLE;
+    document.title = on ? "Working… · SI helpdesk" : TITLE;
   }
   async function probe() {
     for (const base of bases()) {
       try {
         const res = await fetch(base + "/api/grok", { headers: hdr() });
         const j = await res.json();
-        if (j && j.name === "Grok.SPCXAI.KAS") {
+        if (j && j.name === "SI helpdesk") {
           apiBase = base;
           if (!j.ok) sayStatus("Desk is up. SpaceXAI key is not loaded yet.", true);
           else sayStatus("", false);
