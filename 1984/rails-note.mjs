@@ -47,7 +47,7 @@ export function shortRail(rail, have) {
   if (rail === "kas") return none ? "No tKAS. Go to the bank." : "Not enough tKAS. Go to the bank.";
   if (rail === "poc") return none ? "No POCencept. Go to the bank and swap." : "Not enough POCencept. Go to the bank and swap.";
   if (rail === "kusdt") return none ? "No KUSDT. Go to the bank and swap." : "Not enough KUSDT. Go to the bank and swap.";
-  if (rail === "olaf") return none ? "No OLAF. Swap tKAS for it at the bank, or take a transfer." : "Not enough OLAF. Swap more tKAS at the bank, or take a transfer.";
+  if (rail === "olaf") return none ? "No OLAF. Shield tKAS at the bank. The note stays in this browser." : "Not enough OLAF. Shield more tKAS at the bank, or take a private send.";
   return "";
 }
 

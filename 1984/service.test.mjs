@@ -404,9 +404,9 @@ test("a missing node payment stays unswapped", async () => {
   assert.match(out.body.error, /public transaction list is behind/);
   assert.equal(read().accounts[USER], undefined);
   assert.equal(read().txids["e".repeat(64)], undefined);
-  const olaf = Object.values(read().mints).find((row) => row.name === "OLAF");
-  assert.equal(olaf.supply, "100000000");
-  assert.equal(olaf.sealed, true);
+  assert.equal(read().olaf.version, 2);
+  assert.equal(read().olaf.cents, "0");
+  assert.equal(Object.values(read().mints).some((row) => row && row.name === "OLAF"), false);
 });
 
 test("a wallet shop buy is refused or marked ready before any Testnet 10 lookup", async () => {

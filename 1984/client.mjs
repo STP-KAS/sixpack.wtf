@@ -17,7 +17,16 @@ import {
 import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=5";
 import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, shortRail, swapNeed } from "./rails-note.mjs?v=11";
-import { OLAF_NOTE, OLAF_PAY_LINE } from "./olaf-note.mjs?v=2";
+import { OLAF_NOTE, OLAF_PAY_LINE } from "./olaf-note.mjs?v=3";
+import {
+  createDepositNote,
+  createIdentity,
+  ownerTagOf,
+  planOlafSend,
+  planOlafSpend,
+  receiveCodeOf,
+  scanNotes,
+} from "./olaf-pool.mjs?v=1";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=9";
 import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, flightVoice, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=68";
 import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, driveTile, findPath, huntById, nearShop, shopVisit, standTile, tripBySku, walkable, world } from "./world.mjs?v=7";
@@ -44,6 +53,10 @@ const state = {
   kasSompi: null,
   oracle: null,
   oracleError: "",
+  olafCents: 0n,
+  olafNotes: [],
+  olafCode: "",
+  olafClaiming: false,
   reserve: RESERVE,
   id: loadId(),
   arrived: null,
@@ -1031,6 +1044,8 @@ async function refreshAccount(quiet) {
   state.kasSompi = body.kasSompi;
   state.oracle = body.oracle;
   if (body.reserve) state.reserve = body.reserve;
+  await refreshOlaf(true);
+  await finishOlafPending();
   if (syncDisplayName(body.account)) paintChrome();
   paintBooks();
   maybeSwapNotice();
@@ -2184,9 +2199,210 @@ function closeRailsNote() {
 }
 
 function olafHeld() {
-  const rows = state.account && Array.isArray(state.account.tokens) ? state.account.tokens : [];
-  const row = rows.find((item) => item && item.name === "OLAF");
-  return BigInt(row && row.amount ? row.amount : 0);
+  return BigInt(state.olafCents || 0);
+}
+
+async function ensureOlafKey() {
+  const saved = readOlafKey();
+  if (saved) return saved;
+  const made = await createIdentity();
+  localStorage.setItem("sq1984-olaf-v2", JSON.stringify({
+    spendSecret: made.spendSecret,
+    privateJwk: made.privateJwk,
+    publicKeyHex: made.publicKeyHex,
+  }));
+  state.olafCode = made.code;
+  return made;
+}
+
+function readOlafKey() {
+  try {
+    const raw = localStorage.getItem("sq1984-olaf-v2");
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    if (!saved || !saved.spendSecret || !saved.privateJwk || !saved.publicKeyHex) return null;
+    const ownerTag = ownerTagOf(saved.spendSecret);
+    return {
+      spendSecret: saved.spendSecret,
+      privateJwk: saved.privateJwk,
+      publicKeyHex: saved.publicKeyHex,
+      ownerTag,
+      code: receiveCodeOf(saved.publicKeyHex, ownerTag),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function refreshOlaf(quiet) {
+  const body = await api("/api/1984/olaf");
+  if (!body || !body.ok) return;
+  try {
+    const id = await ensureOlafKey();
+    state.olafCode = id.code;
+    state.olafNotes = await scanNotes(id, body.notes || [], body.nullifiers || []);
+    state.olafCents = state.olafNotes.reduce((total, note) => total + BigInt(note.cents), 0n);
+  } catch {
+    state.olafNotes = [];
+    state.olafCents = 0n;
+  }
+  if (!quiet) paintChrome();
+}
+
+async function finishOlafPending() {
+  const rows = (state.account && state.account.olafPending) || [];
+  if (!rows.length || state.olafClaiming) return;
+  state.olafClaiming = true;
+  try {
+    const id = await ensureOlafKey();
+    for (const row of rows) {
+      const note = await createDepositNote(id, row.cents, row.sompi);
+      const body = await post("/api/1984/olaf/shield", { txid: row.txid, note, token: guestToken() });
+      if (!body.ok) {
+        say(body.error || "The shielded note is still waiting.", true);
+        return;
+      }
+    }
+    const again = await api("/api/1984/account?address=" + encodeURIComponent(state.id.address));
+    if (again.ok) state.account = again.account;
+    await refreshOlaf(true);
+  } catch (err) {
+    say((err && err.message) || "The shielded note is still waiting.", true);
+  } finally {
+    state.olafClaiming = false;
+  }
+}
+
+async function copyOlafText(value, okLine) {
+  try {
+    await navigator.clipboard.writeText(value);
+    say(okLine);
+  } catch {
+    say(okLine + " " + value);
+  }
+}
+
+function olafDeskHtml() {
+  const code = state.olafCode || "The receive code appears when this page opens.";
+  return '<div class="olaf-bank"><p><strong>OLAF</strong> ' + esc(formatCents(olafHeld())) +
+    " shielded in this browser. 1.00 is one dollar of tKAS at the quote when the note was made.</p>" +
+    '<p class="fine">' + esc(OLAF_PAY_LINE) + "</p>" +
+    '<p class="mint-addr" id="olaf-code">' + esc(code) + "</p>" +
+    '<p><button type="button" id="olaf-copy-code">Copy receive code</button> <button type="button" id="olaf-copy-key">Copy spend key</button></p>' +
+    '<label>Send OLAF, like 1.00<input id="olaf-send-amt" inputmode="decimal" autocomplete="off" placeholder="1.00"></label>' +
+    '<label>Their receive code<textarea id="olaf-send-to" rows="2" autocomplete="off"></textarea></label>' +
+    '<button type="button" id="olaf-send">Send privately</button></div>';
+}
+
+function wireOlafDesk() {
+  const code = document.getElementById("olaf-copy-code");
+  const key = document.getElementById("olaf-copy-key");
+  const send = document.getElementById("olaf-send");
+  if (code) code.onclick = () => {
+    const id = readOlafKey();
+    if (!id) {
+      say("The receive code is not ready yet.", true);
+      return;
+    }
+    copyOlafText(id.code, "Receive code copied.");
+  };
+  if (key) key.onclick = () => {
+    const id = readOlafKey();
+    if (!id) {
+      say("The spend key is not ready yet.", true);
+      return;
+    }
+    copyOlafText(id.spendSecret, "Spend key copied. It spends every OLAF note in this browser.");
+  };
+  if (send) send.onclick = () => {
+    sendOlaf().catch((err) => say((err && err.message) || "The private send did not land.", true));
+  };
+}
+
+async function sendOlaf() {
+  if (!requireId()) return;
+  let cents;
+  try {
+    cents = parseDollars(fieldValue("olaf-send-amt"));
+  } catch (err) {
+    say(err.message, true);
+    return;
+  }
+  const code = fieldValue("olaf-send-to");
+  const id = await ensureOlafKey();
+  await refreshOlaf(true);
+  const plan = await planOlafSend(id, state.olafNotes, cents, code);
+  const body = await post("/api/1984/olaf/send", { inputs: plan.inputs, outputs: plan.outputs, token: guestToken() });
+  if (!body.ok) {
+    say(body.error || "The private send did not land.", true);
+    return;
+  }
+  say("Sent " + formatCents(cents) + " OLAF. The pool total stayed the same.");
+  await refreshOlaf(true);
+  paintChrome();
+  if (counterFace(state.mode) === "bank") paintBank();
+}
+
+function listedCents(shop, sku) {
+  const place = ((state.home && state.home.shops) || []).find((item) => item.id === shop);
+  const row = place && (place.items || []).find((item) => item.sku === sku);
+  if (!row || row.cents == null) throw new Error("That item is not on this counter.");
+  return row.cents;
+}
+
+async function olafPayPlan(cents) {
+  const id = await ensureOlafKey();
+  await refreshOlaf(true);
+  return planOlafSpend(id, state.olafNotes, cents);
+}
+
+async function depositOlafGuest(amountText) {
+  const id = await ensureOlafKey();
+  let preview = await post("/api/1984/guest/convert", {
+    token: state.id.token,
+    rail: "olaf",
+    amount: amountText,
+  }, 90000);
+  if (!preview || !preview.ready) return preview;
+  let note = await createDepositNote(id, preview.cents, preview.sompi);
+  let body = await post("/api/1984/guest/convert", {
+    token: state.id.token,
+    rail: "olaf",
+    amount: amountText,
+    note,
+  }, 90000);
+  const mismatch = body && body.error && String(body.error).match(/cents (\d+) sompi (\d+)/);
+  if (mismatch) {
+    note = await createDepositNote(id, mismatch[1], mismatch[2]);
+    body = await post("/api/1984/guest/convert", {
+      token: state.id.token,
+      rail: "olaf",
+      amount: amountText,
+      note,
+    }, 90000);
+  }
+  if (body && body.pending) {
+    note = await createDepositNote(id, body.cents, body.sompi);
+    body = await post("/api/1984/olaf/shield", { txid: body.txid, note, token: state.id.token });
+  }
+  return body;
+}
+
+async function depositOlafWallet(sompi, txid) {
+  if (!state.oracle) throw new Error("The live price is not in yet.");
+  const id = await ensureOlafKey();
+  let cents = centsForSompi(sompi, state.oracle);
+  let note = await createDepositNote(id, cents, sompi);
+  let body = await post("/api/1984/convert", { rail: "olaf", txid, note });
+  const mismatch = body && body.error && String(body.error).match(/cents (\d+) sompi (\d+)/);
+  if (body && body.pending) {
+    note = await createDepositNote(id, body.cents, body.sompi);
+    body = await post("/api/1984/olaf/shield", { txid: body.txid || txid, note, token: guestToken() });
+  } else if (mismatch) {
+    note = await createDepositNote(id, mismatch[1], mismatch[2]);
+    body = await post("/api/1984/convert", { rail: "olaf", txid, note });
+  }
+  return body;
 }
 
 function olafFine(rail) {
@@ -2194,13 +2410,16 @@ function olafFine(rail) {
 }
 
 function canPay(rail, cents) {
+  if (rail === "olaf") {
+    if (!state.id.address) return null;
+    return olafHeld() >= BigInt(cents);
+  }
   if (rail === "kas") {
     const sompi = quoteSompi(cents);
     if (sompi == null || state.kasSompi == null) return null;
     return BigInt(state.kasSompi) >= sompi;
   }
   if (!state.account) return null;
-  if (rail === "olaf") return olafHeld() >= BigInt(cents);
   const have = BigInt(rail === "kusdt" ? state.account.kusdt || 0 : state.account.poc || 0);
   return have >= BigInt(cents);
 }
@@ -2475,7 +2694,7 @@ function paintLockPreview() {
     return;
   }
   if (dexTo === "olaf") {
-    el.textContent = formatTkas(sompi) + " tKAS buys about " + tag + " OLAF at " + price + ". The tKAS goes to the reserve. OLAF does not lock it and does not redeem.";
+    el.textContent = formatTkas(sompi) + " tKAS shields about " + tag + " OLAF at " + price + ". 1.00 stays one dollar from that moment. The note stays in this browser.";
     return;
   }
   el.textContent = formatTkas(sompi) + " tKAS becomes about " + tag + " at " + price + ". Redeem returns this tKAS. A later price does not change the lock.";
@@ -2608,7 +2827,7 @@ function paintBank() {
       '<div class="swap-bals">' +
       card("POCencept", formatCents(poc.have), "locked " + formatCents(poc.lock) + " · purse " + formatCents(poc.purse)) +
       card("KUSDT", formatCents(kusdt.have), "locked " + formatCents(kusdt.lock) + " · purse " + formatCents(kusdt.purse) + (frozen ? " · frozen" : "")) +
-      card("OLAF", formatCents(olafHeld()), "1,000,000.00 minted once. Remaining 0. Buy it with tKAS.") +
+      card("OLAF", formatCents(olafHeld()), "Shielded in this browser. 1.00 is one dollar from the quote when the note was made.") +
       "</div>" +
       '<div class="kw-row"><button type="button" id="purse" data-act>Practice purse</button><button type="button" id="freeze" data-act>' + (frozen ? "Thaw KUSDT" : "Freeze KUSDT") + "</button></div>" +
       statusLine() + bankFine();
@@ -2625,7 +2844,7 @@ function paintBank() {
     body =
       '<div class="dex">' +
       '<div class="swap-head"><h2>Swap</h2>' + close + "</div>" +
-      '<p class="olaf-bank"><strong>OLAF</strong> ' + esc(formatCents(olafHeld())) + " held. Fully minted 1,000,000.00. Remaining 0. Choose OLAF to buy it with tKAS.</p>" +
+      olafDeskHtml() +
       '<div class="dex-box"><div class="dex-box-top"><span>You pay</span><span>' + esc(clerkFigure(dexFrom)) + "</span></div>" +
       '<div class="dex-row"><input id="' + payId + '" class="dex-amt" value="' + esc(payValue) + '" inputmode="decimal" autocomplete="off" placeholder="0">' +
       '<select id="dex-from" class="dex-token">' + opt(dexFrom) + "</select></div></div>" +
@@ -2641,7 +2860,7 @@ function paintBank() {
         ? '<details class="paid-already"' + (lockTxid ? " open" : "") + '><summary>Already sent tKAS? Paste the txid</summary><textarea id="lock-txid" rows="2">' + esc(lockTxid) + "</textarea></details>"
         : "") +
       (dexTo === "olaf"
-        ? '<p class="fine">tKAS buys OLAF from the sealed supply at the live KAS quote. KCC-20 Last Call. The mint allowance is already 0. The tKAS is not locked, and OLAF does not come back as tKAS.</p>'
+        ? '<p class="fine">tKAS shields OLAF at the live quote. 1.00 OLAF stays one dollar from that moment. The till checks the witness and does not keep it. There is no chain payout.</p>'
         : '<p class="fine">Only the part that came from tKAS can come back. Practice stays a shop coin.</p>') +
       '<button type="button" class="rails-open" data-rails>What are the rails?</button>' +
       '<button type="button" class="clerk-books" data-clerk="books">The books</button>' +
@@ -2652,6 +2871,7 @@ function paintBank() {
   }
   panel.innerHTML = '<div class="swap">' + payingAddressHtml() + body + "</div>";
   if (clerk === "books") fillBooksLine();
+  wireOlafDesk();
   if (clerk !== "books") {
     if (dexFrom === "kas") {
       paintLockPreview();
@@ -2719,7 +2939,7 @@ function flipDex() {
     state.bankRail = dexFrom;
     state.bankClerk = "";
     paintBank();
-    swapNote("OLAF is bought with tKAS. It does not redeem.", "");
+    swapNote("OLAF is shielded with tKAS. It does not pay tKAS back.", "");
     return;
   }
   const next = dexFrom;
@@ -2736,7 +2956,7 @@ function runDexSwap() {
     return;
   }
   if (dexFrom === "olaf" || (dexTo === "olaf" && dexFrom !== "kas")) {
-    swapNote("OLAF is bought with tKAS. It does not redeem.", "bad");
+    swapNote("OLAF is shielded with tKAS. It does not pay tKAS back.", "bad");
     return;
   }
   if (dexFrom === "kas") lock(dexTo);
@@ -2749,7 +2969,7 @@ function setSwapBusy(on) {
   const root = panel.querySelector(".swap");
   if (!root) return;
   for (const button of root.querySelectorAll("button")) {
-    if (button.id === "bank-close" || button.id === "clerk-back" || button.id === "place-exit" || button.id === "dex-flip" || button.hasAttribute("data-copy-addr")) continue;
+    if (button.id === "bank-close" || button.id === "clerk-back" || button.id === "place-exit" || button.id === "dex-flip" || button.id === "olaf-copy-code" || button.id === "olaf-copy-key" || button.hasAttribute("data-copy-addr")) continue;
     button.disabled = on || button.getAttribute("data-hold") === "1";
   }
 }
@@ -3184,7 +3404,15 @@ async function buyStreamTitle(rail) {
       }
     }
     const path = guest && rail === "kas" ? "/api/1984/guest/stream/buy" : "/api/1984/stream/buy";
-    const body = await post(path, { id: row.id, rail, txid, token: guestToken(), confirmed: true }, 90000);
+    const olafSpend = rail === "olaf" ? await olafPayPlan(row.cents) : null;
+    const body = await post(path, {
+      id: row.id,
+      rail,
+      txid,
+      token: guestToken(),
+      confirmed: true,
+      ...(olafSpend ? { inputs: olafSpend.inputs, change: olafSpend.change } : {}),
+    }, 90000);
     if (body && body.ready) {
       say("Paste the Testnet 10 txid. The wallet stays closed for this title.", true);
       return;
@@ -3343,7 +3571,7 @@ function paintGuide() {
     "<li class=\"only-desk\">On a computer, hold the left mouse button and move to look all the way around. Click the ground to point where you walk, or use the keyboard. Stand next to a building and click it to walk in. The bank opens as a swap. In the cafe, take a seat and the menu blinks, or order at the blinking counter. The mint opens as soon as you walk in. The market opens at the counter. Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Once it is yours, Launch into space is the gold button. The showroom still opens when you click Pike or the sign. W A S D move the way you look. The arrow keys do too. G gets in or out. Get out is the gold button. Esc closes the card, then leaves the room. Square leaves too. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema.</li>" +
     "<li class=\"only-phone\">On a phone, drag a finger to look. Tap the ground to walk or drive. Tap a building you are next to and you walk in. Sit in the cafe, then the menu or the card. The mint and the bank open as soon as you walk in. Square leaves the room. Exit to the square is on the shop, the bank, Hunt Hall, and the cinema. Buy a roadster. See what happens. That gold button is on the square, and the parking lot sells it. Once it is yours, Launch into space is the gold button. Get out walks. Use a funded test address. This money is tKAS. With tKAS you can go to the bank.</li>" +
     "<li>To pay for something, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. A POCencept stable swap, a KUSDT stable swap, or a shop buy asks on this page: you want this for that price, then OK. Close puts that ask away. The miner fee on a tKAS swap is 87 times the standard Testnet 10 rate, and it is extra KAS. When a payment settles, it goes through. On a tKAS send, confirmations are still ongoing. The steps and the transaction stay on the page. Close that card when you are done. Open the transaction, or start a new purchase on the card that stays open. Log out returns you to the welcome gate.</li>" +
-    "<li>Venn's bank opens as a swap. You pay one asset and you receive another: tKAS, POCencept, KUSDT, or OLAF. OLAF is bought with tKAS from a supply that was minted once. It does not redeem. The books desk explains locked coins, the practice purse, and that OLAF balance. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on the card.</li>" +
+    "<li>Venn's bank opens as a swap. You pay one asset and you receive another: tKAS, POCencept, KUSDT, or OLAF. OLAF is a shielded dollar note. tKAS shields it at the live quote. The key stays in this browser. The books desk shows that private balance. The Result line says whether a swap landed. While the wallet is opening for a tKAS swap, the steps stay on the card.</li>" +
     "<li>Buy a roadster. See what happens. The gold button on the square buys it, and the parking lot sells it. Click the car or the sign on the lot. Once it is yours, you are in the car and Launch into space is the large gold button. Get out is the other gold button. Thrusters show while it moves. Inside a shop you are on foot. In the cafe, take a seat and the menu blinks, or order at the counter. The mint opens when you walk in. Launch, while you are in the car and outside, plays two short films beside the rocket first, with the sound on, for context. The left film plays, then the right film. A bar fills across both films, so the launch is on its way. The launch starts when the second film ends. When both films are done, those screens go. The stack stands on the launch mount. The tower stands beside it. The ship lifts off the mount when the count reaches zero. Communications play on the launch, then stay quiet on the climb. When the booster lets go, a short call plays while this ship and the booster stay on screen. That call ends before the booster finishes its turn. After the booster is gone, the ship coasts, then the roadster leaves. The coast and the release stay quiet. A bar fills until the car leaves the ship. End the flight shows then. Simulation theory is the click after you end it. That button warns that it brings you back to the simulation on Earth. From there you can pay for the Moon, Mars, Jupiter, Saturn, or go into the abyss, with tKAS, POCencept stable, KUSDT stable, or OLAF. Go into the abyss: the roadster leaves Earth, flies through the Milky Way, and keeps going past it. The old roadster is already out there. The way there is ten seconds. The Moon, Mars, Jupiter, and Saturn fill the window the way the Earth does. Once you arrive, the same rails can send you to another world, or into the abyss. The card lines are the flight. On that hop the end popup waits ten seconds.</li>" +
     "<li>The Moon map is NASA. Mars and Jupiter are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0. The Earth limb plays the Earth film. One play is one full turn, west to east. The Earth is already turning on the pad, before liftoff, and the turn is slow. The Saturn cruise plays the Saturn film.</li>" +
     "<li>The balances stay in a clear bar under the site tabs, on the square, in a shop, in the cinema, and on a flight. It reads tKAS, POC, KUSDT, and OLAF, then the kaspatest address and the chosen .kas name. domain/address on that bar changes the default name. Bank is on that bar. With the bank open, that bar lists the minted tokens and the hunt you are in.</li>" +
@@ -3352,7 +3580,7 @@ function paintGuide() {
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an SI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Peer to peer is the payment. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled. This square is still the classroom.</li>" +
-    "<li>Mint is the building with the Mint sign. Walk in and the mint card is open. OLAF is already there, fully minted at 1,000,000.00. 100 units are 1.00. Remaining is 0. 25 tKAS, 50 tKAS, or Max buys it. The tKAS goes to the reserve. OLAF does not lock that tKAS and does not redeem. The line on the card is supply on this square, not a KAS price. Mint, Trade, and About sit under that line. Trade offers one open name for another. Copy puts an address on the clipboard. Mint more, send, or open a new name. Only the address that opened a name can mint more of it. The card shows that address. KAS, tKAS, USDT, KUSDT, POC, POCencept, OLAF, and 1984 are reserved. Open names sit on the card. Click a name to see the addresses, the amounts, and the ledger lines. A name that has reached its cap is under Completed. It is a square-ledger token under KCC-20 Last Call. It is not Final, and no covenant is deployed. Type 0 in Cap for no cap. There is no maximum.</li>" +
+    "<li>Mint is the building with the Mint sign. Walk in and the mint card is open. OLAF is a shielded dollar note. 100 units are 1.00. The old public supply is deleted. 25 tKAS, 50 tKAS, or Max shields a new note in this browser. The tKAS stays in the reserve as backing. There is no chain payout. The line on the card is supply on this square, not a KAS price. Mint, Trade, and About sit under that line. Trade offers one open name for another. Copy puts an address on the clipboard. Mint more, send, or open a new name. Only the address that opened a name can mint more of it. The card shows that address. KAS, tKAS, USDT, KUSDT, POC, POCencept, OLAF, and 1984 are reserved. Open names sit on the card. Click a name to see the addresses, the amounts, and the ledger lines. A name that has reached its cap is under Completed. It is a square-ledger token under KCC-20 Last Call. It is not Final, and no covenant is deployed. Type 0 in Cap for no cap. There is no maximum.</li>" +
     "<li>Layer-Kaspa is on the side rail. Open a .kas name, or make one. The funded test wallet on this tab can inscribe more than one name. The first name is the default. domain/address on the balance bar changes it. This square keeps an index of names it inscribed or verified. The KNS testnet index is still the network record. No covenant is deployed. Visitors see the page. Only the owner can change it. The window has the title, a tagline, the welcome, a color, a link, and offers. A private note is separate. A short one is ciphertext in a Testnet-10 payload. A longer one stays encrypted on this desk. A pasted address uses the KNS app. This layer does not hide the path. It is not Tor.</li>" +
     "<li>Kachat is on the side rail. Paste the other kaspatest address and send a handshake. They accept it. Then you send messages. Each step is 0.01 POCencept. Messages only. The KaChat app on the chain is a different program.</li>" +
     "<li>Vault is on the side rail. It keeps a note on this square ledger and a rule for who may read it and when. The labels are a note, an NDA, an enterprise file, or other. A real secret does not belong here. This page checks the readers and the time. A covenant mark is a label. No covenant is deployed. Seal keeps the note and the rule.</li>" +
@@ -3619,6 +3847,8 @@ async function spend(rail, shop, sku) {
     }
     const agreed = await askOk(buyAskLine(goodsName(shop, sku), price) + (sku === "abyss" ? " " + ABYSS_HANG : ""));
     if (!agreed) return;
+    let olafSpend = null;
+    if (rail === "olaf") olafSpend = await olafPayPlan(listedCents(shop, sku));
     paySlip({ title: "Payment", steps: paySteps, index: 1, place: shop, kind: "" });
     if (rail === "kas" && state.id.kind === "guest") {
       say("Paying from this browser's funded wallet.");
@@ -3659,6 +3889,7 @@ async function spend(rail, shop, sku) {
       txid,
       confirmed: true,
       token: guestToken(),
+      ...(olafSpend ? { inputs: olafSpend.inputs, change: olafSpend.change } : {}),
     }, 90000);
     if (!body.ok) {
       punch("shake");
@@ -3782,19 +4013,23 @@ async function lock(rail) {
   const shown = formatTkas(sompi) + " tKAS";
   const buying = rail === "olaf";
   setSwapBusy(true);
-  swapNote(buying ? "Buying " + name + " with " + shown + "…" : "Locking " + shown + " into " + name + "…", "wait");
+  swapNote(buying ? "Shielding " + name + " with " + shown + "…" : "Locking " + shown + " into " + name + "…", "wait");
   let sent = false;
   try {
     let body;
     if (state.id.kind === "guest") {
-      const steps = ["Checking the amount", "Paying from this tab", "Adding the tag", "Done"];
+      const steps = buying
+        ? ["Checking the amount", "Paying from this tab", "Sealing the note", "Done"]
+        : ["Checking the amount", "Paying from this tab", "Adding the tag", "Done"];
       showSteps(steps, 1, "Paying from this tab.");
-      showSteps(steps, 2, "Adding the tag.");
-      body = await post("/api/1984/guest/convert", {
-        token: state.id.token,
-        rail,
-        amount: fieldValue("lock-amt").trim(),
-      }, 90000);
+      showSteps(steps, 2, buying ? "Sealing the note." : "Adding the tag.");
+      body = buying
+        ? await depositOlafGuest(fieldValue("lock-amt").trim())
+        : await post("/api/1984/guest/convert", {
+          token: state.id.token,
+          rail,
+          amount: fieldValue("lock-amt").trim(),
+        }, 90000);
       showSteps(steps, steps.length, "Done.");
     } else {
       const txField = document.getElementById("lock-txid");
@@ -3802,7 +4037,7 @@ async function lock(rail) {
       let steps;
       if (!txid) {
         const who = walletWord();
-        steps = ["Checking the amount", "Opening " + who, "Approve the send in " + who, "Waiting for Testnet 10 to settle", "Adding the tag"];
+        steps = ["Checking the amount", "Opening " + who, "Approve the send in " + who, "Waiting for Testnet 10 to settle", buying ? "Sealing the note" : "Adding the tag"];
         showSteps(steps, 1, who === "the wallet" ? "The wallet is opening." : who + " is opening.");
         const plan = await signerForSpend();
         if (plan !== "kit" && plan !== "kasware" && plan !== "kastle") {
@@ -3812,14 +4047,14 @@ async function lock(rail) {
           return;
         }
         const named = walletWord(plan);
-        steps = ["Checking the amount", "Opening " + named, "Approve the send in " + named, "Waiting for Testnet 10 to settle", "Adding the tag"];
+        steps = ["Checking the amount", "Opening " + named, "Approve the send in " + named, "Waiting for Testnet 10 to settle", buying ? "Sealing the note" : "Adding the tag"];
         showSteps(steps, 2, "Approve the send in " + named + ".");
         swapNote("Approve " + shown + " in " + named + ". The miner fee is 87 times the standard rate, and it is extra KAS.", "wait");
         rememberWalletKind(plan);
         txid = await sendFromWallet(plan, sompi);
         showSteps(steps, 3, "Waiting for Testnet 10 to settle.");
       } else {
-        steps = ["Checking the amount", "Waiting for Testnet 10 to settle", "Adding the tag"];
+        steps = ["Checking the amount", "Waiting for Testnet 10 to settle", buying ? "Sealing the note" : "Adding the tag"];
         showSteps(steps, 1, "Waiting for Testnet 10 to settle.");
       }
       sent = !!txid;
@@ -3832,9 +4067,9 @@ async function lock(rail) {
           if (details) details.open = true;
         }
       }
-      showSteps(steps, steps.length - 1, "Adding the tag.");
-      swapNote("Waiting for Testnet 10 to settle. Adding the " + name + " tag…", "wait");
-      body = await post("/api/1984/convert", { rail, txid });
+      showSteps(steps, steps.length - 1, buying ? "Sealing the note." : "Adding the tag.");
+      swapNote(buying ? "Waiting for Testnet 10 to settle. Sealing the OLAF note…" : "Waiting for Testnet 10 to settle. Adding the " + name + " tag…", "wait");
+      body = buying ? await depositOlafWallet(sompi, txid) : await post("/api/1984/convert", { rail, txid });
       showSteps(steps, steps.length, "Done.");
     }
     if (!body.ok) {
@@ -3857,7 +4092,10 @@ async function lock(rail) {
     const got = body.cents == null || body.cents === "" ? "" : formatCents(body.cents);
     if (got) putRedeemAmount(got);
     const tx = paid ? " Tx " + paid.slice(0, 10) + "…." : "";
-    swapNote(settleLine(!!paid) + " " + (got ? "Swapped. " + shown + " became " + got + " " + name + "." : "Swapped. " + shown + " locked into " + name + ".") + tx + " " + kind, "ok");
+    const landed = buying
+      ? "Shielded. " + shown + " became " + (got || "OLAF") + " OLAF. The note stays in this browser."
+      : (got ? "Swapped. " + shown + " became " + got + " " + name + "." : "Swapped. " + shown + " locked into " + name + ".");
+    swapNote(settleLine(!!paid) + " " + landed + tx + " " + kind, "ok");
     await refreshAccount();
   } catch (err) {
     punch("shake");
@@ -4963,7 +5201,7 @@ function paintMint() {
     '<button type="button" data-mint-tkas="max">Max</button>' +
     "</div>" +
     '<button type="button" id="mint-go" class="dex-go">Mint</button>' +
-    '<p class="fine">25 tKAS, 50 tKAS, or Max buys OLAF. Max spends the tKAS in this wallet and leaves the miner fee. A name you opened still mints that many units. Square ledger. KCC-20 Last Call. It is not Final. No covenant is deployed. Any funded address can mint more of a name it opened. Type 0 in Cap for no cap.</p>' +
+    '<p class="fine">25 tKAS, 50 tKAS, or Max shields OLAF in this browser. Max spends the tKAS in this wallet and leaves the miner fee. A name you opened still mints that many units. Square ledger. KCC-20 Last Call. It is not Final. No covenant is deployed. Any funded address can mint more of a name it opened. Type 0 in Cap for no cap.</p>' +
     "</div>" +
     '<div id="mint-pane-trade" hidden>' +
     '<div class="dex-box"><div class="dex-box-top"><span>You pay</span></div>' +
@@ -5334,13 +5572,12 @@ function paintMintBoards() {
     : '<p class="mint-cap-note">' + empty + "</p>";
   const openEmpty = needle ? "No open name matches." : "No open mint yet.";
   const doneEmpty = needle ? "No completed name matches." : "No mint has reached its cap.";
-  const olaf = rows.find((row) => row && row.name === "OLAF");
   const showOlaf = !needle || "olaf".includes(needle);
   const available = open.filter((row) => row.name !== "OLAF");
   const finished = done.filter((row) => row.name !== "OLAF");
   const availHead = '<div class="mint-section"><h3>Available mints</h3><span>' + (available.length + (showOlaf ? 1 : 0)) + "</span></div>";
   const cols = "<div class=\"mint-cols\"><span>Name</span><span>Supply</span><span>Holders</span><span>Minted</span><span>Age</span></div>";
-  const olafCard = showOlaf ? olafMintCard(olaf) : "";
+  const olafCard = showOlaf ? olafMintCard() : "";
   const openList = available.length
     ? cols + '<ul class="dex-market">' + available.map(mintRow).join("") + "</ul>"
     : (showOlaf ? "" : '<p class="mint-cap-note">' + openEmpty + "</p>");
@@ -5401,18 +5638,16 @@ function startMintWatch() {
 
 function mintHoldingsHtml() {
   const mine = (state.account && state.account.tokens) || [];
-  if (!mine.length) return '<p class="mint-cap-note">No holdings yet.</p>';
-  return '<ul class="mint-hold-list">' + mine.map((row) => {
-    const amount = row.name === "OLAF" ? formatCents(row.amount) : String(row.amount);
-    return "<li><strong>" + esc(row.name) + "</strong><span>" + esc(amount) + "</span></li>";
-  }).join("") + "</ul>";
+  const rows = mine.map((row) => "<li><strong>" + esc(row.name) + "</strong><span>" + esc(String(row.amount)) + "</span></li>");
+  rows.unshift("<li><strong>OLAF</strong><span>" + esc(formatCents(olafHeld())) + " shielded</span></li>");
+  return '<ul class="mint-hold-list">' + rows.join("") + "</ul>";
 }
 
-function olafMintCard(row) {
-  const supply = row && row.supply ? formatCents(row.supply) : "1000000.00";
-  const people = row && row.holderCount != null ? String(row.holderCount) + " holders. " : "";
-  return '<div class="mint-olaf"><p><strong>OLAF</strong> Fully minted. ' + esc(supply) + " OLAF. Remaining 0.</p>" +
-    "<p>" + people + "100 units are 1.00. The whole supply was minted once, KCC-20 Last Call. It is not Final. No covenant was broadcast. Buy it with tKAS. It does not redeem.</p>" +
+function olafMintCard() {
+  const code = state.olafCode || "The receive code appears when this page opens.";
+  return '<div class="mint-olaf"><p><strong>OLAF</strong> ' + esc(formatCents(olafHeld())) + " shielded. 1.00 is one dollar of tKAS at the quote when the note was made.</p>" +
+    "<p>The old public supply is deleted. 25 tKAS, 50 tKAS, or Max shields a new note to this browser. The till checks it and does not keep the secret. There is no chain payout.</p>" +
+    '<p class="mint-addr">' + esc(code) + "</p>" +
     mintTkasButtons("OLAF") + "</div>";
 }
 
@@ -5460,15 +5695,11 @@ async function olafSpendSompi(kind) {
 async function buyOlafFromMint(sompi) {
   if (!requireId()) return;
   const shown = formatTkas(sompi) + " tKAS";
-  say("Buying OLAF with " + shown + "…");
+  say("Shielding OLAF with " + shown + "…");
   try {
     let body;
     if (state.id.kind === "guest") {
-      body = await post("/api/1984/guest/convert", {
-        token: state.id.token,
-        rail: "olaf",
-        amount: formatTkas(sompi),
-      }, 90000);
+      body = await depositOlafGuest(formatTkas(sompi));
     } else {
       const plan = await signerForSpend();
       if (plan !== "kit" && plan !== "kasware" && plan !== "kastle") {
@@ -5476,18 +5707,18 @@ async function buyOlafFromMint(sompi) {
         return;
       }
       const txid = await sendFromWallet(plan, sompi);
-      body = await post("/api/1984/convert", { rail: "olaf", txid });
+      body = await depositOlafWallet(sompi, txid);
     }
-    if (!body.ok) {
-      say(body.error || "The mint did not land.", true);
+    if (!body || !body.ok) {
+      say((body && body.error) || "The note did not seal.", true);
       return;
     }
     const got = body.cents == null || body.cents === "" ? "" : formatCents(body.cents);
-    say(got ? "Bought " + got + " OLAF with " + shown + "." : "OLAF bought.");
+    say(got ? "Shielded " + got + " OLAF with " + shown + "." : "OLAF shielded.");
     await refreshAccount(true);
     if (state.mode === "mint") paintMint();
   } catch (err) {
-    say((err && err.message) || "The mint did not land.", true);
+    say((err && err.message) || "The note did not seal.", true);
   }
 }
 
@@ -5602,11 +5833,11 @@ async function saveMint() {
   const option = picked ? picked.value : "new";
   const name = String(mintChosenName() || "").trim();
   if (!name) {
-    say("Choose a name. 25 tKAS, 50 tKAS, or Max buys OLAF.", true);
+    say("Choose a name. 25 tKAS, 50 tKAS, or Max shields OLAF.", true);
     return;
   }
   if (name.toUpperCase() === "OLAF") {
-    say("OLAF is already minted. Buy it with 25 tKAS, 50 tKAS, or Max.", true);
+    say("OLAF is a shielded note. 25 tKAS, 50 tKAS, or Max seals it in this browser.", true);
     return;
   }
   const amount = (document.getElementById("mint-amount") || {}).value || "";
@@ -6462,7 +6693,7 @@ window.addEventListener("pagehide", () => {
 });
 keepGuest();
 setInterval(keepGuest, 45_000);
-api("/api/1984").then((body) => {
+api("/api/1984").then(async (body) => {
   if (!body.ok) {
     state.oracleError = body.error || "Ledger offline.";
     say(state.oracleError, true);
@@ -6474,6 +6705,7 @@ api("/api/1984").then((body) => {
   state.reserve = body.reserve || RESERVE;
   if (state.oracle) say("Live KAS $" + Number(state.oracle).toFixed(4) + ". Shop tags stay on this ledger.");
   else if (state.oracleError) say(state.oracleError, true);
+  await refreshOlaf(true);
   paintChrome();
   if (state.mode !== "world") openMode(state.mode);
   if (location.hash === "#sistream") openMode("sistream");

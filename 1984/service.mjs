@@ -24,6 +24,8 @@ import {
   applySnap,
   applyOlafBuy,
   applyOlafSend,
+  claimOlaf,
+  holdOlafPayment,
   applySpend,
   applyStreamBuy,
   applyToken,
@@ -56,6 +58,7 @@ import {
   RESERVE,
   assertNotMainnetNetwork,
   assertTestnet,
+  centsForSompi,
   dayKey,
   parseDollars,
   parseTkas,
@@ -66,6 +69,7 @@ import { openGuestLock, settleExchange, settleFreeze, settleRedeem, settleSpend 
 import { addTitle, mediaName, normalizeShare, publicStream, removeTitle, titleById } from "./stream-book.mjs";
 import { OLAF_DECIMALS } from "./kcc20.mjs";
 import { OLAF_NOTE } from "./olaf-note.mjs";
+import { assertDepositNote, publicPool } from "./olaf-pool.mjs";
 import { HUNTS, SHOPS, itemBySku, shopById } from "./world.mjs";
 
 const DISCLAIMER =
@@ -79,7 +83,7 @@ export function create1984Service(deps) {
   let state = deps.load() || freshState();
   const born = ensureOlaf(state, typeof deps.now === "function" ? deps.now() : 0);
   state = born.state;
-  if (born.minted && typeof deps.save === "function") deps.save(state);
+  if (born.retired && typeof deps.save === "function") deps.save(state);
   let lock = Promise.resolve();
   let oracle = { price: 0, at: 0 };
   const hits = new Map();
@@ -440,13 +444,30 @@ export function create1984Service(deps) {
       const usd = await price();
       const sompi = parseTkas(body.amount);
       if (body.rail === "olaf") {
+        const cents = centsForSompi(sompi, usd);
+        if (cents <= 0n) throw new Error("That payment is too small at the live price to buy 0.01 OLAF.");
+        if (!body.note) {
+          return { status: 200, body: { ok: false, ready: true, cents: String(cents), sompi: String(sompi) } };
+        }
+        assertDepositNote(body.note, cents, sompi);
         const paid = await guests.pay({ token: body.token, address, sompi });
         const seen = await waitPayment(address, paid.txid, sompi);
         return queue(async () => {
-          const out = applyOlafBuy(state, { address, payment: seen, usdPerKas: usd }, deps.now());
-          state = out.state;
-          deps.save(state);
-          return { status: 200, body: out.result };
+          try {
+            const out = applyOlafBuy(state, { address, payment: seen, usdPerKas: usd, note: body.note }, deps.now());
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: out.result };
+          } catch (err) {
+            try {
+              const out = holdOlafPayment(state, { address, payment: seen, usdPerKas: usd }, deps.now());
+              state = out.state;
+              deps.save(state);
+              return { status: 200, body: out.result };
+            } catch {
+              throw err;
+            }
+          }
         });
       }
       if (deps.pegLock) {
@@ -618,6 +639,8 @@ export function create1984Service(deps) {
           prepaidCents: prepaid && prepaid.prepaidCents,
           chainSompi: prepaid && prepaid.chainSompi,
           chainTxid: prepaid && prepaid.chainTxid,
+          inputs: body && body.inputs,
+          change: body && body.change,
         },
         deps.now()
       );
@@ -953,7 +976,6 @@ export function create1984Service(deps) {
           return await statementOf(query);
         }
         if (method === "GET" && pathname === "/api/1984/olaf") {
-          const row = publicMints(state).find((item) => item.name === "OLAF");
           return {
             status: 200,
             body: {
@@ -961,13 +983,11 @@ export function create1984Service(deps) {
               network: "testnet-10",
               tick: "OLAF",
               decimals: OLAF_DECIMALS,
-              supply: row ? row.supply : "0",
-              cap: row ? row.cap : "0",
-              sealed: !!(row && row.sealed),
-              remaining: row && row.remaining != null ? String(row.remaining) : "0",
-              extension: row ? row.extension : "",
+              ...publicPool(state.olaf),
               note: OLAF_NOTE.lines,
               experimental: true,
+              proof: false,
+              zk: false,
             },
           };
         }
@@ -1001,7 +1021,15 @@ export function create1984Service(deps) {
         }
         if (pathname === "/api/1984/olaf/send") {
           return await queue(async () => {
-            const out = applyOlafSend(state, { address, to: body.to, amount: body.amount }, now);
+            const out = applyOlafSend(state, { address, inputs: body.inputs, outputs: body.outputs }, now);
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: out.result };
+          });
+        }
+        if (pathname === "/api/1984/olaf/shield") {
+          return await queue(async () => {
+            const out = claimOlaf(state, { address, txid: body.txid, note: body.note }, now);
             state = out.state;
             deps.save(state);
             return { status: 200, body: out.result };
@@ -1189,6 +1217,8 @@ export function create1984Service(deps) {
                 prepaidCents: prepaid && prepaid.prepaidCents,
                 chainSompi: prepaid && prepaid.chainSompi,
                 chainTxid: prepaid && prepaid.chainTxid,
+                inputs: body.inputs,
+                change: body.change,
               },
               now
             );
@@ -1206,7 +1236,7 @@ export function create1984Service(deps) {
           const pay = await waitPayment(address, body.txid, 1n);
           return await queue(async () => {
             const out = body.rail === "olaf"
-              ? applyOlafBuy(state, { address, payment: pay, usdPerKas: usd }, now)
+              ? applyOlafBuy(state, { address, payment: pay, usdPerKas: usd, note: body.note }, now)
               : applyConvert(state, { address, rail: body.rail, payment: pay, usdPerKas: usd }, now);
             state = out.state;
             deps.save(state);

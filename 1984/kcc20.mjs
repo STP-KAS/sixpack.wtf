@@ -144,12 +144,10 @@ export function blake3Hex(bytes) {
 
 const RESERVED_TICKS = new Set(["POC", "POCEPT", "POCENCEPT", "KUSDT", "KAS", "TKAS", "USDT", "1984"]);
 
-/** OLAF is already minted in full. The open-ended mint desk cannot mint it again. */
+/** OLAF is a shielded note. The open mint desk cannot mint it onto a public balance. */
 export const OLAF_TICK = "OLAF";
 /** Two decimals, the same cent scale as a shop price. 100 units are 1.00 OLAF. Not sompi. */
 export const OLAF_DECIMALS = 2;
-/** 1,000,000.00 OLAF. The whole supply is minted once. */
-export const OLAF_SUPPLY = 100_000_000n;
 const FIXED_TICKS = new Set([OLAF_TICK]);
 
 /** A mint name on this desk. Letters and digits, 1 to 12, starting with a letter. */
@@ -159,7 +157,7 @@ export function normalizeTick(name) {
     throw new Error("A token name is 1 to 12 letters and digits, and it starts with a letter.");
   }
   if (RESERVED_TICKS.has(tick)) throw new Error("That name is already a rail on this square.");
-  if (FIXED_TICKS.has(tick)) throw new Error("OLAF is already minted. Send it. There is no second mint.");
+  if (FIXED_TICKS.has(tick)) throw new Error("OLAF is a shielded note. The mint desk does not mint it.");
   return tick;
 }
 

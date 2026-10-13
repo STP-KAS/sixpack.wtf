@@ -52,7 +52,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=157/);
+  assert.match(html, /1984\/client\.mjs\?v=158/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -206,7 +206,7 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.ok(topEnd > 0 && barAt > topEnd && stageAt > barAt);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
   assert.match(html, /1984\.css\?v=85/);
-  assert.match(html, /1984\/client\.mjs\?v=157/);
+  assert.match(html, /1984\/client\.mjs\?v=158/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
@@ -293,7 +293,7 @@ test("the balances stay in a clear bar under the site tabs", () => {
   const boards = sliceFn(client, "paintMintBoards");
   assert.match(boards, /<h3>Your holdings<\/h3>/);
   assert.match(boards, /<h3>Available mints<\/h3>/);
-  assert.match(sliceFn(client, "olafMintCard"), /Fully minted/);
+  assert.match(sliceFn(client, "olafMintCard"), /shielded/);
   assert.match(sliceFn(client, "fillRailsNote"), /OLAF_NOTE/);
   assert.match(html, /id="need-swap-olaf"/);
   assert.match(boards, /Completed/);

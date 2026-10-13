@@ -63,6 +63,6 @@ test("an empty POCencept or KUSDT balance says to swap tKAS at the bank", () => 
   assert.equal(shortRail("kas", 10n), "Not enough tKAS. Go to the bank.");
   assert.equal(shortRail("poc", 0n), "No POCencept. Go to the bank and swap.");
   assert.equal(shortRail("kusdt", 4n), "Not enough KUSDT. Go to the bank and swap.");
-  assert.equal(shortRail("olaf", 0n), "No OLAF. Swap tKAS for it at the bank, or take a transfer.");
-  assert.equal(shortRail("olaf", 4n), "Not enough OLAF. Swap more tKAS at the bank, or take a transfer.");
+  assert.equal(shortRail("olaf", 0n), "No OLAF. Shield tKAS at the bank. The note stays in this browser.");
+  assert.equal(shortRail("olaf", 4n), "Not enough OLAF. Shield more tKAS at the bank, or take a private send.");
 });

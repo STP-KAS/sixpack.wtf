@@ -15,7 +15,6 @@ import {
   sompiForCents,
 } from "./money.mjs";
 import {
-  OLAF_SUPPLY,
   extensionFor,
   holderMint,
   normalizeTick,
@@ -24,6 +23,7 @@ import {
   standardTransfer,
   tokenExtension,
 } from "./kcc20.mjs";
+import { burnNotes, cleanPool, depositNote, emptyPool, moveNotes } from "./olaf-pool.mjs";
 import { chainPublic } from "./peg-book.mjs";
 import { accountNames } from "./layer.mjs";
 import { publicSeal } from "./seal.mjs";
@@ -250,6 +250,7 @@ export function publicAccount(state, address) {
     spentCents: base.spentCents,
     seq: base.seq,
     tokens: tokenHoldings(state, base),
+    olafPending: pendingFor(state, clean),
     receipts,
   };
 }
@@ -357,7 +358,7 @@ function tokenHoldings(state, account) {
       extension,
       amount: String(bag[extension] || "0"),
     }))
-    .filter((row) => row.name && row.amount !== "0")
+    .filter((row) => row.name && row.name !== "OLAF" && row.amount !== "0")
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -517,138 +518,90 @@ function applyOffer(state, input, now, address, option) {
   return tradeResult(next, address, receipt);
 }
 
-function olafSum(state) {
-  const extension = olafExtension();
-  let sum = 0n;
-  for (const account of Object.values(state.accounts || {})) {
-    sum += bi(account.tokens && account.tokens[extension]);
-  }
-  return sum;
+function pendingFor(state, address) {
+  const book = (state.olaf && state.olaf.pending) || {};
+  const want = String(address || "").toLowerCase();
+  return Object.keys(book)
+    .filter((txid) => book[txid] && String(book[txid].address || "").toLowerCase() === want)
+    .map((txid) => ({ txid, cents: String(book[txid].cents), sompi: String(book[txid].sompi) }));
 }
 
-/** Mint the whole OLAF supply once, onto the reserve. A second call does not mint. */
+/** Drop the old public OLAF mint. A version-2 pool is a note list, not a balance. */
 export function ensureOlaf(state, now) {
+  void now;
   if (!state.mints || typeof state.mints !== "object" || Array.isArray(state.mints)) state.mints = {};
   if (!state.accounts || typeof state.accounts !== "object" || Array.isArray(state.accounts)) state.accounts = {};
   if (!Array.isArray(state.receipts)) state.receipts = [];
   if (!state.txids || typeof state.txids !== "object" || Array.isArray(state.txids)) state.txids = {};
   if (state.seq == null) state.seq = "0";
   const extension = olafExtension();
-  for (const row of Object.values(state.mints)) {
-    if (row && row.name === "OLAF" && row.extension !== extension) {
-      throw new Error("OLAF is already on this book in another shape.");
+  let retired = false;
+  for (const account of Object.values(state.accounts)) {
+    if (account && account.tokens && Object.prototype.hasOwnProperty.call(account.tokens, extension)) {
+      delete account.tokens[extension];
+      retired = true;
     }
   }
-  const book = state.mints[extension];
-  if (book) {
-    if (book.name !== "OLAF" || book.sealed !== true) throw new Error("OLAF is already on this book in another shape.");
-    if (bi(book.supply) !== OLAF_SUPPLY || bi(book.cap) !== OLAF_SUPPLY) {
-      throw new Error("OLAF supply is fixed. This book does not match it.");
+  for (const key of Object.keys(state.mints)) {
+    const row = state.mints[key];
+    if (key === extension || (row && row.name === "OLAF")) {
+      delete state.mints[key];
+      retired = true;
     }
-    if (olafSum(state) !== OLAF_SUPPLY) throw new Error("OLAF supply is fixed. This book does not match it.");
-    return { state, minted: false };
   }
-  state.mints[extension] = {
-    name: "OLAF",
-    extension,
-    supply: String(OLAF_SUPPLY),
-    cap: String(OLAF_SUPPLY),
-    opener: RESERVE,
-    sealed: true,
-    // KCC20PublicMint: one mint of the whole allowance. remaining is then 0.
-    // mint() needs a positive amount no greater than remaining. split() needs take <= remaining / 2.
-    // Both fail. Later moves are standard transfers of the recipient balance.
-    remaining: "0",
-    mintAmount: String(OLAF_SUPPLY),
-  };
-  const account = ensure(state, RESERVE);
-  if (!account.tokens) account.tokens = {};
-  if (bi(account.tokens[extension]) !== 0n) throw new Error("OLAF supply is fixed. This book does not match it.");
-  account.tokens[extension] = String(OLAF_SUPPLY);
-  const receipt = pushReceipt(state, account, {
-    at: now,
-    kind: "mint",
-    sku: "OLAF",
-    rail: "olaf",
-    cents: OLAF_SUPPLY,
-    note: "Minted the whole OLAF supply once. KCC-20 Last Call public mint, allowance exhausted, remaining 0. No second mint. Not Kaspa core.",
-  });
-  rememberMint(state, state.mints[extension], receipt, {
-    address: RESERVE,
-    to: "",
-    amount: String(OLAF_SUPPLY),
-    op: "new",
-  });
-  return { state, minted: true };
+  if (!state.olaf || state.olaf.version !== 2) {
+    retired = true;
+    state.olaf = emptyPool();
+  } else {
+    const raw = JSON.stringify(state.olaf);
+    state.olaf = cleanPool(state.olaf);
+    if (raw.includes("spendSecret") || raw.includes("\"witness\"")) retired = true;
+  }
+  return { state, minted: false, retired };
 }
 
-/** Move OLAF cents. The supply stays. This is not a SquarePeg lock and not a tKAS payment. */
-function moveOlaf(state, from, to, amount) {
-  ensureOlaf(state, 0);
-  const extension = olafExtension();
-  const src = ensure(state, from);
-  if (!src.tokens) src.tokens = {};
-  const held = bi(src.tokens[extension]);
-  if (held < amount) throw new Error("Not enough OLAF.");
-  standardTransfer(
-    [{ amount, extension }],
-    [{ amount, extension }]
-  );
-  if (from.toLowerCase() !== to.toLowerCase()) {
-    const dest = ensure(state, to);
-    if (!dest.tokens) dest.tokens = {};
-    const destHeld = bi(dest.tokens[extension]);
-    holderMint(destHeld, destHeld + amount, extension, to);
-    src.tokens[extension] = String(held - amount);
-    dest.tokens[extension] = String(destHeld + amount);
-  }
-  if (olafSum(state) !== OLAF_SUPPLY) throw new Error("OLAF supply moved. This transfer was refused.");
-}
-
-/** Send OLAF that is already minted. This path cannot mint. */
-export function applyOlafSend(state, input, now) {
-  const address = assertTestnet(input.address);
-  const to = assertTestnet(input.to);
-  if (to.toLowerCase() === address.toLowerCase()) throw new Error("Send it to another address.");
-  const amount = wholeAmount(input.amount);
-  const next = clone(state);
-  ensureOlaf(next, now);
-  moveOlaf(next, address, to, amount);
+function olafReceipt(next, address, now, cents, sompi, txid, note) {
   const account = ensure(next, address);
-  const receipt = pushReceipt(next, account, {
+  return pushReceipt(next, account, {
     at: now,
-    kind: "mint",
-    sku: "OLAF",
+    kind: "convert",
     rail: "olaf",
-    cents: amount,
-    note: "Sent " + amount.toString() + " OLAF cents on this ledger. 100 cents are 1.00 OLAF. Not a covenant.",
+    cents,
+    sompi,
+    txid,
+    note,
   });
-  rememberMint(next, next.mints[olafExtension()], receipt, {
-    address,
-    to,
-    amount: amount.toString(),
-    op: "send",
-  });
-  return {
-    state: next,
-    result: { ok: true, receipt, account: publicAccount(next, address), mints: publicMints(next) },
-  };
 }
 
-/** Buy OLAF with tKAS. The quote is the live KAS price. The supply stays. This is not a SquarePeg lock. */
+/** Shield tKAS into a note. The witness is checked and is not written onto the book. */
 export function applyOlafBuy(state, input, now) {
   const address = assertTestnet(input.address);
-  if (address.toLowerCase() === RESERVE.toLowerCase()) throw new Error("The reserve already holds the OLAF supply.");
-  if (!input.payment || !input.payment.txid) throw new Error("Buying OLAF needs an accepted Testnet-10 transaction.");
+  if (address.toLowerCase() === RESERVE.toLowerCase()) throw new Error("The reserve does not shield OLAF for itself.");
+  if (!input.payment || !input.payment.txid) throw new Error("Shielding OLAF needs an accepted Testnet-10 transaction.");
   const paid = bi(input.payment.paid);
-  if (paid <= 0n) throw new Error("Buying OLAF needs an accepted Testnet-10 transaction.");
+  if (paid <= 0n) throw new Error("Shielding OLAF needs an accepted Testnet-10 transaction.");
   const cents = centsForSompi(paid, input.usdPerKas);
   if (cents <= 0n) throw new Error("That payment is too small at the live price to buy 0.01 OLAF.");
-  const txid = String(input.payment.txid);
+  const txid = String(input.payment.txid).trim().toLowerCase();
   const seen = state.txids && state.txids[txid];
   if (seen) {
     if (seen.kind !== "convert" || seen.rail !== "olaf" || !sameAddress(seen.address, address)) {
       throw new Error("That transaction was already used.");
+    }
+    const pending = state.olaf && state.olaf.pending && state.olaf.pending[txid];
+    if (pending) {
+      return {
+        state,
+        result: {
+          ok: true,
+          pending: true,
+          peg: false,
+          cents: String(pending.cents),
+          sompi: String(pending.sompi),
+          txid,
+          account: publicAccount(state, address),
+        },
+      };
     }
     const found = convertReceipt(state, txid, "olaf");
     const receipt = found || {
@@ -664,7 +617,7 @@ export function applyOlafBuy(state, input, now) {
       txid,
       seq: seen.receiptId || "",
       kusdtSeq: "",
-      note: "Bought OLAF with tKAS at the live quote.",
+      note: "Shielded OLAF at the live quote.",
     };
     return {
       state,
@@ -673,25 +626,108 @@ export function applyOlafBuy(state, input, now) {
   }
   const next = clone(state);
   ensureOlaf(next, now);
-  const book = next.mints[olafExtension()];
-  if (book.remaining != null && bi(book.remaining) !== 0n) {
-    throw new Error("OLAF mint allowance is still open. This swap was refused.");
-  }
-  moveOlaf(next, RESERVE, address, cents);
-  const account = ensure(next, address);
-  const receipt = pushReceipt(next, account, {
-    at: now,
-    kind: "convert",
-    rail: "olaf",
+  depositNote(next.olaf, input.note, cents, paid);
+  const receipt = olafReceipt(
+    next,
+    address,
+    now,
     cents,
-    sompi: paid,
+    paid,
     txid,
-    note: "Bought OLAF with tKAS at the live quote. KCC-20 Last Call standard transfer. The mint allowance is 0. The tKAS is not locked. OLAF does not redeem.",
-  });
+    "Shielded OLAF at the live quote. 100 cents are 1.00 OLAF. The tKAS stays in the square reserve as backing. The till checked the witness and did not keep it. Not a covenant."
+  );
   next.txids[txid] = { address, kind: "convert", rail: "olaf", receiptId: receipt.id };
   return {
     state: next,
     result: { ok: true, peg: false, receipt, account: publicAccount(next, address), cents: String(cents) },
+  };
+}
+
+/** The tKAS arrived and the note did not match. The payment stays owed until a note is sealed. */
+export function holdOlafPayment(state, input, now) {
+  const address = assertTestnet(input.address);
+  if (!input.payment || !input.payment.txid) throw new Error("Shielding OLAF needs an accepted Testnet-10 transaction.");
+  const paid = bi(input.payment.paid);
+  const cents = centsForSompi(paid, input.usdPerKas);
+  if (cents <= 0n || paid <= 0n) throw new Error("That payment is too small at the live price to buy 0.01 OLAF.");
+  const txid = String(input.payment.txid).trim().toLowerCase();
+  const seen = state.txids && state.txids[txid];
+  if (seen) {
+    const pending = state.olaf && state.olaf.pending && state.olaf.pending[txid];
+    if (pending && sameAddress(pending.address, address)) {
+      return {
+        state,
+        result: { ok: true, pending: true, cents: String(pending.cents), sompi: String(pending.sompi), txid, account: publicAccount(state, address) },
+      };
+    }
+    throw new Error("That transaction was already used.");
+  }
+  const next = clone(state);
+  ensureOlaf(next, now);
+  next.olaf.pending[txid] = { address, cents: String(cents), sompi: String(paid) };
+  const receipt = olafReceipt(
+    next,
+    address,
+    now,
+    cents,
+    paid,
+    txid,
+    "tKAS is waiting to be shielded. The dollar amount is fixed at this quote. Not a covenant."
+  );
+  next.txids[txid] = { address, kind: "convert", rail: "olaf", pending: true, receiptId: receipt.id };
+  return {
+    state: next,
+    result: { ok: true, pending: true, cents: String(cents), sompi: String(paid), txid, receipt, account: publicAccount(next, address) },
+  };
+}
+
+/** Seal a waiting payment. The witness is checked and is not written onto the book. */
+export function claimOlaf(state, input, now) {
+  const address = assertTestnet(input.address);
+  const txid = String(input.txid || "").trim().toLowerCase();
+  const next = clone(state);
+  ensureOlaf(next, now);
+  const pending = next.olaf.pending[txid];
+  if (!pending || !sameAddress(pending.address, address)) throw new Error("That payment is not waiting to be shielded.");
+  depositNote(next.olaf, input.note, pending.cents, pending.sompi);
+  delete next.olaf.pending[txid];
+  if (next.txids[txid]) next.txids[txid].pending = false;
+  const receipt = olafReceipt(
+    next,
+    address,
+    now,
+    pending.cents,
+    pending.sompi,
+    txid,
+    "Shielded the waiting OLAF note. The till checked the witness and did not keep it. Not a covenant."
+  );
+  return {
+    state: next,
+    result: { ok: true, pending: false, cents: String(pending.cents), receipt, account: publicAccount(next, address) },
+  };
+}
+
+/** Move notes. The pool total stays. No address and no amount is written onto the book. */
+export function applyOlafSend(state, input, now) {
+  const address = assertTestnet(input.address);
+  void now;
+  const next = clone(state);
+  ensureOlaf(next, now);
+  const beforeCents = next.olaf.cents;
+  const beforeSompi = next.olaf.sompi;
+  moveNotes(next.olaf, input.inputs, input.outputs);
+  if (next.olaf.cents !== beforeCents || next.olaf.sompi !== beforeSompi) {
+    throw new Error("The shielded notes do not balance.");
+  }
+  return {
+    state: next,
+    result: {
+      ok: true,
+      private: true,
+      account: publicAccount(next, address),
+      cents: next.olaf.cents,
+      sompi: next.olaf.sompi,
+    },
   };
 }
 
@@ -896,8 +932,8 @@ export function applySpend(state, input, now) {
   let sompi = 0n;
   let txid = "";
   if (input.rail === "olaf") {
-    // OLAF is not tKAS and not a SquarePeg tag. The cents move on the ledger and the supply stays.
-    moveOlaf(next, address, RESERVE, cents);
+    ensureOlaf(next, now);
+    burnNotes(next.olaf, input.inputs, input.change, cents);
   } else if (input.rail === "kas") {
     const need = sompiForCents(cents, input.usdPerKas);
     if (!input.payment || bi(input.payment.paid) < need) {
@@ -926,7 +962,7 @@ export function applySpend(state, input, now) {
     sompi,
     txid,
     note: shop.name + " · " + item.name + (input.rail === "olaf"
-      ? " · OLAF. This receipt can later name a Based Apps lane. Not a covenant."
+      ? " · OLAF note burned. The change stays shielded. Not a zero-knowledge proof. Not a covenant."
       : ""),
   });
   if (input.rail === "kas") {
@@ -1014,7 +1050,8 @@ export function applyStreamBuy(state, input, now) {
   let sompi = 0n;
   let txid = "";
   if (input.rail === "olaf") {
-    moveOlaf(next, address, RESERVE, cents);
+    ensureOlaf(next, now);
+    burnNotes(next.olaf, input.inputs, input.change, cents);
   } else if (input.rail === "kas") {
     const need = sompiForCents(cents, input.usdPerKas);
     if (!input.payment || bi(input.payment.paid) < need) {
@@ -1045,7 +1082,7 @@ export function applyStreamBuy(state, input, now) {
     sompi,
     txid,
     note: "SI stream · " + title + (input.rail === "olaf"
-      ? " · OLAF. This receipt can later name a Based Apps lane. Not a covenant."
+      ? " · OLAF note burned. The change stays shielded. Not a zero-knowledge proof. Not a covenant."
       : ""),
   });
   if (input.rail === "kas") {
