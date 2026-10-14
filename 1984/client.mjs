@@ -16,7 +16,7 @@ import {
 } from "./money.mjs?v=2";
 import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
 import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=5";
-import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, railLegendHtml, railStripHtml, shortRail, swapNeed } from "./rails-note.mjs?v=15";
+import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, railLegendHtml, shortRail, swapNeed } from "./rails-note.mjs?v=15";
 import { OLAF_NOTE, OLAF_PAY_LINE } from "./olaf-note.mjs?v=4";
 import {
   createDepositNote,
@@ -495,7 +495,6 @@ function payingAddressHtml() {
 }
 
 function barChangerHtml() {
-  const id = state.id;
   const account = state.account || {};
   const names = clientNames(account);
   const chosen = account.displayName || account.knsName || "";
@@ -503,11 +502,7 @@ function barChangerHtml() {
     const on = name === chosen ? " on" : "";
     return '<button type="button" class="bar-name' + on + '" data-kns="' + esc(name) + '">' + esc(name) + ".kas</button>";
   }).join(" ");
-  const kaspatest = id.address
-    ? '<button type="button" class="addr-copy" data-copy-addr>' + esc(id.address) + '</button> <span class="copied-note"></span>'
-    : "not chosen";
   return '<div class="bar-changer" id="bar-changer">' +
-    '<p class="bal-extra"><span class="bal-k">kaspatest:</span> ' + kaspatest + "</p>" +
     '<p class="bal-extra"><span class="bal-k">Default:</span> ' + esc(chosen ? chosen + ".kas" : "the address") + "</p>" +
     '<p class="bal-extra"><span class="bal-k">Change KNS name</span> ' + picks +
     ' <button type="button" class="bar-name" data-kns="">address</button></p>' +
@@ -548,7 +543,6 @@ function paintChrome() {
     '<p class="bal-line"><span class="bal-k">POC:</span> ' + esc(pocAmt) + "</p>" +
     '<p class="bal-line"><span class="bal-k">KUSDT:</span> ' + esc(kusdtAmt + frozen) + "</p>" +
     '<p class="bal-line"><span class="bal-k">OLAF:</span> ' + esc(olafAmt) + "</p>" +
-    railStripHtml() +
     payingAddressHtml() +
     '<p class="bal-line"><span class="bal-k">Domain:</span> ' + esc(chosen ? chosen + ".kas" : "none") + "</p>" +
     domainBtn +

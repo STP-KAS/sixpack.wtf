@@ -52,7 +52,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=168/);
+  assert.match(html, /1984\/client\.mjs\?v=169/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -217,13 +217,13 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(bar, /<span class="bal-k">POC:<\/span> —/);
   assert.match(bar, /<span class="bal-k">KUSDT:<\/span> —/);
   assert.match(bar, /<span class="bal-k">OLAF:<\/span> —/);
-  assert.match(bar, /tKAS the coin · POCencept public tag, no freeze · KUSDT public tag, freeze · OLAF private dollar/);
+  assert.doesNotMatch(bar, /rail-strip|tKAS the coin/);
   assert.match(bar, /Address:<\/span> not chosen/);
   assert.match(bar, /Domain:<\/span> none/);
   assert.match(bar, /id="bar-bank" class="bar-bank">Bank<\/button>/);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
   assert.match(html, /1984\.css\?v=87/);
-  assert.match(html, /1984\/client\.mjs\?v=168/);
+  assert.match(html, /1984\/client\.mjs\?v=169/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
@@ -231,7 +231,7 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(chrome, /<span class="bal-k">POC:<\/span>/);
   assert.match(chrome, /<span class="bal-k">KUSDT:<\/span>/);
   assert.match(chrome, /<span class="bal-k">OLAF:<\/span>/);
-  assert.match(chrome, /railStripHtml\(\)/);
+  assert.doesNotMatch(chrome, /railStripHtml\(\)/);
   assert.match(chrome, /payingAddressHtml\(\)/);
   assert.match(chrome, /<span class="bal-k">Domain:<\/span>/);
   const addrLine = sliceFn(client, "payingAddressHtml");
@@ -248,7 +248,8 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(css, /\.kw-bar \.bal-addr \{[\s\S]*white-space: normal/);
   assert.match(chrome, /id="bar-domain"/);
   assert.match(chrome, /domain\/address/);
-  assert.match(sliceFn(client, "barChangerHtml"), /kaspatest:/);
+  assert.doesNotMatch(sliceFn(client, "barChangerHtml"), /kaspatest:/);
+  assert.match(sliceFn(client, "barChangerHtml"), /Default:/);
   assert.match(sliceFn(client, "barChangerHtml"), /Change KNS name/);
   assert.match(chrome, /Minted:/);
   assert.match(chrome, /Hunt:/);
