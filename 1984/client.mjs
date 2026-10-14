@@ -6533,19 +6533,38 @@ if (gateUseAddr) {
 if (gateUseName) gateUseName.addEventListener("click", () => useName(gateName));
 watchNameBox(gateName);
 paintGateAddress();
+function primaryPress(ev) {
+  if (!ev || ev.button == null || ev.button === 0 || ev.button === -1) return true;
+  return false;
+}
+let fundedOpen = false;
+let eatClick = false;
 function startFundedTest(ev) {
-  if (ev && ev.button != null && ev.button !== 0) return;
+  if (!primaryPress(ev)) return;
+  // The click that follows pointerdown is the same press. A later press can try again.
+  if (ev && ev.type === "click" && eatClick) return;
   const fromEvent = ev && ev.target && ev.target.closest ? ev.target.closest("#gate-guest, #use-guest") : null;
-  const button = fromEvent || (ev && ev.currentTarget ? ev.currentTarget : null);
+  const own = ev && ev.currentTarget && (ev.currentTarget.id === "gate-guest" || ev.currentTarget.id === "use-guest") ? ev.currentTarget : null;
+  const button = fromEvent || own;
   if (!button) return;
+  if (!ev || ev.type !== "click") {
+    eatClick = true;
+    setTimeout(() => { eatClick = false; }, 0);
+  }
   openFundedTest(button);
 }
 function openFundedTest(button) {
-  if (guestBusy) return;
-  if (button) button.disabled = true;
+  if (guestBusy || fundedOpen) return;
+  fundedOpen = true;
+  if (button) {
+    button.setAttribute("aria-busy", "true");
+    button.textContent = "Opening the funded wallet";
+  }
   const gateEl = document.getElementById("gate");
   if (gateEl && !gateEl.hidden) paintGuestWait("", "");
   else say("Opening a funded test address.");
+  const status = document.getElementById("gate-status");
+  if (status && gateEl && !gateEl.hidden && status.scrollIntoView) status.scrollIntoView({ block: "nearest" });
   let last = "";
   startGuest((step, detail) => {
     const line = detail ? step + " (" + detail + ")" : step;
@@ -6567,7 +6586,10 @@ function openFundedTest(button) {
       say(err.message, true);
     })
     .finally(() => {
-      if (button) button.disabled = false;
+      fundedOpen = false;
+      if (!button) return;
+      button.removeAttribute("aria-busy");
+      if (button.isConnected) button.textContent = "Use a funded test address";
     });
 }
 const gateGuest = document.getElementById("gate-guest");

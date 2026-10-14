@@ -1928,6 +1928,13 @@ a { color: #f2d48a; }
   box-shadow: none;
   text-align: center;
   font-weight: 700;
+  touch-action: manipulation;
+}
+#gate-guest, #use-guest { touch-action: manipulation; }
+#gate-guest[aria-busy="true"],
+#use-guest[aria-busy="true"] {
+  background: #c6a15a;
+  color: #1a1612;
 }
 .kw-gate button:disabled {
   opacity: 0.45;

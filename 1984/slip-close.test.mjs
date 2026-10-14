@@ -52,7 +52,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=163/);
+  assert.match(html, /1984\/client\.mjs\?v=165/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -128,10 +128,17 @@ test("the landing gate takes a funded test address", () => {
   assert.match(html, /button\.dataset\.pressed = "1"/);
   assert.match(client, /you\.addEventListener\("pointerdown"/);
   const open = sliceFn(client, "openFundedTest");
-  assert.match(open, /paintGuestWait\("", ""\)/);
-  assert.doesNotMatch(open, /showed = true/);
-  assert.doesNotMatch(open, /askOk/);
-  assert.doesNotMatch(sliceFn(client, "startFundedTest"), /askOk/);
+  const openBody = open.slice(0, open.indexOf("const gateGuest"));
+  assert.match(openBody, /paintGuestWait\("", ""\)/);
+  assert.match(openBody, /Opening the funded wallet/);
+  assert.doesNotMatch(openBody, /\.disabled/);
+  assert.doesNotMatch(openBody, /showed = true/);
+  assert.doesNotMatch(openBody, /askOk/);
+  const press = sliceFn(client, "startFundedTest");
+  assert.match(press, /eatClick/);
+  assert.doesNotMatch(press, /askOk/);
+  assert.match(css, /#gate-guest, #use-guest \{ touch-action: manipulation; \}/);
+  assert.match(css, /#gate-guest\[aria-busy="true"\]/);
 });
 
 test("the cinema snacks close to a small tab", () => {
@@ -205,8 +212,8 @@ test("the balances stay in a clear bar under the site tabs", () => {
   const stageAt = html.indexOf('<main class="kw-stage">');
   assert.ok(topEnd > 0 && barAt > topEnd && stageAt > barAt);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
-  assert.match(html, /1984\.css\?v=86/);
-  assert.match(html, /1984\/client\.mjs\?v=163/);
+  assert.match(html, /1984\.css\?v=87/);
+  assert.match(html, /1984\/client\.mjs\?v=165/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
