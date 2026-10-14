@@ -122,6 +122,22 @@ export function thrustCone() {
 }
 export const WALK_MS = 140;
 export const DRIVE_MS = 75;
+/** Camera catch-up while walking or driving. Higher stays on the body. */
+export const CAM_FOLLOW = 20;
+
+/** Fraction of a gap closed this frame. `dt` is seconds, already capped by the frame. */
+export function followBlend(dt, rate) {
+  const t = dt > 0 ? dt : 0;
+  return 1 - Math.exp(-t * rate);
+}
+
+/** Fraction that covers one tile in `ms`. `dist` is the remaining world gap. */
+export function glideBlend(dist, dt, ms) {
+  if (!(dist > 1e-4) || !(ms > 0)) return 1;
+  const t = dt > 0 ? dt : 0;
+  const hop = (TILE * t * 1000) / ms;
+  return hop + 1e-6 >= dist ? 1 : hop / dist;
+}
 
 /** A ship ride. Times are from the moment Launch is pressed. Up is +Y. The count on the pad runs to zero before the ship leaves. */
 export const FLIGHT_LIFTOFF = 15000;
@@ -4856,6 +4872,7 @@ export function mountWorld(canvas, map, api) {
   const camFocus = shown.clone();
   const focusGoal = new THREE.Vector3();
   const carGoal = new THREE.Vector3();
+  const bodyGoal = new THREE.Vector3();
   const puffs = [];
   for (let i = 0; i < 8; i++) {
     const puff = new THREE.Mesh(
@@ -4875,13 +4892,16 @@ export function mountWorld(canvas, map, api) {
     if (kind === "lap") lapLeft = 6;
   }
 
+  let sizedW = 0;
+  let sizedH = 0;
   function resize() {
     const rect = canvas.getBoundingClientRect();
     const w = Math.max(2, rect.width);
     const h = Math.max(2, rect.height);
-    if (canvas.width !== Math.floor(w * renderer.getPixelRatio()) || canvas.height !== Math.floor(h * renderer.getPixelRatio())) {
-      renderer.setSize(w, h, false);
-    }
+    if (w === sizedW && h === sizedH) return;
+    sizedW = w;
+    sizedH = h;
+    renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   }
@@ -4902,18 +4922,19 @@ export function mountWorld(canvas, map, api) {
     camera.lookAt(target);
   }
 
+  const stepFwd = new THREE.Vector3();
+  const stepRight = new THREE.Vector3();
   function stepFromKeys() {
     const intent = moveIntent(held);
     if (!intent.forward && !intent.strafe) return null;
-    const fwd = new THREE.Vector3();
-    camera.getWorldDirection(fwd);
-    fwd.y = 0;
-    if (fwd.lengthSq() < 1e-8) return null;
-    fwd.normalize();
-    const right = new THREE.Vector3().crossVectors(fwd, UP);
-    if (right.lengthSq() < 1e-8) return null;
-    right.normalize();
-    return groundStep(fwd.x, fwd.z, right.x, right.z, intent.forward, intent.strafe);
+    camera.getWorldDirection(stepFwd);
+    stepFwd.y = 0;
+    if (stepFwd.lengthSq() < 1e-8) return null;
+    stepFwd.normalize();
+    stepRight.crossVectors(stepFwd, UP);
+    if (stepRight.lengthSq() < 1e-8) return null;
+    stepRight.normalize();
+    return groundStep(stepFwd.x, stepFwd.z, stepRight.x, stepRight.z, intent.forward, intent.strafe);
   }
 
   function paintFlight(now, ms) {
@@ -5174,7 +5195,6 @@ export function mountWorld(canvas, map, api) {
       }
     } else {
       stall.guest.visible = false;
-      placeCamera(new THREE.Vector3(shown.x, 1.15, shown.z), true);
       const owns = !!(api.driving && api.driving());
       if (lapLeft <= 0 && now >= nextStep) {
         const step = stepFromKeys();
@@ -5187,12 +5207,13 @@ export function mountWorld(canvas, map, api) {
       }
       const who = api.player();
       const face = api.facing();
-      const goal = worldOf(map, who.x + 0.5, who.y + 0.5, 1.15);
-      shown.lerp(goal, 0.28);
-      const moving = shown.distanceTo(lastStep) > 0.004;
-      lastStep.lerp(shown, 0.4);
+      bodyGoal.set((who.x + 0.5 - map.w / 2) * TILE, 1.15, (who.y + 0.5 - map.h / 2) * TILE);
       const tile = map.grid[who.y] && map.grid[who.y][who.x];
       const drive = drives(owns, tile) && lapLeft <= 0;
+      const pace = drive ? DRIVE_MS : WALK_MS;
+      shown.lerp(bodyGoal, glideBlend(shown.distanceTo(bodyGoal), dt, pace));
+      const moving = shown.distanceTo(lastStep) > 0.004;
+      lastStep.copy(shown);
       const car = town.getObjectByName("roadster-car");
       if (car && lapLeft > 0) {
         lapLeft = Math.max(0, lapLeft - dt);
@@ -5222,7 +5243,7 @@ export function mountWorld(canvas, map, api) {
         player.rotation.y = 0;
         if (drive) {
           carGoal.set(shown.x, 0, shown.z);
-          car.position.lerp(carGoal, car.userData.riding ? 0.5 : 0.16);
+          car.position.lerp(carGoal, glideBlend(car.position.distanceTo(carGoal), dt, DRIVE_MS));
           car.userData.riding = true;
           if (face && (face.x || face.y)) car.rotation.y = headingYaw(face.x, face.y);
         }
@@ -5277,7 +5298,7 @@ export function mountWorld(canvas, map, api) {
       marker.rotation.z = now / 700;
       const look = riding && car ? car.position : shown;
       focusGoal.set(look.x, 1.15, look.z);
-      camFocus.lerp(focusGoal, 1 - Math.exp(-dt * 4.5));
+      camFocus.lerp(focusGoal, followBlend(dt, CAM_FOLLOW));
       placeCamera(camFocus, true);
       for (const actor of actors) pose(actor, now, actor === player && moving && !riding);
     }
