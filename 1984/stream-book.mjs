@@ -13,7 +13,7 @@ export const EXAMPLE_ID = "desk-example";
 export const EXAMPLE_CENTS = 15;
 
 export const STREAM_LEDE =
-  "SI stream is the picture shelf. Offer a film, a documentary, or a stream from your own Plex server, for other people to use on this tab. Publish a picture made with superintelligence here. The shelf mixes that work with real cinema. Free, a subscription, or a price. The explanation of the whole idea is 1984 raw idea.";
+  "SI stream is the picture shelf. The goal is the best of the best world. Good old quality cinema comes from a Plex server. Cinema made with superintelligence sits beside it. That work is good, and it will keep getting better. Will there be a market for it? Yes. This desk likes it, so yes. A title is free, a subscription, or a price. The explanation of the whole idea is 1984 raw idea.";
 
 export const STREAM_STANDARD = Object.freeze({
   title: "Life Is Beautiful",
