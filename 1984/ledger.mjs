@@ -1427,12 +1427,16 @@ function canCover(state, item, now, assumeAddress) {
   return true;
 }
 
-function choosePack(state, hunt, rail, now, assumeAddress) {
-  let pool = readHold(state, hunt.id).intendos.filter((item) => item.rail === rail);
+/** Promises on one row share a pack. An unpaid tKAS promise still counts. A token promise that cannot pay is left out. */
+function memberSet(state, hunt, now) {
+  let pool = readHold(state, hunt.id).intendos.slice();
   for (let n = 0; n < 24 && pool.length; n += 1) {
     const picked = largestSubset(pool);
     if (!picked.length) return [];
-    const broke = picked.filter((item) => !canCover(state, item, now, assumeAddress));
+    const broke = picked.filter((item) => {
+      if (item.rail === "kas" && !(item.kas && item.kas.txid)) return false;
+      return !canCover(state, item, now, "");
+    });
     if (!broke.length) return picked;
     const drop = new Set(broke.map((item) => String(item.address).toLowerCase()));
     pool = pool.filter((item) => !drop.has(String(item.address).toLowerCase()));
@@ -1460,7 +1464,12 @@ export function publicHunts(state, address) {
       const out = { id: row.id, name: row.name, cents: row.cents, need: row.need, rails: row.rails.slice() };
       if (!clean) return out;
       const mine = bag.intendos.find((item) => sameAddress(item.address, clean));
-      if (mine) out.promise = { rail: mine.rail, cents: mine.cents, need: mine.need, at: mine.at };
+      if (mine) {
+        out.promise = { rail: mine.rail, cents: mine.cents, need: mine.need, at: mine.at };
+        if (mine.rail === "kas" && !(mine.kas && mine.kas.txid) && planSnap(state, { address: clean, hunt: id }, Date.now()).ready) {
+          out.promise.pay = true;
+        }
+      }
       const snap = latestSnap(bag.snaps, clean);
       if (snap) {
         out.paid = {
@@ -1567,11 +1576,10 @@ export function planSnap(state, input, now) {
   if (!hunt) throw new Error("That hunt is not on the board.");
   const mine = readHold(state, hunt.id).intendos.find((item) => sameAddress(item.address, address));
   if (!mine) return { ready: false, rail: "", cents: 0 };
-  if (mine.rail !== "kas" || (mine.kas && mine.kas.txid)) return { ready: false, rail: mine.rail, cents: mine.cents };
-  const real = choosePack(state, hunt, mine.rail, now, "");
-  if (real.length) return { ready: false, rail: "kas", cents: mine.cents };
-  const assumed = choosePack(state, hunt, mine.rail, now, address);
-  const ready = assumed.some((item) => sameAddress(item.address, address));
+  if (mine.rail !== "kas" || (mine.kas && mine.kas.txid) || hunt.id === "liquidity") {
+    return { ready: false, rail: mine.rail, cents: mine.cents };
+  }
+  const ready = memberSet(state, hunt, now).some((item) => sameAddress(item.address, address));
   return { ready, rail: "kas", cents: mine.cents };
 }
 
@@ -1639,18 +1647,24 @@ export function applySnap(state, input, now) {
     next.txids[input.payment.txid] = { address, kind: "snap-hold" };
     live.kas = { txid: input.payment.txid, sompi: String(input.payment.paid) };
   }
-  const chosen = choosePack(next, hunt, live.rail, now, "");
-  if (!chosen.length) {
+  const chosen = memberSet(next, hunt, now);
+  const chargeable = chosen.length > 0 && chosen.every((item) => canCover(next, item, now, ""));
+  if (!chargeable) {
     if (live.rail === "kas" && !(live.kas && live.kas.txid)) {
-      const assumed = choosePack(state, hunt, live.rail, now, address);
-      if (assumed.some((item) => sameAddress(item.address, address))) {
+      if (memberSet(state, hunt, now).some((item) => sameAddress(item.address, address))) {
         return { state, result: { ok: false, ready: true, paid: false, cents: live.cents } };
       }
     }
     const held = !!(live.kas && live.kas.txid && input.payment);
     return {
       state: held ? next : state,
-      result: { ok: true, paid: false, error: NO_SUBSET, hunts: publicHunts(held ? next : state, address) },
+      result: {
+        ok: true,
+        paid: false,
+        held: held || undefined,
+        error: NO_SUBSET,
+        hunts: publicHunts(held ? next : state, address),
+      },
     };
   }
   const today = dayKey(now);

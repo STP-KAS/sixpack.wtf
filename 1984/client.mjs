@@ -3106,9 +3106,10 @@ function paintHunt() {
       status = "<p>" + esc(mine.paid.banner || "Pack paid on this square.") + (who ? " " + esc(who) + "." : "") + "</p>";
     } else if (mine && mine.promise) status = "<p>Your promise is on the ledger.</p>";
     const frozenKusdt = rail === "kusdt" && state.account && state.account.kusdtFrozen;
+    const payWord = mine && mine.promise && mine.promise.pay ? "Pay the pack" : "Promise";
     const button = frozenKusdt
       ? '<button type="button" class="buy short" data-short="KUSDT is frozen. POCencept and tKAS still spend.">KUSDT is frozen</button>'
-      : '<button type="button" class="buy" data-promise="' + row.id + '">Promise</button>';
+      : '<button type="button" class="buy" data-promise="' + row.id + '">' + payWord + "</button>";
     const drop = mine && mine.promise ? '<button type="button" class="buy short" data-drop="' + row.id + '">Drop promise</button>' : "";
     return (
       '<article class="good"><div><strong>' + esc(row.name) + "</strong><span>" + esc(formatCents(row.cents)) +
@@ -3224,10 +3225,12 @@ async function promiseHunt(id) {
       punch("nod");
       const who = Array.isArray(snapped.who) ? snapped.who.map(short).join(", ") : "";
       say("Pack paid on this square." + (who ? " " + who + "." : ""));
+    } else if (snapped.held) {
+      say("Your tKAS is held for this pack. It pays when the other promises on this row pay.");
     } else if (snapped.ready) {
       say("Paste the Testnet 10 txid. The wallet stays closed on this row.", true);
     } else if (snapped.error) {
-      say(snapped.error);
+      say("Your promise is on the ledger. It pays when enough promises clear.");
     } else say("Your promise is still on the ledger.");
     paintHunt();
     paintChrome();

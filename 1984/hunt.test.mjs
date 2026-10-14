@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { create1984Service } from "./service.mjs";
 import {
@@ -10,6 +11,7 @@ import {
   applySpend,
   applyWithdrawPromise,
   freshState,
+  planSnap,
   publicHunts,
 } from "./ledger.mjs";
 import { sompiForCents } from "./money.mjs";
@@ -17,6 +19,7 @@ import { HUNTS, counterFace, findPath, huntById, itemBySku, shopVisit, world } f
 
 const A = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 const B = "kaspatest:qpppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp";
+const C = "kaspatest:qzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz";
 
 function purse(state, address, cents) {
   const next = applyPractice(state, { address }, 10).state;
@@ -126,6 +129,55 @@ test("a shop txid is refused as a hunt payment", () => {
   assert.equal(held.state.accounts[A.toLowerCase()].spentCents, "250");
 });
 
+test("tKAS and POCencept on one row pay once each tKAS share is held", () => {
+  let state = purse(freshState(), A, 2000);
+  state = purse(state, B, 2000);
+  state = purse(state, C, 2000);
+  state = promise(state, A, "cars", "kas", 3);
+  state = promise(state, B, "cars", "kas", 3);
+  state = promise(state, C, "cars", "poc", 3);
+  const book = publicHunts(state, A).hunts.find((item) => item.id === "cars");
+  assert.equal(book.promise.pay, true);
+  assert.equal(planSnap(state, { address: A, hunt: "cars" }, 80).ready, true);
+  assert.equal(planSnap(state, { address: B, hunt: "cars" }, 80).ready, true);
+  const early = applySnap(state, { address: C, hunt: "cars" }, 80);
+  assert.equal(early.result.paid, false);
+  assert.equal(early.result.error, "No subset clears.");
+  assert.equal(early.state.accounts[C.toLowerCase()].poc, "2000");
+  const paid = sompiForCents(100, 0.05);
+  const first = applySnap(state, {
+    address: A,
+    hunt: "cars",
+    payment: { txid: "a".repeat(64), paid },
+    usdPerKas: 0.05,
+  }, 81);
+  assert.equal(first.result.held, true);
+  assert.equal(first.result.paid, false);
+  assert.equal(first.state.txids["a".repeat(64)].kind, "snap-hold");
+  assert.equal(first.state.accounts[C.toLowerCase()].poc, "2000");
+  const second = applySnap(first.state, {
+    address: B,
+    hunt: "cars",
+    payment: { txid: "b".repeat(64), paid },
+    usdPerKas: 0.05,
+  }, 82);
+  assert.equal(second.result.paid, true);
+  assert.equal(second.result.banner, "Pack paid on this square.");
+  assert.equal(second.result.count, 3);
+  assert.equal(second.state.accounts[C.toLowerCase()].poc, "1900");
+  assert.equal(second.state.accounts[A.toLowerCase()].roadster, true);
+  assert.equal(second.state.accounts[B.toLowerCase()].roadster, true);
+  assert.equal(second.state.accounts[C.toLowerCase()].roadster, true);
+});
+
+test("the hunt chat waits instead of saying the subset failed", () => {
+  const client = readFileSync(new URL("./client.mjs", import.meta.url), "utf8");
+  assert.match(client, /Your promise is on the ledger\. It pays when enough promises clear\./);
+  assert.match(client, /Your tKAS is held for this pack\. It pays when the other promises on this row pay\./);
+  assert.match(client, /Pay the pack/);
+  assert.doesNotMatch(client, /say\(snapped\.error\)/);
+});
+
 test("a tKAS snap without payment is not Paid", () => {
   let state = freshState();
   state = promise(state, A, "model", "kas", 2);
@@ -133,7 +185,8 @@ test("a tKAS snap without payment is not Paid", () => {
   const snap = applySnap(state, { address: A, hunt: "model" }, 60);
   assert.notEqual(snap.result.paid, true);
   assert.equal(snap.result.banner, undefined);
-  assert.equal(snap.result.error, "No subset clears.");
+  assert.equal(snap.result.ready, true);
+  assert.equal(snap.result.error, undefined);
   assert.equal(snap.state.receipts.some((item) => item.kind === "snap"), false);
 });
 
