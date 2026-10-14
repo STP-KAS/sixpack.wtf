@@ -253,7 +253,7 @@ test("the square tab is SI stream", () => {
   assert.match(client, /function holdStreamFrame\(/);
   assert.match(client, /frame\.style\.aspectRatio/);
   assert.match(client, /streamPictureUp|view3d\.mjs\?v=69/);
-  assert.match(html, /1984\/client\.mjs\?v=167/);
+  assert.match(html, /1984\/client\.mjs\?v=168/);
   assert.match(client, /Price " \+ formatCents\(row\.cents\) \+ "\. Pay with tKAS, OLAF, or KUSDT\./);
   assert.match(html, /1984\.css\?v=87/);
 });

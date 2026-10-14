@@ -3,7 +3,6 @@
   const items = [
     { href: "./", files: ["", "index.html"], label: "Home" },
     { href: "rails-why.html", files: ["rails-why.html"], label: "Rails" },
-    { href: "1984.html#olaf", files: ["1984.html", "kworld.html"], hash: "#olaf", label: "OLAF" },
     { href: "farce.html", files: ["farce.html"], label: "Farce" },
     { href: "eulogy.html", files: ["eulogy.html"], label: "Eulogy" },
     { href: "random.html", files: ["random.html"], label: "Random" },
