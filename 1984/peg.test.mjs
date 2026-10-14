@@ -11,7 +11,7 @@ import { applyClaim, applyOfferBuy, applySite } from "./layer.mjs";
 import { applySpend, publicAccount } from "./ledger.mjs";
 import { KNOWN_DIGEST, birthDigestHex, birthMessage } from "./peg.mjs";
 import { afterMove, chainWouldCover, planTake } from "./peg-book.mjs";
-import { covenantFault, covenantSignature } from "./peg-chain.mjs";
+import { covenantFault, covenantSignature, covenantWords } from "./peg-chain.mjs";
 
 const A = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 const B = "kaspatest:qpppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp";
@@ -23,6 +23,7 @@ test("a POCencept or KUSDT covenant output is polled quickly", () => {
   assert.doesNotMatch(source, /sleep\(2000\)/);
   assert.match(source, /feeCache\.at < 15_000/);
   assert.match(source, /console\.error\("covenant-fault "/);
+  assert.match(source, /words=/);
 });
 
 test("a covenant fault keeps the reason and drops the key", () => {
@@ -37,6 +38,11 @@ test("a covenant fault keeps the reason and drops the key", () => {
   const shown = covenantFault(new Error("rejected kaspatest:" + "q".repeat(61) + " for mass"), []);
   assert.match(shown, /kaspatest:…/);
   assert.doesNotMatch(shown, /q{20}/);
+  const hexOnly = covenantFault(new Error("aa".repeat(40)), [key]);
+  assert.equal(hexOnly, "The covenant did not broadcast.");
+  const shortHex = covenantFault(new Error("rejected " + "cd".repeat(20)), [key]);
+  assert.equal(shortHex, "The covenant did not broadcast. rejected");
+  assert.equal(covenantWords(new Error("transaction mass exceeds maximum " + "ab".repeat(20)), [key]), "transaction mass exceeds maximum");
 });
 
 test("the birth message is the known little-endian vector", () => {

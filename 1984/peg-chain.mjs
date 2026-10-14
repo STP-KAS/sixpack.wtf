@@ -32,9 +32,52 @@ let feeCache = { at: 0, rate: 0 };
 
 const COVENANT_FAULT = "The covenant did not broadcast.";
 
+function dropSecret(raw, secret) {
+  const folded = secret.toLowerCase();
+  const lower = raw.toLowerCase();
+  let out = "";
+  let i = 0;
+  while (i < raw.length) {
+    const at = lower.indexOf(folded, i);
+    if (at < 0) return out + raw.slice(i);
+    out += raw.slice(i, at) + " ";
+    i = at + folded.length;
+  }
+  return out;
+}
+
+function faultRaw(err) {
+  if (!err) return "";
+  if (typeof err === "string") return err;
+  const parts = [err.message, err.reason, err.error];
+  const text = parts.filter((part) => part != null && String(part).trim()).map(String).join(" ");
+  return text || String(err.name || "");
+}
+
+/** Words from a node rejection. Hex, addresses, and keys are left out. */
+export function covenantWords(err, keys) {
+  let raw = faultRaw(err);
+  const list = Array.isArray(keys) ? keys : [keys];
+  for (const key of list) {
+    const secret = String(key || "").trim();
+    if (secret.length > 8) raw = dropSecret(raw, secret);
+  }
+  const words = raw
+    .replace(/kaspatest:[a-z0-9]+/gi, " ")
+    .replace(/kaspa:[a-z0-9]+/gi, " ")
+    .replace(/[0-9a-f]{8,}/gi, " ")
+    .split(/[^A-Za-z]+/)
+    .filter((word) => word.length >= 3 && !/^[0-9a-f]+$/i.test(word));
+  const kept = [];
+  for (const word of words) {
+    if (!kept.includes(word) && kept.length < 12) kept.push(word);
+  }
+  return kept.join(" ");
+}
+
 /** A reason the chat can show. Keys, long hex, and addresses are removed. */
 export function covenantFault(err, keys) {
-  const raw = String((err && err.message) || "");
+  const raw = faultRaw(err);
   if (/private-key|mnemonic|seed phrase|privHex|receive-0-private-key/i.test(raw)) return COVENANT_FAULT;
   let msg = raw
     .replace(/kaspatest:[qpzry9x8gf2tvdw0s3jn54khce6mua7l]+/gi, "kaspatest:…")
@@ -43,9 +86,13 @@ export function covenantFault(err, keys) {
   const list = Array.isArray(keys) ? keys : [keys];
   for (const key of list) {
     const secret = String(key || "").trim();
-    if (secret.length > 8 && msg.toLowerCase().includes(secret.toLowerCase())) msg = COVENANT_FAULT;
+    if (secret.length > 8 && msg.toLowerCase().includes(secret.toLowerCase())) return COVENANT_FAULT;
   }
   msg = msg.replace(/\s+/g, " ").trim();
+  const words = covenantWords(err, keys);
+  if ((!msg || msg.length < 12 || msg === COVENANT_FAULT) && words && !/covenant did not broadcast/i.test(words)) {
+    return (COVENANT_FAULT + " " + words).slice(0, 180);
+  }
   if (!msg || msg.length < 12) return COVENANT_FAULT;
   if (msg.length > 180) msg = msg.slice(0, 180);
   return msg;
@@ -53,7 +100,8 @@ export function covenantFault(err, keys) {
 
 function scrub(err, keys) {
   const msg = covenantFault(err, keys);
-  console.error("covenant-fault " + msg);
+  const words = covenantWords(err, keys) || "no-words";
+  console.error("covenant-fault " + msg + " words=" + words);
   return new Error(msg);
 }
 
@@ -293,8 +341,12 @@ async function submitEntry({ lock, entry, take, covenantKey, feeKey, feeAddress,
       if (take != null) job.take = asNum(take);
       const encoded = await askEncoder(job);
       pending.fillInput(0, encoded.sigscript);
-      const txid = String(await pending.submit(rpc)).trim().toLowerCase();
-      if (!/^[0-9a-f]{64}$/.test(txid)) throw new Error("The covenant did not broadcast.");
+      const submitted = await pending.submit(rpc);
+      const txid = String(submitted && submitted.transactionId || submitted || "").trim().toLowerCase().replace(/^0x/, "");
+      if (!/^[0-9a-f]{64}$/.test(txid)) {
+        const kind = submitted == null ? "empty" : typeof submitted;
+        throw new Error("The covenant submit came back as " + kind + ".");
+      }
       return txid;
     });
   } catch (err) {
