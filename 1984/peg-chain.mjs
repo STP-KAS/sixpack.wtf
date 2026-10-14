@@ -28,7 +28,35 @@ const FEE = "This wallet needs a coin for the miner fee. The lock was not spent.
 
 let kaspaPromise;
 const PEG_POLL_MS = 100;
+const PEG_KEEP_MS = 20_000;
+const PEG_FEE_MS = 400;
+const PEG_UTXO_MS = 1_200;
+const PEG_SUBMIT_MS = 4_000;
+const PEG_LOCAL_MS = 800;
+const PEG_LOCAL_DOWN_MS = 60_000;
+const PEG_PUBLIC_MS = 2_000;
+const PEG_LOCAL = process.env.FAUCET_RPC || "127.0.0.1:17210";
+const PEG_PUBLIC = [
+  "wss://electron-10.kaspa.stream/kaspa/testnet-10/wrpc/borsh",
+  "wss://vector-10.kaspa.green/kaspa/testnet-10/wrpc/borsh",
+  "wss://muon-10.kaspa.blue/kaspa/testnet-10/wrpc/borsh",
+];
 let feeCache = { at: 0, rate: 0 };
+let pegRpc = null;
+let pegOpen = null;
+let pegKeep = null;
+let localDownUntil = 0;
+
+/** A desk node that just missed stays skipped, so the next POCencept click does not wait on it. */
+export function pegNodePlan(now, downUntil) {
+  return now < downUntil ? "public" : "local";
+}
+
+/** A stalled socket is a transport miss. A covenant refusal is not. */
+export function pegCallFailed(err) {
+  const msg = String((err && err.message) || err || "").toLowerCase();
+  return /stalled|took too long|disconnect|websocket|socket|econn|not connected|network error|timed out/.test(msg);
+}
 
 const COVENANT_FAULT = "The covenant did not broadcast.";
 
@@ -221,18 +249,18 @@ async function compileRow(row) {
   return askEncoder({ op: "script", ...openingJob(row) });
 }
 
-async function feeRate() {
+async function feeRate(rpc) {
   const now = Date.now();
   if (feeCache.rate > 0 && now - feeCache.at < 15_000) return feeCache.rate;
   try {
-    const { quotedPageFeeRate } = await import("../faucet/pay.mjs");
-    const n = Number(await quotedPageFeeRate());
+    const quoted = await withTimeout(rpc.getFeeEstimate({}), PEG_FEE_MS, "The Testnet-10 node stalled.");
+    const n = Number(pageFeeRate(quoted));
     if (Number.isFinite(n) && n > 0) {
       feeCache = { at: now, rate: n };
       return n;
     }
-  } catch {
-    /* The floor below is the page rate. */
+  } catch (err) {
+    if (pegCallFailed(err)) await dropPegRpc(rpc);
   }
   const floor = pageFeeRate(null);
   feeCache = { at: now, rate: floor };
@@ -243,18 +271,107 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function withRpc(fn) {
-  const kaspa = await sdk();
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(label)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+async function dropPegRpc(current) {
+  if (current && pegRpc && current !== pegRpc) return;
+  const old = pegRpc;
+  pegRpc = null;
+  if (old) await old.disconnect().catch(() => {});
+}
+
+async function openOne(kaspa, url, ms) {
   const rpc = new kaspa.RpcClient({
-    resolver: new kaspa.Resolver(),
+    url,
     encoding: kaspa.Encoding.Borsh,
     networkId: "testnet-10",
   });
-  await rpc.connect();
   try {
-    return await fn(kaspa, rpc);
-  } finally {
+    await withTimeout(rpc.connect(), ms, "The Testnet-10 node stalled.");
+    const info = await withTimeout(rpc.getServerInfo(), 800, "The Testnet-10 node stalled.");
+    const id = String((info && info.networkId) || "");
+    if (!id.includes("testnet-10")) throw new Error("The node is not Testnet 10.");
+    if (!info.isSynced) throw new Error("The Testnet-10 node is not synced.");
+    return rpc;
+  } catch (err) {
     await rpc.disconnect().catch(() => {});
+    throw err;
+  }
+}
+
+async function openPublic(kaspa) {
+  const jobs = PEG_PUBLIC.map((url) => openOne(kaspa, url, PEG_PUBLIC_MS));
+  try {
+    const rpc = await Promise.any(jobs);
+    pegRpc = rpc;
+    for (const job of jobs) {
+      job.then((extra) => {
+        if (extra !== rpc) extra.disconnect().catch(() => {});
+      }).catch(() => {});
+    }
+    return rpc;
+  } catch {
+    throw new Error("The Testnet-10 node stalled.");
+  }
+}
+
+async function openPegRpc() {
+  const kaspa = await sdk();
+  if (pegNodePlan(Date.now(), localDownUntil) === "local") {
+    try {
+      const rpc = await openOne(kaspa, PEG_LOCAL, PEG_LOCAL_MS);
+      pegRpc = rpc;
+      console.error("peg-rpc up local");
+      return rpc;
+    } catch {
+      localDownUntil = Date.now() + PEG_LOCAL_DOWN_MS;
+    }
+  }
+  const rpc = await openPublic(kaspa);
+  console.error("peg-rpc up public");
+  return rpc;
+}
+
+function armKeep() {
+  if (pegKeep) return;
+  pegKeep = setInterval(() => {
+    const rpc = pegRpc;
+    if (!rpc) {
+      pegClient().catch(() => {});
+      return;
+    }
+    withTimeout(rpc.getServerInfo(), 800, "The Testnet-10 node stalled.").catch((err) => {
+      if (!pegCallFailed(err)) return;
+      dropPegRpc(rpc).then(() => pegClient().catch(() => {}));
+    });
+  }, PEG_KEEP_MS);
+  if (typeof pegKeep.unref === "function") pegKeep.unref();
+}
+
+async function pegClient() {
+  if (pegRpc) return pegRpc;
+  if (!pegOpen) pegOpen = openPegRpc();
+  try {
+    const rpc = await pegOpen;
+    armKeep();
+    return rpc;
+  } finally {
+    pegOpen = null;
+  }
+}
+
+async function callRpc(rpc, run, ms, label) {
+  try {
+    return await withTimeout(run(), ms, label);
+  } catch (err) {
+    if (pegCallFailed(err)) await dropPegRpc(rpc);
+    throw err;
   }
 }
 
@@ -264,7 +381,7 @@ function sameOut(entry, txid, index) {
 }
 
 async function findOutput(rpc, address, txid, sompi) {
-  const { entries } = await rpc.getUtxosByAddresses([address]);
+  const { entries } = await callRpc(rpc, () => rpc.getUtxosByAddresses([address]), PEG_UTXO_MS, "The Testnet-10 node stalled.");
   return (entries || []).find((entry) => {
     const out = entry.outpoint;
     return out && String(out.transactionId) === String(txid) && BigInt(entry.amount) === BigInt(sompi);
@@ -278,7 +395,7 @@ function scriptHex(spk) {
 }
 
 async function buildTx(kaspa, rpc, { peg, feeAddress, outputs, priority, feeRate: rate }) {
-  const { entries } = await rpc.getUtxosByAddresses([feeAddress]);
+  const { entries } = await callRpc(rpc, () => rpc.getUtxosByAddresses([feeAddress]), PEG_UTXO_MS, "The Testnet-10 node stalled.");
   const coins = (entries || [])
     .filter((entry) => !sameOut(entry, peg.outpoint.transactionId, peg.outpoint.index))
     .sort((a, b) => (BigInt(a.amount) < BigInt(b.amount) ? 1 : -1));
@@ -322,36 +439,53 @@ async function submitEntry({ lock, entry, take, covenantKey, feeKey, feeAddress,
   const key = String(covenantKey || "");
   const fee = String(feeKey || "");
   try {
-    return await withRpc(async (kaspa, rpc) => {
-      const { entries } = await rpc.getUtxosByAddresses([lock.pegAddress]);
-      const peg = (entries || []).find((row) => sameOut(row, lock.txid, lock.index));
-      if (!peg) throw new Error("That covenant output is already spent.");
-      if (BigInt(peg.amount) !== BigInt(lock.sompi)) throw new Error("That covenant output does not match the lock.");
-      const rate = await feeRate();
-      const current = await compileRow(lock);
-      const priorityGuess = BigInt(current.bytecode.length / 2 + 800) * BigInt(rate);
-      const floor = BigInt(PAGE_PRIORITY_SOMPI);
-      const priority = priorityGuess > floor ? priorityGuess : floor;
-      const pending = await buildTx(kaspa, rpc, { peg, feeAddress, outputs, priority, feeRate: rate });
-      const feePriv = new kaspa.PrivateKey(fee);
-      pending.sign([feePriv], false);
-      const signer = new kaspa.PrivateKey(key);
-      const signature = covenantSignature(await pending.createInputSignature(0, signer));
-      const job = { op: "encode", entry, sig: signature, ...openingJob(lock) };
-      if (take != null) job.take = asNum(take);
-      const encoded = await askEncoder(job);
-      pending.fillInput(0, encoded.sigscript);
-      const submitted = await pending.submit(rpc);
-      const txid = String(submitted && submitted.transactionId || submitted || "").trim().toLowerCase().replace(/^0x/, "");
-      if (!/^[0-9a-f]{64}$/.test(txid)) {
-        const kind = submitted == null ? "empty" : typeof submitted;
-        throw new Error("The covenant submit came back as " + kind + ".");
-      }
-      return txid;
-    });
+    const kaspa = await sdk();
+    let rpc = await pegClient();
+    let peg = await readPeg(rpc, lock);
+    await feeRate(rpc);
+    const again = await pegClient();
+    if (again !== rpc) {
+      rpc = again;
+      peg = await readPeg(rpc, lock);
+    }
+    const rate = feeCache.rate > 0 ? feeCache.rate : pageFeeRate(null);
+    const current = await compileRow(lock);
+    const priorityGuess = BigInt(current.bytecode.length / 2 + 800) * BigInt(rate);
+    const floor = BigInt(PAGE_PRIORITY_SOMPI);
+    const priority = priorityGuess > floor ? priorityGuess : floor;
+    const pending = await buildTx(kaspa, rpc, { peg, feeAddress, outputs, priority, feeRate: rate });
+    const feePriv = new kaspa.PrivateKey(fee);
+    pending.sign([feePriv], false);
+    const signer = new kaspa.PrivateKey(key);
+    const signature = covenantSignature(await pending.createInputSignature(0, signer));
+    const job = { op: "encode", entry, sig: signature, ...openingJob(lock) };
+    if (take != null) job.take = asNum(take);
+    const encoded = await askEncoder(job);
+    pending.fillInput(0, encoded.sigscript);
+    const live = await pegClient();
+    const submitted = await callRpc(live, () => pending.submit(live), PEG_SUBMIT_MS, "The Testnet-10 node stalled.");
+    const txid = String(submitted && submitted.transactionId || submitted || "").trim().toLowerCase().replace(/^0x/, "");
+    if (!/^[0-9a-f]{64}$/.test(txid)) {
+      const kind = submitted == null ? "empty" : typeof submitted;
+      throw new Error("The covenant submit came back as " + kind + ".");
+    }
+    return txid;
   } catch (err) {
     throw scrub(err, [key, fee]);
   }
+}
+
+async function readPeg(rpc, lock) {
+  const { entries } = await callRpc(
+    rpc,
+    () => rpc.getUtxosByAddresses([lock.pegAddress]),
+    PEG_UTXO_MS,
+    "The Testnet-10 node stalled."
+  );
+  const peg = (entries || []).find((row) => sameOut(row, lock.txid, lock.index));
+  if (!peg) throw new Error("That covenant output is already spent.");
+  if (BigInt(peg.amount) !== BigInt(lock.sompi)) throw new Error("That covenant output does not match the lock.");
+  return peg;
 }
 
 async function p2pk(kaspa, address, amount) {
@@ -370,6 +504,8 @@ function nextRow(lock, patch) {
 }
 
 export function createPegLock() {
+  armKeep();
+  pegClient().catch(() => {});
   return {
     async plan({ address, rail, sompi, usdPerKas, ownerKey }) {
       const numbers = openingNumbers(sompi, usdPerKas);
@@ -427,17 +563,20 @@ export function createPegLock() {
     },
 
     async waitOutput(address, txid, sompi) {
-      return withRpc(async (_kaspa, rpc) => {
-        const deadline = Date.now() + 70_000;
-        while (Date.now() < deadline) {
+      const deadline = Date.now() + 70_000;
+      while (Date.now() < deadline) {
+        try {
+          const rpc = await pegClient();
           const hit = await findOutput(rpc, address, txid, sompi);
           if (hit) {
             return { txid: String(txid), index: Number(hit.outpoint.index), amount: String(hit.amount) };
           }
-          await sleep(PEG_POLL_MS);
+        } catch (err) {
+          if (!pegCallFailed(err)) throw err;
         }
-        throw new Error("The covenant output is not on Testnet 10 yet. Press Swap again. That does not send a second time.");
-      });
+        await sleep(PEG_POLL_MS);
+      }
+      throw new Error("The covenant output is not on Testnet 10 yet. Press Swap again. That does not send a second time.");
     },
 
     async redeem({ lock, ownerKey, take, ownerAddress }) {

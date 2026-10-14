@@ -11,7 +11,7 @@ import { applyClaim, applyOfferBuy, applySite } from "./layer.mjs";
 import { applySpend, publicAccount } from "./ledger.mjs";
 import { KNOWN_DIGEST, birthDigestHex, birthMessage } from "./peg.mjs";
 import { afterMove, chainWouldCover, planTake } from "./peg-book.mjs";
-import { covenantFault, covenantSignature, covenantWords } from "./peg-chain.mjs";
+import { covenantFault, covenantSignature, covenantWords, pegCallFailed, pegNodePlan } from "./peg-chain.mjs";
 
 const A = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 const B = "kaspatest:qpppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp";
@@ -24,6 +24,14 @@ test("a POCencept or KUSDT covenant output is polled quickly", () => {
   assert.match(source, /feeCache\.at < 15_000/);
   assert.match(source, /console\.error\("covenant-fault "/);
   assert.match(source, /words=/);
+  assert.match(source, /PEG_KEEP_MS = 20_000/);
+  assert.match(source, /let pegRpc = null/);
+  assert.doesNotMatch(source, /new kaspa\.Resolver\(\)/);
+  assert.doesNotMatch(source, /quotedPageFeeRate/);
+  assert.equal(pegNodePlan(1_000, 5_000), "public");
+  assert.equal(pegNodePlan(6_000, 5_000), "local");
+  assert.equal(pegCallFailed(new Error("The Testnet-10 node stalled.")), true);
+  assert.equal(pegCallFailed(new Error("That covenant output is already spent.")), false);
 });
 
 test("a covenant fault keeps the reason and drops the key", () => {
