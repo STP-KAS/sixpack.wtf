@@ -11,7 +11,7 @@ import { applyClaim, applyOfferBuy, applySite } from "./layer.mjs";
 import { applySpend, publicAccount } from "./ledger.mjs";
 import { KNOWN_DIGEST, birthDigestHex, birthMessage } from "./peg.mjs";
 import { afterMove, chainWouldCover, planTake } from "./peg-book.mjs";
-import { covenantSignature } from "./peg-chain.mjs";
+import { covenantFault, covenantSignature } from "./peg-chain.mjs";
 
 const A = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 const B = "kaspatest:qpppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp";
@@ -22,6 +22,21 @@ test("a POCencept or KUSDT covenant output is polled quickly", () => {
   assert.match(source, /sleep\(PEG_POLL_MS\)/);
   assert.doesNotMatch(source, /sleep\(2000\)/);
   assert.match(source, /feeCache\.at < 15_000/);
+  assert.match(source, /console\.error\("covenant-fault "/);
+});
+
+test("a covenant fault keeps the reason and drops the key", () => {
+  const key = "ab".repeat(32);
+  assert.equal(covenantFault(new Error("The node rejected the mass."), [key]), "The node rejected the mass.");
+  const buried = covenantFault(new Error("rejected " + key + " mass"), [key]);
+  assert.equal(buried, "rejected … mass");
+  assert.doesNotMatch(buried, /ab{8}/);
+  const word = "desk-key-material";
+  assert.equal(covenantFault(new Error("boom " + word), [word]), "The covenant did not broadcast.");
+  assert.equal(covenantFault(new Error("privHex was in the text"), ""), "The covenant did not broadcast.");
+  const shown = covenantFault(new Error("rejected kaspatest:" + "q".repeat(61) + " for mass"), []);
+  assert.match(shown, /kaspatest:…/);
+  assert.doesNotMatch(shown, /q{20}/);
 });
 
 test("the birth message is the known little-endian vector", () => {

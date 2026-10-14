@@ -555,11 +555,11 @@ body.page-1984 main.kw-stage {
   left: 12px;
   right: auto;
   top: 12px;
-  bottom: 12px;
+  bottom: auto;
   transform: none;
   z-index: 6;
-  width: min(360px, 34vw);
-  max-height: calc(100% - 24px);
+  width: min(320px, 30vw);
+  max-height: calc(100% - 252px);
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -637,7 +637,6 @@ body.page-1984 main.kw-stage {
   color: #1a1612;
   margin-right: 0.35rem;
 }
-.kw.watching .kw-chat,
 .kw.watching .kw-side,
 .kw.watching .kw-mini { display: none; }
 .kw-you {

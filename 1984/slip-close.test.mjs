@@ -178,6 +178,9 @@ test("the cinema snacks close to a small tab", () => {
   assert.match(css, /#show-snacks-tab\[hidden\]/);
   assert.match(css, /#show-snacks-tab,\s*#show-snacks-close \{[^}]*width: auto/);
   const phoneAt = css.indexOf("@media (max-width: 980px)");
+  const desk = css.slice(0, phoneAt);
+  assert.match(desk, /\.show-card \{[\s\S]*bottom: auto;[\s\S]*width: min\(320px, 30vw\);[\s\S]*max-height: calc\(100% - 252px\)/);
+  assert.doesNotMatch(desk, /\.kw\.watching \.kw-chat/);
   assert.match(css.slice(phoneAt), /\.phone-fit #show-snacks-tab/);
   assert.match(css.slice(phoneAt), /\.phone-fit \.show-snacks \{[^}]*max-height: 9\.5rem/);
 });
@@ -227,7 +230,7 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(bar, /Domain:<\/span> none/);
   assert.match(bar, /id="bar-bank" class="bar-bank">Bank<\/button>/);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
-  assert.match(html, /1984\.css\?v=88/);
+  assert.match(html, /1984\.css\?v=89/);
   assert.match(html, /1984\/client\.mjs\?v=169/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);

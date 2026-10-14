@@ -30,14 +30,30 @@ let kaspaPromise;
 const PEG_POLL_MS = 100;
 let feeCache = { at: 0, rate: 0 };
 
-function scrub(err, keys) {
-  let msg = (err && err.message) || "The covenant did not broadcast.";
+const COVENANT_FAULT = "The covenant did not broadcast.";
+
+/** A reason the chat can show. Keys, long hex, and addresses are removed. */
+export function covenantFault(err, keys) {
+  const raw = String((err && err.message) || "");
+  if (/private-key|mnemonic|seed phrase|privHex|receive-0-private-key/i.test(raw)) return COVENANT_FAULT;
+  let msg = raw
+    .replace(/kaspatest:[qpzry9x8gf2tvdw0s3jn54khce6mua7l]+/gi, "kaspatest:…")
+    .replace(/kaspa:[qpzry9x8gf2tvdw0s3jn54khce6mua7l]+/gi, "kaspa:…")
+    .replace(/[0-9a-f]{16,}/gi, "…");
   const list = Array.isArray(keys) ? keys : [keys];
   for (const key of list) {
-    const secret = String(key || "").trim().toLowerCase();
-    if (secret.length > 8 && msg.toLowerCase().includes(secret)) msg = "The covenant did not broadcast.";
+    const secret = String(key || "").trim();
+    if (secret.length > 8 && msg.toLowerCase().includes(secret.toLowerCase())) msg = COVENANT_FAULT;
   }
-  if (/private-key|mnemonic|seed phrase|privHex|receive-0-private-key/i.test(msg)) msg = "The covenant did not broadcast.";
+  msg = msg.replace(/\s+/g, " ").trim();
+  if (!msg || msg.length < 12) return COVENANT_FAULT;
+  if (msg.length > 180) msg = msg.slice(0, 180);
+  return msg;
+}
+
+function scrub(err, keys) {
+  const msg = covenantFault(err, keys);
+  console.error("covenant-fault " + msg);
   return new Error(msg);
 }
 
