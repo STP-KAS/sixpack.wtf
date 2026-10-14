@@ -3320,16 +3320,26 @@ function renderStreamBody() {
   box.innerHTML = kinds.map((kind) => streamRowHtml(kind, titles.filter((row) => row.kind === kind.id))).join("");
 }
 
+function streamShelfPrice(row) {
+  return row.free ? "Free" : "Price " + formatCents(row.cents);
+}
+
+function streamMeta(row) {
+  const who = row.desk ? "This desk." : (row.owner ? short(row.owner) : "");
+  if (row.free) return who ? "Free. " + who : "Free";
+  const line = "Price " + formatCents(row.cents) + ". Pay with tKAS, OLAF, or KUSDT.";
+  return who ? line + " " + who : line;
+}
+
 function streamRowHtml(kind, rows) {
   const cards = rows.length
     ? rows.map((row) => {
-      const price = row.free ? "Free" : formatCents(row.cents);
       const poster = row.poster ? '<img src="' + esc(row.poster) + '" alt="">' : "";
       return '<button type="button" class="si-card" data-si="' + esc(row.id) + '">' +
         poster +
         '<span class="si-kicker">' + esc(kind.label) + "</span>" +
         "<strong>" + esc(row.title) + "</strong>" +
-        '<span class="si-price">' + esc(price) + "</span></button>";
+        '<span class="si-price">' + esc(streamShelfPrice(row)) + "</span></button>";
     }).join("")
     : '<p class="fine si-empty">None yet. Share one.</p>';
   return '<section class="si-row"><h3>' + esc(kind.label) + '</h3><div class="si-rail">' + cards + "</div></section>";
@@ -3347,7 +3357,6 @@ function streamBlurbHtml(text) {
 
 function streamPlayerHtml(row) {
   const price = row.free ? "Free" : formatCents(row.cents);
-  const who = row.desk ? "this desk" : (row.owner ? short(row.owner) : "");
   const mine = !!(state.id.address && row.owner && String(row.owner).toLowerCase() === state.id.address.toLowerCase());
   const pay = row.locked
     ? '<p id="si-quote" class="fine">Loading the tKAS quote.</p>' +
@@ -3367,7 +3376,7 @@ function streamPlayerHtml(row) {
     still +
     "<h3>" + esc(row.title) + "</h3>" +
     "<p>" + streamBlurbHtml(row.blurb || "") + "</p>" +
-    '<p class="si-meta">' + esc(price) + (who ? " · " + esc(who) : "") + "</p>" +
+    '<p class="si-meta">' + esc(streamMeta(row)) + "</p>" +
     (row.locked
       ? ""
       : '<div class="si-screen"><video id="si-video" controls playsinline webkit-playsinline preload="auto"></video></div>') +
