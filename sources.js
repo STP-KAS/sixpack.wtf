@@ -22,6 +22,7 @@
     '<li><a class="name" href="https://github.com/kaspanet/kips">kaspanet/kips</a><span class="desc">Consensus proposals. Active is law. Proposed is not.</span></li>' +
     '<li><a class="name" href="https://research.kas.pa/">research.kas.pa</a><span class="desc">Kaspa research write-ups. Not marketing.</span></li>' +
     '<li><a class="name" href="https://hashd.ag/">hashd.ag</a><span class="desc">Yonatan Sompolinsky’s research notes (GHOSTDAG / RTD). Design, not a product page.</span></li>' +
+    '<li><a class="name" href="https://www.avivz.net/">avivz.net</a><span class="desc">Aviv Zohar. High-value source for research, proof of work, and the other work. GHOST and PHANTOM-GHOSTDAG. Not a product page.</span></li>' +
     '<li><a class="name" href="https://wiki.kaspa.org/en/tokenomics">wiki.kaspa.org tokenomics</a><span class="desc">Emission schedule. Recheck against rusty-kaspa coinbase.rs.</span></li>' +
     '<li><a class="name" href="https://explorer.kaspa.org/">explorer.kaspa.org</a><span class="desc">Mainnet explorer. Live ledger, not a pitch.</span></li>' +
     '<li><a class="name" href="https://kaspa.stream/">kaspa.stream</a><span class="desc">Live blockDAG view. Data, not a token page.</span></li>' +
