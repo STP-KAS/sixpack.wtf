@@ -102,6 +102,7 @@ const state = {
   streamShare: false,
   streamBook: null,
   streamSeq: 0,
+  streamQuotes: null,
 };
 
 const SIM_LINE = "You are back on the square, in the roadster. You returned to a simulation of a simulation of a simulation, 255524 deep.";
@@ -3334,17 +3335,47 @@ function renderStreamBody() {
   }
   const kinds = book.kinds && book.kinds.length ? book.kinds : [];
   box.innerHTML = kinds.map((kind) => streamRowHtml(kind, titles.filter((row) => row.kind === kind.id))).join("");
+  ensureStreamQuotes(titles);
+}
+
+function streamQuoteSompi(row) {
+  if (!row || row.free || !state.streamQuotes) return null;
+  const hit = state.streamQuotes[String(row.cents)];
+  return hit == null || hit === "" ? null : hit;
+}
+
+function rememberStreamQuote(cents, sompi) {
+  if (!state.streamQuotes) state.streamQuotes = {};
+  state.streamQuotes[String(cents)] = String(sompi);
+}
+
+function streamKasWords(sompi) {
+  return sompi == null ? "tKAS at the live quote" : formatTkas(sompi) + " tKAS";
+}
+
+function streamRailPrices(row, sompi) {
+  if (row.free || !(Number(row.cents) > 0)) return "Free";
+  const face = formatCents(row.cents);
+  return streamKasWords(sompi) + " · " + face + " POCencept · " + face + " KUSDT · " + face + " OLAF";
 }
 
 function streamShelfPrice(row) {
-  return row.free ? "Free" : "Price " + formatCents(row.cents);
+  if (row.free || !(Number(row.cents) > 0)) return "Free";
+  const face = formatCents(row.cents);
+  const kas = streamKasWords(streamQuoteSompi(row));
+  return kas + "\n" + face + " POCencept\n" + face + " KUSDT\n" + face + " OLAF";
+}
+
+function streamKasButton(row) {
+  const sompi = streamQuoteSompi(row);
+  return sompi == null ? "Pay with tKAS" : "Pay " + formatTkas(sompi) + " tKAS";
 }
 
 function streamMeta(row) {
   const who = row.desk ? "This desk." : (row.owner ? short(row.owner) : "");
-  if (row.free) return who ? "Free. " + who : "Free";
-  const line = "Price " + formatCents(row.cents) + ". Pay with tKAS, OLAF, or KUSDT.";
-  return who ? line + " " + who : line;
+  if (row.free || !(Number(row.cents) > 0)) return who ? "Free. " + who : "Free";
+  const line = streamRailPrices(row, streamQuoteSompi(row));
+  return who ? line + ". " + who : line;
 }
 
 function streamRowHtml(kind, rows) {
@@ -3355,7 +3386,7 @@ function streamRowHtml(kind, rows) {
         poster +
         '<span class="si-kicker">' + esc(kind.label) + "</span>" +
         "<strong>" + esc(row.title) + "</strong>" +
-        '<span class="si-price">' + esc(streamShelfPrice(row)) + "</span></button>";
+        '<span class="si-price" data-si-price="' + esc(row.id) + '">' + esc(streamShelfPrice(row)) + "</span></button>";
     }).join("")
     : '<p class="fine si-empty">None yet. Share one.</p>';
   return '<section class="si-row"><h3>' + esc(kind.label) + '</h3><div class="si-rail">' + cards + "</div></section>";
@@ -3374,10 +3405,11 @@ function streamBlurbHtml(text) {
 function streamPlayerHtml(row) {
   const price = row.free ? "Free" : formatCents(row.cents);
   const mine = !!(state.id.address && row.owner && String(row.owner).toLowerCase() === state.id.address.toLowerCase());
+  const kasKnown = streamQuoteSompi(row) != null;
   const pay = row.locked
-    ? '<p id="si-quote" class="fine">Loading the tKAS quote.</p>' +
+    ? '<p id="si-quote" class="fine"' + (kasKnown ? " hidden" : "") + ">Loading the tKAS quote.</p>" +
       '<div class="si-pay">' +
-      '<button type="button" class="buy" data-si-buy="kas">Pay with tKAS</button>' +
+      '<button type="button" class="buy" data-si-buy="kas">' + esc(streamKasButton(row)) + "</button>" +
       '<button type="button" class="buy" data-si-buy="poc">Pay ' + esc(price) + " POCencept</button>" +
       '<button type="button" class="buy" data-si-buy="kusdt">Pay ' + esc(price) + " KUSDT</button>" +
       '<button type="button" class="buy" data-si-buy="olaf">Pay ' + esc(price) + " OLAF</button>" +
@@ -3411,16 +3443,59 @@ function shareFormHtml() {
     "</div>";
 }
 
+function applyStreamQuoteToOpen(row) {
+  const meta = document.querySelector("#si-body .si-meta");
+  if (meta) meta.textContent = streamMeta(row);
+  const kasBtn = document.querySelector('#si-body [data-si-buy="kas"]');
+  if (kasBtn) kasBtn.textContent = streamKasButton(row);
+  const line = document.getElementById("si-quote");
+  if (line && streamQuoteSompi(row) != null) line.hidden = true;
+}
+
 function loadStreamQuote(row) {
+  const seq = state.streamSeq;
   api("/api/1984/stream/quote?id=" + encodeURIComponent(row.id)).then((body) => {
-    if (state.mode !== "sistream" || state.streamPick !== row.id) return;
+    if (state.mode !== "sistream" || state.streamPick !== row.id || state.streamSeq !== seq) return;
     const line = document.getElementById("si-quote");
-    if (!line) return;
     if (!body || !body.ok) {
-      line.textContent = (body && body.error) || "No tKAS quote.";
+      if (line) {
+        line.hidden = false;
+        line.textContent = (body && body.error) || "No tKAS quote.";
+      }
       return;
     }
-    line.textContent = formatTkas(body.sompi) + " tKAS at the live quote, or " + formatCents(row.cents) + " POCencept, or " + formatCents(row.cents) + " KUSDT, or " + formatCents(row.cents) + " OLAF.";
+    rememberStreamQuote(row.cents, body.sompi);
+    applyStreamQuoteToOpen(row);
+  });
+}
+
+function ensureStreamQuotes(titles) {
+  const seq = state.streamSeq;
+  const pending = [];
+  const seen = new Set();
+  for (const row of titles || []) {
+    if (!row || row.free || !(Number(row.cents) > 0)) continue;
+    const key = String(row.cents);
+    if (state.streamQuotes && Object.prototype.hasOwnProperty.call(state.streamQuotes, key)) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    pending.push(row);
+  }
+  if (!pending.length) return;
+  Promise.all(pending.map((row) => api("/api/1984/stream/quote?id=" + encodeURIComponent(row.id)).then((body) => {
+    if (body && body.ok && body.sompi != null) rememberStreamQuote(row.cents, body.sompi);
+  }))).then(() => {
+    if (state.mode !== "sistream" || state.streamSeq !== seq) return;
+    if (state.streamPick) {
+      const open = ((state.streamBook && state.streamBook.titles) || []).find((item) => item.id === state.streamPick);
+      if (open) applyStreamQuoteToOpen(open);
+      return;
+    }
+    document.querySelectorAll("[data-si-price]").forEach((el) => {
+      const id = el.getAttribute("data-si-price");
+      const row = ((state.streamBook && state.streamBook.titles) || []).find((item) => item.id === id);
+      if (row) el.textContent = streamShelfPrice(row);
+    });
   });
 }
 
@@ -3652,7 +3727,7 @@ function paintGuide() {
     "<li>The Moon map is NASA. Mars and Jupiter are <a href=\"https://www.solarsystemscope.com/textures\" target=\"_blank\" rel=\"noopener\">Solar System Scope</a>, CC BY 4.0. The Earth limb plays the Earth film. One play is one full turn, west to east. The Earth is already turning on the pad, before liftoff, and the turn is slow. The Saturn cruise plays the Saturn film.</li>" +
     "<li>The balances stay in a clear bar under the site tabs, on the square, in a shop, in the cinema, and on a flight. It reads tKAS, POC, KUSDT, and OLAF, then the kaspatest address and the chosen .kas name. domain/address on that bar changes the default name. Bank is on that bar. With the bank open, that bar lists the minted tokens and the hunt you are in.</li>" +
     "<li>Lux's cinema is the dark building. Take a seat, then the screen. The ticket and the snacks take tKAS, POCencept stable, KUSDT stable, or OLAF. What are the rails? opens the short note, and OLAF is under it. That button is the opener on the whole square. One ticket plays every film, from a seat. Every film is labeled this desk agrees. Prev, Next, and Shuffle move the reel. Overview lists every film. The card sits to the left of the film. On a phone, the snacks start as a small tab so the film stays clear. Close snacks puts that list away. Snacks brings it back. Neither one starts a purchase. The current film stays up until the next one has a picture. The next film starts when one ends. Exit to the square leaves the cinema.</li>" +
-    "<li>SI stream is the tab next to Cinema. The goal is the best of the best world. Good old quality cinema comes from a person's own Plex server. Cinema made with superintelligence sits beside it. That work is good, and it will keep getting better. Will there be a market for it? Yes. This desk likes it, so yes. A title is free, a subscription, or a price on tKAS, POCencept, KUSDT, or OLAF. The desk films are 0.15. Life Is Beautiful is the standard on that shelf. This desk does not sell that film. The explanation of the whole idea is Raw idea, on the side rail, and on 1984 raw idea.</li>" +
+    "<li>SI stream is the tab next to Cinema. The goal is the best of the best world. Good old quality cinema comes from a person's own Plex server. Cinema made with superintelligence sits beside it. That work is good, and it will keep getting better. Will there be a market for it? Yes. This desk likes it, so yes. A title is free, a subscription, or a price on tKAS, POCencept, KUSDT, or OLAF. The desk films are 0.15 POCencept, 0.15 KUSDT, or 0.15 OLAF. tKAS follows the live quote. Life Is Beautiful is the standard on that shelf. This desk does not sell that film. The explanation of the whole idea is Raw idea, on the side rail, and on 1984 raw idea.</li>" +
     "<li>Reed's Hunt Hall is the timber building east of the lot. Click Reed, then the board. Every row takes tKAS, POCencept stable, or KUSDT stable. Promise is not Buy. The pack stays hidden until it pays.</li>" +
     "<li>The goal of a peer-to-peer chain is a settlement between two people, including while almost nobody takes the coin. That bill is a car, an SI service, a game purchase, or a rented service. The ceiling is a till a stranger can receive on. Proof of stake hands the next block to coins already held. Kaspa is proof of work. It sequences the coin now. Sequencing applications on that work is in process, and this square is not that product. <a href=\"https://github.com/STP-KAS/stable-staghunt-theory/blob/main/CEILING.md\" target=\"_blank\" rel=\"noopener\">The ceiling</a> is the longer note.</li>" +
     "<li>The best case is stable money you can spend anywhere. Kaspa is volatile. A stable is the other way to hold a spend. Without one of those, the coin has no point. Peer to peer is the payment. Five percent of this portfolio is crypto. A profit stays in crypto, in a stable, to hold or to spend, rather than cashed out to fiat. The use is to spend it, and to use it, fast, anywhere. Applications and the other utilities matter as much as the coin, and sometimes more. Kaspa needs both before it leaves the bubble. Proof of stake offers part of that spend. It does not offer what scalable proof of work offers. That is settled. This square is still the classroom.</li>" +

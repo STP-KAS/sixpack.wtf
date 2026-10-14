@@ -852,7 +852,7 @@ body.page-1984 main.kw-stage {
 }
 .si-card strong { font-size: 1.05rem; }
 .si-kicker { font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; color: #b7a88a; }
-.si-price { color: #f2d48a; font-size: 1rem; }
+.si-price { color: #f2d48a; font-size: 0.78rem; line-height: 1.35; white-space: pre-line; }
 .si-empty { margin: 0.2rem 0 0.6rem; }
 .si-back { align-self: flex-start; }
 .si-meta { color: #f2d48a; }

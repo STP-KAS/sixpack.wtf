@@ -47,7 +47,9 @@ test("the desk example is a 0.15 short and the public shelf hides the file", () 
   assert.match(shelf, /Plex server/);
   assert.match(shelf, /The goal is the best of the best world/);
   assert.match(shelf, /This desk likes it, so yes/);
-  assert.match(shelf, /Price 0\.15\. Pay with tKAS, OLAF, or KUSDT\./);
+  assert.match(shelf, /A short from this desk\./);
+  assert.doesNotMatch(shelf, /Price 0\.15/);
+  assert.doesNotMatch(shelf, /Pay with tKAS, OLAF, or KUSDT/);
   assert.doesNotMatch(shelf, /0\.15 on tKAS, POCencept, or KUSDT/);
   assert.match(shelf, /does not sell this film/);
   assert.match(shelf, /1984\/stream\/standard\.jpg/);
@@ -240,7 +242,8 @@ test("the square tab is SI stream", () => {
   const html = readFileSync(new URL("../1984.html", import.meta.url), "utf8");
   assert.match(client, /\["sistream", "SI stream"\]/);
   assert.match(client, /data-si-buy/);
-  assert.match(client, /The desk films are 0\.15/);
+  assert.match(client, /The desk films are 0\.15 POCencept, 0\.15 KUSDT, or 0\.15 OLAF\. tKAS follows the live quote/);
+  assert.doesNotMatch(client, /Pay with tKAS, OLAF, or KUSDT/);
   assert.match(client, /does not sell that film/);
   assert.match(client, /The goal is the best of the best world/);
   assert.match(client, /This desk likes it, so yes/);
@@ -253,7 +256,8 @@ test("the square tab is SI stream", () => {
   assert.match(client, /function holdStreamFrame\(/);
   assert.match(client, /frame\.style\.aspectRatio/);
   assert.match(client, /streamPictureUp|view3d\.mjs\?v=70/);
-  assert.match(html, /1984\/client\.mjs\?v=172/);
-  assert.match(client, /Price " \+ formatCents\(row\.cents\) \+ "\. Pay with tKAS, OLAF, or KUSDT\./);
-  assert.match(html, /1984\.css\?v=90/);
+  assert.match(html, /1984\/client\.mjs\?v=173/);
+  assert.match(client, /streamKasWords\(sompi\) \+ " · " \+ face \+ " POCencept · " \+ face \+ " KUSDT · " \+ face \+ " OLAF"/);
+  assert.match(client, /tKAS at the live quote/);
+  assert.match(html, /1984\.css\?v=91/);
 });
