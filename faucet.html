@@ -7,7 +7,7 @@
   <meta name="description" content="Grok bot faucet is closed. The page shows the Testnet-10 tKAS balance. Mine your own tKAS with rusty-kaspa.">
   <link rel="canonical" href="https://sixpack.wtf/faucet.html">
   <link rel="stylesheet" href="site.css?v=27">
-  <link rel="stylesheet" href="faucet.css?v=10">
+  <link rel="stylesheet" href="faucet.css?v=11">
   <script>
     document.documentElement.classList.add("intro-done");
     window.FAUCET_API = "https://especially-supporting-herald-broken.trycloudflare.com";
@@ -33,11 +33,57 @@
 
   <h2>Mine your own tKAS</h2>
   <p>Testnet-10 coins come from a node you run. This page does not pay them out.</p>
-  <ul>
-    <li><a href="https://github.com/kaspanet/rusty-kaspa">kaspanet/rusty-kaspa</a> — the node.</li>
-    <li><a href="https://github.com/kaspanet/rusty-kaspa/blob/master/docs/testnet10-transition.md">Testnet-10 node and miner</a> — <code>kaspad --testnet --netsuffix=10 --utxoindex</code>, then the CPU miner against that node.</li>
-    <li><a href="https://github.com/kaspanet/rusty-kaspa/releases">rusty-kaspa releases</a> — the binaries.</li>
-  </ul>
+  <p>Windows, with Grok Build or Grok Bot. Copy this prompt, paste it into a new chat, and send it. It makes a new wallet on that PC, shows you the seed phrase, and mines tKAS to that wallet.</p>
+  <p><button type="button" class="copy" id="copy-mine-prompt">Copy prompt</button></p>
+  <pre class="mine-prompt" id="mine-prompt">You are on Windows. This is for Grok Build or Grok Bot on this PC. Do the work yourself. Do not ask the person to type commands.
+
+Mine Testnet-10 only. The coins are tKAS. They are test coins. Do not start mainnet. Do not mine to any address except the new wallet you create here. Do not reuse a wallet that is already on this PC. Do not print a seed you did not just create. Do not write the seed into a file, a git repo, a website, or a screenshot. Do not run rothschild. That tool makes a different key, and it is not the seed phrase.
+
+Work in %USERPROFILE%\tn10-mine. Create that folder.
+
+1. Download these two files into that folder if they are not already there:
+https://github.com/kaspanet/rusty-kaspa/releases/download/v2.1.0/rusty-kaspa-v2.1.0-win64.zip
+https://github.com/elichai/kaspa-miner/releases/download/v0.2.5/kaspa-miner-v0.2.5-win64-amd64.exe
+Expand the zip in that folder. You need kaspad.exe and kaspa-wallet.exe from it.
+
+2. If TCP 16210 or 16211 is already listening, stop. Tell the person a Kaspa node is already on this PC. Do not kill it. Do not start a second kaspad.
+
+3. If free disk space on the drive that holds %USERPROFILE% is under 100 GB, stop. The Testnet-10 chain needs a large free SSD.
+
+4. Create the wallet with kaspa-wallet.exe. Set the working directory to %USERPROFILE%\tn10-mine. The program is a terminal. Send one line at a time, in this order, with no extra words:
+network testnet-10
+wallet create mine
+mine
+(empty line, for the phishing hint)
+(a new random wallet-file password, at least 16 characters)
+(the same password again)
+(empty line, so there is no extra bip39 passphrase)
+Wait until it prints "Your default wallet account mnemonic:" and "Your default account deposit address:". The address must start with kaspatest:. Then send exit.
+If a wallet named mine already exists, do not overwrite it. Open that wallet and run address. Mine to that address. Do not invent a seed for an old wallet.
+If the wallet will not accept these answers, stop before mining. Do not invent a seed or an address.
+
+5. Show the person, once, in the chat: the 12-word seed phrase, the wallet-file password, and the kaspatest address. Tell them to write the seed on paper now. The seed is the backup. The password only opens the wallet file on this PC. The 12 words have no extra passphrase.
+
+6. Start one node and leave it running:
+kaspad.exe --testnet --netsuffix=10 --utxoindex --listen=127.0.0.1:16211 --rpclisten=127.0.0.1:16210 --rpclisten-borsh=127.0.0.1:17210 --appdir=%USERPROFILE%\tn10-mine\kaspad-data
+RPC stays on this PC. Do not listen on 0.0.0.0. Do not add --unsaferpc.
+
+7. Wait until that node is synced and the log says testnet-10. Do not mine during IBD. Do not pass --mine-when-not-synced.
+
+8. Start one miner and leave it running. Replace THE_ADDRESS with the kaspatest address from step 4:
+kaspa-miner-v0.2.5-win64-amd64.exe --testnet --mining-address THE_ADDRESS -s 127.0.0.1 -p 16210 -t 1
+One thread. Those flags match https://github.com/kaspanet/rusty-kaspa/blob/master/docs/testnet10-transition.md with RPC kept on localhost.
+
+9. Tell the person whether the node is still syncing or the miner is running, and repeat the kaspatest address. After a block is mined, the coins show on https://tn10.kaspa.stream/addresses/THE_ADDRESS . Coinbase coins mature before they can be spent.</pre>
+  <script>
+    document.getElementById("copy-mine-prompt").addEventListener("click", function () {
+      var button = document.getElementById("copy-mine-prompt");
+      var text = document.getElementById("mine-prompt").textContent;
+      navigator.clipboard.writeText(text).then(function () {
+        button.textContent = "Copied";
+      });
+    });
+  </script>
 </main>
 <div id="faucet-modal" class="fmodal" hidden>
   <div class="fmodal-card" role="dialog" aria-modal="true" aria-labelledby="fmodal-title">

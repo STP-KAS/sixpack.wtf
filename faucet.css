@@ -85,6 +85,19 @@ body.faucet-page main { max-width: 1100px; padding-left: max(1rem, env(safe-area
 .faucet-disclaimer p { margin: 0; }
 .faucet-disclaimer strong { color: #ffe9a8; }
 .faucet-disclaimer a { color: #ffe9a8; }
+.mine-prompt {
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 28rem;
+  margin: 0.4rem 0 1.2rem;
+  background: #0c0f0e;
+  border: 1px solid #3d8f7a;
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  color: #e7ece8;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
 .fmodal {
   position: fixed;
   inset: 0;

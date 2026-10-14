@@ -115,6 +115,14 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /closed until further notice/);
   assert.match(faucet, /Closed\. Mine your own tKAS/);
   assert.match(faucet, /kaspanet\/rusty-kaspa\/blob\/master\/docs\/testnet10-transition\.md/);
+  assert.match(faucet, /id="mine-prompt"/);
+  assert.match(faucet, /id="copy-mine-prompt"/);
+  assert.match(faucet, /Your default wallet account mnemonic/);
+  assert.match(faucet, /kaspa-miner-v0\.2\.5-win64-amd64\.exe --testnet --mining-address THE_ADDRESS/);
+  assert.match(faucet, /network testnet-10/);
+  const minePrompt = faucet.slice(faucet.indexOf('id="mine-prompt"'), faucet.indexOf("</pre>", faucet.indexOf('id="mine-prompt"')));
+  assert.doesNotMatch(minePrompt, /qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx/);
+  assert.doesNotMatch(minePrompt, /\b(abandon|seed phrase is)\b/i);
   assert.match(client, /Bypass-Tunnel-Reminder/);
   assert.doesNotMatch(html, /Same kaspatest address, same history/);
   assert.doesNotMatch(html, /id="gate-addr"/);
