@@ -52,7 +52,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=171/);
+  assert.match(html, /1984\/client\.mjs\?v=172/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -230,8 +230,8 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(bar, /Domain:<\/span> none/);
   assert.match(bar, /id="bar-bank" class="bar-bank">Bank<\/button>/);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
-  assert.match(html, /1984\.css\?v=89/);
-  assert.match(html, /1984\/client\.mjs\?v=171/);
+  assert.match(html, /1984\.css\?v=90/);
+  assert.match(html, /1984\/client\.mjs\?v=172/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
@@ -399,7 +399,14 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(client, /\["olaf", "OLAF"\]/);
   assert.match(client, /location\.hash === "#olaf"/);
   assert.match(sliceFn(client, "paintOlaf"), /olafDeskHtml\(\)/);
-  assert.match(sliceFn(client, "paintOlaf"), /Swap tKAS for OLAF/);
+  const olafDesk = sliceFn(client, "olafDeskHtml");
+  assert.match(olafDesk, /Swap tKAS for OLAF/);
+  assert.match(olafDesk, /id="olaf-copy-code"/);
+  assert.match(olafDesk, /id="olaf-send"/);
+  assert.match(olafDesk, /<details class="olaf-key">/);
+  assert.match(olafDesk, /id="olaf-copy-key"/);
+  assert.doesNotMatch(olafDesk, /OLAF_PAY_LINE/);
+  assert.doesNotMatch(olafDesk, /class="mint-addr"/);
   assert.doesNotMatch(sliceFn(client, "paintBank"), /olafDeskHtml\(\)/);
   assert.match(railsWhy, /<strong>tKAS<\/strong> the coin\. The miner fee is always tKAS\./);
   assert.doesNotMatch(railsWhy, /miner fee is always KAS/);

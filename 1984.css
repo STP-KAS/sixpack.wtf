@@ -1247,13 +1247,72 @@ body.page-1984 main.kw-stage {
 }
 .mint-board .mint-olaf p { margin: 0 0 0.35rem; color: #d5e4f2; }
 .olaf-bank {
-  margin: 0.35rem 0 0.55rem;
-  padding: 0.5rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: #d5e4f2;
+}
+.olaf-hero { padding: 0.1rem 0.1rem 0.15rem; }
+.olaf-bal {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  margin: 0.1rem 0 0.15rem;
+}
+.olaf-bal strong {
+  color: #f2d48a;
+  font-size: 1.85rem;
+  line-height: 1;
+  font-weight: 700;
+}
+.olaf-bal span { color: #b7a88a; font-size: 0.78rem; }
+.olaf-step,
+.olaf-key {
+  margin: 0;
+  padding: 0.55rem 0.65rem 0.65rem;
   border-radius: 12px;
   background: #121820;
   border: 1px solid #3d5a73;
-  color: #d5e4f2;
 }
+.olaf-step h3 {
+  margin: 0 0 0.15rem;
+  color: #f2d48a;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.olaf-step .fine,
+.olaf-key .fine { margin: 0 0 0.45rem; line-height: 1.35; }
+.olaf-step button,
+.olaf-key button {
+  width: 100%;
+  margin-top: 0.15rem;
+  text-align: center;
+  font-weight: 700;
+}
+.olaf-step textarea {
+  width: 100%;
+  min-height: 3.2rem;
+  font: inherit;
+  font-size: 0.8rem;
+  background: #1a1612;
+  color: #f3e6c8;
+  border: 1px solid #8a7040;
+  padding: 0.25rem;
+  resize: vertical;
+}
+.olaf-key summary {
+  cursor: pointer;
+  color: #b7a88a;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.olaf-key[open] summary { color: #f2d48a; margin-bottom: 0.35rem; }
 .olaf-bank strong { color: #f2d48a; }
 .mint-board .mint-tkas button {
   flex: 1 1 5.5rem;

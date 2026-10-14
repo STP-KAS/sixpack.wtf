@@ -2304,15 +2304,36 @@ async function copyOlafText(value, okLine) {
 }
 
 function olafDeskHtml() {
-  const code = state.olafCode || "The receive code appears when this page opens.";
-  return '<div class="olaf-bank"><p><strong>OLAF</strong> ' + esc(formatCents(olafHeld())) +
-    " shielded in this browser. 1.00 is one dollar of tKAS at the quote when the note was made.</p>" +
-    '<p class="fine">' + esc(OLAF_PAY_LINE) + "</p>" +
-    '<p class="mint-addr" id="olaf-code">' + esc(code) + "</p>" +
-    '<p><button type="button" id="olaf-copy-code">Copy receive code</button> <button type="button" id="olaf-copy-key">Copy spend key</button></p>' +
-    '<label>Send OLAF, like 1.00<input id="olaf-send-amt" inputmode="decimal" autocomplete="off" placeholder="1.00"></label>' +
-    '<label>Their receive code<textarea id="olaf-send-to" rows="2" autocomplete="off"></textarea></label>' +
-    '<button type="button" id="olaf-send">Send privately</button></div>';
+  const code = state.olafCode || "";
+  const hint = code
+    ? "Ready to copy. It ends in " + code.slice(-6) + "."
+    : "The receive code appears when this page opens.";
+  return '<div class="olaf-bank">' +
+    '<div class="olaf-hero">' +
+    '<p class="olaf-bal"><strong>' + esc(formatCents(olafHeld())) + '</strong><span>in this browser</span></p>' +
+    '<p class="fine">1.00 is one dollar of tKAS at the quote when the note was made.</p>' +
+    "</div>" +
+    '<section class="olaf-step olaf-get">' +
+    "<h3>Get</h3>" +
+    '<p class="fine">The bank swaps tKAS into this note. It does not redeem it. POCencept and KUSDT stay on the bank.</p>' +
+    '<button type="button" id="olaf-bank">Swap tKAS for OLAF</button>' +
+    "</section>" +
+    '<section class="olaf-step olaf-receive">' +
+    "<h3>Receive</h3>" +
+    '<p class="fine" id="olaf-code">' + esc(hint) + "</p>" +
+    '<button type="button" id="olaf-copy-code">Copy receive code</button>' +
+    "</section>" +
+    '<section class="olaf-step olaf-send">' +
+    "<h3>Send</h3>" +
+    '<label>Amount, like 1.00<input id="olaf-send-amt" inputmode="decimal" autocomplete="off" placeholder="1.00"></label>' +
+    '<label>Their receive code<textarea id="olaf-send-to" rows="2" autocomplete="off" placeholder="Paste their receive code"></textarea></label>' +
+    '<button type="button" id="olaf-send">Send privately</button>' +
+    "</section>" +
+    '<details class="olaf-key">' +
+    "<summary>Spend key</summary>" +
+    '<p class="fine">This key spends every OLAF note in this browser. Copy it before you clear the browser. A lost key cannot be reset.</p>' +
+    '<button type="button" id="olaf-copy-key">Copy spend key</button>' +
+    "</details></div>";
 }
 
 function wireOlafDesk() {
@@ -2371,8 +2392,6 @@ function paintOlaf() {
     payingAddressHtml() +
     '<div class="swap-head"><h2>OLAF</h2>' + placeActs('<button type="button" id="olaf-close">Close</button>') + "</div>" +
     olafDeskHtml() +
-    '<p class="fine">The bank swaps tKAS into this note. It does not redeem it. POCencept and KUSDT stay on the bank.</p>' +
-    '<button type="button" id="olaf-bank">Swap tKAS for OLAF</button>' +
     "</div>";
   wireOlafDesk();
   const shut = document.getElementById("olaf-close");
