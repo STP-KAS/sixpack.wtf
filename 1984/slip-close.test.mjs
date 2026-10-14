@@ -359,6 +359,9 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(rails, /KUSDT is the other public tag/);
   assert.match(rails, /OLAF is a shielded dollar note/);
   assert.match(rails, /rails-why\.html/);
+  assert.match(rails, /<strong>tKAS<\/strong> the coin\. Miner fee is always tKAS\./);
+  assert.doesNotMatch(rails, /Miner fee is always KAS/);
+  assert.doesNotMatch(rails, /miner fee is always KAS/);
   const railsWhy = readFileSync(new URL("../rails-why.html", import.meta.url), "utf8");
   assert.match(railsWhy, /<h1>Rails<\/h1>/);
   assert.match(railsWhy, /<h2>POCencept<\/h2>/);
@@ -379,7 +382,9 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(sliceFn(client, "paintOlaf"), /olafDeskHtml\(\)/);
   assert.match(sliceFn(client, "paintOlaf"), /Swap tKAS for OLAF/);
   assert.doesNotMatch(sliceFn(client, "paintBank"), /olafDeskHtml\(\)/);
-  assert.match(railsWhy, /<strong>tKAS<\/strong> the coin/);
+  assert.match(railsWhy, /<strong>tKAS<\/strong> the coin\. The miner fee is always tKAS\./);
+  assert.doesNotMatch(railsWhy, /miner fee is always KAS/);
+  assert.doesNotMatch(railsWhy, /miner fee on every path is KAS/);
   assert.match(railsWhy, /<strong>POCencept<\/strong> public tag, no freeze/);
   assert.match(railsWhy, /<strong>KUSDT<\/strong> public tag, freeze/);
   assert.match(railsWhy, /<strong>OLAF<\/strong> private dollar/);
