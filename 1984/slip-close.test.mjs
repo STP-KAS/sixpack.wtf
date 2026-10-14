@@ -63,7 +63,12 @@ test("the landing gate takes a funded test address", () => {
   const phone = css.slice(phoneAt);
   assert.match(html, /class="phone-fit"/);
   assert.match(html, /class="desk-note">Better on a desktop, a PC, or a laptop\./);
+  assert.match(html, /id="phone-block"/);
+  assert.match(html, /Not available on a phone\./);
+  assert.match(html, /There is no added value in making this mobile ready\./);
   assert.match(css.slice(0, phoneAt), /\.desk-note \{ display: none; \}/);
+  assert.match(css.slice(0, phoneAt), /\.phone-block \{ display: none; \}/);
+  assert.match(phone, /\.phone-block \{[\s\S]*display: grid;[\s\S]*position: fixed;[\s\S]*z-index: 80/);
   assert.match(phone, /\.phone-fit \{[\s\S]*width: 100%;[\s\S]*height: 100%;[\s\S]*transform: none/);
   assert.doesNotMatch(phone, /width: 1280px/);
   assert.doesNotMatch(phone, /scale\(min\(/);
@@ -222,7 +227,7 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(bar, /Domain:<\/span> none/);
   assert.match(bar, /id="bar-bank" class="bar-bank">Bank<\/button>/);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
-  assert.match(html, /1984\.css\?v=87/);
+  assert.match(html, /1984\.css\?v=88/);
   assert.match(html, /1984\/client\.mjs\?v=169/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);

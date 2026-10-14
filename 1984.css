@@ -2029,9 +2029,36 @@ a { color: #f2d48a; }
 }
 
 .desk-note { display: none; }
+.phone-block { display: none; }
 
-/* A phone fills the screen. A computer keeps the desk. */
+/* A phone fills the screen. A computer keeps the desk. The phone layout stays under the cover. */
 @media (max-width: 980px) {
+  .phone-block {
+    display: grid;
+    place-items: center;
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    margin: 0;
+    padding: 1.25rem;
+    background: #0c0b0a;
+    color: #f2d48a;
+    text-align: center;
+  }
+  .phone-block-card {
+    width: min(22rem, 100%);
+    padding: 1.15rem 1rem 0.95rem;
+    background: #161311;
+    border: 1px solid #d7c4a2;
+    border-radius: 2px;
+  }
+  .phone-block h1 {
+    margin: 0.35rem 0 0.4rem;
+    color: #f2d48a;
+    font-size: 1.55rem;
+  }
+  .phone-block p { margin: 0.45rem 0; }
+  .phone-block a { color: #f2d48a; }
   body.page-1984 {
     height: 100dvh;
     overflow: hidden;
