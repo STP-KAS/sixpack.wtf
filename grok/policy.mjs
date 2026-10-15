@@ -1,13 +1,15 @@
 /** Public desk gates. No keys. No seeds in logs. */
 
+import { ACTION_CAP, ACTION_WINDOW_MS } from "../1984/action-cap.mjs";
+
 export const MAX_QUESTION = 4000;
 export const MAX_HISTORY = 16;
 export const MAX_HISTORY_CHARS = 12000;
-export const RATE_WINDOW_MS = 10 * 60 * 1000;
-export const RATE_MAX = 12;
+export const RATE_WINDOW_MS = ACTION_WINDOW_MS;
+export const RATE_MAX = ACTION_CAP;
 export const DAY_MS = 24 * 60 * 60 * 1000;
-export const DAY_MAX = 40;
-export const MIN_INTERVAL_MS = 1200;
+export const DAY_MAX = ACTION_CAP;
+export const MIN_INTERVAL_MS = 0;
 
 const PRICE = /\b(price\s*prediction|price\s*target|price\s*action|\$kas\b|market\s*cap|\bmcap\b|\bath\b|\batl\b|\bmoon\b|\blambo\b|\b10x\b|\b100x\b|\bpump\b|\bdump\b|when\s+(binance|coinbase|listing)|binance\s+listing|buy\s+now|sell\s+now|will\s+it\s+(moon|pump|dump|reach|hit|go\s+to)|how\s+much\s+(is|will|should)\s+(kas|kaspa)|kaspa\s+price|price\s+of\s+kas|what(?:'s| is) kas(?:pa)? worth|target\s+price|resistance|support\s+level)\b/i;
 const TECH = /\b(ghostdag|blockdag|phantom|kip-?\d*|kcc-?\d*|toccata|crescendo|silverscript|argent|vprog|covenant|utxo|rusty-?kaspa|dagknight|wallet|seed|mnemonic|proof of work|\bpow\b|\bpos\b|mining|ibd|rpc|daa|sompi|mass|node|kheavyhash|graftroot|kaspaexplained|100bps|kips?)\b/i;
@@ -75,7 +77,7 @@ function takeHits(ip, now) {
     row = { times: [], last: 0 };
     hits.set(key, row);
   }
-  row.times = row.times.filter((t) => now - t < DAY_MS);
+  row.times = row.times.filter((t) => now - t < RATE_WINDOW_MS);
   return row;
 }
 

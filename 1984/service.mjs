@@ -41,6 +41,7 @@ import {
   publicMints,
   publicOffers,
 } from "./ledger.mjs";
+import { ACTION_CAP, ACTION_WINDOW_MS } from "./action-cap.mjs";
 import { BENCH, POST, REPOS } from "./links.mjs";
 import {
   canonical,
@@ -133,13 +134,13 @@ export function create1984Service(deps) {
   function limit(ip) {
     const now = deps.now();
     const row = hits.get(ip) || { n: 0, t: now };
-    if (now - row.t > 60_000) {
+    if (now - row.t > ACTION_WINDOW_MS) {
       row.n = 0;
       row.t = now;
     }
     row.n += 1;
     hits.set(ip, row);
-    if (row.n > 80) throw new Error("Slow down. The square allows 80 actions a minute.");
+    if (row.n > ACTION_CAP) throw new Error(`Slow down. The square allows ${ACTION_CAP} actions a minute.`);
   }
 
   function guard(body) {
