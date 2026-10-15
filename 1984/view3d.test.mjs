@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, HOT_STAGE_MS, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, CAM_FOLLOW, followBlend, glideBlend, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, countdownMs, COUNT_HOLD_MS, cruiseWatch, abyssWatch, raceWatch, flightFog, spaceBackdrop, spaceSkyMode, drives, EARTH_RADIUS, EARTH_SURFACE, EARTH_LIMB_V, EARTH_TURN_MS, HANG_RADIUS, WORLD_RADIUS, SATURN_FILM_H, SATURN_WATCH, saturnFilmFrame, aimUpright, earthCenter, earthFilmFrame, earthTurn, stratosphereExitMs, stratopauseAlt, escapeRoom, fitScreen, portraitDistance, pointerScale, flightBeat, flightCamera, limbShot, flightClock, flightLine, flightVoice, SEP_COMMS_MS, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, streamPictureUp, EARTH_JOKE_DELAY, earthJoke, jokeRows, BENCH_JOKES, benchWalk, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
+import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, HOT_STAGE_MS, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, CAM_FOLLOW, followBlend, glideBlend, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, countdownMs, COUNT_HOLD_MS, cruiseWatch, abyssWatch, raceWatch, flightFog, spaceBackdrop, spaceSkyMode, drives, EARTH_RADIUS, EARTH_SURFACE, EARTH_LIMB_V, EARTH_TURN_MS, HANG_RADIUS, WORLD_RADIUS, SATURN_FILM_H, SATURN_WATCH, saturnFilmFrame, aimUpright, earthCenter, earthFilmFrame, earthTurn, stratosphereExitMs, stratopauseAlt, escapeRoom, fitScreen, portraitDistance, pointerScale, flightBeat, flightCamera, limbShot, flightClock, flightLine, flightVoice, SEP_COMMS_MS, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, streamPictureUp, EARTH_JOKE_DELAY, earthJoke, jokeRows, BENCH_JOKES, benchWalk, benchLinePose, dressBenchLine, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
 
 function outwardness(cam, pose, center) {
   const ox = pose.carX - center.x;
@@ -869,7 +869,46 @@ test("one bench strolls the square and the garden, slower than a walk", () => {
   assert.ok(jokeChanged, "new line");
   assert.ok(sawGarden, "garden bed");
   assert.ok(seen.has("15,12") && seen.has("26,12") && seen.has("26,20") && seen.has("15,20"));
-  for (const line of BENCH_JOKES) assert.ok(line.length > 50);
+  for (const line of BENCH_JOKES) {
+    assert.ok(line.length > 50);
+    const rows = jokeRows(line, (value) => ({ width: value.length * 12 }), 672);
+    assert.equal(rows.join(" "), line);
+    for (const row of rows) assert.ok(row.length * 12 <= 672);
+  }
+});
+
+test("the bench line stays readable in a shop and past a wall", () => {
+  const outdoor = benchLinePose(false, 148, 16 / 9);
+  assert.equal(outdoor.parent, "bench");
+  assert.ok(outdoor.y > 2.2, "above heads and the fountain");
+  assert.equal(outdoor.z, 0);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial());
+  assert.equal(sprite.material.fog, true);
+  dressBenchLine(sprite);
+  assert.equal(sprite.material.depthTest, false);
+  assert.equal(sprite.material.depthWrite, false);
+  assert.equal(sprite.material.fog, false);
+  assert.ok(sprite.renderOrder > 12);
+  for (const aspect of [9 / 16, 1, 16 / 9]) {
+    const indoors = benchLinePose(true, 148, aspect);
+    assert.equal(indoors.parent, "camera");
+    assert.ok(indoors.z < -1, "in front of the camera");
+    const dist = -indoors.z;
+    const viewH = 2 * dist * Math.tan((42 * Math.PI) / 180 / 2);
+    const viewW = viewH * aspect;
+    assert.ok(indoors.sx <= viewW * 0.86 + 0.001, "width " + indoors.sx + " view " + viewW);
+    assert.ok(indoors.sy <= viewH * 0.34 + 0.001, "height " + indoors.sy);
+    assert.ok(indoors.sx > 0.4 && indoors.sy > 0.2);
+    const cam = new THREE.PerspectiveCamera(42, aspect, 0.08, 240);
+    cam.position.set(4, 1.6, 3);
+    cam.lookAt(0, 1.05, 0);
+    cam.updateMatrixWorld(true);
+    const ahead = new THREE.Vector3();
+    cam.getWorldDirection(ahead);
+    const at = new THREE.Vector3(indoors.x, indoors.y, indoors.z).applyQuaternion(cam.quaternion).add(cam.position);
+    const fromCam = at.sub(cam.position);
+    assert.ok(fromCam.dot(ahead) > 1, "stays ahead " + fromCam.dot(ahead));
+  }
 });
 
 test("the earth holds through the air, then turns one ISS orbit", () => {
