@@ -98,6 +98,9 @@ test("a move keeps the remainder and flips only the exchanged part", () => {
   assert.equal(flipped[0].id, "cc:0");
   assert.equal(flipped[1].rail, "poc");
   assert.equal(flipped[1].id, "cc:1");
+  const pointed = afterMove(lock, "spend", 2n, 40n, "dd", { 1: "kaspatest:remainder" });
+  assert.equal(pointed[0].pegAddress, "kaspatest:remainder");
+  assert.equal(pointed[0].id, "dd:1");
 });
 
 test("the public account adds chain cents and hides the opening", () => {

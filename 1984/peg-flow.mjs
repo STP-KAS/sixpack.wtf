@@ -111,8 +111,8 @@ async function runChain(plan, each) {
   return { txids, last };
 }
 
-async function remember(setState, address, take, entry, txid, now) {
-  const next = afterMove(take.row, entry, take.take, take.pay, txid);
+async function remember(setState, address, take, entry, txid, now, pegByIndex) {
+  const next = afterMove(take.row, entry, take.take, take.pay, txid, pegByIndex);
   let out;
   await setState((current) => {
     out = applyChainMove(current, {
@@ -143,7 +143,7 @@ export async function settleRedeem({ pegLock, guests, pay, address, token, rail,
     chain = await runChain(plan, async (take) => {
       const paid = await pegLock.redeem({ lock: take.row, ownerKey: session.key, take: take.take, ownerAddress: address });
       ran = true;
-      await remember(setState, address, take, "redeem", paid.txid, now);
+      await remember(setState, address, take, "redeem", paid.txid, now, paid.nextPeg);
       return paid.txid;
     });
   } catch (err) {
@@ -198,7 +198,7 @@ export async function settleExchange({ pegLock, guests, address, token, from, to
   for (const take of plan.chain) {
     const paid = await pegLock.exchange({ lock: take.row, ownerKey: session.key, take: take.take, ownerAddress: address });
     txids.push(paid.txid);
-    await remember(setState, address, take, "exchange", paid.txid, now);
+    await remember(setState, address, take, "exchange", paid.txid, now, paid.nextPeg);
   }
   const ledgerCents = plan.practice + plan.old;
   if (ledgerCents > 0n) {
@@ -229,7 +229,7 @@ export async function settleFreeze({ pegLock, guests, address, token, frozen, ge
       feeAddress: session ? session.address : "",
     });
     const take = { id: row.id, take: BigInt(row.cents), pay: BigInt(row.sompi), row };
-    await remember(setState, address, take, "freeze", paid.txid, now);
+    await remember(setState, address, take, "freeze", paid.txid, now, paid.nextPeg);
   }
   let out;
   await setState((current) => {
@@ -258,7 +258,7 @@ export async function settleSpend({ pegLock, guests, address, token, rail, cents
     txids.push(paid.txid);
     sompi += take.pay;
     prepaid += take.take;
-    await remember(setState, address, take, "spend", paid.txid, now);
+    await remember(setState, address, take, "spend", paid.txid, now, paid.nextPeg);
   }
   return { prepaidCents: prepaid, chainSompi: sompi, chainTxid: txids[0] || "", txids, peg: true };
 }

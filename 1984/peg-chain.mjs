@@ -777,9 +777,11 @@ export function createPegLock() {
       if (owner !== String(lock.owner).toLowerCase()) throw new Error("The signing key does not match this lock.");
       const pay = BigInt(lockShareOf(lock, take));
       const out = [await p2pk(kaspa, ownerAddress, pay)];
+      const nextPeg = {};
       if (BigInt(take) !== BigInt(lock.cents)) {
         const rest = await continuation(kaspa, nextRow(lock, restPatch(lock, take, pay)), BigInt(lock.sompi) - pay);
         out.push(rest);
+        nextPeg[1] = rest.pegAddress;
       }
       const txid = await submitEntry({
         lock,
@@ -790,7 +792,7 @@ export function createPegLock() {
         feeAddress: ownerAddress,
         outputs: out,
       });
-      return { txid };
+      return { txid, nextPeg };
     },
 
     async exchange({ lock, ownerKey, take, ownerAddress }) {
@@ -806,8 +808,11 @@ export function createPegLock() {
       });
       const moved = await continuation(kaspa, flipped, pay);
       const out = [moved];
+      const nextPeg = { 0: moved.pegAddress };
       if (BigInt(take) !== BigInt(lock.cents)) {
-        out.push(await continuation(kaspa, nextRow(lock, restPatch(lock, take, pay)), BigInt(lock.sompi) - pay));
+        const rest = await continuation(kaspa, nextRow(lock, restPatch(lock, take, pay)), BigInt(lock.sompi) - pay);
+        out.push(rest);
+        nextPeg[1] = rest.pegAddress;
       }
       const txid = await submitEntry({
         lock,
@@ -818,7 +823,7 @@ export function createPegLock() {
         feeAddress: ownerAddress,
         outputs: out,
       });
-      return { txid };
+      return { txid, nextPeg };
     },
 
     async spend({ lock, ownerKey, take, ownerAddress }) {
@@ -833,8 +838,11 @@ export function createPegLock() {
         throw scrub(err, "");
       }
       const out = [await p2pk(kaspa, reserveAddress, pay)];
+      const nextPeg = {};
       if (BigInt(take) !== BigInt(lock.cents)) {
-        out.push(await continuation(kaspa, nextRow(lock, restPatch(lock, take, pay)), BigInt(lock.sompi) - pay));
+        const rest = await continuation(kaspa, nextRow(lock, restPatch(lock, take, pay)), BigInt(lock.sompi) - pay);
+        out.push(rest);
+        nextPeg[1] = rest.pegAddress;
       }
       const txid = await submitEntry({
         lock,
@@ -845,7 +853,7 @@ export function createPegLock() {
         feeAddress: ownerAddress,
         outputs: out,
       });
-      return { txid };
+      return { txid, nextPeg };
     },
 
     async freeze({ lock, feeKey, feeAddress }) {
@@ -870,7 +878,7 @@ export function createPegLock() {
           feeAddress: payerAddress,
           outputs: [moved],
         });
-        return { txid };
+        return { txid, nextPeg: { 0: moved.pegAddress } };
       } finally {
         issuer.privHex = "";
       }

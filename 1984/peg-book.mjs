@@ -98,8 +98,9 @@ export function shortMessage(plan, rail, mode) {
   return "Not enough " + railName(rail) + ".";
 }
 
-/** What the covenant writes after one entry. Output 0 is the moved part. A remainder is output 1. */
-export function afterMove(lock, entry, take, pay, txid) {
+/** What the covenant writes after one entry. Output 0 is the moved part. A remainder is output 1.
+ * The remainder lives at a new script address. pegByIndex supplies that address. */
+export function afterMove(lock, entry, take, pay, txid, pegByIndex) {
   const cents = bi(lock.cents);
   const sompi = bi(lock.sompi);
   const takeC = BigInt(take);
@@ -107,11 +108,15 @@ export function afterMove(lock, entry, take, pay, txid) {
   const restC = cents - takeC;
   const restS = sompi - payS;
   const idAt = (index) => String(txid) + ":" + String(index);
+  const pegAt = (index) => {
+    const given = pegByIndex && pegByIndex[index];
+    return given || lock.pegAddress;
+  };
   if (entry === "freeze") {
-    return [{ ...lock, id: idAt(0), txid: String(txid), index: 0, frozen: !lock.frozen }];
+    return [{ ...lock, id: idAt(0), txid: String(txid), index: 0, pegAddress: pegAt(0), frozen: !lock.frozen }];
   }
   const rest = restC > 0n
-    ? [{ ...lock, id: idAt(1), txid: String(txid), index: 1, cents: String(restC), sompi: String(restS) }]
+    ? [{ ...lock, id: idAt(1), txid: String(txid), index: 1, pegAddress: pegAt(1), cents: String(restC), sompi: String(restS) }]
     : [];
   if (entry === "exchange") {
     const moved = {
@@ -119,6 +124,7 @@ export function afterMove(lock, entry, take, pay, txid) {
       id: idAt(0),
       txid: String(txid),
       index: 0,
+      pegAddress: pegAt(0),
       rail: lock.rail === "poc" ? "kusdt" : "poc",
       cents: String(takeC),
       sompi: String(payS),
