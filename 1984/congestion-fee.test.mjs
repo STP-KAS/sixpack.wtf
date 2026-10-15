@@ -54,6 +54,7 @@ test("one node cannot lift the rate more than three times the last agreed ordina
   const near = agreeNodes([{ normal: 200, priority: 200, mempool: 30 }], 100);
   assert.equal(near.held, false);
   assert.equal(squarePlan(near, 0).rate, 17_400);
+  assert.equal(squarePlan({ normal: 101.64504681057711, priority: 101.64504681057711, mempool: 0, held: false }, 0).rate, 8844);
 });
 
 test("a waiting spend steps up four times and then stops", () => {

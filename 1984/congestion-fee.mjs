@@ -92,7 +92,7 @@ export function agreeNodes(nodes, lastNormal) {
 /** 87x the agreed ordinary rate. A waiting spend may step 1.5x, four times, and then stops. A held single-node quote does not step. */
 export function squarePlan(agreed, bump = 0) {
   const normal = Math.max(Number(agreed && agreed.normal) || 0, STANDARD_FEE_RATE);
-  const base = normal * PAGE_FEE_MULTIPLE;
+  const base = Math.ceil(normal * PAGE_FEE_MULTIPLE);
   const steps = agreed && agreed.held ? 0 : Math.max(0, Math.min(MAX_BUMPS, bump | 0));
   let rate = base;
   for (let i = 0; i < steps; i += 1) rate = Math.ceil(rate * BUMP_FACTOR);

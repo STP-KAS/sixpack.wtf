@@ -451,7 +451,9 @@ function scriptHex(spk) {
 }
 
 function minerPriority(bytecode, rate) {
-  const guess = BigInt(bytecode.length / 2 + 800) * BigInt(rate);
+  const whole = Math.ceil(Number(rate));
+  const safe = Number.isFinite(whole) && whole > 0 ? whole : 0;
+  const guess = BigInt(bytecode.length / 2 + 800) * BigInt(safe);
   const floor = BigInt(PAGE_PRIORITY_SOMPI);
   return guess > floor ? guess : floor;
 }
