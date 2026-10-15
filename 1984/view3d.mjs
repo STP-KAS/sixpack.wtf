@@ -1,7 +1,7 @@
 /** LUMBRIDGE in 3D. Original meshes. The camera turns around the player through a full circle. */
 
 import * as THREE from "./vendor/three.module.js";
-import { HUNTS, PARKING_BAYS, ROADSTER_PARK, SHOPS, driveTile, standTile, tripBySku } from "./world.mjs?v=7";
+import { HUNTS, PARKING_BAYS, ROADSTER_PARK, SHOPS, driveTile, findPath, standTile, tripBySku, world } from "./world.mjs?v=7";
 
 const TILE = 1.15;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -429,10 +429,76 @@ export function spaceJoke(ms, sku) {
 /** Two lines while the roadster is still around Earth, after ejection. They do not repeat. */
 export const EARTH_JOKES = [
   "Gulf of America looks great from outer space.",
-  "Oh, there is Iran. The regime is once more killing its own civilians at scale. The lunatic left takes note, and rests in silence.",
+  "Oh, there they are. The Islamic Revolutionary Guard Corps (IRGC) and Shia clerics are once more killing their own civilians at scale. The lunatic left takes note, and rests in silence.",
 ];
 
-/** The Gulf line, then Iran, then nothing. ms is the launch clock, not a hop clock. */
+/** Cynical lines for the bench that crosses the square. One line per crossing. */
+export const BENCH_JOKES = [
+  "The march was for peace. The signs named the men who burn the girls. The lunatic left called that nuance.",
+  "A faculty can mourn a statue and miss a massacre, if the dead have the wrong flag.",
+  "They closed the road for the climate, then took the jet home. The atmosphere was someone else's job.",
+  "Safety was the word. The only thing they locked was the argument.",
+  "The encampment wanted no borders, and a lawn nobody else could cross.",
+  "A pronoun is mandatory. The killer's name is optional. That is the syllabus.",
+  "Every slogan arrived with a donor. The bodies did not get a press release.",
+  "They do not hate power. They hate a power that will not read their statement aloud.",
+];
+
+const BENCH_LEGS = [
+  [{ x: 20, y: 20 }, { x: 36, y: 10 }],
+  [{ x: 36, y: 10 }, { x: 6, y: 10 }],
+  [{ x: 6, y: 10 }, { x: 20, y: 20 }],
+  [{ x: 20, y: 20 }, { x: 12, y: 24 }],
+  [{ x: 12, y: 24 }, { x: 29, y: 24 }],
+  [{ x: 29, y: 24 }, { x: 20, y: 20 }],
+];
+const BENCH_STEP_MS = 320;
+const BENCH_PAUSE_MS = 7000;
+let benchLegs;
+
+function benchPaths() {
+  if (benchLegs) return benchLegs;
+  const map = world();
+  const legs = [];
+  for (const [from, to] of BENCH_LEGS) {
+    const path = findPath(map.grid, from, to, driveTile);
+    if (path && path.length > 1) legs.push(path);
+  }
+  benchLegs = legs;
+  return legs;
+}
+
+/** Where the wandering bench is. The clock picks the crossing, and the line changes with it. */
+export function benchWalk(ms) {
+  const legs = benchPaths();
+  const home = BENCH_LEGS[0][0];
+  if (!legs.length) return { x: home.x, y: home.y, yaw: 0, joke: BENCH_JOKES[0], moving: false };
+  const spans = legs.map((path) => Math.max(1, path.length - 1) * BENCH_STEP_MS + BENCH_PAUSE_MS);
+  const total = spans.reduce((sum, n) => sum + n, 0);
+  let t = Math.floor(Math.max(0, ms)) % total;
+  let leg = 0;
+  while (t >= spans[leg]) {
+    t -= spans[leg];
+    leg += 1;
+  }
+  const path = legs[leg];
+  const steps = path.length - 1;
+  const moving = t < steps * BENCH_STEP_MS;
+  const along = moving ? t / BENCH_STEP_MS : steps;
+  const i = Math.min(steps - 1, Math.floor(along));
+  const u = moving ? along - i : 1;
+  const a = path[i];
+  const b = path[Math.min(steps, i + 1)];
+  return {
+    x: a.x + (b.x - a.x) * u,
+    y: a.y + (b.y - a.y) * u,
+    yaw: Math.atan2(b.x - a.x, b.y - a.y),
+    joke: BENCH_JOKES[leg % BENCH_JOKES.length],
+    moving,
+  };
+}
+
+/** The Gulf line, then the IRGC line, then nothing. ms is the launch clock, not a hop clock. */
 export function earthJoke(ms) {
   const along = Math.max(0, ms) - FLIGHT_SPACE - EARTH_JOKE_DELAY;
   if (along < 0) return { index: -1, text: "" };
@@ -3779,7 +3845,7 @@ function addDressing(parent, map, maps) {
   parent.add(post, plaque);
   for (const side of [-1, 1]) {
     const bench = new THREE.Group();
-    const wood = stone("#ffffff", 0.75, maps.wood);
+    const wood = stone(side === 1 ? "#6a3418" : "#ffffff", 0.75, maps.wood);
     const seat = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.07, 0.36), wood);
     seat.position.y = 0.46;
     const back = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.36, 0.06), wood);
@@ -3791,6 +3857,14 @@ function addDressing(parent, map, maps) {
       bench.add(leg);
     }
     bench.position.set(plaza.x + side * 1.55, 0, plaza.z);
+    if (side === 1) {
+      bench.name = "town-bench";
+      const line = jokeSprite("");
+      line.name = "bench-line";
+      line.position.set(0, 1.45, 0);
+      line.scale.set(3.8, 0.7, 1);
+      bench.add(line);
+    }
     parent.add(bench);
   }
 }
@@ -5309,6 +5383,23 @@ export function mountWorld(canvas, map, api) {
     showInvites(stall.room, stallId ? glow : []);
     showInvites(cinema.room, venue === "cinema" && !watching ? glow : []);
     showInvites(hunt.room, venue === "hunt" ? glow : []);
+    const bench = town.getObjectByName("town-bench");
+    if (bench) {
+      const stroll = benchWalk(now);
+      const at = worldOf(map, stroll.x + 0.5, stroll.y + 0.5, 0);
+      bench.position.set(at.x, 0, at.z);
+      if (stroll.moving) bench.rotation.y = stroll.yaw;
+      const line = bench.getObjectByName("bench-line");
+      if (line && line.userData.label !== stroll.joke) writeJoke(line, stroll.joke);
+      if (line) {
+        line.visible = true;
+        line.material.opacity = 1;
+        const board = line.material.map && line.material.map.image;
+        const h = board && board.height ? board.height : 96;
+        line.scale.set(8.4, 1.2 * (h / 96), 1);
+        line.position.y = 2.2;
+      }
+    }
     canvas.dataset.mode = indoors ? venue : "world";
     renderer.render(scene, camera);
   }

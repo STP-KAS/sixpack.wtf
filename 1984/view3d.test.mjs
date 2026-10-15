@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
-import { world } from "./world.mjs";
-import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, HOT_STAGE_MS, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, CAM_FOLLOW, followBlend, glideBlend, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, countdownMs, COUNT_HOLD_MS, cruiseWatch, abyssWatch, raceWatch, flightFog, spaceBackdrop, spaceSkyMode, drives, EARTH_RADIUS, EARTH_SURFACE, EARTH_LIMB_V, EARTH_TURN_MS, HANG_RADIUS, WORLD_RADIUS, SATURN_FILM_H, SATURN_WATCH, saturnFilmFrame, aimUpright, earthCenter, earthFilmFrame, earthTurn, stratosphereExitMs, stratopauseAlt, escapeRoom, fitScreen, portraitDistance, pointerScale, flightBeat, flightCamera, limbShot, flightClock, flightLine, flightVoice, SEP_COMMS_MS, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, streamPictureUp, EARTH_JOKE_DELAY, earthJoke, jokeRows, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
+import { driveTile, world } from "./world.mjs";
+import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, HOT_STAGE_MS, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, CAM_FOLLOW, followBlend, glideBlend, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, countdownMs, COUNT_HOLD_MS, cruiseWatch, abyssWatch, raceWatch, flightFog, spaceBackdrop, spaceSkyMode, drives, EARTH_RADIUS, EARTH_SURFACE, EARTH_LIMB_V, EARTH_TURN_MS, HANG_RADIUS, WORLD_RADIUS, SATURN_FILM_H, SATURN_WATCH, saturnFilmFrame, aimUpright, earthCenter, earthFilmFrame, earthTurn, stratosphereExitMs, stratopauseAlt, escapeRoom, fitScreen, portraitDistance, pointerScale, flightBeat, flightCamera, limbShot, flightClock, flightLine, flightVoice, SEP_COMMS_MS, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, streamPictureUp, EARTH_JOKE_DELAY, earthJoke, jokeRows, BENCH_JOKES, benchWalk, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
 
 function outwardness(cam, pose, center) {
   const ox = pose.carX - center.x;
@@ -786,7 +786,7 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.equal(spaceSkyMode(flightPose(0)), "off");
 });
 
-test("after ejection the roadster names the Gulf, then Iran, and then stops", () => {
+test("after ejection the roadster names the Gulf, then the IRGC, and then stops", () => {
   const gulfAt = FLIGHT_SPACE + EARTH_JOKE_DELAY;
   const iranAt = gulfAt + JOKE_MS;
   const doneAt = iranAt + JOKE_MS;
@@ -797,7 +797,8 @@ test("after ejection the roadster names the Gulf, then Iran, and then stops", ()
   assert.match(earthJoke(gulfAt).text, /Gulf of America/);
   assert.match(earthJoke(gulfAt).text, /outer space/);
   assert.equal(earthJoke(iranAt).index, 1);
-  assert.match(earthJoke(iranAt).text, /Iran/);
+  assert.match(earthJoke(iranAt).text, /Islamic Revolutionary Guard Corps \(IRGC\)/);
+  assert.match(earthJoke(iranAt).text, /Shia clerics/);
   assert.match(earthJoke(iranAt).text, /civilians/);
   assert.match(earthJoke(iranAt).text, /silence/);
   assert.equal(earthJoke(doneAt).index, -1);
@@ -815,17 +816,34 @@ test("after ejection the roadster names the Gulf, then Iran, and then stops", ()
   const iran = flightPose(iranAt);
   assert.equal(iran.jokes.length, 1);
   assert.equal(iran.jokes[0].index, 1);
-  assert.match(iran.jokes[0].text, /Iran/);
+  assert.match(iran.jokes[0].text, /IRGC/);
   assert.equal(flightPose(doneAt).jokes.length, 0);
   assert.doesNotMatch(cruiseLine(0.1, "Go into the abyss"), /Gulf of America/);
-  assert.doesNotMatch(cruiseLine(0.1, "Go into the abyss"), /Iran/);
+  assert.doesNotMatch(cruiseLine(0.1, "Go into the abyss"), /IRGC/);
   assert.doesNotMatch(spaceJoke(APPROACH_MS, "abyss").text, /Gulf of America/);
-  assert.doesNotMatch(spaceJoke(APPROACH_MS, "abyss").text, /Iran/);
+  assert.doesNotMatch(spaceJoke(APPROACH_MS, "abyss").text, /IRGC/);
   const rows = jokeRows(earthJoke(iranAt).text, (value) => ({ width: value.length * 12 }), 672);
   assert.ok(rows.length >= 2 && rows.length <= 4, rows.join(" | "));
   assert.equal(rows.join(" "), earthJoke(iranAt).text);
   assert.equal(jokeRows(earthJoke(gulfAt).text, (value) => ({ width: value.length * 12 }), 672).length, 1);
   assert.equal(jokeRows(earthJoke(iranAt).text, () => ({}), 672).length, 1);
+});
+
+test("one bench crosses the square and changes its line", () => {
+  const home = benchWalk(0);
+  const far = benchWalk(20000);
+  assert.ok(BENCH_JOKES.includes(home.joke));
+  assert.ok(BENCH_JOKES.includes(far.joke));
+  assert.notEqual(far.joke, home.joke);
+  assert.ok(Math.hypot(far.x - home.x, far.y - home.y) > 8, "crossed");
+  const map = world();
+  for (const pose of [home, far, benchWalk(28000)]) {
+    const x = Math.round(pose.x);
+    const y = Math.round(pose.y);
+    assert.equal(driveTile(map.grid[y][x]), true, x + "," + y);
+    assert.match(pose.joke, /lunatic left|massacre|climate|argument|encampment|syllabus|donor|power/);
+  }
+  for (const line of BENCH_JOKES) assert.ok(line.length > 50);
 });
 
 test("the earth holds through the air, then turns one ISS orbit", () => {
