@@ -512,6 +512,11 @@ function claimPrepared() {
   return null;
 }
 
+async function agreedPageRate() {
+  const { squareFeeRate } = await import("./peg-chain.mjs");
+  return squareFeeRate();
+}
+
 export function guestDesk() {
   if (singleton) return singleton;
   singleton = createGuestDesk({
@@ -533,14 +538,12 @@ export function guestDesk() {
     },
     async fund(address, sompi, onStep) {
       const { payTn10 } = await import("../faucet/pay.mjs");
-      const { pageFeeRate } = await import("../faucet/fee-rate.mjs");
-      return payTn10(address, sompi, onStep, pageFeeRate);
+      return payTn10(address, sompi, onStep, agreedPageRate);
     },
     async pay({ key, from, sompi, to }) {
       const { payFromKey } = await import("../faucet/pay.mjs");
-      const { pageFeeRate } = await import("../faucet/fee-rate.mjs");
       const toAddr = to ? assertTestnet(to) : RESERVE;
-      const out = await payFromKey({ privHex: key, fromAddr: from, toAddr, sompi, rateOf: pageFeeRate });
+      const out = await payFromKey({ privHex: key, fromAddr: from, toAddr, sompi, rateOf: agreedPageRate });
       return { txid: out.txids && out.txids[0], sompi: out.sompi, txids: out.txids };
     },
     poolOnly: true,
@@ -549,9 +552,8 @@ export function guestDesk() {
     },
     async sweep({ key, from, home }) {
       const { payFromKey } = await import("../faucet/pay.mjs");
-      const { pageFeeRate } = await import("../faucet/fee-rate.mjs");
       const toAddr = home ? assertTestnet(home) : RESERVE;
-      return payFromKey({ privHex: key, fromAddr: from, toAddr, sompi: 0n, drain: true, rateOf: pageFeeRate });
+      return payFromKey({ privHex: key, fromAddr: from, toAddr, sompi: 0n, drain: true, rateOf: agreedPageRate });
     },
   });
   return singleton;

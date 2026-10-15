@@ -21,7 +21,12 @@ test("a POCencept or KUSDT covenant output is polled quickly", () => {
   assert.match(source, /PEG_POLL_MS = 100/);
   assert.match(source, /sleep\(PEG_POLL_MS\)/);
   assert.doesNotMatch(source, /sleep\(2000\)/);
-  assert.match(source, /feeCache\.at < 15_000/);
+  assert.match(source, /feeCache\.at < 5_000/);
+  assert.doesNotMatch(source, /feeCache\.at < 15_000/);
+  assert.match(source, /sigOpCount: COVENANT_SIGOPS/);
+  assert.match(source, /getMempoolEntry\(/);
+  assert.match(source, /INCLUSION_MS = 10_000/);
+  assert.match(source, /The fee cap stopped this\. Nothing was sent\./);
   assert.match(source, /console\.error\("covenant-fault "/);
   assert.match(source, /words=/);
   assert.match(source, /PEG_KEEP_MS = 20_000/);

@@ -939,7 +939,7 @@ export function create1984Service(deps) {
           const floor = pageFeeRate(null);
           let rate = floor;
           try {
-            const quoted = deps.feeRate ? await deps.feeRate() : await (await import("../faucet/pay.mjs")).quotedPageFeeRate();
+            const quoted = deps.feeRate ? await deps.feeRate() : await (await import("./peg-chain.mjs")).squareFeeRate();
             const n = Number(quoted);
             if (Number.isFinite(n) && n >= floor) rate = n;
           } catch {
@@ -1594,8 +1594,8 @@ export function service1984() {
       pegLock: createPegLock(),
       pay: async (to, sompi) => {
         const { payTn10 } = await import("../faucet/pay.mjs");
-        const { pageFeeRate } = await import("../faucet/fee-rate.mjs");
-        return payTn10(to, sompi, undefined, pageFeeRate);
+        const { squareFeeRate } = await import("./peg-chain.mjs");
+        return payTn10(to, sompi, undefined, async () => squareFeeRate());
       },
     });
     guests.onGone = (address) => singleton.forget(address);

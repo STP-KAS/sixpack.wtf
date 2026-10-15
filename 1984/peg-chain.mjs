@@ -8,6 +8,17 @@ import { homedir } from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { PAGE_PRIORITY_SOMPI, pageFeeRate } from "../faucet/fee-rate.mjs";
+import {
+  COVENANT_SIGOPS,
+  FULL_BACKOFF_MS,
+  MAX_BUMPS,
+  agreeNodes,
+  feeWithinCap,
+  mempoolFull,
+  quoteFromEstimate,
+  replacementRefused,
+  squarePlan,
+} from "./congestion-fee.mjs";
 import { RESERVE } from "./money.mjs";
 import { asNum, openingNumbers, railByte } from "./peg.mjs";
 
@@ -41,7 +52,10 @@ const PEG_PUBLIC = [
   "wss://vector-10.kaspa.green/kaspa/testnet-10/wrpc/borsh",
   "wss://muon-10.kaspa.blue/kaspa/testnet-10/wrpc/borsh",
 ];
-let feeCache = { at: 0, rate: 0 };
+const INCLUSION_MS = 10_000;
+const INCLUSION_POLL_MS = 1_000;
+const CAP_STOP = "The fee cap stopped this. Nothing was sent.";
+let feeCache = { at: 0, rate: 0, normal: 100 };
 let pegRpc = null;
 let pegOpen = null;
 let pegKeep = null;
@@ -249,22 +263,64 @@ async function compileRow(row) {
   return askEncoder({ op: "script", ...openingJob(row) });
 }
 
+async function readQuote(rpc) {
+  const quoted = await withTimeout(rpc.getFeeEstimate({}), PEG_FEE_MS, "The Testnet-10 node stalled.");
+  let mempool = 0;
+  try {
+    const info = await withTimeout(rpc.getInfo({}), PEG_FEE_MS, "The Testnet-10 node stalled.");
+    mempool = Number(info && info.mempoolSize);
+  } catch {
+    mempool = 0;
+  }
+  return quoteFromEstimate(quoted, mempool);
+}
+
+async function secondQuote(kaspa) {
+  const urls = pegNodePlan(Date.now(), localDownUntil) === "local" ? PEG_PUBLIC : PEG_PUBLIC.slice(1);
+  for (const url of urls) {
+    let rpc = null;
+    try {
+      rpc = await openOne(kaspa, url, PEG_PUBLIC_MS);
+      return await readQuote(rpc);
+    } catch {
+      /* The next public node is the second opinion. */
+    } finally {
+      if (rpc) await rpc.disconnect().catch(() => {});
+    }
+  }
+  return null;
+}
+
 async function feeRate(rpc) {
   const now = Date.now();
-  if (feeCache.rate > 0 && now - feeCache.at < 15_000) return feeCache.rate;
+  if (feeCache.rate > 0 && now - feeCache.at < 5_000) return feeCache.rate;
   try {
-    const quoted = await withTimeout(rpc.getFeeEstimate({}), PEG_FEE_MS, "The Testnet-10 node stalled.");
-    const n = Number(pageFeeRate(quoted));
-    if (Number.isFinite(n) && n > 0) {
-      feeCache = { at: now, rate: n };
-      return n;
+    const first = await readQuote(rpc);
+    const kaspa = await sdk();
+    const second = await secondQuote(kaspa);
+    const agreed = agreeNodes(second ? [first, second] : [first], feeCache.normal);
+    const plan = squarePlan(agreed, 0);
+    feeCache = { at: now, rate: plan.rate, normal: agreed.normal, agreed };
+    if (plan.congested || agreed.outlier) {
+      console.error("square-fee rate=" + plan.rate + " normal=" + agreed.normal + " mempool=" + agreed.mempool + " outlier=" + (agreed.outlier ? 1 : 0));
     }
+    return plan.rate;
   } catch (err) {
     if (pegCallFailed(err)) await dropPegRpc(rpc);
   }
   const floor = pageFeeRate(null);
-  feeCache = { at: now, rate: floor };
+  feeCache = { at: now, rate: floor, normal: feeCache.normal || 100, agreed: feeCache.agreed };
   return floor;
+}
+
+/** The rate the square and the browser pay. Two nodes when a second one answers. No spend. */
+export async function squareFeeRate() {
+  try {
+    const rpc = await pegClient();
+    return await feeRate(rpc);
+  } catch {
+    return pageFeeRate(null);
+  }
 }
 
 function sleep(ms) {
@@ -394,21 +450,134 @@ function scriptHex(spk) {
   return String(spk.script || "").toLowerCase();
 }
 
-async function buildTx(kaspa, rpc, { peg, feeAddress, outputs, priority, feeRate: rate }) {
-  const { entries } = await callRpc(rpc, () => rpc.getUtxosByAddresses([feeAddress]), PEG_UTXO_MS, "The Testnet-10 node stalled.");
-  const coins = (entries || [])
-    .filter((entry) => !sameOut(entry, peg.outpoint.transactionId, peg.outpoint.index))
-    .sort((a, b) => (BigInt(a.amount) < BigInt(b.amount) ? 1 : -1));
-  if (!coins.length) throw new Error(FEE);
-  const picked = [];
-  let sum = 0n;
-  for (const coin of coins) {
-    if (picked.length === 2) break;
-    picked.push(coin);
-    sum += BigInt(coin.amount);
-    if (sum > priority) break;
+function minerPriority(bytecode, rate) {
+  const guess = BigInt(bytecode.length / 2 + 800) * BigInt(rate);
+  const floor = BigInt(PAGE_PRIORITY_SOMPI);
+  return guess > floor ? guess : floor;
+}
+
+function spentFee(peg, picked, pending) {
+  const tx = pending.transaction;
+  let inputs = 0n;
+  for (let i = 0; i < tx.inputs.length; i += 1) {
+    const prev = tx.inputs[i].previousOutpoint;
+    if (sameOut(peg, prev.transactionId, prev.index)) {
+      inputs += BigInt(peg.amount);
+      continue;
+    }
+    const coin = picked.find((row) => sameOut(row, prev.transactionId, prev.index));
+    if (!coin) throw new Error(SHAPE);
+    inputs += BigInt(coin.amount);
   }
-  if (sum <= priority) throw new Error(FEE);
+  let outputs = 0n;
+  for (let i = 0; i < tx.outputs.length; i += 1) outputs += BigInt(tx.outputs[i].value);
+  if (outputs > inputs) throw new Error(SHAPE);
+  return inputs - outputs;
+}
+
+function txidOf(submitted) {
+  const txid = String((submitted && submitted.transactionId) || submitted || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^0x/, "");
+  if (!/^[0-9a-f]{64}$/.test(txid)) {
+    const kind = submitted == null ? "empty" : typeof submitted;
+    throw new Error("The covenant submit came back as " + kind + ".");
+  }
+  return txid;
+}
+
+async function submitSigned(pending) {
+  let last;
+  const tries = FULL_BACKOFF_MS.length + 1;
+  for (let i = 0; i < tries; i += 1) {
+    try {
+      const live = await pegClient();
+      const submitted = await callRpc(live, () => pending.submit(live), PEG_SUBMIT_MS, "The Testnet-10 node stalled.");
+      return txidOf(submitted);
+    } catch (err) {
+      last = err;
+      if (replacementRefused(err) || !retryableSubmit(err) || i === tries - 1) throw err;
+      await sleep(FULL_BACKOFF_MS[i]);
+      if (mempoolFull(err) && pegNodePlan(Date.now(), localDownUntil) === "local") {
+        localDownUntil = Date.now() + PEG_LOCAL_DOWN_MS;
+      }
+      await dropPegRpc(pegRpc);
+    }
+  }
+  throw last;
+}
+
+function retryableSubmit(err) {
+  return mempoolFull(err) || pegCallFailed(err);
+}
+
+async function mempoolHas(rpc, txid) {
+  try {
+    const row = await withTimeout(
+      rpc.getMempoolEntry({
+        transactionId: txid,
+        filterTransactionPool: true,
+        includeOrphanPool: false,
+      }),
+      INCLUSION_POLL_MS,
+      "The Testnet-10 node stalled."
+    );
+    return !!(row && (row.mempoolEntry || row.transaction));
+  } catch (err) {
+    if (pegCallFailed(err)) throw err;
+    return false;
+  }
+}
+
+/** "out" when the spend has left the pool. "in" when it is still there after 10 seconds. "kept" when the node already has it. */
+async function watchInclusion(pending, txid) {
+  const started = Date.now();
+  let replayed = false;
+  let seen = false;
+  while (Date.now() - started < INCLUSION_MS) {
+    await sleep(INCLUSION_POLL_MS);
+    try {
+      const rpc = await pegClient();
+      const present = await mempoolHas(rpc, txid);
+      if (!present) return "out";
+      seen = true;
+    } catch (err) {
+      if (!pegCallFailed(err)) return "out";
+      if (replayed) continue;
+      replayed = true;
+      try {
+        await dropPegRpc(pegRpc);
+        await submitSigned(pending);
+      } catch (submitErr) {
+        const text = String((submitErr && submitErr.message) || submitErr || "");
+        if (/already accepted/i.test(text)) return "kept";
+        if (replacementRefused(submitErr)) seen = true;
+        else if (!(mempoolFull(submitErr) || pegCallFailed(submitErr))) throw submitErr;
+      }
+    }
+  }
+  return seen ? "in" : "out";
+}
+
+async function buildTx(kaspa, rpc, { peg, feeAddress, outputs, priority, feeRate: rate, coins }) {
+  let picked = Array.isArray(coins) && coins.length ? coins : null;
+  if (!picked) {
+    const { entries } = await callRpc(rpc, () => rpc.getUtxosByAddresses([feeAddress]), PEG_UTXO_MS, "The Testnet-10 node stalled.");
+    const available = (entries || [])
+      .filter((row) => !sameOut(row, peg.outpoint.transactionId, peg.outpoint.index))
+      .sort((a, b) => (BigInt(a.amount) < BigInt(b.amount) ? 1 : -1));
+    if (!available.length) throw new Error(FEE);
+    picked = [];
+    let sum = 0n;
+    for (const coin of available) {
+      if (picked.length === 2) break;
+      picked.push(coin);
+      sum += BigInt(coin.amount);
+      if (sum > priority) break;
+    }
+    if (sum <= priority) throw new Error(FEE);
+  }
   const { transactions } = await kaspa.createTransactions({
     priorityEntries: [peg],
     entries: picked,
@@ -416,6 +585,7 @@ async function buildTx(kaspa, rpc, { peg, feeAddress, outputs, priority, feeRate
     changeAddress: feeAddress,
     priorityFee: priority,
     feeRate: rate,
+    sigOpCount: COVENANT_SIGOPS,
     networkId: "testnet-10",
   });
   if (!transactions || transactions.length !== 1) throw new Error(SHAPE);
@@ -432,12 +602,14 @@ async function buildTx(kaspa, rpc, { peg, feeAddress, outputs, priority, feeRate
       throw new Error(SHAPE);
     }
   });
-  return pending;
+  const fee = spentFee(peg, picked, pending);
+  if (!feeWithinCap(fee)) throw new Error(CAP_STOP);
+  return { pending, picked };
 }
 
 async function submitEntry({ lock, entry, take, covenantKey, feeKey, feeAddress, outputs }) {
   const key = String(covenantKey || "");
-  const fee = String(feeKey || "");
+  const feeSecret = String(feeKey || "");
   try {
     const kaspa = await sdk();
     let rpc = await pegClient();
@@ -448,30 +620,50 @@ async function submitEntry({ lock, entry, take, covenantKey, feeKey, feeAddress,
       rpc = again;
       peg = await readPeg(rpc, lock);
     }
-    const rate = feeCache.rate > 0 ? feeCache.rate : pageFeeRate(null);
-    const current = await compileRow(lock);
-    const priorityGuess = BigInt(current.bytecode.length / 2 + 800) * BigInt(rate);
-    const floor = BigInt(PAGE_PRIORITY_SOMPI);
-    const priority = priorityGuess > floor ? priorityGuess : floor;
-    const pending = await buildTx(kaspa, rpc, { peg, feeAddress, outputs, priority, feeRate: rate });
-    const feePriv = new kaspa.PrivateKey(fee);
-    pending.sign([feePriv], false);
-    const signer = new kaspa.PrivateKey(key);
-    const signature = covenantSignature(await pending.createInputSignature(0, signer));
-    const job = { op: "encode", entry, sig: signature, ...openingJob(lock) };
-    if (take != null) job.take = asNum(take);
-    const encoded = await askEncoder(job);
-    pending.fillInput(0, encoded.sigscript);
-    const live = await pegClient();
-    const submitted = await callRpc(live, () => pending.submit(live), PEG_SUBMIT_MS, "The Testnet-10 node stalled.");
-    const txid = String(submitted && submitted.transactionId || submitted || "").trim().toLowerCase().replace(/^0x/, "");
-    if (!/^[0-9a-f]{64}$/.test(txid)) {
-      const kind = submitted == null ? "empty" : typeof submitted;
-      throw new Error("The covenant submit came back as " + kind + ".");
+    const agreed = feeCache.agreed || { normal: feeCache.normal || 100, mempool: 0, held: false };
+    let picked = null;
+    let txid = "";
+    for (let bump = 0; bump <= MAX_BUMPS; bump += 1) {
+      const plan = squarePlan(agreed, bump);
+      if (bump > 0 && plan.rate === squarePlan(agreed, bump - 1).rate) return txid;
+      const current = await compileRow(lock);
+      const priority = minerPriority(current.bytecode, plan.rate);
+      let built;
+      try {
+        built = await buildTx(kaspa, rpc, {
+          peg,
+          feeAddress,
+          outputs,
+          priority,
+          feeRate: plan.rate,
+          coins: picked,
+        });
+      } catch (err) {
+        if (txid) return txid;
+        throw err;
+      }
+      picked = built.picked;
+      const pending = built.pending;
+      const feePriv = new kaspa.PrivateKey(feeSecret);
+      pending.sign([feePriv], false);
+      const signer = new kaspa.PrivateKey(key);
+      const signature = covenantSignature(await pending.createInputSignature(0, signer));
+      const job = { op: "encode", entry, sig: signature, ...openingJob(lock) };
+      if (take != null) job.take = asNum(take);
+      const encoded = await askEncoder(job);
+      pending.fillInput(0, encoded.sigscript);
+      try {
+        txid = await submitSigned(pending);
+      } catch (err) {
+        if (txid && (replacementRefused(err) || mempoolFull(err))) return txid;
+        throw err;
+      }
+      const stay = await watchInclusion(pending, txid);
+      if (stay !== "in") return txid;
     }
     return txid;
   } catch (err) {
-    throw scrub(err, [key, fee]);
+    throw scrub(err, [key, feeSecret]);
   }
 }
 
