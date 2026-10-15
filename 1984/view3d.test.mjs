@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
-import { driveTile, world } from "./world.mjs";
+import { world } from "./world.mjs";
 import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, HOT_STAGE_MS, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, CAM_FOLLOW, followBlend, glideBlend, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, countdownMs, COUNT_HOLD_MS, cruiseWatch, abyssWatch, raceWatch, flightFog, spaceBackdrop, spaceSkyMode, drives, EARTH_RADIUS, EARTH_SURFACE, EARTH_LIMB_V, EARTH_TURN_MS, HANG_RADIUS, WORLD_RADIUS, SATURN_FILM_H, SATURN_WATCH, saturnFilmFrame, aimUpright, earthCenter, earthFilmFrame, earthTurn, stratosphereExitMs, stratopauseAlt, escapeRoom, fitScreen, portraitDistance, pointerScale, flightBeat, flightCamera, limbShot, flightClock, flightLine, flightVoice, SEP_COMMS_MS, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, streamPictureUp, EARTH_JOKE_DELAY, earthJoke, jokeRows, BENCH_JOKES, benchWalk, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
 
 function outwardness(cam, pose, center) {
@@ -840,20 +840,35 @@ test("after ejection the roadster names the Gulf, then the IRGC, and keeps both 
   assert.equal(jokeRows(earthJoke(iranAt).text, () => ({}), 672).length, 1);
 });
 
-test("one bench crosses the square and changes its line", () => {
-  const home = benchWalk(0);
-  const far = benchWalk(20000);
-  assert.ok(BENCH_JOKES.includes(home.joke));
-  assert.ok(BENCH_JOKES.includes(far.joke));
-  assert.notEqual(far.joke, home.joke);
-  assert.ok(Math.hypot(far.x - home.x, far.y - home.y) > 8, "crossed");
+test("one bench strolls the square and the garden, slower than a walk", () => {
   const map = world();
-  for (const pose of [home, far, benchWalk(28000)]) {
+  const home = benchWalk(0);
+  assert.equal(Math.round(home.x), 20);
+  assert.equal(Math.round(home.y), 20);
+  const early = benchWalk(WALK_MS);
+  assert.ok(Math.hypot(early.x - home.x, early.y - home.y) < 0.2, "slower than a walk");
+  let moved = false;
+  let jokeChanged = false;
+  let sawGarden = false;
+  const seen = new Set();
+  for (let ms = 0; ms <= 240000; ms += 200) {
+    const pose = benchWalk(ms);
     const x = Math.round(pose.x);
     const y = Math.round(pose.y);
-    assert.equal(driveTile(map.grid[y][x]), true, x + "," + y);
+    const tile = map.grid[y][x];
+    assert.ok(tile === "c" || tile === "f", x + "," + y + " " + tile);
+    assert.ok(x >= 13 && x <= 27 && y >= 11 && y <= 21, x + "," + y);
+    seen.add(x + "," + y);
+    if (Math.hypot(pose.x - home.x, pose.y - home.y) > 8) moved = true;
+    if (pose.joke !== home.joke) jokeChanged = true;
+    if (x === 13 && y === 16) sawGarden = true;
+    assert.ok(BENCH_JOKES.includes(pose.joke));
     assert.match(pose.joke, /lunatic left|massacre|climate|argument|encampment|syllabus|donor|power/);
   }
+  assert.ok(moved, "crossed the square");
+  assert.ok(jokeChanged, "new line");
+  assert.ok(sawGarden, "garden bed");
+  assert.ok(seen.has("15,12") && seen.has("26,12") && seen.has("26,20") && seen.has("15,20"));
   for (const line of BENCH_JOKES) assert.ok(line.length > 50);
 });
 

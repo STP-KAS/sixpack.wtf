@@ -432,7 +432,7 @@ export const EARTH_JOKES = [
   "Oh, there they are. The Islamic Revolutionary Guard Corps (IRGC) and Shia clerics are once more killing their own civilians at scale. The lunatic left takes note, and rests in silence.",
 ];
 
-/** Cynical lines for the bench that crosses the square. One line per crossing. */
+/** Cynical lines for the bench that strolls the square and the garden. One line per stop. */
 export const BENCH_JOKES = [
   "The march was for peace. The signs named the men who burn the girls. The lunatic left called that nuance.",
   "A faculty can mourn a statue and miss a massacre, if the dead have the wrong flag.",
@@ -444,16 +444,25 @@ export const BENCH_JOKES = [
   "They do not hate power. They hate a power that will not read their statement aloud.",
 ];
 
+/** Cobble and the flower beds. Grass, shop paths, and the fountain stay off this stroll. */
+function benchTile(tile) {
+  return tile === "c" || tile === "f";
+}
+
 const BENCH_LEGS = [
-  [{ x: 20, y: 20 }, { x: 36, y: 10 }],
-  [{ x: 36, y: 10 }, { x: 6, y: 10 }],
-  [{ x: 6, y: 10 }, { x: 20, y: 20 }],
-  [{ x: 20, y: 20 }, { x: 12, y: 24 }],
-  [{ x: 12, y: 24 }, { x: 29, y: 24 }],
-  [{ x: 29, y: 24 }, { x: 20, y: 20 }],
+  [{ x: 20, y: 20 }, { x: 20, y: 18 }],
+  [{ x: 20, y: 18 }, { x: 15, y: 20 }],
+  [{ x: 15, y: 20 }, { x: 13, y: 16 }],
+  [{ x: 13, y: 16 }, { x: 18, y: 16 }],
+  [{ x: 18, y: 16 }, { x: 15, y: 12 }],
+  [{ x: 15, y: 12 }, { x: 20, y: 14 }],
+  [{ x: 20, y: 14 }, { x: 26, y: 12 }],
+  [{ x: 26, y: 12 }, { x: 23, y: 16 }],
+  [{ x: 23, y: 16 }, { x: 26, y: 20 }],
+  [{ x: 26, y: 20 }, { x: 20, y: 20 }],
 ];
-const BENCH_STEP_MS = 320;
-const BENCH_PAUSE_MS = 7000;
+const BENCH_STEP_MS = 1400;
+const BENCH_PAUSE_MS = 8000;
 let benchLegs;
 
 function benchPaths() {
@@ -461,14 +470,14 @@ function benchPaths() {
   const map = world();
   const legs = [];
   for (const [from, to] of BENCH_LEGS) {
-    const path = findPath(map.grid, from, to, driveTile);
+    const path = findPath(map.grid, from, to, benchTile);
     if (path && path.length > 1) legs.push(path);
   }
   benchLegs = legs;
   return legs;
 }
 
-/** Where the wandering bench is. The clock picks the crossing, and the line changes with it. */
+/** Where the wandering bench is. The clock picks the stroll, and the line changes with each stop. */
 export function benchWalk(ms) {
   const legs = benchPaths();
   const home = BENCH_LEGS[0][0];
