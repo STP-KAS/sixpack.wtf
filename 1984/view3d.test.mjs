@@ -786,10 +786,11 @@ test("the ship climbs, drops the booster, then lets the roadster out toward +X",
   assert.equal(spaceSkyMode(flightPose(0)), "off");
 });
 
-test("after ejection the roadster names the Gulf, then the IRGC, and then stops", () => {
+test("after ejection the roadster names the Gulf, then the IRGC, and keeps both going", () => {
   const gulfAt = FLIGHT_SPACE + EARTH_JOKE_DELAY;
   const iranAt = gulfAt + JOKE_MS;
-  const doneAt = iranAt + JOKE_MS;
+  const againAt = iranAt + JOKE_MS;
+  const laterAt = gulfAt + JOKE_MS * 20;
   assert.equal(earthJoke(FLIGHT_SPACE).index, -1);
   assert.equal(earthJoke(FLIGHT_SPACE).text, "");
   assert.equal(earthJoke(gulfAt - 1).text, "");
@@ -801,9 +802,13 @@ test("after ejection the roadster names the Gulf, then the IRGC, and then stops"
   assert.match(earthJoke(iranAt).text, /Shia clerics/);
   assert.match(earthJoke(iranAt).text, /civilians/);
   assert.match(earthJoke(iranAt).text, /silence/);
-  assert.equal(earthJoke(doneAt).index, -1);
-  assert.equal(earthJoke(doneAt).text, "");
-  assert.equal(earthJoke(doneAt + JOKE_MS).text, "");
+  assert.equal(earthJoke(againAt).index, 2);
+  assert.match(earthJoke(againAt).text, /Gulf of America/);
+  assert.equal(earthJoke(againAt + JOKE_MS).index, 3);
+  assert.match(earthJoke(againAt + JOKE_MS).text, /IRGC/);
+  assert.equal(earthJoke(laterAt).index, 20);
+  assert.match(earthJoke(laterAt).text, /Gulf of America/);
+  assert.match(earthJoke(laterAt + JOKE_MS).text, /IRGC/);
   assert.equal(flightLine("space", gulfAt), "");
   assert.equal(flightPose(FLIGHT_SPACE).jokes.length, 0);
   assert.equal(flightPose(FLIGHT_RELEASE).jokes.length, 0);
@@ -817,7 +822,13 @@ test("after ejection the roadster names the Gulf, then the IRGC, and then stops"
   assert.equal(iran.jokes.length, 1);
   assert.equal(iran.jokes[0].index, 1);
   assert.match(iran.jokes[0].text, /IRGC/);
-  assert.equal(flightPose(doneAt).jokes.length, 0);
+  const again = flightPose(againAt);
+  assert.equal(again.jokes.length, 1);
+  assert.equal(again.jokes[0].index, 2);
+  assert.match(again.jokes[0].text, /Gulf of America/);
+  const later = flightPose(laterAt + JOKE_MS);
+  assert.equal(later.jokes.length, 1);
+  assert.match(later.jokes[0].text, /IRGC/);
   assert.doesNotMatch(cruiseLine(0.1, "Go into the abyss"), /Gulf of America/);
   assert.doesNotMatch(cruiseLine(0.1, "Go into the abyss"), /IRGC/);
   assert.doesNotMatch(spaceJoke(APPROACH_MS, "abyss").text, /Gulf of America/);

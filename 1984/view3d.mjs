@@ -426,7 +426,7 @@ export function spaceJoke(ms, sku) {
   return { index, text: list[index % list.length] };
 }
 
-/** Two lines while the roadster is still around Earth, after ejection. They do not repeat. */
+/** Two lines while the roadster stays around Earth, after ejection. They keep alternating. */
 export const EARTH_JOKES = [
   "Gulf of America looks great from outer space.",
   "Oh, there they are. The Islamic Revolutionary Guard Corps (IRGC) and Shia clerics are once more killing their own civilians at scale. The lunatic left takes note, and rests in silence.",
@@ -498,13 +498,12 @@ export function benchWalk(ms) {
   };
 }
 
-/** The Gulf line, then the IRGC line, then nothing. ms is the launch clock, not a hop clock. */
+/** The Gulf line, then the IRGC line, again for as long as the roadster orbits Earth. ms is the launch clock, not a hop clock. */
 export function earthJoke(ms) {
   const along = Math.max(0, ms) - FLIGHT_SPACE - EARTH_JOKE_DELAY;
   if (along < 0) return { index: -1, text: "" };
   const index = Math.floor(along / JOKE_MS);
-  if (index >= EARTH_JOKES.length) return { index: -1, text: "" };
-  return { index, text: EARTH_JOKES[index] };
+  return { index, text: EARTH_JOKES[index % EARTH_JOKES.length] };
 }
 
 /** Word rows for the joke board. A measure that cannot report a width keeps one row. */
@@ -582,7 +581,7 @@ function jokeBursts(ms, sku, fromMs) {
   }];
 }
 
-/** The Earth lines sit above the car. They start after the bay is clear and they stop. */
+/** The Earth lines sit above the car. They start after the bay is clear and they keep going. */
 function earthBursts(t, carX, carY, carZ) {
   const joke = earthJoke(t);
   if (joke.index < 0) return [];
