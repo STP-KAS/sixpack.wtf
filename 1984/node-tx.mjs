@@ -29,11 +29,15 @@ const STALE_MS = 1000;
 /** Accepting blocks kept in memory. About twenty seconds. */
 const KEEP = 240;
 /** Background tip follow. A payment then reads the map. */
-const FOLLOW_MS = 120;
+const FOLLOW_MS = 40;
+/** A mempool hit is not settled. Repeat probes of the same id wait this long. */
+const MEMPOOL_HOLD_MS = 150;
+const mempoolAt = new Map();
 const NOT_YET = "That transaction is not on Testnet 10 yet.";
 
 let kaspaPromise = null;
 let rpc = null;
+let probeRpc = null;
 let localDownUntil = 0;
 let tipChain = Promise.resolve();
 let byId = new Map();
@@ -323,18 +327,35 @@ export function mempoolQuery(id) {
   };
 }
 
+async function dropProbe() {
+  const old = probeRpc;
+  probeRpc = null;
+  if (old) await old.disconnect().catch(() => undefined);
+}
+
+/** Mempool probes use their own socket so a cafe poll does not stall the tip follower. */
+async function probeClient() {
+  if (probeRpc) return probeRpc;
+  const kaspa = await sdk();
+  const net = new kaspa.NetworkId("testnet-10");
+  probeRpc = await openRpc(kaspa, net, LOCAL_RPC, 1500);
+  return probeRpc;
+}
+
 async function seenInMempool(id) {
+  let client;
   try {
-    if (!rpc) await connect();
+    client = await probeClient();
   } catch {
     return null;
   }
   try {
-    const entry = await withTimeout(rpc.getMempoolEntry(mempoolQuery(id)), 350, "mempool");
+    const entry = await withTimeout(client.getMempoolEntry(mempoolQuery(id)), 350, "mempool");
     return !!(entry && (entry.transaction || entry.mempoolEntry));
   } catch (err) {
     const msg = String((err && err.message) || err || "");
     if (/not found/i.test(msg)) return false;
+    await dropProbe();
     return null;
   }
 }
@@ -352,13 +373,28 @@ export async function lookupAccepted(txid) {
   if (!/^[0-9a-f]{64}$/.test(id)) throw new Error("Paste the 64-character transaction id.");
   warmNodeWindow();
   const known = byId.get(id);
-  if (acceptanceLook({ cachedHit: !!known, inMempool: false }) === "settled" && known) return known;
+  if (acceptanceLook({ cachedHit: !!known, inMempool: false }) === "settled" && known) {
+    mempoolAt.delete(id);
+    return known;
+  }
+  const marked = mempoolAt.get(id) || 0;
+  if (marked && Date.now() - marked < MEMPOOL_HOLD_MS) {
+    throw new Error("That transaction is not accepted yet. Wait and claim it again.");
+  }
+  const inMempool = await seenInMempool(id);
+  if (acceptanceLook({ cachedHit: false, inMempool: inMempool === true }) === "wait") {
+    mempoolAt.set(id, Date.now());
+    if (mempoolAt.size > 2000) {
+      const cut = Date.now() - 2000;
+      for (const [key, at] of mempoolAt) if (at < cut) mempoolAt.delete(key);
+    }
+    throw new Error("That transaction is not accepted yet. Wait and claim it again.");
+  }
   return lockTip(async () => {
     const again = byId.get(id);
-    if (acceptanceLook({ cachedHit: !!again, inMempool: false }) === "settled" && again) return again;
-    const inMempool = await seenInMempool(id);
-    if (acceptanceLook({ cachedHit: false, inMempool: inMempool === true }) === "wait") {
-      throw new Error("That transaction is not accepted yet. Wait and claim it again.");
+    if (acceptanceLook({ cachedHit: !!again, inMempool: false }) === "settled" && again) {
+      mempoolAt.delete(id);
+      return again;
     }
     if (tipReadPlan(!!cursor, Date.now() - refreshedAt, FRESH_MS, STALE_MS) === "delta") {
       try {
@@ -368,7 +404,10 @@ export async function lookupAccepted(txid) {
       }
     }
     const hit = byId.get(id);
-    if (acceptanceLook({ cachedHit: !!hit, inMempool: false }) === "settled" && hit) return hit;
+    if (acceptanceLook({ cachedHit: !!hit, inMempool: false }) === "settled" && hit) {
+      mempoolAt.delete(id);
+      return hit;
+    }
     throw notYet();
   });
 }

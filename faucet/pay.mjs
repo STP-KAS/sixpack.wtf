@@ -6,6 +6,7 @@ import { homedir } from "node:os";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { freeCoins, holdCoins, releaseCoins, withCoinLock } from "./coin-reserve.mjs";
 import { pageFeeRate, payFeeRate } from "./fee-rate.mjs";
 import { FROM, isBuildWallet, sompiToTkas } from "./policy.mjs";
 
@@ -25,6 +26,8 @@ const LOCAL_DOWN_MS = 60_000;
 /** The page rate is already 87 times the standard. A slow quote must not hold the click. */
 const FEE_WAIT_MS = 400;
 let localDownUntil = 0;
+/** One local socket for the next send. A failed send drops it. */
+let keptPayRpc = null;
 
 /** Try the desk node until it misses. After that, go straight to a public Testnet-10 node. */
 export function rpcConnectPlan(now, downUntil) {
@@ -267,22 +270,32 @@ export async function mintTestnetAddress() {
  * Send tKAS from a hex key the caller already holds.
  * drain sends the mature balance back, leaving a small fee remainder.
  */
-let spendLock = Promise.resolve();
-
 function withSpendLock(fn) {
-  const run = spendLock.then(fn, fn);
-  spendLock = run.then(
-    () => {},
-    () => {}
-  );
-  return run;
+  return withCoinLock(fn);
 }
 
-export async function payFromKey({ privHex, fromAddr, toAddr, sompi, drain, onStep, rateOf }) {
-  return withSpendLock(() => payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep, rateOf }));
+async function borrowPayRpc(kaspa, net, step) {
+  if (keptPayRpc) return keptPayRpc;
+  keptPayRpc = await connectRpc(kaspa, net, step);
+  return keptPayRpc;
 }
 
-async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep, rateOf }) {
+async function discardPayRpc(rpc) {
+  if (keptPayRpc === rpc) keptPayRpc = null;
+  await closeRpc(rpc);
+}
+
+function coinsFromPending(pending) {
+  const inputs = pending && pending.transaction && pending.transaction.inputs;
+  if (!inputs) return [];
+  return [...inputs].map((input) => ({ outpoint: input.previousOutpoint || input.previous_outpoint }));
+}
+
+export async function payFromKey({ privHex, fromAddr, toAddr, sompi, drain, onStep, rateOf, spare }) {
+  return withSpendLock(() => payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep, rateOf, spare }));
+}
+
+async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep, rateOf, spare }) {
   const step = (name, extra) => {
     if (onStep) onStep(name, extra);
   };
@@ -299,10 +312,11 @@ async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep
   const derived = String(privateKey.toAddress("testnet-10")).trim();
   if (derived.toLowerCase() !== from.toLowerCase()) throw new Error("The signing key does not match the address.");
   const net = new kaspa.NetworkId("testnet-10");
-  const rpc = await connectRpc(kaspa, net, step);
+  let rpc = null;
   const txids = [];
   let sent = 0n;
   try {
+    rpc = await borrowPayRpc(kaspa, net, step);
     step("Gathering coins");
     const dag = await withTimeout(rpc.getBlockDagInfo(), 8000, "Reading Testnet-10 tip took too long.");
     const virtualDaa = dag.virtualDaaScore ?? 0;
@@ -311,11 +325,12 @@ async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep
       isBuildWallet(to) ? 180_000 : 20_000,
       "Reading coins took too long."
     );
-    entries = [...entries].filter((entry) => isMatureEntry(entry, virtualDaa)).sort((a, b) => {
+    entries = freeCoins([...entries].filter((entry) => isMatureEntry(entry, virtualDaa))).sort((a, b) => {
       const aa = BigInt(a.amount);
       const bb = BigInt(b.amount);
       return aa < bb ? 1 : aa > bb ? -1 : 0;
     });
+    if (spare && !drain && entries.length > 1) entries = entries.slice(0, -1);
     const rate = await feeRateFor(rpc, rateOf || payFeeRate);
     const slack = BigInt(Math.ceil(rate)) * 50_000n;
     if (drain) {
@@ -339,11 +354,18 @@ async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep
         networkId: net,
       });
       for (const pending of transactions) {
-        await pending.sign([privateKey]);
-        step("Broadcasting");
-        const txid = await withTimeout(pending.submit(rpc), 20000, "The Testnet-10 node did not take the send.");
-        txids.push(String(txid));
-        step("Broadcasting", { txids: txids.slice() });
+        const used = coinsFromPending(pending);
+        holdCoins(used);
+        try {
+          await pending.sign([privateKey]);
+          step("Broadcasting");
+          const txid = await withTimeout(pending.submit(rpc), 20000, "The Testnet-10 node did not take the send.");
+          txids.push(String(txid));
+          step("Broadcasting", { txids: txids.slice() });
+        } catch (err) {
+          releaseCoins(used);
+          throw err;
+        }
       }
       return { ok: true, from, to, sompi: chunk.toString(), txids };
     }
@@ -397,18 +419,26 @@ async function payFromKeyInner({ privHex, fromAddr, toAddr, sompi, drain, onStep
         networkId: net,
       });
       for (const pending of transactions) {
-        await pending.sign([privateKey]);
-        step("Broadcasting", { detail: guard + " of " + guardMax });
-        const txid = await withTimeout(pending.submit(rpc), 20000, "The Testnet-10 node did not take the send.");
-        txids.push(String(txid));
-        step("Broadcasting", { detail: guard + " of " + guardMax, txids: txids.slice() });
+        const used = coinsFromPending(pending);
+        holdCoins(used);
+        try {
+          await pending.sign([privateKey]);
+          step("Broadcasting", { detail: guard + " of " + guardMax });
+          const txid = await withTimeout(pending.submit(rpc), 20000, "The Testnet-10 node did not take the send.");
+          txids.push(String(txid));
+          step("Broadcasting", { detail: guard + " of " + guardMax, txids: txids.slice() });
+        } catch (err) {
+          releaseCoins(used);
+          throw err;
+        }
       }
       sent += chunk;
     }
     if (!txids.length) throw new Error(splitSendMessage(0n, 0n));
     return { ok: true, from, to, sompi: sent.toString(), txids };
-  } finally {
-    await closeRpc(rpc);
+  } catch (err) {
+    await discardPayRpc(rpc);
+    throw err;
   }
 }
 

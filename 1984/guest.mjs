@@ -543,7 +543,7 @@ export function guestDesk() {
     async pay({ key, from, sompi, to }) {
       const { payFromKey } = await import("../faucet/pay.mjs");
       const toAddr = to ? assertTestnet(to) : RESERVE;
-      const out = await payFromKey({ privHex: key, fromAddr: from, toAddr, sompi, rateOf: agreedPageRate });
+      const out = await payFromKey({ privHex: key, fromAddr: from, toAddr, sompi, rateOf: agreedPageRate, spare: true });
       return { txid: out.txids && out.txids[0], sompi: out.sompi, txids: out.txids };
     },
     poolOnly: true,

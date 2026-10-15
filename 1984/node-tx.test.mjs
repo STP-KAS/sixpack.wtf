@@ -78,6 +78,9 @@ test("a payment lookup does not walk back from the sink", () => {
   const body = source.slice(start, end);
   assert.doesNotMatch(body, /walkBack|pullTip/);
   assert.match(body, /pullDelta/);
+  const mem = body.indexOf("await seenInMempool");
+  const lock = body.indexOf("return lockTip");
+  assert.ok(mem > 0 && lock > mem);
 });
 
 test("an old tip cursor starts over instead of reading the whole gap", () => {

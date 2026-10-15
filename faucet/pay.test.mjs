@@ -19,6 +19,9 @@ describe("a tKAS send skips a dead local node", () => {
     const source = readFileSync(new URL("./pay.mjs", import.meta.url), "utf8");
     assert.match(source, /LOCAL_WAIT_MS = 1500/);
     assert.match(source, /FEE_WAIT_MS = 400/);
+    assert.match(source, /keptPayRpc/);
+    assert.match(source, /borrowPayRpc/);
+    assert.match(source, /spare && !drain && entries.length > 1/);
     assert.doesNotMatch(source, /RPC_URL, 2500/);
     assert.doesNotMatch(source, /getFeeEstimate\(\{\}\), 8000/);
   });

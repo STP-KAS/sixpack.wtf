@@ -112,6 +112,24 @@ export function create1984Service(deps) {
     release();
     return entry.promise;
   }
+
+  const railChain = new Map();
+
+  /** One covenant rail at a time. The inclusion wait stays off the square queue. */
+  function chainRail(key, run) {
+    const previous = railChain.get(key) || Promise.resolve();
+    const next = previous.catch(() => {}).then(run);
+    const settled = next.then(
+      () => {},
+      () => {}
+    );
+    railChain.set(key, settled);
+    settled.finally(() => {
+      if (railChain.get(key) === settled) railChain.delete(key);
+    });
+    return next;
+  }
+
   const pause = deps.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
 
   function queue(fn) {
@@ -1168,29 +1186,31 @@ export function create1984Service(deps) {
             }
             pay = await waitPayment(address, pasted, sompiForCents(item.cents, usd));
           }
-          return await queue(async () => {
-            let prepaid = null;
-            if (body.rail === "poc" || body.rail === "kusdt") {
-              const item = itemBySku(body.shop, body.sku);
-              if (!item) throw new Error("That item is not on this counter.");
+          let prepaid = null;
+          if (body.rail === "poc" || body.rail === "kusdt") {
+            const item = itemBySku(body.shop, body.sku);
+            if (!item) throw new Error("That item is not on this counter.");
+            const gate = await queue(async () => {
               const account = state.accounts[address.toLowerCase()] || { rules: {}, spentDay: "", spentCents: "0" };
-              const gate = checkRules(
+              return checkRules(
                 account,
                 { shop: body.shop, rail: body.rail, cents: item.cents, confirmed: !!body.confirmed },
                 dayKey(now)
               );
-              if (gate.needsConfirm) {
-                return {
-                  status: 409,
-                  body: {
-                    ok: false,
-                    needsConfirm: true,
-                    cents: item.cents,
-                    error: "This is over your confirm line. Confirm it to pay.",
-                  },
-                };
-              }
-              prepaid = await settleSpend({
+            });
+            if (gate.needsConfirm) {
+              return {
+                status: 409,
+                body: {
+                  ok: false,
+                  needsConfirm: true,
+                  cents: item.cents,
+                  error: "This is over your confirm line. Confirm it to pay.",
+                },
+              };
+            }
+            prepaid = await chainRail(address.toLowerCase() + ":" + body.rail, () =>
+              settleSpend({
                 pegLock: deps.pegLock,
                 guests: deps.guests,
                 address,
@@ -1199,12 +1219,15 @@ export function create1984Service(deps) {
                 cents: BigInt(item.cents),
                 now,
                 getState: () => state,
-                setState: (next) => {
-                  state = typeof next === "function" ? next(state) : next;
-                  deps.save(state);
-                },
-              });
-            }
+                setState: (next) =>
+                  queue(async () => {
+                    state = typeof next === "function" ? next(state) : next;
+                    deps.save(state);
+                  }),
+              })
+            );
+          }
+          return await queue(async () => {
             const out = applySpend(
               state,
               {
@@ -1573,10 +1596,27 @@ function loadFile() {
   }
 }
 
+function pauseSync(ms) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {}
+}
+
 function saveFile(state) {
   const tmp = ledgerFile + ".tmp";
   fs.writeFileSync(tmp, JSON.stringify(state));
-  fs.renameSync(tmp, ledgerFile);
+  let last;
+  for (let i = 0; i < 8; i += 1) {
+    try {
+      fs.renameSync(tmp, ledgerFile);
+      return;
+    } catch (err) {
+      last = err;
+      const code = err && err.code;
+      if (code !== "EPERM" && code !== "EBUSY") break;
+      pauseSync(25);
+    }
+  }
+  throw last;
 }
 
 let singleton;
