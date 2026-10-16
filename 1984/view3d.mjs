@@ -109,14 +109,14 @@ export const CAR_NOSE = { x: 0, y: 0.5, z: -0.9 };
 /** ConeGeometry's tip is local +Y. This X turn sends that tip to local +Z, the rear. */
 export const THRUST_PITCH = Math.PI / 2;
 
-/** 0 when the car is still. Long enough to read as a plume when it is moving. */
+/** 0 when the car is still. Long enough to read as a cold-gas plume when it is moving. */
 export function thrustLength(moving) {
   return moving ? 2.8 : 0;
 }
 
-/** Cone base sits on the bumper. Scaling local Y grows the plume toward +Y, which THRUST_PITCH turns to +Z. */
+/** Cone base at the nozzle. Scaling local Y grows the cold plume toward +Y. THRUST_PITCH aims a rear jet to +Z. */
 export function thrustCone() {
-  const geo = new THREE.ConeGeometry(0.14, 1, 7);
+  const geo = new THREE.ConeGeometry(0.07, 1, 7);
   geo.translate(0, 0.5, 0);
   return geo;
 }
@@ -2491,24 +2491,71 @@ function makeRoadster(bodyColor = "#c0392b", hoodColor = "#922b21") {
     wheels.push(hanger);
   }
   const flames = [];
-  const flameGeo = thrustCone();
-  for (const fx of [-0.28, 0.28]) {
-    for (const [color, hot] of [["#ff6a1a", false], ["#ffe14a", true]]) {
-      const flame = new THREE.Mesh(
-        flameGeo,
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: hot ? 0.95 : 0.88, depthWrite: false }),
-      );
-      flame.rotation.x = THRUST_PITCH;
-      flame.position.set(fx, 0.42, 1.18);
-      flame.visible = false;
-      flame.scale.y = 0.001;
-      flame.userData.hot = hot;
-      car.add(flame);
-      flames.push(flame);
-    }
+  const coldMat = new THREE.MeshBasicMaterial({ color: "#f4fbff", transparent: true, opacity: 0.72, depthWrite: false });
+  const puffMat = new THREE.MeshBasicMaterial({ color: "#b9e7f6", transparent: true, opacity: 0.5, depthWrite: false });
+  const nozzleMat = new THREE.MeshStandardMaterial({ color: "#c5ccd4", metalness: 0.72, roughness: 0.28 });
+  const nozzleGeo = new THREE.CylinderGeometry(0.03, 0.045, 0.07, 6);
+  const jetGeo = thrustCone();
+  const jets = [
+    [-0.34, 0.22, 1.02, THRUST_PITCH, 0, false],
+    [-0.12, 0.22, 1.02, THRUST_PITCH, 0, false],
+    [0.12, 0.22, 1.02, THRUST_PITCH, 0, false],
+    [0.34, 0.22, 1.02, THRUST_PITCH, 0, false],
+    [-0.46, 0.16, -0.7, Math.PI, 0, true],
+    [0.46, 0.16, -0.7, Math.PI, 0, true],
+    [-0.46, 0.16, 0.82, Math.PI, 0, true],
+    [0.46, 0.16, 0.82, Math.PI, 0, true],
+    [-0.56, 0.3, 0.05, 0, Math.PI / 2, true],
+    [0.56, 0.3, 0.05, 0, -Math.PI / 2, true],
+  ];
+  for (const [x, y, z, rotX, rotZ, lift] of jets) {
+    const nozzle = new THREE.Mesh(nozzleGeo, nozzleMat);
+    nozzle.name = "cold-nozzle";
+    nozzle.rotation.set(rotX, 0, rotZ);
+    nozzle.position.set(x, y, z);
+    car.add(nozzle);
+    const plume = new THREE.Mesh(jetGeo, lift ? puffMat : coldMat);
+    plume.rotation.set(rotX, 0, rotZ);
+    plume.position.set(x, y, z);
+    plume.visible = false;
+    plume.scale.y = 0.001;
+    plume.userData.hot = lift;
+    car.add(plume);
+    flames.push(plume);
   }
-  const thrustLight = new THREE.PointLight("#ff7a2a", 0, 7, 2);
-  thrustLight.position.set(0, 0.42, 1.35);
+  const fan = new THREE.Group();
+  fan.name = "suction-fan";
+  fan.position.set(0, 0.16, 0.12);
+  const disc = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.26, 0.26, 0.035, 12),
+    new THREE.MeshStandardMaterial({ color: "#1c2228", metalness: 0.55, roughness: 0.38 }),
+  );
+  const bladeMat = new THREE.MeshStandardMaterial({ color: "#8ea0ae", metalness: 0.4, roughness: 0.35 });
+  for (const turn of [0, Math.PI / 2]) {
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.015, 0.06), bladeMat);
+    blade.rotation.y = turn;
+    fan.add(blade);
+  }
+  fan.add(disc);
+  car.add(fan);
+  const wing = new THREE.Mesh(
+    new THREE.BoxGeometry(0.96, 0.025, 0.18),
+    new THREE.MeshStandardMaterial({ color: "#14181c", metalness: 0.45, roughness: 0.32 }),
+  );
+  wing.name = "active-wing";
+  wing.position.set(0, 0.86, 0.7);
+  wing.rotation.x = -0.4;
+  for (const sx of [-0.32, 0.32]) {
+    const strut = new THREE.Mesh(
+      new THREE.BoxGeometry(0.03, 0.22, 0.03),
+      new THREE.MeshStandardMaterial({ color: "#2a3036", metalness: 0.5, roughness: 0.4 }),
+    );
+    strut.position.set(sx, 0.74, 0.7);
+    car.add(strut);
+  }
+  car.add(wing);
+  const thrustLight = new THREE.PointLight("#d7f4ff", 0, 7, 2);
+  thrustLight.position.set(0, 0.3, 1.2);
   for (const hx of [-0.34, 0.34]) {
     const lamp = new THREE.Mesh(
       new THREE.SphereGeometry(0.055, 8, 6),
@@ -3605,6 +3652,8 @@ export function placeFlight(flight, pose) {
     }
     flight.car.userData.thrustLight.intensity = length > 0 ? 6 : 0;
   }
+  const flightFan = flight.car.getObjectByName("suction-fan");
+  if (flightFan) flightFan.rotation.y += length > 0 ? 0.35 : 0.04;
   if (flight.starman) {
     const on = !!pose.guestOn;
     flight.starman.visible = on;
@@ -3619,6 +3668,8 @@ export function placeFlight(flight, pose) {
         }
         if (flight.starman.userData.thrustLight) flight.starman.userData.thrustLight.intensity = guestLen > 0.02 ? 4 : 0;
       }
+      const guestFan = flight.starman.getObjectByName("suction-fan");
+      if (guestFan) guestFan.rotation.y += guestLen > 0.02 ? 0.35 : 0.04;
     }
   }
   const cruising = pose.beat === "cruise";
@@ -4401,7 +4452,15 @@ function showCar() {
   body.position.set(0, 0.42, 0);
   const cab = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.28, 0.85), stone("#9fd4ee", 0.18));
   cab.position.set(0, 0.68, 0.15);
-  group.add(plinth, body, cab);
+  const fan = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.22, 0.22, 0.03, 10),
+    stone("#1c2228", 0.45),
+  );
+  fan.position.set(0, 0.2, 0.1);
+  const wing = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.03, 0.16), stone("#14181c", 0.4));
+  wing.position.set(0, 0.92, 0.55);
+  wing.rotation.x = -0.4;
+  group.add(plinth, body, cab, fan, wing);
   for (const [x, z] of [[-0.5, -0.7], [0.5, -0.7], [-0.5, 0.7], [0.5, 0.7]]) {
     const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.1, 10), stone("#1c1916", 0.7));
     wheel.rotation.z = Math.PI / 2;
@@ -5390,6 +5449,8 @@ export function mountWorld(canvas, map, api) {
           flame.scale.y = length > 0 ? length * (flame.userData.hot ? flick * 0.62 : flick) : 0.001;
         }
         car.userData.thrustLight.intensity = length > 0 ? 6 : 0;
+        const townFan = car.getObjectByName("suction-fan");
+        if (townFan) townFan.rotation.y += thrusting ? 0.45 : 0.06;
       }
       canvas.dataset.ride = riding ? "car" : "foot";
       for (const puff of puffs) {

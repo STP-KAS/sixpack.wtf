@@ -44,6 +44,66 @@ test("pitch 0 looks straight down from above", () => {
   assert.ok(Math.hypot(offset.x, offset.z) < 1e-6);
 });
 
+test("the roadster keeps its color and breathes cold gas", () => {
+  const ctx = new Proxy({}, {
+    get(_target, key) {
+      if (key === "canvas") return { width: 64, height: 64 };
+      if (key === "createLinearGradient" || key === "createRadialGradient") return () => ({ addColorStop() {} });
+      return () => {};
+    },
+    set() {
+      return true;
+    },
+  });
+  const previous = globalThis.document;
+  globalThis.document = {
+    createElement() {
+      return { width: 64, height: 64, getContext: () => ctx };
+    },
+  };
+  let flight;
+  try {
+    flight = buildFlight();
+  } finally {
+    globalThis.document = previous;
+  }
+  const car = flight.car;
+  const nozzles = [];
+  car.traverse((node) => {
+    if (node.name === "cold-nozzle") nozzles.push(node);
+  });
+  assert.equal(nozzles.length, 10);
+  assert.equal(car.userData.flames.length, 10);
+  assert.ok(car.getObjectByName("suction-fan"));
+  assert.ok(car.getObjectByName("active-wing"));
+  const red = car.children.find((node) => node.material && node.material.color && node.material.color.getHexString() === "c0392b");
+  assert.ok(red, "body color");
+  for (const plume of car.userData.flames) {
+    const hex = plume.material.color.getHexString();
+    assert.ok(hex === "f4fbff" || hex === "b9e7f6", hex);
+  }
+  const aim = (plume) => new THREE.Vector3(0, 1, 0).applyQuaternion(plume.quaternion);
+  const rear = car.userData.flames.filter((plume) => !plume.userData.hot);
+  assert.equal(rear.length, 4);
+  for (const plume of rear) {
+    const tip = aim(plume);
+    assert.ok(tip.z > 0.99, tip.toArray().join(","));
+  }
+  const down = car.userData.flames.filter((plume) => plume.userData.hot && Math.abs(plume.position.x) < 0.5);
+  assert.equal(down.length, 4);
+  for (const plume of down) {
+    const tip = aim(plume);
+    assert.ok(tip.y < -0.99, tip.toArray().join(","));
+  }
+  const side = car.userData.flames.filter((plume) => Math.abs(plume.position.x) > 0.5);
+  assert.equal(side.length, 2);
+  for (const plume of side) {
+    const tip = aim(plume);
+    assert.ok(tip.x * Math.sign(plume.position.x) > 0.99, tip.toArray().join(","));
+  }
+  assert.equal(flight.engines, 33);
+});
+
 test("a stopped roadster has no thrust and a moving one throws a long plume", () => {
   assert.equal(thrustLength(false), 0);
   assert.ok(thrustLength(true) > 2);
