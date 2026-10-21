@@ -52,7 +52,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=180/);
+  assert.match(html, /1984\/client\.mjs\?v=181/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -239,7 +239,7 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(bar, /id="bar-bank" class="bar-bank">Bank<\/button>/);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
   assert.match(html, /1984\.css\?v=91/);
-  assert.match(html, /1984\/client\.mjs\?v=180/);
+  assert.match(html, /1984\/client\.mjs\?v=181/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
@@ -283,8 +283,8 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(mintCard, /class="dex"/);
   assert.match(mintCard, /You mint/);
   assert.match(mintCard, /id="mint-go" class="dex-go"/);
-  assert.match(mintCard, /KCC-20 Last Call/);
-  assert.match(mintCard, /No covenant is deployed/);
+  assert.match(mintCard, /KCC-20 is Final/);
+  assert.match(mintCard, /not the POCencept or KUSDT covenant/);
   assert.doesNotMatch(mintCard, /<strong>What\.<\/strong>/);
   assert.doesNotMatch(mintCard, /<strong>How\.<\/strong>/);
   assert.doesNotMatch(mintCard, /<strong>Why\.<\/strong>/);

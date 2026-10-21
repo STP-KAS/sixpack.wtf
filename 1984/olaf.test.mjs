@@ -294,7 +294,7 @@ test("the note says what this square can and cannot do", () => {
   assert.match(text, /1,000,000\.00 supply was deleted/);
   assert.match(text, /no chain payout/);
   assert.match(text, /does not pass through SquarePeg/);
-  assert.match(text, /Last Call, not Final/);
+  assert.match(text, /KCC-20 is Final/);
   assert.match(text, /Hunt Hall does not take OLAF/);
   assert.match(OLAF_PAY_LINE, /one dollar/);
   assert.match(OLAF_PAY_LINE, /does not keep the secret/);

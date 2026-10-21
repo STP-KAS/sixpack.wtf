@@ -1,0 +1,5 @@
+Source: kaspanet/kccs kcc-0020/vectors/conformance.json
+Commit: 1ed87aef59faff8354061aee30f734a3b8b2c3d2
+KCC-20 Final commit: 9dec4a0421326a99c70d07f0aa11d11bc894ab9b
+Copied unchanged on 2026-10-21. The JSON file is authoritative for the vectors.
+SHA256 of the copied file: 9b424c96ea0e0093cacfd98e3013fd5cbf93dd149cb27696acf288510133010b

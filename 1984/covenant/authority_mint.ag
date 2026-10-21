@@ -1,0 +1,84 @@
+// Covenant-specific mint authority. Not a KCC-20 entrypoint.
+// kcc-0020.md §4 allows a covenant-specific entrypoint. KCC-20 does not define minting.
+// Copied from the desk build of this rail. The KCC20 actor is the reference actor, unchanged.
+// Base: argent-lang/kcc20-reference 27f8403fee55863125b044c73b2c9449d997a6ca.
+// KCC-20 Final: kaspanet/kccs 9dec4a0421326a99c70d07f0aa11d11bc894ab9b, main 1ed87aef59faff8354061aee30f734a3b8b2c3d2.
+
+import "./token_seed.ag";
+
+state AuthorityMintState {
+    int remaining;
+    int mint_amount;
+    pubkey authority;
+    byte[32] extension_commitment;
+    int live;
+}
+
+actor AuthorityMint owns AuthorityMintState {
+    entry mint(KCC20State recipient_state, sig authority_signature) emits {
+        minter: AuthorityMint,
+        recipient: KCC20,
+    } {
+        require(live == 1);
+        require(checkSig(authority_signature, authority));
+        require(recipient_state.amount > 0);
+        require(recipient_state.amount <= mint_amount);
+        require(recipient_state.amount <= remaining);
+        require(recipient_state.extension_commitment == extension_commitment);
+        require_valid_owner_scheme(recipient_state.owner_scheme);
+        require_valid_borrow_scheme(recipient_state.borrow_scheme);
+
+        AuthorityMintState next_minter = {
+            remaining: remaining - recipient_state.amount,
+            mint_amount: mint_amount,
+            authority: authority,
+            extension_commitment: extension_commitment,
+            live: live,
+        };
+
+        require(minter.value == self.value);
+        unrestricted(recipient.value);
+        become {
+            minter <- AuthorityMint(next_minter),
+            recipient <- KCC20(recipient_state),
+        };
+    }
+
+    entry rotate(pubkey next_authority, sig authority_signature) emits {
+        minter: AuthorityMint,
+    } {
+        require(live == 1);
+        require(checkSig(authority_signature, authority));
+        AuthorityMintState next_minter = {
+            remaining: remaining,
+            mint_amount: mint_amount,
+            authority: next_authority,
+            extension_commitment: extension_commitment,
+            live: 1,
+        };
+        require(minter.value == self.value);
+        become minter <- AuthorityMint(next_minter);
+    }
+
+    entry renounce(sig authority_signature) emits {
+        minter: AuthorityMint,
+    } {
+        require(live == 1);
+        require(checkSig(authority_signature, authority));
+        AuthorityMintState next_minter = {
+            remaining: remaining,
+            mint_amount: mint_amount,
+            authority: authority,
+            extension_commitment: extension_commitment,
+            live: 0,
+        };
+        require(minter.value == self.value);
+        become minter <- AuthorityMint(next_minter);
+    }
+}
+
+app KCC20AuthorityMint {
+    actor KCC20;
+    actor AuthorityMint;
+    actor TokenSeed;
+}

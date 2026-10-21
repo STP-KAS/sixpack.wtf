@@ -570,8 +570,8 @@ test("a named token opens, increases, stops at the cap, and a send keeps the tot
   const opened = await mint({ option: "new", name: "ash", amount: "5", cap: "8" });
   assert.equal(opened.status, 200);
   assert.equal(opened.body.ok, true);
-  assert.match(opened.body.receipt.note, /Last Call, not Final/);
-  assert.match(opened.body.receipt.note, /No covenant/);
+  assert.match(opened.body.receipt.note, /KCC-20 is Final/);
+  assert.match(opened.body.receipt.note, /not the POCencept or KUSDT covenant/);
   assert.equal(opened.body.account.tokens.length, 1);
   assert.equal(opened.body.account.tokens[0].name, "ASH");
   assert.equal(opened.body.account.tokens[0].amount, "5");

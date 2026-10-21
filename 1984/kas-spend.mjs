@@ -15,7 +15,7 @@ export function settleLine(hasTx) {
 
 export function payKind(place) {
   if (place === "covenant") {
-    return "This is a SquarePeg covenant on Testnet 10. The txid is that covenant transaction. The script holds the tKAS. It is not Argent, and it is not a vProg tic-tac-toe ply. KCC-20 is Last Call, not Final. These are not dollars.";
+    return "This is a SquarePeg covenant on Testnet 10. The txid is that covenant transaction. The script holds the tKAS. It is not Argent, and it is not a vProg tic-tac-toe ply. KCC-20 is Final. POCencept and KUSDT covenants are separate from this lock. These are not dollars.";
   }
   if (place === "bank") {
     return "A funded test wallet on this tab locks tKAS in a SquarePeg covenant. A pasted address still sends tKAS to the reserve, because this tab cannot sign that covenant. It is not Argent, and it is not a vProg tic-tac-toe ply. These are not dollars.";

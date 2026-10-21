@@ -1,0 +1,4 @@
+KCC20 and TokenSeed are the argent-lang/kcc20-reference actors.
+Reference commit for the minter rebalance base: 27f8403fee55863125b044c73b2c9449d997a6ca.
+The KCC20 actor is unchanged from c8a087117735a1f87c5c6d115fcddeaf2562c784.
+authority_mint.ag is covenant-specific. It is not in KCC-20. kcc-0020.md section 4 allows it.

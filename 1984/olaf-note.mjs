@@ -11,7 +11,7 @@ export const OLAF_NOTE = Object.freeze({
     "tKAS paid in stays in the square reserve as backing. Shops, the cinema, a flight, gifts, SI stream, and the roadster can spend OLAF. The price of that purchase is public. The change note stays sealed. Hunt Hall does not take OLAF. A private send nullifies the old note and writes a new commitment. The pool total stays the same.",
     "This till checks the witness, then discards it. Other people see commitments, nullifiers, and ciphertexts. A quiet pool can still be guessed from timing. This is not a zero-knowledge proof and not a settlement covenant. The Kaspa Privacy Initiative is separate research: notes, nullifiers, and a reserve of native KAS. Its next step is a Based App proof on Testnet-10. This square does not run that proof. This is not Kaspa core.",
     "The old public 1,000,000.00 supply was deleted. New OLAF exists only as a note backed by tKAS paid in after that. There is no chain payout from this desk. Spending a note burns that dollar. The backing tKAS is not sent back to a wallet. You cannot redeem OLAF the way you redeem POCencept or KUSDT.",
-    "POCencept and KUSDT stay the SquarePeg tags. They can redeem the lock. KUSDT can be frozen. POCencept cannot. OLAF does not pass through SquarePeg. KCC-20 is Last Call, not Final. The mint desk does not mint OLAF.",
+    "POCencept and KUSDT stay the SquarePeg tags. They can redeem the lock. KUSDT can be frozen. POCencept cannot. OLAF does not pass through SquarePeg. KCC-20 is Final. The mint desk does not mint OLAF.",
     "Copy the receive code to take a private send. Copy the spend key if this browser is cleared. A lost key cannot be reset by the till.",
   ]),
 });

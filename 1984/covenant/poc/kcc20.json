@@ -1,0 +1,31 @@
+{
+  "program": {
+    "artifact": "artifact.json"
+  },
+  "entrypoints": {
+    "transfer": "transfer",
+    "delegator": "transfer_delegator"
+  },
+  "covenant_specific_entrypoints": [
+    "mint",
+    "rotate",
+    "renounce"
+  ],
+  "owner_schemes": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "borrow_schemes": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "max_token_inputs": 3,
+  "max_token_outputs": 3,
+  "extension_commitment": "3e42b04d79af7dad33a257e74b37cc6e51f8164660c60028dba71f781ac41745",
+  "extension_note": "Published 32-byte constant. The preimage was not recovered, so this file does not claim a BLAKE3 preimage."
+}

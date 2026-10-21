@@ -731,7 +731,7 @@ export function applyOlafSend(state, input, now) {
   };
 }
 
-/** Open a token, mint more of it, send it, or trade two names. The desk checks the Last Call increase. No covenant. */
+/** Open a token, mint more of it, send it, or trade two names. An open name stays on this ledger. */
 export function applyToken(state, input, now) {
   const address = assertTestnet(input.address);
   const option = String(input.option || "");
@@ -809,7 +809,7 @@ export function applyToken(state, input, now) {
     rail: "poc",
     cents: 0n,
     note: opened
-      ? "Opened " + name + " on this ledger." + (cap === 0n ? " Cap 0 means no cap." : "") + " KCC-20 is Last Call, not Final. No covenant."
+      ? "Opened " + name + " on this ledger." + (cap === 0n ? " Cap 0 means no cap." : "") + " KCC-20 is Final. This open name is not the POCencept or KUSDT covenant."
       : "Minted " + amount.toString() + " more " + name + ". The amount increased.",
   });
   rememberMint(next, book, receipt, { address, to: "", amount: amount.toString(), op: opened ? "new" : "more" });
