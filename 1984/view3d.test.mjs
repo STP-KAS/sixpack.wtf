@@ -937,7 +937,7 @@ test("one bench strolls the square and the garden, slower than a walk", () => {
   }
 });
 
-test("the bench line stays readable in a shop and past a wall", () => {
+test("the bench line stays on the square and off the cinema", () => {
   const outdoor = benchLinePose(false, 148, 16 / 9);
   assert.equal(outdoor.parent, "bench");
   assert.ok(outdoor.y > 2.2, "above heads and the fountain");
@@ -950,24 +950,7 @@ test("the bench line stays readable in a shop and past a wall", () => {
   assert.equal(sprite.material.fog, false);
   assert.ok(sprite.renderOrder > 12);
   for (const aspect of [9 / 16, 1, 16 / 9]) {
-    const indoors = benchLinePose(true, 148, aspect);
-    assert.equal(indoors.parent, "camera");
-    assert.ok(indoors.z < -1, "in front of the camera");
-    const dist = -indoors.z;
-    const viewH = 2 * dist * Math.tan((42 * Math.PI) / 180 / 2);
-    const viewW = viewH * aspect;
-    assert.ok(indoors.sx <= viewW * 0.86 + 0.001, "width " + indoors.sx + " view " + viewW);
-    assert.ok(indoors.sy <= viewH * 0.34 + 0.001, "height " + indoors.sy);
-    assert.ok(indoors.sx > 0.4 && indoors.sy > 0.2);
-    const cam = new THREE.PerspectiveCamera(42, aspect, 0.08, 240);
-    cam.position.set(4, 1.6, 3);
-    cam.lookAt(0, 1.05, 0);
-    cam.updateMatrixWorld(true);
-    const ahead = new THREE.Vector3();
-    cam.getWorldDirection(ahead);
-    const at = new THREE.Vector3(indoors.x, indoors.y, indoors.z).applyQuaternion(cam.quaternion).add(cam.position);
-    const fromCam = at.sub(cam.position);
-    assert.ok(fromCam.dot(ahead) > 1, "stays ahead " + fromCam.dot(ahead));
+    assert.equal(benchLinePose(true, 148, aspect), null);
   }
 });
 

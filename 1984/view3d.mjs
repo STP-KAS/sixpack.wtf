@@ -480,25 +480,13 @@ function benchPaths() {
 /** Where the wandering bench is. The clock picks the stroll, and the line changes with each stop. */
 
 /**
- * The joke board stays readable.
- * Outdoors it sits above the bench. Indoors it sits in front of the camera,
- * because the square is hidden inside a shop. z is camera-local, and -z is ahead.
+ * The joke board stays readable above the bench on the square.
+ * A shop, including the cinema, does not show these lines.
  */
-export function benchLinePose(indoors, canvasHeight, aspect) {
+export function benchLinePose(indoors, canvasHeight) {
+  if (indoors) return null;
   const rows = (canvasHeight > 0 ? canvasHeight : 96) / 96;
-  if (!indoors) return { x: 0, y: 2.6, z: 0, sx: 8.4, sy: 1.2 * rows, parent: "bench" };
-  const wide = aspect > 0 ? aspect : 1;
-  const dist = 2.15;
-  const viewH = 2 * dist * Math.tan((42 * Math.PI) / 180 / 2);
-  const viewW = viewH * wide;
-  return {
-    x: 0,
-    y: -viewH * 0.22,
-    z: -dist,
-    sx: Math.min(2.05, viewW * 0.86),
-    sy: Math.min(0.46 * rows, viewH * 0.34),
-    parent: "camera",
-  };
+  return { x: 0, y: 2.6, z: 0, sx: 8.4, sy: 1.2 * rows, parent: "bench" };
 }
 
 /** Walls, trees, the fountain, and fog leave the letters alone. */
@@ -4964,7 +4952,6 @@ export function mountWorld(canvas, map, api) {
   addBuildings(town, map, maps, pick, awnings);
   addDressing(town, map, maps);
   const benchLine = town.getObjectByName("bench-line");
-  const lineOffset = new THREE.Vector3();
   const player = figure("#f2d16b");
   const shadow = new THREE.Mesh(
     new THREE.CircleGeometry(0.34, 14),
@@ -5494,20 +5481,17 @@ export function mountWorld(canvas, map, api) {
       if (stroll.moving) bench.rotation.y = stroll.yaw;
     }
     if (benchLine && bench) {
-      const stroll = benchWalk(now);
-      if (benchLine.userData.label !== stroll.joke) writeJoke(benchLine, stroll.joke);
-      benchLine.visible = true;
-      benchLine.material.opacity = 1;
       const board = benchLine.material.map && benchLine.material.map.image;
       const h = board && board.height ? board.height : 96;
-      const pose = benchLinePose(indoors, h, camera.aspect);
-      benchLine.scale.set(pose.sx, pose.sy, 1);
-      if (indoors) {
-        if (benchLine.parent !== scene) scene.add(benchLine);
-        lineOffset.set(pose.x, pose.y, pose.z);
-        lineOffset.applyQuaternion(camera.quaternion);
-        benchLine.position.copy(camera.position).add(lineOffset);
+      const pose = benchLinePose(indoors, h);
+      if (!pose) {
+        benchLine.visible = false;
       } else {
+        const stroll = benchWalk(now);
+        if (benchLine.userData.label !== stroll.joke) writeJoke(benchLine, stroll.joke);
+        benchLine.visible = true;
+        benchLine.material.opacity = 1;
+        benchLine.scale.set(pose.sx, pose.sy, 1);
         if (benchLine.parent !== bench) bench.add(benchLine);
         benchLine.position.set(pose.x, pose.y, pose.z);
       }
