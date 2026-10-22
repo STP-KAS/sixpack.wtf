@@ -23,8 +23,8 @@ test("every buy can pick tKAS, POCencept, or KUSDT", () => {
   assert.doesNotMatch(bar, /data-rail="olaf" class="on"/);
   assert.match(olafBar, /data-rail="olaf" class="on"/);
   assert.match(bar, /<strong>tKAS<\/strong> the coin/);
-  assert.match(bar, /<strong>POCencept<\/strong> public tag, no freeze/);
-  assert.match(bar, /<strong>KUSDT<\/strong> public tag, freeze/);
+  assert.match(bar, /<strong>POCencept<\/strong> KCC-20 Final, no freeze/);
+  assert.match(bar, /<strong>KUSDT<\/strong> KCC-20 Final, frozen supply not minted/);
   assert.match(bar, /<strong>OLAF<\/strong> private dollar/);
   const legend = railLegendHtml();
   assert.equal(RAIL_DIFF.length, 4);
@@ -32,7 +32,7 @@ test("every buy can pick tKAS, POCencept, or KUSDT", () => {
   const strip = railStripHtml();
   assert.match(strip, /class="bal-extra rail-strip"/);
   assert.match(strip, /data-rails/);
-  assert.match(strip, /tKAS the coin · POCencept public tag, no freeze · KUSDT public tag, freeze · OLAF private dollar/);
+  assert.match(strip, /tKAS the coin · POCencept KCC-20 Final, no freeze · KUSDT KCC-20 Final, frozen supply not minted · OLAF private dollar/);
   assert.equal(RAIL_NAMES.kas, "tKAS");
   assert.equal(RAIL_NAMES.poc, "POCencept stable");
   assert.equal(RAIL_NAMES.kusdt, "KUSDT stable");
@@ -44,7 +44,7 @@ test("the rails note is short and points at the public note", () => {
   assert.match(RAILS_NOTE.lines[0], /tKAS/);
   assert.match(RAILS_NOTE.lines[0], /miner fee is always KAS/);
   assert.match(RAILS_NOTE.lines[1], /POCencept/);
-  assert.match(RAILS_NOTE.lines[1], /cannot be frozen/);
+  assert.match(RAILS_NOTE.lines[1], /no freeze/);
   assert.match(RAILS_NOTE.lines[2], /KUSDT/);
   assert.match(RAILS_NOTE.lines[2], /freeze/);
   assert.match(RAILS_NOTE.lines[3], /OLAF/);

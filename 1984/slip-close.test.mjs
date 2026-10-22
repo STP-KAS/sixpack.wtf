@@ -52,7 +52,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=182/);
+  assert.match(html, /1984\/client\.mjs\?v=183/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -239,7 +239,7 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(bar, /id="bar-bank" class="bar-bank">Bank<\/button>/);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
   assert.match(html, /1984\.css\?v=91/);
-  assert.match(html, /1984\/client\.mjs\?v=182/);
+  assert.match(html, /1984\/client\.mjs\?v=183/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);
@@ -382,8 +382,8 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(rails, /<h1>1984 raw idea<\/h1>/);
   assert.match(rails, /<h2>The rails<\/h2>/);
   assert.match(rails, /<h2>The platform<\/h2>/);
-  assert.match(rails, /POCencept is a public tag/);
-  assert.match(rails, /KUSDT is the other public tag/);
+  assert.match(rails, /POCencept is a Testnet-10 token under KCC-20 Final/);
+  assert.match(rails, /KUSDT is a second Testnet-10 token under KCC-20 Final/);
   assert.match(rails, /OLAF is a shielded dollar note/);
   assert.match(rails, /rails-why\.html/);
   assert.match(rails, /<strong>tKAS<\/strong> the coin\. Miner fee is always tKAS\./);
@@ -419,12 +419,12 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(railsWhy, /<strong>tKAS<\/strong> the coin\. The miner fee is always tKAS\./);
   assert.doesNotMatch(railsWhy, /miner fee is always KAS/);
   assert.doesNotMatch(railsWhy, /miner fee on every path is KAS/);
-  assert.match(railsWhy, /<strong>POCencept<\/strong> public tag, no freeze/);
-  assert.match(railsWhy, /<strong>KUSDT<\/strong> public tag, freeze/);
+  assert.match(railsWhy, /<strong>POCencept<\/strong> KCC-20 Final, no freeze/);
+  assert.match(railsWhy, /<strong>KUSDT<\/strong> KCC-20 Final/);
   assert.match(railsWhy, /<strong>OLAF<\/strong> private dollar/);
   assert.match(html, /<strong>tKAS<\/strong> the coin/);
-  assert.match(html, /<strong>POCencept<\/strong> public tag, no freeze/);
-  assert.match(html, /<strong>KUSDT<\/strong> public tag, freeze/);
+  assert.match(html, /<strong>POCencept<\/strong> KCC-20 Final, no freeze/);
+  assert.match(html, /<strong>KUSDT<\/strong> KCC-20 Final, frozen supply not minted/);
   assert.match(html, /<strong>OLAF<\/strong> private dollar/);
   const barClick = client.indexOf('bar.addEventListener("click"');
   const barRails = client.indexOf('closest("[data-rails]")', barClick);

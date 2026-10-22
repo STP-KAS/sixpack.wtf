@@ -10,8 +10,8 @@ export const RAIL_NAMES = Object.freeze({
 /** The four-way difference, short enough to stay on the picker and the balance bar. */
 export const RAIL_DIFF = Object.freeze([
   Object.freeze({ id: "kas", name: "tKAS", short: "the coin" }),
-  Object.freeze({ id: "poc", name: "POCencept", short: "public tag, no freeze" }),
-  Object.freeze({ id: "kusdt", name: "KUSDT", short: "public tag, freeze" }),
+  Object.freeze({ id: "poc", name: "POCencept", short: "KCC-20 Final, no freeze" }),
+  Object.freeze({ id: "kusdt", name: "KUSDT", short: "KCC-20 Final, frozen supply not minted" }),
   Object.freeze({ id: "olaf", name: "OLAF", short: "private dollar" }),
 ]);
 
@@ -25,12 +25,12 @@ export const RAILS_NOTE = Object.freeze({
   title: "What each rail is",
   lines: Object.freeze([
     "tKAS is Testnet-10 KAS, the coin that moves. The miner fee is always KAS. Take it to the bank.",
-    "POCencept is a public tag. It locks tKAS. Redeem returns that lock. It is not a dollar. It cannot be frozen.",
-    "KUSDT is the other public tag. It locks tKAS the same way, and redeem returns that lock. The issuer can freeze the tag. A freeze blocks KUSDT. The locked tKAS can still be redeemed. It is not a dollar, and it is not Tether.",
+    "POCencept is a Testnet-10 token under KCC-20 Final. It has no freeze. It is not a dollar. The square bank still locks tKAS under this name. That lock is not this token.",
+    "KUSDT is a second Testnet-10 token under KCC-20 Final. A frozen authority was recorded and was not minted. A standard transfer does not move liquid units onto that extension. The square ledger has its own freeze switch. That switch is not this token. It is not a dollar, and it is not Tether.",
     "OLAF is a shielded dollar note. 1.00 is one dollar of tKAS at the quote when the note was made. A later quote does not reprice it. The book does not show the owner. Redeem does not pay the tKAS back.",
     "A counter, the ticket, the snacks, a hop, gifts, SI stream, and the roadster take all four. Hunt Hall takes tKAS, POCencept, and KUSDT.",
     "Those rails are for a bill a stranger can take: a car, an SI service, a game purchase, and a rented service. This square is the classroom. A promise here does not buy the car, the service, the game, or the rental.",
-    "To pay with a public tag, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. To hold OLAF, shield tKAS at the bank.",
+    "To pay on the square, swap tKAS for POCencept and KUSDT at the bank. No tKAS, go to the bank. No POCencept, or no KUSDT, go to the bank and swap. To hold OLAF, shield tKAS at the bank.",
   ]),
   links: Object.freeze([
     Object.freeze(["Why, what, how", "https://github.com/STP-KAS/1984-why-what-how"]),

@@ -27,8 +27,8 @@
   <h1>Rails</h1>
   <ul class="rail-lead">
     <li><strong>tKAS</strong> the coin. The miner fee is always tKAS.</li>
-    <li><strong>POCencept</strong> public tag, no freeze. It locks tKAS. Redeem returns that lock.</li>
-    <li><strong>KUSDT</strong> public tag, freeze. It locks tKAS the same way. The issuer can freeze the tag.</li>
+    <li><strong>POCencept</strong> KCC-20 Final, no freeze. The square lock is separate.</li>
+    <li><strong>KUSDT</strong> KCC-20 Final. Frozen supply was not minted. The square lock is separate.</li>
     <li><strong>OLAF</strong> private dollar. 1.00 is one dollar of tKAS at the quote when the note was made.</li>
   </ul>
   <p class="lede">Four ways to pay sit on the 1984 square. They are not the same object. The lines above are the difference. The sections below say why. The longer essay is <a href="rails.html">1984 raw idea</a>. The square is <a href="1984.html">1984</a>. This is a classroom. It is not Kaspa core.</p>
@@ -37,21 +37,21 @@
     <h2>tKAS</h2>
     <p><strong>What.</strong> tKAS is Testnet-10 KAS, the coin that moves.</p>
     <p><strong>Why.</strong> It is the mining coin. The miner fee is always tKAS, at 87 times the standard Testnet 10 rate, and it is extra. That fee is not taken from a tag and it is not taken from an OLAF note.</p>
-    <p><strong>How.</strong> A funded address spends tKAS at a counter, or takes it to the bank. The bank locks it into POCencept or KUSDT, or shields it into OLAF. A tKAS payment that has a txid is the Testnet 10 transaction.</p>
+    <p><strong>How.</strong> A funded address spends tKAS at a counter, or takes it to the bank. The square bank locks it in a SquarePeg covenant under the POCencept or KUSDT name, or shields it into OLAF. That lock is not the KCC-20 token. A tKAS payment that has a txid is the Testnet 10 transaction.</p>
   </section>
 
   <section id="rail-poc">
     <h2>POCencept</h2>
-    <p><strong>What.</strong> POCencept is a public tag. A SquarePeg covenant locks tKAS, and the tag is the keypad amount on that lock. The face is cents on this square. It is not a dollar.</p>
-    <p><strong>Why.</strong> The lock can be redeemed. Redeem returns the locked tKAS in proportion to the tag that remains. A later quote does not reprice the lock. Nobody freezes POCencept.</p>
-    <p><strong>How.</strong> Swap tKAS for POCencept at the bank. A shop spend sends that share of tKAS to the reserve, and the tag does not continue. An exchange with KUSDT flips the tag and keeps the sompi. Kachat charges 0.01 POCencept. A Layer-Kaspa offer can be paid in POCencept.</p>
+    <p><strong>What.</strong> POCencept is a Testnet-10 token under KCC-20 Final. The name is POCencept, the symbol is POC, and it has 2 decimals. The cap is 100000000 base units, displayed 1000000.00. It has one extension and no freeze output. It is not a dollar. Covenant 7b52b945abaa17bc6b5cb12f2860e471726f01cb30354fd2d14ac89a608c6b7d.</p>
+    <p><strong>Why.</strong> A mint requires a signature from the authority minter. A holder transfers the units that holder has. Borrowing starts disabled. rotate and renounce were not broadcast.</p>
+    <p><strong>How.</strong> A standard transfer keeps the extension and the total, with at most 3 token inputs and 3 token outputs. Two mints of 1 base unit were accepted, then one transfer of those 2 units. A mint of 100000001 base units was rejected. The square bank still locks tKAS in a separate SquarePeg covenant under this name. A later quote does not reprice the lock. Redeem returns the locked tKAS. A shop spend of that lock sends that share of tKAS to the reserve. An exchange with the square KUSDT lock flips that lock and keeps the sompi. Kachat charges 0.01 POCencept on the square ledger. A Layer-Kaspa offer can be paid in that square balance.</p>
   </section>
 
   <section id="rail-kusdt">
     <h2>KUSDT</h2>
-    <p><strong>What.</strong> KUSDT is the other public tag. It locks tKAS the same way POCencept does. It is not a dollar, and it is not Tether.</p>
-    <p><strong>Why.</strong> The issuer can freeze the tag. That is the classroom for a freeze. A freeze blocks KUSDT spending and swaps. The tKAS already locked on that tag can still be redeemed. POCencept in the same moment still moves. The miner fee is not taken from the lock.</p>
-    <p><strong>How.</strong> Swap tKAS for KUSDT at the bank. Redeem, exchange, and a shop spend follow the same SquarePeg path as POCencept. The freeze is KUSDT only, and the issuer signs it.</p>
+    <p><strong>What.</strong> KUSDT is a second Testnet-10 token under KCC-20 Final. The name and the symbol are KUSDT. Decimals, cap, and the per-mint limit match POCencept. It is not a dollar, and it is not Tether. Covenant 4d916665551d11c90765831c6afefb047c6c473a9cbe3e20cf262f9ed3a425d6.</p>
+    <p><strong>Why.</strong> A mint of the liquid supply requires a signature from the authority minter. The frozen authority was not used to mint. Borrowing starts disabled. rotate and renounce were not broadcast. Genesis records a second authority on a different extension. That output is live 0, remaining 0, and was not minted. A standard transfer keeps the liquid extension, so it does not move a liquid unit onto the frozen extension.</p>
+    <p><strong>How.</strong> Two mints of 1 base unit were accepted, then one transfer of those 2 units. A mint of 100000001 base units was rejected. The square bank lock uses the same SquarePeg path as the POCencept lock, and it is not this token. The square ledger has a separate freeze switch on its own KUSDT tag. That switch is not this token. A freeze of that tag blocks KUSDT spending and swaps on the square. The tKAS already locked on that tag can still be redeemed. POCencept in the same moment still moves. The miner fee is not taken from the lock.</p>
   </section>
 
   <section id="rail-olaf">
@@ -71,10 +71,10 @@
 
   <section id="rail-why">
     <h2>Why they stay apart</h2>
-    <p>tKAS is the coin. POCencept is a public tag you can redeem, with no freeze. KUSDT is that same kind of tag, with a freeze. OLAF is a private dollar note, and redeem does not pay the tKAS back.</p>
+    <p>tKAS is the coin. POCencept is a KCC-20 Final token with no freeze. KUSDT is a KCC-20 Final token. Its frozen supply was not minted. The square locks under those names are separate. OLAF is a private dollar note, and redeem does not pay the tKAS back.</p>
     <p>Do not weld them. A promise on this square does not buy a car, an SI service, a game, or a rental. The spend gate stays shut. The platform essay is <a href="rails.html">1984 raw idea</a>.</p>
   </section>
 </main>
-<script src="nav.js?v=68"></script>
+<script src="nav.js?v=69"></script>
 </body>
 </html>

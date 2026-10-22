@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>sixpack.wtf — 1984</title>
-  <meta name="description" content="1984 is early development, not the benchmark that was envisioned. The best case is stable money you can spend anywhere, in Kaspa or a stable. It is a Testnet-10 village. Pay a shop with tKAS, POCencept, KUSDT, or OLAF. POCencept and KUSDT are public tags. OLAF is a shielded dollar note. The gate takes a funded address. This money is tKAS. With tKAS you can go to the bank. Mainnet wallets are refused.">
+  <meta name="description" content="Experimental only. A Testnet-10 environment where you can try all sorts of things. Our case for crypto: stable money you can spend anywhere. One receiver pays another receiver. Without that spend, the coin has no point. Pay with tKAS, POCencept, KUSDT or OLAF. Mainnet wallets are refused.">
   <link rel="canonical" href="https://sixpack.wtf/1984.html">
   <link rel="stylesheet" href="site.css?v=27">
   <link rel="stylesheet" href="1984.css?v=91">
@@ -154,11 +154,11 @@
       <p>This money is tKAS. tKAS is Testnet-10 KAS, the coin on this network. With tKAS you can go to the bank and swap.</p>
       <ul class="rail-legend">
         <li><strong>tKAS</strong> the coin</li>
-        <li><strong>POCencept</strong> public tag, no freeze</li>
-        <li><strong>KUSDT</strong> public tag, freeze</li>
+        <li><strong>POCencept</strong> KCC-20 Final, no freeze</li>
+        <li><strong>KUSDT</strong> KCC-20 Final, frozen supply not minted</li>
         <li><strong>OLAF</strong> private dollar</li>
       </ul>
-      <p>The bank swaps a public tag or shields an OLAF note. <a href="rails-why.html">Rails</a> is the short page.</p>
+      <p>The bank locks tKAS on the square ledger, or shields an OLAF note. Those locks are not the KCC-20 tokens. <a href="rails-why.html">Rails</a> is the short page.</p>
       <div class="kw-gate-row">
         <button type="button" id="gate-guest">Use a funded test address</button>
       </div>
@@ -169,7 +169,7 @@
   </div>
 </div>
 </div>
-<script src="nav.js?v=68"></script>
+<script src="nav.js?v=69"></script>
 <script src="wallets/kaspa-wallets.js?v=7"></script>
 <script>
   (function () {
@@ -183,6 +183,6 @@
     button.addEventListener("click", arm);
   })();
 </script>
-<script type="module" src="1984/client.mjs?v=182"></script>
+<script type="module" src="1984/client.mjs?v=183"></script>
 </body>
 </html>

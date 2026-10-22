@@ -38,7 +38,7 @@
     '<ul class="keep">' +
     '<li><a class="name" href="farce.html">Farce</a><span class="desc">Yonatan declined Binance’s Dubai invite. Three classes: commercial, casino, cypherpunk. This desk agrees.</span></li>' +
     '<li><a class="name" href="eulogy.html">Proof of work, a eulogy</a><span class="desc">They kept the vocabulary. They outsourced the work. 15s satire.</span></li>' +
-    '<li><a class="name" href="aigen.html">SI gen</a><span class="desc">grok build clips.</span></li>' +
+    '<li><a class="name" href="aigen.html">SI gen</a><span class="desc">Twenty-one clips. Tap one and it plays.</span></li>' +
     '<li><a class="name" href="https://x.com/hashdag/status/1986497449557446774">hashdag · 6 Nov 2025</a><span class="desc">The post. Let them win or count me out.</span></li>' +
     "</ul>" +
     "<h3>Grok Bot — run a node</h3>" +
@@ -48,7 +48,7 @@
     "</ul>" +
     "<h3>Testnet</h3>" +
     '<ul class="keep">' +
-    '<li><a class="name" href="faucet.html">Grok bot sandbox faucet</a><span class="desc">Pays from one locked address. Miners rotate randomly; top up when main is under 1M tKAS. Never a seed.</span></li>' +
+    '<li><a class="name" href="faucet.html">Grok bot faucet</a><span class="desc">Closed. Mine your own tKAS.</span></li>' +
     '<li><a class="name" href="https://faucet-tn10.kaspanet.io/">faucet-tn10.kaspanet.io</a><span class="desc">Official TN10 faucet. Often 403.</span></li>' +
     '<li><a class="name" href="https://explorer-tn10.kaspa.org/">explorer-tn10.kaspa.org</a><span class="desc">Testnet-10 explorer. Test coins.</span></li>' +
     "</ul>" +

@@ -24,7 +24,7 @@ http://127.0.0.1:4020/
 | `/farce.html` | Yonatan’s Binance letter. This desk agrees. |
 | `/eulogy.html` | Proof of work, a eulogy. 15s satire + still. |
 | `/random.html` | Pile of clips. Shuffle / prev / next. |
-| `/faucet.html` | Grok bot sandbox faucet. Pays from one address. Miners rotate; top up under 1M tKAS. |
+| `/faucet.html` | Grok bot faucet. Closed. Mine your own tKAS. |
 | `/grok.html` | SI helpdesk — feed-trained Kaspa help desk. Not grok.com. Project: [STP-KAS/Grok.SPCXAI.KAS](https://github.com/STP-KAS/Grok.SPCXAI.KAS). |
 | `/help.html` | Discord rooms. How to ask. Same links. |
 
