@@ -52,7 +52,7 @@ test("the landing gate takes a funded test address", () => {
   assert.doesNotMatch(html, /id="gate-kastle"/);
   assert.match(html, /The same browser gets the same funded wallet/);
   assert.match(html, /cannot tell it is the same browser/);
-  assert.match(html, /1984\/client\.mjs\?v=184/);
+  assert.match(html, /1984\/client\.mjs\?v=185/);
   assert.match(client, /Use a funded test address/);
   assert.match(client, /With tKAS you can go to the bank/);
   assert.doesNotMatch(sliceFn(client, "paintChrome"), /id="use-kasware"/);
@@ -212,6 +212,8 @@ test("exit to the square is on the shop card", () => {
   assert.match(bank, /You receive/);
   assert.match(bank, /id="dex-go"/);
   assert.match(bank, /id="dex-flip"/);
+  assert.match(bank, /aria-label="Flip">↓<\/button>/);
+  assert.match(bank, /id="dex-redeem"/);
   assert.match(sliceFn(client, "enterVenue"), /shop === "mint" \|\| shop === "bank"/);
   assert.match(sliceFn(client, "enterVenue"), /openMode\(shop\)/);
   const busy = sliceFn(client, "setSwapBusy");
@@ -239,7 +241,7 @@ test("the balances stay in a clear bar under the site tabs", () => {
   assert.match(bar, /id="bar-bank" class="bar-bank">Bank<\/button>/);
   assert.doesNotMatch(html.slice(stageAt, stageAt + 400), /id="bar"/);
   assert.match(html, /1984\.css\?v=91/);
-  assert.match(html, /1984\/client\.mjs\?v=184/);
+  assert.match(html, /1984\/client\.mjs\?v=185/);
   const chrome = sliceFn(client, "paintChrome");
   assert.match(chrome, /id="bar-bank" class="bar-bank/);
   assert.match(chrome, />Bank<\/button>/);

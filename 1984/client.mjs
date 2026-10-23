@@ -2710,7 +2710,6 @@ const DEX_ASSET = { kas: "tKAS", poc: "POCencept", kusdt: "KUSDT", kusd: "KUSD",
 function dexVerb() {
   if (dexTo === "olaf") return "Shield";
   if ((dexFrom === "poc" || dexFrom === "kusdt" || dexFrom === "kusd") && dexTo === "kas") return "Redeem";
-  if (dexFrom === "kas" && (dexTo === "poc" || dexTo === "kusdt" || dexTo === "kusd")) return "Convert";
   return "Swap";
 }
 let swapNoteKind = "";
@@ -2938,7 +2937,9 @@ function paintBank() {
       '<select id="dex-to" class="dex-token">' + opt(dexTo) + "</select></div></div>" +
       (blocked ? '<p class="fine">KUSDT is frozen. Thaw it in the books before this swap.</p>' : "") +
       (redeemFrozen ? '<p class="fine">KUSDT is frozen. This redeem still returns the locked tKAS. The tag does not swap.</p>' : "") +
-      '<button type="button" id="dex-go" class="dex-go"' + (blocked ? ' data-hold="1" disabled' : "") + ">" + verb + "</button>" +
+      '<div class="kw-row"><button type="button" id="dex-go" class="dex-go"' + (blocked ? ' data-hold="1" disabled' : "") + ">" + verb + "</button>" +
+      (verb === "Swap" ? '<button type="button" id="dex-redeem" class="dex-go">Redeem</button>' : "") +
+      "</div>" +
       swapLoadHtml() +
       (payKas
         ? '<details class="paid-already"' + (lockTxid ? " open" : "") + '><summary>Already sent tKAS? Paste the txid</summary><textarea id="lock-txid" rows="2">' + esc(lockTxid) + "</textarea></details>"
@@ -2987,6 +2988,8 @@ function paintBank() {
     if (to) to.onchange = () => setDexSide("to", to.value);
     if (flip) flip.onclick = () => flipDex();
     if (go) go.onclick = () => runDexSwap();
+    const redeemBtn = document.getElementById("dex-redeem");
+    if (redeemBtn) redeemBtn.onclick = () => pressRedeem();
     const send = document.getElementById("kusd-send");
     if (send) send.onclick = () => sendKusd();
   } else if (clerk === "books") {
@@ -3050,6 +3053,32 @@ function flipDex() {
   state.bankRail = dexFrom;
   state.bankClerk = "";
   paintBank();
+}
+
+function pressRedeem() {
+  if (swapBusy) return;
+  if (dexFrom === "olaf" || dexTo === "olaf") {
+    swapNote("OLAF is shielded with tKAS. It does not pay tKAS back.", "bad");
+    return;
+  }
+  const rail = dexFrom === "poc" || dexFrom === "kusdt" || dexFrom === "kusd" ? dexFrom : dexTo;
+  if (rail !== "poc" && rail !== "kusdt" && rail !== "kusd") {
+    swapNote("Redeem returns POCencept, KUSDT, or KUSD as tKAS.", "bad");
+    return;
+  }
+  if (dexFrom === rail && dexTo === "kas") {
+    redeem(rail);
+    return;
+  }
+  rememberSwapFields();
+  dexFrom = rail;
+  dexTo = "kas";
+  state.bankRail = dexFrom;
+  state.bankClerk = "";
+  paintBank();
+  swapNote("You pay " + DEX_ASSET[rail] + ". You receive tKAS. The arrow still flips the pair. Press Redeem.", "");
+  const amt = document.getElementById("redeem-amt");
+  if (amt) amt.focus();
 }
 
 function runDexSwap() {
