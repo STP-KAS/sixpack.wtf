@@ -48,6 +48,13 @@ export function swapAskLine(amount, source, dest) {
   return "You want to swap " + sum + " " + from + " for " + to + "?";
 }
 
+/** The page asks before locked tKAS comes back. */
+export function redeemAskLine(amount, source) {
+  const sum = String(amount || "").trim() || "that";
+  const from = String(source || "this").trim() || "this";
+  return "You want to redeem " + sum + " " + from + " for tKAS?";
+}
+
 /** Next step after the till allows a tKAS shop payment. The page does not open Kasware or Kastle for a buy. A tKAS swap at the bank is what asks the wallet. */
 export function kasSpendAction({ kind, txid, needsConfirm, ready }) {
   if (kind === "guest") return "guest";

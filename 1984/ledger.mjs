@@ -24,6 +24,7 @@ import {
   tokenExtension,
 } from "./kcc20.mjs";
 import { burnNotes, cleanPool, depositNote, emptyPool, moveNotes } from "./olaf-pool.mjs";
+import { kusdHolding } from "./kusd.mjs";
 import { chainPublic } from "./peg-book.mjs";
 import { accountNames } from "./layer.mjs";
 import { publicSeal } from "./seal.mjs";
@@ -251,6 +252,7 @@ export function publicAccount(state, address) {
     seq: base.seq,
     tokens: tokenHoldings(state, base),
     olafPending: pendingFor(state, clean),
+    ...kusdHolding(state, clean),
     receipts,
   };
 }

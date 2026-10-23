@@ -65,6 +65,7 @@ import {
   parseTkas,
   sompiForCents,
 } from "./money.mjs";
+import { mintKusd, redeemKusd, sendKusd } from "./kusd.mjs";
 import { createPegLock } from "./peg-chain.mjs";
 import { openGuestLock, settleExchange, settleFreeze, settleRedeem, settleSpend } from "./peg-flow.mjs";
 import { addTitle, mediaName, normalizeShare, publicStream, removeTitle, titleById } from "./stream-book.mjs";
@@ -1290,6 +1291,51 @@ export function create1984Service(deps) {
             state = out.state;
             deps.save(state);
             return { status: 200, body: out.result };
+          });
+        }
+        if (pathname === "/api/1984/kusd/mint") {
+          const usd = await price();
+          let seen;
+          if (body.token && !body.txid) {
+            const sompi = parseTkas(body.amount);
+            const paid = await guestApi().pay({ token: body.token, address, sompi });
+            seen = await waitPayment(address, paid.txid, sompi);
+          } else {
+            seen = await waitPayment(address, body.txid, 1n);
+          }
+          return await queue(async () => {
+            const out = mintKusd(state, { address, payment: seen, usdPerKas: usd });
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: { ...out.result, account: publicAccount(state, address) } };
+          });
+        }
+        if (pathname === "/api/1984/kusd/send") {
+          const cents = parseDollars(body.amount);
+          return await queue(async () => {
+            const out = sendKusd(state, { address, to: body.to, cents });
+            state = out.state;
+            deps.save(state);
+            return { status: 200, body: { ...out.result, account: publicAccount(state, address) } };
+          });
+        }
+        if (pathname === "/api/1984/kusd/redeem") {
+          const cents = parseDollars(body.amount);
+          return await queue(async () => {
+            const before = clone(state);
+            const out = redeemKusd(state, { address, cents });
+            state = out.state;
+            deps.save(state);
+            try {
+              const paid = await deps.pay(out.to, out.sompi);
+              const txid = paid && paid.txids && paid.txids[0];
+              if (!txid) throw new Error("Redeem did not broadcast.");
+              return { status: 200, body: { ...out.result, txids: paid.txids, account: publicAccount(state, address) } };
+            } catch (err) {
+              state = before;
+              deps.save(state);
+              throw new Error((err && err.message) || "Redeem did not broadcast. The KUSD balance was put back.");
+            }
           });
         }
         if (pathname === "/api/1984/redeem") {

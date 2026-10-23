@@ -15,7 +15,7 @@ import {
   sompiForCents,
 } from "./money.mjs?v=2";
 import { pageFeeRate, PAGE_PRIORITY_SOMPI } from "../faucet/fee-rate.mjs";
-import { buyAskLine, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=5";
+import { buyAskLine, lockSigner, payKind, redeemAskLine, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs?v=6";
 import { RAIL_NAMES, RAILS_NOTE, SWAP_PAY, payRail, railBarHtml, railLegendHtml, shortRail, swapNeed } from "./rails-note.mjs?v=16";
 import { OLAF_NOTE, OLAF_PAY_LINE } from "./olaf-note.mjs?v=5";
 import {
@@ -2705,7 +2705,14 @@ let redeemDraft = "";
 let swapNoteText = "Type an amount, then swap.";
 let dexFrom = "kas";
 let dexTo = "poc";
-const DEX_ASSET = { kas: "tKAS", poc: "POCencept", kusdt: "KUSDT", olaf: "OLAF" };
+const DEX_ASSET = { kas: "tKAS", poc: "POCencept", kusdt: "KUSDT", kusd: "KUSD", olaf: "OLAF" };
+
+function dexVerb() {
+  if (dexTo === "olaf") return "Shield";
+  if ((dexFrom === "poc" || dexFrom === "kusdt" || dexFrom === "kusd") && dexTo === "kas") return "Redeem";
+  if (dexFrom === "kas" && (dexTo === "poc" || dexTo === "kusdt" || dexTo === "kusd")) return "Convert";
+  return "Swap";
+}
 let swapNoteKind = "";
 let swapBusy = false;
 let swapTold = false;
@@ -2771,6 +2778,7 @@ function clerkFigure(id) {
     return formatTkas(state.kasSompi) + " tKAS";
   }
   if (id === "olaf") return formatCents(olafHeld()) + " OLAF";
+  if (id === "kusd") return formatCents(state.account && state.account.kusd) + " KUSD";
   if (!state.account) return "—";
   const cents = id === "poc" ? state.account.poc : state.account.kusdt;
   const frozen = id === "kusdt" && state.account.kusdtFrozen ? " · frozen" : "";
@@ -2824,10 +2832,13 @@ function paintLedgerPreview() {
   }
   try {
     const cents = parseDollars(raw);
-    const rail = dexFrom === "kusdt" ? "kusdt" : "poc";
     const account = state.account || {};
-    const backed = BigInt(rail === "poc" ? account.pocBacked || 0 : account.kusdtBacked || 0);
-    const debt = BigInt(rail === "poc" ? account.pocLiability || 0 : account.kusdtLiability || 0);
+    const backed = dexFrom === "kusd"
+      ? BigInt(account.kusd || 0)
+      : BigInt(dexFrom === "kusdt" ? account.kusdtBacked || 0 : account.pocBacked || 0);
+    const debt = dexFrom === "kusd"
+      ? BigInt(account.kusdSompi || 0)
+      : BigInt(dexFrom === "kusdt" ? account.kusdtLiability || 0 : account.pocLiability || 0);
     if (dexTo === "kas") {
       const sompi = lockShare(debt, backed, cents);
       el.textContent = sompi > 0n
@@ -2892,23 +2903,31 @@ function paintBank() {
       '<div class="swap-bals">' +
       card("POCencept", formatCents(poc.have), "locked " + formatCents(poc.lock) + " · purse " + formatCents(poc.purse)) +
       card("KUSDT", formatCents(kusdt.have), "locked " + formatCents(kusdt.lock) + " · purse " + formatCents(kusdt.purse) + (frozen ? " · frozen" : "")) +
+      card("KUSD", formatCents(state.account && state.account.kusd), "locked tKAS " + formatTkas(state.account && state.account.kusdSompi) + ". No freeze.") +
       card("OLAF", formatCents(olafHeld()), "Shielded in this browser. 1.00 is one dollar from the quote when the note was made.") +
       "</div>" +
       '<div class="kw-row"><button type="button" id="purse" data-act>Practice purse</button><button type="button" id="freeze" data-act>' + (frozen ? "Thaw KUSDT" : "Freeze KUSDT") + "</button></div>" +
       statusLine() + bankFine();
   } else {
     const payKas = dexFrom === "kas";
+    const verb = dexVerb();
     const redeemFrozen = frozen && dexFrom === "kusdt" && dexTo === "kas";
     const blocked = frozen && (dexFrom === "kusdt" || dexTo === "kusdt") && !redeemFrozen;
     const payId = payKas ? "lock-amt" : "redeem-amt";
     const payValue = payKas ? lockDraft : redeemDraft;
     const previewId = payKas ? "lock-preview" : "ledger-preview";
-    const opt = (selected) => ["kas", "poc", "kusdt", "olaf"].map((id) =>
+    const opt = (selected) => ["kas", "poc", "kusdt", "kusd", "olaf"].map((id) =>
       '<option value="' + id + '"' + (id === selected ? " selected" : "") + ">" + DEX_ASSET[id] + "</option>"
     ).join("");
+    const kusdNote = dexFrom === "kusd" || dexTo === "kusd"
+      ? '<p class="fine">KUSD locks tKAS at this quote. That tKAS stays until redeem. Send moves the claim. No freeze. Experimental. Testnet-10. Not Kaspa core.</p>' +
+        (dexFrom === "kusd"
+          ? '<div class="kw-row"><input id="kusd-to" placeholder="kaspatest address" autocomplete="off"><button type="button" id="kusd-send">Send</button></div>'
+          : "")
+      : "";
     body =
       '<div class="dex">' +
-      '<div class="swap-head"><h2>Swap</h2>' + close + "</div>" +
+      '<div class="swap-head"><h2>' + verb + "</h2>" + close + "</div>" +
       railLegendHtml(dexFrom) +
       '<div class="dex-box"><div class="dex-box-top"><span>You pay</span><span>' + esc(clerkFigure(dexFrom)) + "</span></div>" +
       '<div class="dex-row"><input id="' + payId + '" class="dex-amt" value="' + esc(payValue) + '" inputmode="decimal" autocomplete="off" placeholder="0">' +
@@ -2919,14 +2938,17 @@ function paintBank() {
       '<select id="dex-to" class="dex-token">' + opt(dexTo) + "</select></div></div>" +
       (blocked ? '<p class="fine">KUSDT is frozen. Thaw it in the books before this swap.</p>' : "") +
       (redeemFrozen ? '<p class="fine">KUSDT is frozen. This redeem still returns the locked tKAS. The tag does not swap.</p>' : "") +
-      '<button type="button" id="dex-go" class="dex-go"' + (blocked ? ' data-hold="1" disabled' : "") + ">Swap</button>" +
+      '<button type="button" id="dex-go" class="dex-go"' + (blocked ? ' data-hold="1" disabled' : "") + ">" + verb + "</button>" +
       swapLoadHtml() +
       (payKas
         ? '<details class="paid-already"' + (lockTxid ? " open" : "") + '><summary>Already sent tKAS? Paste the txid</summary><textarea id="lock-txid" rows="2">' + esc(lockTxid) + "</textarea></details>"
         : "") +
       (dexTo === "olaf"
         ? '<p class="fine">tKAS shields OLAF at the live quote. 1.00 OLAF stays one dollar from that moment. The till checks the witness and does not keep it. There is no chain payout.</p>'
-        : '<p class="fine">Only the part that came from tKAS can come back. Practice stays a shop coin.</p>') +
+        : verb === "Redeem"
+          ? '<p class="fine">Redeem returns the locked tKAS. A later quote does not change it. The miner fee is extra tKAS.</p>'
+          : '<p class="fine">Only the part that came from tKAS can come back. Practice stays a shop coin.</p>') +
+      kusdNote +
       '<button type="button" class="rails-open" data-rails>What are the rails?</button>' +
       '<button type="button" class="clerk-books" data-clerk="books">The books</button>' +
       statusLine() +
@@ -2965,6 +2987,8 @@ function paintBank() {
     if (to) to.onchange = () => setDexSide("to", to.value);
     if (flip) flip.onclick = () => flipDex();
     if (go) go.onclick = () => runDexSwap();
+    const send = document.getElementById("kusd-send");
+    if (send) send.onclick = () => sendKusd();
   } else if (clerk === "books") {
     document.getElementById("purse").onclick = practice;
     document.getElementById("freeze").onclick = freeze;
@@ -2976,19 +3000,32 @@ function paintBank() {
 }
 
 function setDexSide(which, value) {
-  if (value !== "kas" && value !== "poc" && value !== "kusdt" && value !== "olaf") return;
+  if (value !== "kas" && value !== "poc" && value !== "kusdt" && value !== "kusd" && value !== "olaf") return;
   if (swapBusy) return;
   rememberSwapFields();
+  if (value === "kusd") {
+    if (which === "from") {
+      dexFrom = "kusd";
+      dexTo = "kas";
+    } else {
+      dexTo = "kusd";
+      dexFrom = "kas";
+    }
+    state.bankRail = dexFrom;
+    state.bankClerk = "";
+    paintBank();
+    return;
+  }
   if (value === "olaf") {
     dexFrom = "kas";
     dexTo = "olaf";
   } else if (which === "from") {
     dexFrom = value;
-    if (dexTo === value) dexTo = value === "kas" ? "poc" : "kas";
+    if (dexTo === value || dexTo === "kusd") dexTo = value === "kas" ? "poc" : "kas";
     if (dexTo === "olaf" && dexFrom !== "kas") dexTo = "kas";
   } else {
     dexTo = value;
-    if (dexFrom === value) dexFrom = value === "kas" ? "poc" : "kas";
+    if (dexFrom === value || dexFrom === "kusd") dexFrom = value === "kas" ? "poc" : "kas";
   }
   state.bankRail = dexFrom;
   state.bankClerk = "";
@@ -3022,6 +3059,10 @@ function runDexSwap() {
   }
   if (dexFrom === "olaf" || (dexTo === "olaf" && dexFrom !== "kas")) {
     swapNote("OLAF is shielded with tKAS. It does not pay tKAS back.", "bad");
+    return;
+  }
+  if ((dexFrom === "kusd" || dexTo === "kusd") && dexFrom !== "kas" && dexTo !== "kas") {
+    swapNote("KUSD converts with tKAS. It does not swap with the other rails.", "bad");
     return;
   }
   if (dexFrom === "kas") lock(dexTo);
@@ -4074,6 +4115,7 @@ async function spend(rail, shop, sku) {
 }
 
 function tagName(rail) {
+  if (rail === "kusd") return "KUSD";
   return RAIL_NAMES[rail] || "stable";
 }
 
@@ -4176,7 +4218,10 @@ async function lock(rail) {
       showSteps(steps, 2, buying ? "Sealing the note." : "Adding the tag.");
       body = buying
         ? await depositOlafGuest(fieldValue("lock-amt").trim())
-        : await post("/api/1984/guest/convert", {
+        : await post(rail === "kusd" ? "/api/1984/kusd/mint" : "/api/1984/guest/convert", rail === "kusd" ? {
+          token: state.id.token,
+          amount: fieldValue("lock-amt").trim(),
+        } : {
           token: state.id.token,
           rail,
           amount: fieldValue("lock-amt").trim(),
@@ -4220,7 +4265,9 @@ async function lock(rail) {
       }
       showSteps(steps, steps.length - 1, buying ? "Sealing the note." : "Adding the tag.");
       swapNote(buying ? "Waiting for Testnet 10 to settle. Sealing the OLAF note…" : "Waiting for Testnet 10 to settle. Adding the " + name + " tag…", "wait");
-      body = buying ? await depositOlafWallet(sompi, txid) : await post("/api/1984/convert", { rail, txid });
+      body = buying
+        ? await depositOlafWallet(sompi, txid)
+        : await post(rail === "kusd" ? "/api/1984/kusd/mint" : "/api/1984/convert", rail === "kusd" ? { txid } : { rail, txid });
       showSteps(steps, steps.length, "Done.");
     }
     if (!body.ok) {
@@ -4277,7 +4324,7 @@ async function redeem(rail) {
     swapNote("Not swapped. " + err.message, "bad");
     return;
   }
-  const agreed = await askOk(swapAskLine(amount, name, "tKAS"));
+  const agreed = await askOk(redeemAskLine(amount, name));
   if (!agreed) {
     swapNote("Not swapped. Nothing moved.", "");
     return;
@@ -4285,14 +4332,14 @@ async function redeem(rail) {
   const steps = ["Checking the amount", "Taking the locked tag", "Sending tKAS back", "Done"];
   setSwapBusy(true);
   showSteps(steps, 1, "Taking the locked tag.");
-  swapNote("Swapping " + amount + " " + name + " back to tKAS…", "wait");
+  swapNote("Redeeming " + amount + " " + name + "…", "wait");
   showSteps(steps, 2, "Sending tKAS back.");
   try {
-    const body = await post("/api/1984/redeem", { rail, amount, token: guestToken() }, 90000);
+    const body = await post(rail === "kusd" ? "/api/1984/kusd/redeem" : "/api/1984/redeem", { rail, amount, token: guestToken() }, 90000);
     if (!body.ok) {
       punch("shake");
       const kept = body.moved ? " Part of this redeem is already on Testnet 10." : " The tag was put back.";
-      swapNote("Not swapped. " + (body.error || "The redeem did not clear.") + kept, "bad");
+      swapNote("Not redeemed. " + (body.error || "The redeem did not clear.") + kept, "bad");
       await refreshAccount();
       return;
     }
@@ -4302,7 +4349,7 @@ async function redeem(rail) {
     const tx = backTx ? " Tx " + backTx : "";
     const kind = body.peg ? payKind("covenant") : (backTx ? payKind("lock") : payKind("shop"));
     paySlip({
-      title: "Swapped",
+      title: "Redeemed",
       steps: ["Checking the amount", "Taking the locked tag", "Sending tKAS back", "Done"],
       place: "bank",
       tx: backTx,
@@ -4312,12 +4359,46 @@ async function redeem(rail) {
     if (body.partial && body.note) {
       swapNote(body.note, "ok");
     } else {
-      swapNote(settleLine(!!backTx) + " Swapped. " + amount + " " + name + " came back as tKAS." + tx + " " + kind, "ok");
+      swapNote(settleLine(!!backTx) + " Redeemed. " + amount + " " + name + " came back as tKAS." + tx + " " + kind, "ok");
     }
     await refreshAccount();
   } catch (err) {
     punch("shake");
-    swapNote("Not swapped. " + (err && err.message ? err.message : "The redeem did not clear.") + " The tag was put back.", "bad");
+    swapNote("Not redeemed. " + (err && err.message ? err.message : "The redeem did not clear.") + " The tag was put back.", "bad");
+  } finally {
+    setSwapBusy(false);
+  }
+}
+
+async function sendKusd() {
+  if (swapBusy) return;
+  if (!requireId()) {
+    punch("shake");
+    swapNote("Not sent. Choose who pays first. Nothing moved.", "bad");
+    return;
+  }
+  const amount = fieldValue("redeem-amt").trim();
+  const to = fieldValue("kusd-to").trim();
+  if (!amount || !to) {
+    punch("shake");
+    swapNote("Not sent. Type an amount and a kaspatest address.", "bad");
+    return;
+  }
+  setSwapBusy(true);
+  swapNote("Sending " + amount + " KUSD…", "wait");
+  try {
+    const body = await post("/api/1984/kusd/send", { amount, to, token: guestToken() }, 90000);
+    if (!body.ok) {
+      punch("shake");
+      swapNote("Not sent. " + (body.error || "The send did not clear."), "bad");
+      return;
+    }
+    punch("nod");
+    swapNote("Sent. " + amount + " KUSD moved. The locked tKAS stays until that address redeems.", "ok");
+    await refreshAccount();
+  } catch (err) {
+    punch("shake");
+    swapNote("Not sent. " + (err && err.message ? err.message : "The send did not clear."), "bad");
   } finally {
     setSwapBusy(false);
   }

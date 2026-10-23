@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { buyAskLine, kasSpendAction, lockSigner, payKind, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs";
+import { buyAskLine, kasSpendAction, lockSigner, payKind, redeemAskLine, settleLine, shopBanner, swapAskLine, tn10TxUrl, txidFromWallet } from "./kas-spend.mjs";
 
 test("a guest shop payment stays on the server, which asks before the key signs", () => {
   assert.equal(kasSpendAction({ kind: "guest", txid: "", needsConfirm: true, ready: false }), "guest");
@@ -81,6 +81,8 @@ test("a shop buy and a swap ask on the page", () => {
   assert.equal(buyAskLine("Coffee", "2.50 POCencept"), "You want to buy Coffee for 2.50 POCencept?");
   assert.equal(swapAskLine("1.00", "POCencept", "KUSDT"), "You want to swap 1.00 POCencept for KUSDT?");
   assert.equal(swapAskLine("1.00", "KUSDT", "tKAS"), "You want to swap 1.00 KUSDT for tKAS?");
+  assert.equal(redeemAskLine("1.00", "KUSDT"), "You want to redeem 1.00 KUSDT for tKAS?");
+  assert.equal(redeemAskLine("1.00", "KUSD"), "You want to redeem 1.00 KUSD for tKAS?");
   assert.equal(buyAskLine("", ""), "You want to buy this for this?");
 });
 
