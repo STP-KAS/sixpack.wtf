@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sixpack.wtf — 1984 revisited</title>
+  <meta name="description" content="1984 revisited. A Testnet-10 desk with a funded test address. The weird content from STP is not on this page.">
+  <link rel="canonical" href="https://sixpack.wtf/revisited.html">
+  <link rel="stylesheet" href="site.css?v=27">
+  <script>
+    window.TOWN_API = "https://eat-compact-tenant-receive.trycloudflare.com";
+  </script>
+  <style>
+    .row { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; margin: 0.45rem 0; }
+    input, select, button { font: inherit; font-size: 0.95rem; }
+    input, select { border: 1px solid #111; background: #fff; color: #111; padding: 0.28rem 0.45rem; min-width: 0; }
+    button { border: 1px solid #111; background: #111; color: #fff; padding: 0.28rem 0.7rem; cursor: pointer; }
+    button.plain { background: #fff; color: #111; }
+    button[disabled] { cursor: default; opacity: 0.55; }
+    #desk[hidden], #use-guest[hidden] { display: none; }
+    .addr { word-break: break-all; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.85rem; }
+    #status.bad { font-weight: 650; }
+    label { display: block; margin-top: 0.9rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+<header class="top">
+  <a class="wordmark" href="./">sixpack.wtf</a>
+  <nav data-site-nav></nav>
+</header>
+<main>
+  <p class="eyebrow">Testnet 10</p>
+  <h1>1984 revisited</h1>
+  <p>This is 1984 revisited. The weird content from STP is not on this page.</p>
+  <p>The launch, the town, and the political lines are not on this page.</p>
+  <p class="lede">A funded test address holds tKAS. Calm is a dollar claim on this till. Minting reserves tKAS in that same wallet at 150% of the calm, at the live Kaspa price. The coins stay in the wallet until a redeem sends them, or until a tKAS send. One tKAS stays aside for the miner fee. The miner is paid in tKAS. This lock is the book on this till. The 1984 tab can still spend the same test wallet. This is a classroom on Testnet 10. It is not Kaspa core.</p>
+  <p class="meta">Intentions are good. The thought process is questionable.</p>
+
+  <p><button type="button" id="use-guest">Use a funded test address</button></p>
+  <p id="status" class="meta" role="status"></p>
+
+  <div id="desk" hidden>
+    <p class="addr" id="address"></p>
+    <p id="picture"></p>
+    <label for="mint-amount">Mint calm</label>
+    <div class="row">
+      <input id="mint-amount" inputmode="decimal" autocomplete="off" placeholder="1.00" value="1.00">
+      <button type="button" id="mint">Mint</button>
+    </div>
+    <label for="repay-amount">Repay calm this address minted</label>
+    <div class="row">
+      <input id="repay-amount" inputmode="decimal" autocomplete="off" placeholder="1.00">
+      <button type="button" id="repay" class="plain">Repay</button>
+      <button type="button" id="surplus" class="plain">Take surplus tKAS back</button>
+    </div>
+    <label for="redeem-amount">Redeem calm, including calm someone sent here</label>
+    <div class="row">
+      <input id="redeem-amount" inputmode="decimal" autocomplete="off" placeholder="1.00">
+      <button type="button" id="redeem" class="plain">Redeem</button>
+    </div>
+    <label for="send-to">Send calm</label>
+    <div class="row">
+      <input id="send-to" autocomplete="off" placeholder="kaspatest:" style="flex:1">
+      <input id="send-amount" inputmode="decimal" autocomplete="off" placeholder="0.10" style="width:6rem">
+      <input id="send-note" autocomplete="off" placeholder="Note" style="width:8rem">
+      <button type="button" id="send" class="plain">Send calm</button>
+    </div>
+    <label for="kas-to">Send tKAS</label>
+    <div class="row">
+      <input id="kas-to" autocomplete="off" placeholder="kaspatest:" style="flex:1">
+      <input id="kas-amount" inputmode="decimal" autocomplete="off" placeholder="1" style="width:6rem">
+      <button type="button" id="kas" class="plain">Send tKAS</button>
+    </div>
+    <h2>Listed</h2>
+    <div id="listings"></div>
+    <label for="list-name">List a counter, a service, or a person</label>
+    <div class="row">
+      <input id="list-name" autocomplete="off" placeholder="Name" style="width:8rem">
+      <select id="list-kind">
+        <option value="counter">counter</option>
+        <option value="service">service</option>
+        <option value="person">person</option>
+      </select>
+      <input id="list-price" inputmode="decimal" autocomplete="off" placeholder="0.10" style="width:6rem">
+      <input id="list-to" autocomplete="off" placeholder="kaspatest: for a person" style="flex:1">
+      <button type="button" id="list" class="plain">List</button>
+    </div>
+  </div>
+</main>
+<script src="nav.js?v=70"></script>
+<script src="revisited/client.js?v=1"></script>
+</body>
+</html>

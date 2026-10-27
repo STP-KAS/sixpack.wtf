@@ -8,6 +8,7 @@ import { planClaim, sompiToTkas, FROM, remainingInWindow, requireTestnetAddress,
 import { listClaims } from "./faucet/ledger.mjs";
 import { handleGrokRequest } from "./grok/http.mjs";
 import { handle1984Request, service1984 } from "./1984/service.mjs";
+import { handleRevisitedRequest } from "./revisited/desk.mjs";
 import { pipeVideo } from "./1984/stream-file.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -254,6 +255,10 @@ http
     }
     if (url.pathname === "/api/kworld" || url.pathname.startsWith("/api/kworld/")) {
       url.pathname = "/api/1984" + url.pathname.slice("/api/kworld".length);
+    }
+    if (url.pathname === "/api/revisited" || url.pathname.startsWith("/api/revisited/")) {
+      handleRevisitedRequest(req, res, url, { readBody, sendJson, clientIp });
+      return;
     }
     if (url.pathname === "/api/1984" || url.pathname.startsWith("/api/1984/")) {
       handle1984Request(req, res, url, { readBody, sendJson, clientIp });

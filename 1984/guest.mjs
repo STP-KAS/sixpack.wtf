@@ -351,16 +351,42 @@ export function createGuestDesk(deps) {
     return publicJob(job);
   };
 
+  function rowFor(token, address) {
+    const row = book.sessions[String(token || "")];
+    if (!row) throw new Error("This test tab has already been dropped. Open a new one, or use the KNS app.");
+    const clean = assertTestnet(address);
+    if (row.address !== clean) throw new Error("This test tab does not match that address.");
+    if (row.byeAt && row.byeLife && row.life === row.byeLife) {
+      throw new Error("This test tab is closing. Open a new one, or use the KNS app.");
+    }
+    return { row, clean };
+  }
+
   desk.sessionKey = ({ token, address }) =>
     queue(async () => {
-      const row = book.sessions[String(token || "")];
-      if (!row) throw new Error("This test tab has already been dropped. Open a new one, or use the KNS app.");
-      const clean = assertTestnet(address);
-      if (row.address !== clean) throw new Error("This test tab does not match that address.");
-      if (row.byeAt && row.byeLife && row.life === row.byeLife) {
-        throw new Error("This test tab is closing. Open a new one, or use the KNS app.");
-      }
-      return { key: row.key, address: row.address };
+      const found = rowFor(token, address);
+      return { key: found.row.key, address: found.row.address };
+    });
+
+  desk.view = ({ token, address }) =>
+    queue(async () => {
+      const found = rowFor(token, address);
+      return { address: found.row.address, funded: String(found.row.funded || "0") };
+    });
+
+  function findAddress(address) {
+    const clean = assertTestnet(address);
+    let found = null;
+    for (const [token, row] of Object.entries(book.sessions)) {
+      if (row && row.address === clean) found = { token, row };
+    }
+    return found;
+  }
+
+  desk.payFromAddress = ({ address, sompi, to }) =>
+    queue(async () => findAddress(address)).then((found) => {
+      if (!found) throw new Error("That test wallet is not on this till.");
+      return sendPayment(found.token, found.row.address, sompi, to);
     });
 
   function sendPayment(token, address, sompi, dest) {

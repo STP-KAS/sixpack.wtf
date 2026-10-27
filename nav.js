@@ -10,6 +10,7 @@
     { href: "faucet.html", files: ["faucet.html"], label: "Faucet" },
     { href: "rails.html", files: ["rails.html"], label: "1984 raw idea" },
     { href: "1984.html", files: ["1984.html", "kworld.html"], label: "1984" },
+    { href: "revisited.html", files: ["revisited.html"], label: "1984 revisited" },
     { href: "grok.html", files: ["grok.html"], label: "SI helpdesk" },
     { href: "help.html", files: ["help.html"], label: "Help" },
   ];
@@ -46,6 +47,6 @@
   }
   if (root) {
     if (file === "help.html") load(root + "sources.js?v=41");
-    if (file !== "faucet.html" && file !== "random.html" && file !== "grok.html" && file !== "aigen.html" && file !== "1984.html" && file !== "kworld.html") load(root + "intro.js?v=17");
+    if (file !== "faucet.html" && file !== "random.html" && file !== "grok.html" && file !== "aigen.html" && file !== "1984.html" && file !== "kworld.html" && file !== "revisited.html") load(root + "intro.js?v=17");
   }
 })();

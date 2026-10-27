@@ -12,6 +12,9 @@ faucet/ledger.json
 1984/guest-pool.json.tmp
 1984/guest-pool-issued.jsonl
 1984/guest-fund-log.jsonl
+revisited/book.json
+revisited/book.json.tmp
+revisited/.browser
 1984/funded-list-refresh.log
 1984/stream-media/
 1984/statements/
