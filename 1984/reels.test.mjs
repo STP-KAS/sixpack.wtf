@@ -11,7 +11,7 @@ function sliceFn(source, name) {
 }
 
 test("the reel plays every Random film, then the desk films", () => {
-  assert.equal(REELS.length, 50);
+  assert.equal(REELS.length, 37);
   assert.equal(REELS.find((item) => item.id === "r40").src, "random/r40.mp4");
   assert.equal(REELS.find((item) => item.id === "r40").title, "Liftoff");
   assert.equal(REELS.find((item) => item.id === "r40").w, 3840);
@@ -19,10 +19,7 @@ test("the reel plays every Random film, then the desk films", () => {
   assert.equal(REELS.find((item) => item.id === "r41").src, "random/r41.mp4");
   assert.equal(REELS.find((item) => item.id === "r41").w, 576);
   assert.equal(REELS.find((item) => item.id === "r41").h, 624);
-  assert.equal(REELS.find((item) => item.id === "r42").src, "random/r42.mp4");
-  assert.equal(REELS.find((item) => item.id === "r42").title, "Joint address");
-  assert.equal(REELS.find((item) => item.id === "r42").w, 576);
-  assert.equal(REELS.find((item) => item.id === "r42").h, 1024);
+  assert.equal(REELS.find((item) => item.id === "r42"), undefined);
   assert.equal(REELS.find((item) => item.id === "r43").src, "random/r43.mp4");
   assert.equal(REELS.find((item) => item.id === "r43").title, "Orbital data centers");
   assert.equal(REELS.find((item) => item.id === "r43").w, 1920);
@@ -42,7 +39,8 @@ test("the reel plays every Random film, then the desk films", () => {
   assert.equal(REELS.find((item) => item.id === "r39").src, "random/r39.mp4");
   assert.equal(REELS.find((item) => item.id === "r39").w, 1280);
   assert.equal(REELS.find((item) => item.id === "r39").h, 720);
-  assert.equal(REELS[0].src, "random/r01.mp4");
+  assert.equal(REELS[0].src, "random/r02.mp4");
+  assert.equal(REELS.find((item) => item.id === "r01"), undefined);
   assert.equal(REELS.find((item) => item.id === "r08"), undefined);
   assert.equal(REELS.find((item) => item.id === "r38").title, "Don't mention the war");
   assert.equal(REELS.find((item) => item.id === "r37").src, "random/r37.mp4");
@@ -50,11 +48,9 @@ test("the reel plays every Random film, then the desk films", () => {
   assert.equal(REELS.at(-2).src, "1984/cinema/mine.mp4");
   assert.equal(REELS.at(-1).src, "1984/cinema/harvard.mp4");
   assert.equal(REELS.at(-1).title, "Harvard");
-  const night = REELS.find((item) => item.id === "r19");
-  assert.equal(night.title, "Night");
-  assert.equal(night.w, 576);
-  assert.equal(night.h, 1024);
-  assert.equal(REELS.find((item) => item.id === "r12").h, 1280);
+  assert.equal(REELS.find((item) => item.id === "r19"), undefined);
+  assert.equal(REELS.find((item) => item.id === "r12"), undefined);
+  assert.equal(REELS.find((item) => item.id === "r39").title, "Clip");
   assert.equal(REELS.find((item) => item.id === "harvard").w, 854);
   for (const item of REELS) {
     assert.ok(item.w > 0 && item.h > 0, item.id);
