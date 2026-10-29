@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import * as THREE from "./vendor/three.module.js";
 import { world } from "./world.mjs";
-import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, HOT_STAGE_MS, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, CAM_FOLLOW, followBlend, glideBlend, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, countdownMs, COUNT_HOLD_MS, cruiseWatch, abyssWatch, raceWatch, flightFog, spaceBackdrop, spaceSkyMode, drives, EARTH_RADIUS, EARTH_SURFACE, EARTH_LIMB_V, EARTH_TURN_MS, HANG_RADIUS, WORLD_RADIUS, SATURN_FILM_H, SATURN_WATCH, saturnFilmFrame, aimUpright, earthCenter, earthFilmFrame, earthTurn, stratosphereExitMs, stratopauseAlt, escapeRoom, fitScreen, portraitDistance, pointerScale, flightBeat, flightCamera, limbShot, flightClock, flightLine, flightVoice, SEP_COMMS_MS, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, streamPictureUp, EARTH_JOKE_DELAY, earthJoke, jokeRows, BENCH_JOKES, benchWalk, benchLinePose, dressBenchLine, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
+import { APPROACH_MS, CAR_NOSE, CINEMA_EYE, CINEMA_LOOK, CRUISE_END_MS, CRUISE_MS, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_ORBIT, FLIGHT_PLUME_PITCH, FLIGHT_COAST, FLIGHT_RELEASE, FLIGHT_SECO, FLIGHT_SPACE, FLIGHT_STAGE, HOT_STAGE_MS, JOKE_MS, LOOK_PITCH, LOOK_YAW, PAD_LEAD, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, filmLaunchFill, PITCH_MAX, PITCH_MIN, ROOM_DISTANCE, ROOM_LOOK_Y, ROOM_LOOK_Z, ROOM_PITCH, ROOM_YAW, SCREEN_H, SCREEN_W, THRUST_PITCH, WALK_MS, CAM_FOLLOW, squarePixelRatio, followBlend, glideBlend, assembleInteriors, buildFlight, BUILDING_SIGN_H, BUILDING_SIGN_W, buildingBoxes, buildingSignPose, clearCamera, cruiseLine, cruiseOfferEnd, cruisePose, cruiseProgress, countdownMs, COUNT_HOLD_MS, cruiseWatch, abyssWatch, raceWatch, flightFog, spaceBackdrop, spaceSkyMode, drives, EARTH_RADIUS, EARTH_SURFACE, EARTH_LIMB_V, EARTH_TURN_MS, HANG_RADIUS, WORLD_RADIUS, SATURN_FILM_H, SATURN_WATCH, saturnFilmFrame, aimUpright, earthCenter, earthFilmFrame, earthTurn, stratosphereExitMs, stratopauseAlt, escapeRoom, fitScreen, portraitDistance, pointerScale, flightBeat, flightCamera, limbShot, flightClock, flightLine, flightVoice, SEP_COMMS_MS, flightOfferEnd, flightPose, flightProgress, flightWatch, groundStep, headingYaw, invite, koniSpot, menuLines, moveIntent, orbitOffset, orbitPeriod, orbitRadius, armPadFilms, erasePadFilms, padPair, placeFlight, returnReady, roomUse, screenFit, streamPictureUp, EARTH_JOKE_DELAY, earthJoke, jokeRows, BENCH_JOKES, benchWalk, benchLinePose, dressBenchLine, seat, spaceJoke, thrustCone, thrustLength } from "./view3d.mjs";
 
 function outwardness(cam, pose, center) {
   const ox = pose.carX - center.x;
@@ -158,6 +158,19 @@ test("you drive on the grass and walk inside a shop", () => {
   assert.match(move, /glideBlend\(shown\.distanceTo\(bodyGoal\), dt, pace\)/);
   assert.match(move, /glideBlend\(car\.position\.distanceTo\(carGoal\), dt, DRIVE_MS\)/);
   assert.match(move, /followBlend\(dt, CAM_FOLLOW\)/);
+  assert.equal(squarePixelRatio(1), 1);
+  assert.equal(squarePixelRatio(2), 1.5);
+  assert.equal(squarePixelRatio(3), 1.5);
+  assert.match(move, /squarePixelRatio\(window\.devicePixelRatio\)/);
+  assert.match(move, /shadowMap\.autoUpdate = false/);
+  assert.match(move, /PCFShadowMap/);
+  assert.match(move, /mapSize\.set\(1024, 1024\)/);
+  assert.match(move, /player\.traverse\(\(obj\) => \{ obj\.castShadow = false; \}\)/);
+  assert.match(move, /distanceToSquared\(shadowMark\)/);
+  assert.match(move, /ResizeObserver/);
+  assert.match(move, /thrustLight\.visible = false/);
+  const lantern = move.slice(move.indexOf("function hangLantern"), move.indexOf("function frontTrim"));
+  assert.equal(lantern.includes("PointLight"), false);
 });
 
 test("get in drives outdoors, get out walks, and a shop is on foot", () => {

@@ -125,6 +125,12 @@ export const DRIVE_MS = 75;
 /** Camera catch-up while walking or driving. Higher stays on the body. */
 export const CAM_FOLLOW = 20;
 
+/** Drawing scale for the square. A dense screen stops at 1.5 so a walk does not fill the GPU. */
+export function squarePixelRatio(dpr) {
+  const n = Number.isFinite(dpr) && dpr > 0 ? dpr : 1;
+  return Math.min(n, 1.5);
+}
+
 /** Fraction of a gap closed this frame. `dt` is seconds, already capped by the frame. */
 export function followBlend(dt, rate) {
   const t = dt > 0 ? dt : 0;
@@ -2263,14 +2269,13 @@ function addGround(parent, map, maps, pick) {
 }
 
 function hangLantern(parent, x, y, z) {
+  // A real point light here is copied into every wall shader. The bulb stays.
   const glow = new THREE.Mesh(
-    new THREE.SphereGeometry(0.07, 8, 6),
-    new THREE.MeshStandardMaterial({ color: "#ffb15a", emissive: "#ff8a2a", emissiveIntensity: 1.6, roughness: 0.35 }),
+    new THREE.SphereGeometry(0.09, 8, 6),
+    new THREE.MeshBasicMaterial({ color: "#ffb15a" }),
   );
   glow.position.set(x, y, z);
-  const light = new THREE.PointLight("#ffb15a", 0.85, 7.5, 2);
-  light.position.set(x, y, z);
-  parent.add(glow, light);
+  parent.add(glow);
 }
 
 function frontTrim(parent, maps, center, w, d, h, face, doorPos, isBank) {
@@ -2544,6 +2549,7 @@ function makeRoadster(bodyColor = "#c0392b", hoodColor = "#922b21") {
   car.add(wing);
   const thrustLight = new THREE.PointLight("#d7f4ff", 0, 7, 2);
   thrustLight.position.set(0, 0.3, 1.2);
+  thrustLight.visible = false;
   for (const hx of [-0.34, 0.34]) {
     const lamp = new THREE.Mesh(
       new THREE.SphereGeometry(0.055, 8, 6),
@@ -3639,6 +3645,7 @@ export function placeFlight(flight, pose) {
       flame.scale.y = length > 0 ? length * (flame.userData.hot ? 0.62 : 1) : 0.001;
     }
     flight.car.userData.thrustLight.intensity = length > 0 ? 6 : 0;
+    flight.car.userData.thrustLight.visible = length > 0;
   }
   const flightFan = flight.car.getObjectByName("suction-fan");
   if (flightFan) flightFan.rotation.y += length > 0 ? 0.35 : 0.04;
@@ -3654,7 +3661,10 @@ export function placeFlight(flight, pose) {
           flame.visible = guestLen > 0.02;
           flame.scale.y = guestLen > 0.02 ? guestLen * (flame.userData.hot ? 0.62 : 1) : 0.001;
         }
-        if (flight.starman.userData.thrustLight) flight.starman.userData.thrustLight.intensity = guestLen > 0.02 ? 4 : 0;
+        if (flight.starman.userData.thrustLight) {
+          flight.starman.userData.thrustLight.intensity = guestLen > 0.02 ? 4 : 0;
+          flight.starman.userData.thrustLight.visible = guestLen > 0.02;
+        }
       }
       const guestFan = flight.starman.getObjectByName("suction-fan");
       if (guestFan) guestFan.rotation.y += guestLen > 0.02 ? 0.35 : 0.04;
@@ -4909,12 +4919,14 @@ export function mountWorld(canvas, map, api) {
     return { render() {}, resize() {}, hold() {}, feel() {}, snap() {} };
   }
   canvas.dataset.gl = "ok";
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(squarePixelRatio(window.devicePixelRatio));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.94;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.shadowMap.autoUpdate = false;
+  renderer.shadowMap.needsUpdate = true;
 
   const maps = makeMaps();
   const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
@@ -4934,7 +4946,7 @@ export function mountWorld(canvas, map, api) {
   const sun = new THREE.DirectionalLight("#ffb06a", 1.65);
   sun.position.set(-26, 11, 16);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(1024, 1024);
   sun.shadow.camera.near = 4;
   sun.shadow.camera.far = 120;
   sun.shadow.camera.left = -50;
@@ -4953,6 +4965,10 @@ export function mountWorld(canvas, map, api) {
   addDressing(town, map, maps);
   const benchLine = town.getObjectByName("bench-line");
   const player = figure("#f2d16b");
+  player.traverse((obj) => { obj.castShadow = false; });
+  const roadster = town.getObjectByName("roadster-car");
+  const shadowMark = new THREE.Vector3();
+  if (roadster) shadowMark.copy(roadster.position);
   const shadow = new THREE.Mesh(
     new THREE.CircleGeometry(0.34, 14),
     new THREE.MeshBasicMaterial({ color: "#140f0c", transparent: true, opacity: 0.4, depthWrite: false }),
@@ -5055,10 +5071,25 @@ export function mountWorld(canvas, map, api) {
 
   let sizedW = 0;
   let sizedH = 0;
+  let sizeDirty = true;
+  let shadowAt = -1;
+  if (typeof ResizeObserver === "function") {
+    new ResizeObserver(() => { sizeDirty = true; }).observe(canvas);
+  }
+  function paintShadows(now) {
+    const moved = !!(roadster && roadster.position.distanceToSquared(shadowMark) > 0.09);
+    if (shadowAt >= 0 && !moved) return;
+    if (shadowAt >= 0 && now - shadowAt < 80) return;
+    renderer.shadowMap.needsUpdate = true;
+    shadowAt = now;
+    if (roadster) shadowMark.copy(roadster.position);
+  }
   function resize() {
+    if (!sizeDirty && typeof ResizeObserver === "function") return;
     const rect = canvas.getBoundingClientRect();
     const w = Math.max(2, rect.width);
     const h = Math.max(2, rect.height);
+    sizeDirty = false;
     if (w === sizedW && h === sizedH) return;
     sizedW = w;
     sizedH = h;
@@ -5208,6 +5239,7 @@ export function mountWorld(canvas, map, api) {
   function render(now) {
     if (typeof document !== "undefined" && streamPictureUp(api.mode && api.mode(), document.getElementById("si-video"))) return;
     resize();
+    paintShadows(now);
     const padFilms = flight.padVideos || [];
     for (let i = 0; i < padFilms.length; i++) {
       const film = padFilms[i];
@@ -5436,6 +5468,7 @@ export function mountWorld(canvas, map, api) {
           flame.scale.y = length > 0 ? length * (flame.userData.hot ? flick * 0.62 : flick) : 0.001;
         }
         car.userData.thrustLight.intensity = length > 0 ? 6 : 0;
+        car.userData.thrustLight.visible = length > 0;
         const townFan = car.getObjectByName("suction-fan");
         if (townFan) townFan.rotation.y += thrusting ? 0.45 : 0.06;
       }
