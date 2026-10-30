@@ -256,7 +256,7 @@ test("the square tab is SI stream", () => {
   assert.match(client, /function holdStreamFrame\(/);
   assert.match(client, /frame\.style\.aspectRatio/);
   assert.match(client, /streamPictureUp|view3d\.mjs\?v=79/);
-  assert.match(html, /1984\/client\.mjs\?v=187/);
+  assert.match(html, /1984\/client\.mjs\?v=188/);
   assert.match(client, /streamKasWords\(sompi\) \+ " · " \+ face \+ " POCencept · " \+ face \+ " KUSDT · " \+ face \+ " OLAF"/);
   assert.match(client, /tKAS at the live quote/);
   assert.match(html, /1984\.css\?v=91/);

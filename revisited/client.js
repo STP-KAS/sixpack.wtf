@@ -1,7 +1,7 @@
 (function () {
   const BROWSER_KEY = "revisited-browser-v1";
   const GUEST_KEY = "revisited-guest-v1";
-  const TUNNEL = "https://especially-supporting-herald-broken.trycloudflare.com";
+  const TUNNEL = "https://bob-aspects-ste-reporter.trycloudflare.com";
   const button = document.getElementById("use-guest");
   const desk = document.getElementById("desk");
   const status = document.getElementById("status");
