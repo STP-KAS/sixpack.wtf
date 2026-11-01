@@ -4674,11 +4674,12 @@ function buildCinemaRoom(maps) {
     videoMap: null,
     reelMaps: [],
     cue: () => Promise.resolve(null),
+    warm: () => {},
     pauseReels: () => {},
     clearReels: () => {},
   };
   if (typeof document !== "undefined" && document.createElement) {
-    const slots = [0, 1].map(() => {
+    const slots = [0, 1, 2].map(() => {
       const el = document.createElement("video");
       if (!el || typeof el.play !== "function") return null;
       el.playsInline = true;
@@ -4705,6 +4706,52 @@ function buildCinemaRoom(maps) {
         reel.video = slots[index].el;
         reel.videoMap = slots[index].map;
       };
+      const slotOf = (src) => {
+        if (!src) return -1;
+        for (let i = 0; i < slots.length; i++) {
+          if (slots[i].el.getAttribute("src") === src) return i;
+        }
+        return -1;
+      };
+      const idleSlot = (keep) => {
+        let spare = -1;
+        for (let i = 0; i < slots.length; i++) {
+          if (i === active) continue;
+          const src = slots[i].el.getAttribute("src") || "";
+          if (!src) return i;
+          if (keep && keep.has(src)) continue;
+          if (spare < 0) spare = i;
+        }
+        if (spare >= 0) return spare;
+        if (keep) return -1;
+        for (let i = 0; i < slots.length; i++) if (i !== active) return i;
+        return 0;
+      };
+      const take = (index, gen) => {
+        if (gen !== generation) return null;
+        const next = slots[index];
+        next.el.onloadeddata = null;
+        next.el.onerror = null;
+        if (slots[active] !== next) slots[active].el.pause();
+        use(index);
+        next.map.needsUpdate = true;
+        return next.el;
+      };
+      const hold = (slot, src) => {
+        slot.el.onloadeddata = () => {
+          slot.el.onloadeddata = null;
+          slot.el.onerror = null;
+          if (slots[active] !== slot) slot.el.pause();
+        };
+        slot.el.onerror = () => {
+          slot.el.onloadeddata = null;
+          slot.el.onerror = null;
+        };
+        slot.el.muted = true;
+        if (slot.el.getAttribute("src") !== src) slot.el.src = src;
+        const pending = slot.el.play();
+        if (pending && pending.catch) pending.catch(() => {});
+      };
       reel.pauseReels = () => {
         for (const slot of slots) slot.el.pause();
       };
@@ -4719,30 +4766,25 @@ function buildCinemaRoom(maps) {
         }
         use(0);
       };
+      reel.warm = (src, keep) => {
+        if (!src || slotOf(src) >= 0) return;
+        const index = idleSlot(keep);
+        if (index < 0 || index === active) return;
+        hold(slots[index], src);
+      };
       reel.cue = (src) => {
         const gen = ++generation;
         if (!src) return Promise.resolve(null);
-        const current = slots[active];
-        if (current.el.getAttribute("src") === src && current.el.readyState >= 2) {
-          return Promise.resolve(current.el);
-        }
-        const idle = slots.length > 1 ? 1 - active : 0;
-        const next = slots[idle];
-        const finish = () => {
-          if (gen !== generation) return null;
-          if (slots[active] !== next) slots[active].el.pause();
-          use(idle);
-          next.map.needsUpdate = true;
-          return next.el;
-        };
-        if (next.el.getAttribute("src") === src && next.el.readyState >= 2) {
-          return Promise.resolve(finish());
-        }
+        const have = slotOf(src);
+        if (have >= 0 && slots[have].el.readyState >= 2) return Promise.resolve(take(have, gen));
+        const index = have >= 0 ? have : idleSlot(null);
+        const next = slots[index];
         return new Promise((resolve) => {
+          let settled = false;
           const done = (ok) => {
-            if (next.el.onloadeddata !== null) next.el.onloadeddata = null;
-            next.el.onerror = null;
-            resolve(ok ? finish() : null);
+            if (settled) return;
+            settled = true;
+            resolve(ok ? take(index, gen) : null);
           };
           next.el.onloadeddata = () => done(true);
           next.el.onerror = () => done(false);
@@ -4750,6 +4792,7 @@ function buildCinemaRoom(maps) {
           if (next.el.getAttribute("src") !== src) next.el.src = src;
           const pending = next.el.play();
           if (pending && pending.catch) pending.catch(() => {});
+          if (next.el.getAttribute("src") === src && next.el.readyState >= 2) done(true);
         });
       };
     }
@@ -4811,6 +4854,7 @@ function buildCinemaRoom(maps) {
     get videoMap() { return reel.videoMap; },
     reelMaps: reel.reelMaps,
     cue: (src) => reel.cue(src),
+    warm: (src, keep) => reel.warm(src, keep),
     pauseReels: () => reel.pauseReels(),
     clearReels: () => reel.clearReels(),
     lamp,
@@ -5363,6 +5407,9 @@ export function mountWorld(canvas, map, api) {
         cinema.screenMat.needsUpdate = true;
       }
       fitScreen(cinema.picture, cinema.hintW, cinema.hintH);
+      canvas.dataset.mode = venue;
+      renderer.render(scene, camera);
+      return;
     } else if (indoors) {
       if (camera.fov !== 42) {
         camera.fov = 42;
@@ -5723,6 +5770,9 @@ export function mountWorld(canvas, map, api) {
     },
     cueCinema(src) {
       return cinema.cue ? cinema.cue(src) : Promise.resolve(null);
+    },
+    warmCinema(src, keep) {
+      if (cinema.warm) cinema.warm(src, keep);
     },
     pauseCinema() {
       if (cinema.pauseReels) cinema.pauseReels();

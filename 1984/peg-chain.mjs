@@ -54,9 +54,11 @@ const PEG_PUBLIC = [
   "wss://muon-10.kaspa.blue/kaspa/testnet-10/wrpc/borsh",
 ];
 const INCLUSION_MS = 10_000;
-const INCLUSION_POLL_MS = 1_000;
+const INCLUSION_RPC_MS = 1_000;
+const INCLUSION_GAP_MS = 100;
 const CAP_STOP = "The fee cap stopped this. Nothing was sent.";
 let feeCache = { at: 0, rate: 0, normal: 100 };
+let feeRefresh = null;
 let pegRpc = null;
 let pegOpen = null;
 let pegKeep = null;
@@ -265,15 +267,10 @@ async function compileRow(row) {
 }
 
 async function readQuote(rpc) {
-  const quoted = await withTimeout(rpc.getFeeEstimate({}), PEG_FEE_MS, "The Testnet-10 node stalled.");
-  let mempool = 0;
-  try {
-    const info = await withTimeout(rpc.getInfo({}), PEG_FEE_MS, "The Testnet-10 node stalled.");
-    mempool = Number(info && info.mempoolSize);
-  } catch {
-    mempool = 0;
-  }
-  return quoteFromEstimate(quoted, mempool);
+  const quoted = withTimeout(rpc.getFeeEstimate({}), PEG_FEE_MS, "The Testnet-10 node stalled.");
+  const info = withTimeout(rpc.getInfo({}), PEG_FEE_MS, "The Testnet-10 node stalled.").catch(() => null);
+  const [estimate, live] = await Promise.all([quoted, info]);
+  return quoteFromEstimate(estimate, Number(live && live.mempoolSize) || 0);
 }
 
 async function secondQuote(kaspa) {
@@ -292,26 +289,43 @@ async function secondQuote(kaspa) {
   return null;
 }
 
-async function feeRate(rpc) {
+function storeFee(now, plan, agreed) {
+  feeCache = { at: now, rate: plan.rate, normal: agreed.normal, agreed };
+  if (plan.congested || agreed.outlier) {
+    console.error("square-fee rate=" + plan.rate + " normal=" + agreed.normal + " mempool=" + agreed.mempool + " outlier=" + (agreed.outlier ? 1 : 0));
+  }
+  return plan.rate;
+}
+
+async function refreshFee(rpc) {
   const now = Date.now();
-  if (feeCache.rate > 0 && now - feeCache.at < 5_000) return feeCache.rate;
   try {
-    const first = await readQuote(rpc);
     const kaspa = await sdk();
-    const second = await secondQuote(kaspa);
-    const agreed = agreeNodes(second ? [first, second] : [first], feeCache.normal);
-    const plan = squarePlan(agreed, 0);
-    feeCache = { at: now, rate: plan.rate, normal: agreed.normal, agreed };
-    if (plan.congested || agreed.outlier) {
-      console.error("square-fee rate=" + plan.rate + " normal=" + agreed.normal + " mempool=" + agreed.mempool + " outlier=" + (agreed.outlier ? 1 : 0));
-    }
-    return plan.rate;
+    const [first, second] = await Promise.all([
+      readQuote(rpc).catch(() => null),
+      secondQuote(kaspa).catch(() => null),
+    ]);
+    const quotes = [first, second].filter(Boolean);
+    if (!quotes.length) throw new Error("The Testnet-10 node stalled.");
+    const agreed = agreeNodes(quotes, feeCache.normal);
+    return storeFee(now, squarePlan(agreed, 0), agreed);
   } catch (err) {
     if (pegCallFailed(err)) await dropPegRpc(rpc);
   }
   const floor = pageFeeRate(null);
   feeCache = { at: now, rate: floor, normal: feeCache.normal || 100, agreed: feeCache.agreed };
   return floor;
+}
+
+async function feeRate(rpc) {
+  const now = Date.now();
+  if (feeCache.rate > 0 && now - feeCache.at < 5_000) return feeCache.rate;
+  if (feeCache.rate > 0) {
+    if (!feeRefresh) feeRefresh = refreshFee(rpc).finally(() => { feeRefresh = null; });
+    return feeCache.rate;
+  }
+  if (!feeRefresh) feeRefresh = refreshFee(rpc).finally(() => { feeRefresh = null; });
+  return feeRefresh;
 }
 
 /** The rate the square and the browser pay. Two nodes when a second one answers. No spend. */
@@ -523,7 +537,7 @@ async function mempoolHas(rpc, txid) {
         filterTransactionPool: true,
         includeOrphanPool: false,
       }),
-      INCLUSION_POLL_MS,
+      INCLUSION_RPC_MS,
       "The Testnet-10 node stalled."
     );
     return !!(row && (row.mempoolEntry || row.transaction));
@@ -533,21 +547,34 @@ async function mempoolHas(rpc, txid) {
   }
 }
 
+/** One mempool look. Two misses before the tx is seen count as already out. A miss after a hit is out. */
+export function inclusionStep(present, seen, misses) {
+  if (present) return { seen: true, misses: 0, stay: "" };
+  if (seen) return { seen, misses, stay: "out" };
+  const next = misses + 1;
+  return { seen: false, misses: next, stay: next >= 2 ? "out" : "" };
+}
+
 /** "out" when the spend has left the pool. "in" when it is still there after 10 seconds. "kept" when the node already has it. */
 async function watchInclusion(pending, txid) {
   const started = Date.now();
   let replayed = false;
   let seen = false;
+  let misses = 0;
   while (Date.now() - started < INCLUSION_MS) {
-    await sleep(INCLUSION_POLL_MS);
     try {
       const rpc = await pegClient();
       const present = await mempoolHas(rpc, txid);
-      if (!present) return "out";
-      seen = true;
+      const step = inclusionStep(present, seen, misses);
+      seen = step.seen;
+      misses = step.misses;
+      if (step.stay) return step.stay;
     } catch (err) {
       if (!pegCallFailed(err)) return "out";
-      if (replayed) continue;
+      if (replayed) {
+        await sleep(INCLUSION_GAP_MS);
+        continue;
+      }
       replayed = true;
       try {
         await dropPegRpc(pegRpc);
@@ -559,6 +586,7 @@ async function watchInclusion(pending, txid) {
         else if (!(mempoolFull(submitErr) || pegCallFailed(submitErr))) throw submitErr;
       }
     }
+    await sleep(INCLUSION_GAP_MS);
   }
   return seen ? "in" : "out";
 }

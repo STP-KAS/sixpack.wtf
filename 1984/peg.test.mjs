@@ -11,7 +11,7 @@ import { applyClaim, applyOfferBuy, applySite } from "./layer.mjs";
 import { applySpend, publicAccount } from "./ledger.mjs";
 import { KNOWN_DIGEST, birthDigestHex, birthMessage } from "./peg.mjs";
 import { afterMove, chainWouldCover, planTake } from "./peg-book.mjs";
-import { covenantFault, covenantSignature, covenantWords, pegCallFailed, pegNodePlan } from "./peg-chain.mjs";
+import { covenantFault, covenantSignature, covenantWords, inclusionStep, pegCallFailed, pegNodePlan } from "./peg-chain.mjs";
 
 const A = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 const B = "kaspatest:qpppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp";
@@ -26,6 +26,15 @@ test("a POCencept or KUSDT covenant output is polled quickly", () => {
   assert.match(source, /sigOpCount: COVENANT_SIGOPS/);
   assert.match(source, /getMempoolEntry\(/);
   assert.match(source, /INCLUSION_MS = 10_000/);
+  assert.match(source, /INCLUSION_RPC_MS = 1_000/);
+  assert.match(source, /INCLUSION_GAP_MS = 100/);
+  assert.match(source, /Promise\.all\(\[/);
+  assert.doesNotMatch(source, /INCLUSION_POLL_MS/);
+  assert.doesNotMatch(source, /await sleep\(INCLUSION_POLL_MS\)/);
+  assert.deepEqual(inclusionStep(false, false, 0), { seen: false, misses: 1, stay: "" });
+  assert.deepEqual(inclusionStep(false, false, 1), { seen: false, misses: 2, stay: "out" });
+  assert.deepEqual(inclusionStep(true, false, 1), { seen: true, misses: 0, stay: "" });
+  assert.deepEqual(inclusionStep(false, true, 0), { seen: true, misses: 0, stay: "out" });
   assert.match(source, /The fee cap stopped this\. Nothing was sent\./);
   assert.match(source, /console\.error\("covenant-fault "/);
   assert.match(source, /words=/);

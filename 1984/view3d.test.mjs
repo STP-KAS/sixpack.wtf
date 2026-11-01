@@ -1485,3 +1485,15 @@ test("both pad films done drop the last frame", () => {
   armPadFilms(flight);
   assert.equal(flight.padFilmsDone, false);
 });
+
+test("the next cinema film is decoded before the click", () => {
+  const view = readFileSync(new URL("./view3d.mjs", import.meta.url), "utf8");
+  const client = readFileSync(new URL("./client.mjs", import.meta.url), "utf8");
+  assert.match(view, /const slots = \[0, 1, 2\]/);
+  assert.match(view, /warmCinema\(src, keep\)/);
+  assert.match(view, /fitScreen\(cinema\.picture, cinema\.hintW, cinema\.hintH\);\r?\n\s*canvas\.dataset\.mode = venue;\r?\n\s*renderer\.render\(scene, camera\);\r?\n\s*return;/);
+  const play = client.slice(client.indexOf("function playReelAt"), client.indexOf("function primeReel"));
+  assert.ok(play.indexOf("cueCinema") < play.indexOf("paintShow"));
+  assert.match(play, /warmAhead\(index\)/);
+  assert.match(client, /view3d\.mjs\?v=80/);
+});

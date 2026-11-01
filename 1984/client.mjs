@@ -28,7 +28,7 @@ import {
   scanNotes,
 } from "./olaf-pool.mjs?v=1";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=10";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, earthJoke, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, flightVoice, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=79";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, earthJoke, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, flightVoice, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=80";
 import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, driveTile, findPath, huntById, nearShop, shopVisit, standTile, tripBySku, walkable, world } from "./world.mjs?v=7";
 const TUNNEL = "https://bob-aspects-ste-reporter.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -1819,11 +1819,23 @@ function fitReel(video, clip) {
   worldView.fitCinema(same ? video.videoWidth : clip.w, same ? video.videoHeight : clip.h);
 }
 
-function playReelAt(index) {
+function warmAhead(index) {
+  if (!worldView || !worldView.warmCinema) return;
+  const n = REELS.length;
+  if (n < 2) return;
+  const next = reelStep(index, n, 1);
+  const after = reelStep(next, n, 1);
+  const keep = new Set();
+  if (REELS[next]) keep.add(REELS[next].src);
+  if (REELS[after]) keep.add(REELS[after].src);
+  if (REELS[next]) worldView.warmCinema(REELS[next].src, keep);
+  if (after !== next && REELS[after]) worldView.warmCinema(REELS[after].src, keep);
+}
+
+function playReelAt(index, paint) {
   const clip = REELS[index];
   if (!clip) return;
   state.reelAt = index;
-  paintShow();
   const play = document.getElementById("show-play");
   if (play) play.hidden = true;
   const start = (video) => {
@@ -1838,8 +1850,16 @@ function playReelAt(index) {
     const pending = video.play();
     if (pending && pending.catch) pending.catch(() => { if (play) play.hidden = false; });
   };
-  if (worldView && worldView.cueCinema) {
-    worldView.cueCinema(clip.src).then(start);
+  const opening = worldView && worldView.cueCinema ? worldView.cueCinema(clip.src) : null;
+  warmAhead(index);
+  if (paint) paintShow();
+  else {
+    const now = document.getElementById("show-now");
+    if (now && state.watching) now.textContent = REEL_CAPTION;
+    paintReelList();
+  }
+  if (opening) {
+    opening.then(start);
     return;
   }
   const video = reelVideo();
@@ -1861,6 +1881,7 @@ function primeReel() {
   };
   if (worldView && worldView.cueCinema) {
     worldView.cueCinema(clip.src).then(arm);
+    warmAhead(0);
     return;
   }
   const video = reelVideo();
@@ -1880,7 +1901,7 @@ function beginShow(fromStart) {
     try { video.currentTime = 0; } catch (err) { /* the file may still be opening */ }
   }
   markShow();
-  playReelAt(state.reelAt || 0);
+  playReelAt(state.reelAt || 0, true);
 }
 
 function stopShow(leave) {
