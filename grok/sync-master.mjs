@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 export const sixpackRoot = path.join(here, "..");
-export const grokRepo = process.env.GROK_DESK_REPO || path.join(os.homedir(), "Grok.SPCXSI.KAS");
+export const grokRepo = process.env.GROK_DESK_REPO || path.join(os.homedir(), "Grok.SPCXAI.KAS");
 export const masterRoot = process.env.KASPA_MASTER || path.join(os.homedir(), "kaspa-master-file-git");
 
 const FEED_FILES = ["system.md", "feed.md", "catalog.md"];
@@ -189,7 +189,7 @@ export function publishMasterFeed(result) {
     pushed.push("sixpack.wtf");
   }
   if (deskPaths.length && commitPaths(grokRepo, deskPaths, "Sync the feed from kaspa-master-file " + sha + ".\n")) {
-    pushed.push("Grok.SPCXSI.KAS");
+    pushed.push("Grok.SPCXAI.KAS");
   }
   return pushed;
 }

@@ -80,7 +80,7 @@ A catalog row is not a pin. Chip is the honest label. Recheck the URL before quo
   11 Sep full-authority orders after freeze + grok review. Summary, steps, 13 propositions. Not a KIP. Not a Kaspa dollar.
 - **Grok x Kaspa collab** [collab] https://github.com/STP-KAS/grok-kaspa-collab
   Core idea, commercial uses, beyond-crypto scheme. Real vs delusional. Not a KIP.
-- **xAI reasoning 3** [desk] https://github.com/STP-KAS/xai-reasoning-3
+- **SI reasoning 3** [desk] https://github.com/STP-KAS/xai-reasoning-3
   Dual-rail EUR till. SEPA EPC + optional kaspa QR. 402 refuses unverified txids. Not a dollar.
 - **Desk Grok Bot (standing authority)** [ops] https://github.com/STP-KAS/kaspa-master-file/blob/main/DESK-BOT.md
   When this master file is named, Grok Build shall use kaspa bot + tn10 bot for audits/dApps. No seeds. Do not paste TN10 into kaspa bot.

@@ -84,7 +84,7 @@ export const BENCH = [
 
 export const REPOS = [
   "402-is-not-x402",
-  "Grok.SPCXSI.KAS",
+  "Grok.SPCXAI.KAS",
   "KagenC",
   "STP-KAS",
   "Xai.Kaspa.node",

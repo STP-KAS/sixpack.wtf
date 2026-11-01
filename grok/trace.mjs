@@ -57,7 +57,7 @@ export function describeStreamEvent(ev) {
     return { id: "think", text: "Thinking it through. The sloths are not sprinters." };
   }
   if (ev?.type === "response.created" || ev?.type === "response.in_progress") {
-    return { id: "up", text: "SpaceXSI is chewing the feed. Admit it: this takes a while." };
+    return { id: "up", text: "SI is chewing the feed. Admit it: this takes a while." };
   }
   return null;
 }

@@ -25,7 +25,7 @@ http://127.0.0.1:4020/
 | `/eulogy.html` | Proof of work, a eulogy. 15s satire + still. |
 | `/random.html` | Pile of clips. Shuffle / prev / next. |
 | `/faucet.html` | Grok bot faucet. Closed. Mine your own tKAS. |
-| `/grok.html` | SI helpdesk — feed-trained Kaspa help desk. Not grok.com. Project: [STP-KAS/Grok.SPCXSI.KAS](https://github.com/STP-KAS/Grok.SPCXSI.KAS). |
+| `/grok.html` | SI helpdesk — feed-trained Kaspa help desk. Not grok.com. Project: [STP-KAS/Grok.SPCXAI.KAS](https://github.com/STP-KAS/Grok.SPCXAI.KAS). |
 | `/help.html` | Discord rooms. How to ask. Same links. |
 
 ## KCC-20 Final, 21 Oct 2026

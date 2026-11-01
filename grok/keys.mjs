@@ -57,7 +57,7 @@ export function resolveApiKey(env = process.env, nowMs = Date.now()) {
 }
 
 export function upstreamErrorMessage(status, text) {
-  let msg = "SpaceXSI HTTP " + status;
+  let msg = "SI HTTP " + status;
   try {
     const j = JSON.parse(text);
     const err = j.error;
