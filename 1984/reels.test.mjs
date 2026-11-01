@@ -11,7 +11,7 @@ function sliceFn(source, name) {
 }
 
 test("the reel plays every Random film, then the desk films", () => {
-  assert.equal(REELS.length, 37);
+  assert.equal(REELS.length, 38);
   assert.equal(REELS.find((item) => item.id === "r40").src, "random/r40.mp4");
   assert.equal(REELS.find((item) => item.id === "r40").title, "Liftoff");
   assert.equal(REELS.find((item) => item.id === "r40").w, 3840);
@@ -34,6 +34,10 @@ test("the reel plays every Random film, then the desk films", () => {
   assert.equal(REELS.find((item) => item.id === "r45").h, 708);
   assert.equal(REELS.find((item) => item.id === "r46").src, "random/r46.mp4");
   assert.equal(REELS.find((item) => item.id === "r46").title, "10,000 subscribers");
+  assert.equal(REELS.find((item) => item.id === "r47").src, "random/r47.mp4");
+  assert.equal(REELS.find((item) => item.id === "r47").title, "GHOST");
+  assert.equal(REELS.find((item) => item.id === "r47").w, 1920);
+  assert.equal(REELS.find((item) => item.id === "r47").h, 886);
   assert.equal(REELS.find((item) => item.id === "r46").w, 1920);
   assert.equal(REELS.find((item) => item.id === "r46").h, 1080);
   assert.equal(REELS.find((item) => item.id === "r39").src, "random/r39.mp4");

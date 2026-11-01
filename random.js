@@ -30,6 +30,7 @@
     { id: "r44", title: "Is not an option", duration: 14, w: 720, h: 1280 },
     { id: "r45", title: "They don't make comedy like this anymore", duration: 92, w: 720, h: 708 },
     { id: "r46", title: "10,000 subscribers", duration: 460, w: 1920, h: 1080 },
+    { id: "r47", title: "GHOST", duration: 127, w: 1920, h: 886 },
   ];
 
   const CAPTION = "this desk agrees";
