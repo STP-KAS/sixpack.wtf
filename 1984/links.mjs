@@ -27,7 +27,7 @@ export const BENCH = [
     text: "The language beside SilverScript. Still not a tagged product. Read it. Do not treat a demo as a shop rail.",
     hrefs: [
       ["argent-lang/argent", "https://github.com/argent-lang/argent"],
-      ["STP-KAS/argent-xai", "https://github.com/STP-KAS/argent-xai"],
+      ["STP-KAS/argent-xsi", "https://github.com/STP-KAS/argent-xsi"],
     ],
   },
   {
@@ -84,13 +84,13 @@ export const BENCH = [
 
 export const REPOS = [
   "402-is-not-x402",
-  "Grok.SPCXAI.KAS",
+  "Grok.SPCXSI.KAS",
   "KagenC",
   "STP-KAS",
-  "Xai.Kaspa.node",
-  "Xai.mainnet.public.nodes",
+  "Xsi.Kaspa.node",
+  "Xsi.mainnet.public.nodes",
   "agenc-on-kaspa",
-  "argent-xai",
+  "argent-xsi",
   "dagknight-test-grok",
   "declared-ply",
   "delusional-stp-grok-mix",
@@ -157,7 +157,7 @@ export const REPOS = [
   "windows-p2p-node-guide",
   "x402-ishum",
   "x402-vs-grok",
-  "xai-reasoning-3",
+  "xsi-reasoning-3",
 ];
 
 export const POST = `1984 is a Testnet-10 village square.

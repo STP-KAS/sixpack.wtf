@@ -117,4 +117,4 @@ Closed 2026-09-21T10:09:52Z by biryukovmaxim. merged_at null. Title matches open
 
 ## STP-KAS repo review [review]
 https://github.com/STP-KAS/kaspa-master-file/blob/main/STP-REPOS.md
-21 Sep 2026. All 54 owned repos read (52 public, 2 private). Every README has DISCLAIMER.md and the experimental banner. REPOS.md was missing 7 public repos. False current lines fixed: project-delusional no-Final catch-up, kaspa-till v1-rc1 as the pin, Grok README Draft-until-Final, forum description still inviting, kaspa-x402 fork v1 wording, delusional-stp-grok-mix npm-test failure, argent-xai freeze read as the tip. Dated freezes were left as receipts.
+21 Sep 2026. All 54 owned repos read (52 public, 2 private). Every README has DISCLAIMER.md and the experimental banner. REPOS.md was missing 7 public repos. False current lines fixed: project-delusional no-Final catch-up, kaspa-till v1-rc1 as the pin, Grok README Draft-until-Final, forum description still inviting, kaspa-x402 fork v1 wording, delusional-stp-grok-mix npm-test failure, argent-xsi freeze read as the tip. Dated freezes were left as receipts.

@@ -80,17 +80,17 @@ A catalog row is not a pin. Chip is the honest label. Recheck the URL before quo
   11 Sep full-authority orders after freeze + grok review. Summary, steps, 13 propositions. Not a KIP. Not a Kaspa dollar.
 - **Grok x Kaspa collab** [collab] https://github.com/STP-KAS/grok-kaspa-collab
   Core idea, commercial uses, beyond-crypto scheme. Real vs delusional. Not a KIP.
-- **SI reasoning 3** [desk] https://github.com/STP-KAS/xai-reasoning-3
+- **SI reasoning 3** [desk] https://github.com/STP-KAS/xsi-reasoning-3
   Dual-rail EUR till. SEPA EPC + optional kaspa QR. 402 refuses unverified txids. Not a dollar.
 - **Desk Grok Bot (standing authority)** [ops] https://github.com/STP-KAS/kaspa-master-file/blob/main/DESK-BOT.md
   When this master file is named, Grok Build shall use kaspa bot + tn10 bot for audits/dApps. No seeds. Do not paste TN10 into kaspa bot.
 - **Retest 17 Sep** [ops] https://github.com/STP-KAS/kaspa-master-file/blob/main/RETEST.md
-  All 48 STP-KAS GitHubs vs pins. Pins hold. argent-xai DRIFT. kns comment-grep fail. No seeds.
+  All 48 STP-KAS GitHubs vs pins. Pins hold. argent-xsi DRIFT. kns comment-grep fail. No seeds.
 - **iziodev L1 getting-started review** [preview] https://github.com/STP-KAS/iziodev-build-a-kaspa-l1-grok-reveieuw
   Independent pass of Izio 16 Sep thread. Template is local runtime. Argent not general production. Matches §4d.
 - **kaspa.org vs kaspaexplained** [read] https://github.com/STP-KAS/kaspa.org-kaspaexplained
   kaspa.org and kaspaexplained are credible sources on the same footing. 22 Sep 2026 lore matches the upgrade split (10 BPS, Toccata live, SilverScript v1.0.0, DAGKnight next). The older “do not cite lore” line is retired.
-- **kaspa bot public P2P (retired)** [off] https://github.com/STP-KAS/Xai.mainnet.public.nodes
+- **kaspa bot public P2P (retired)** [off] https://github.com/STP-KAS/Xsi.mainnet.public.nodes
   Retired 25 Sep 2026: the desk's mainnet archival node was stopped and wiped at 16:46 CEST. The 17 Sep endpoint 159.223.110.159:28492 is gone. The box runs Testnet-10 only.
 - **tn10 bot / groks-wallet pay-to** [tn10] https://tn10.kaspa.stream/addresses/kaspatest:qzffl5xy9np46gkttyuftqnv2w04pr8g3wsp7c3vv8se3txtelx6q7c0v0ldx
   Miners alive, same address. RPC 127.0.0.1:16210 is the Grok Bot sandbox, not automatically this PC. 19 Sep REST ~4.10M tKAS; sweep idle above 1M.
