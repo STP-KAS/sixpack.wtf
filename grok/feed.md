@@ -20,10 +20,10 @@ The running help-desk model is still `GROK_MODEL` (default `grok-4.6`). Canonica
 
 Public help desk on https://sixpack.wtf/grok.html for anyone who wants to ask about Kaspa, proof of work, crypto, money, and decentralization. Beginner through protocol. Independent. **Not Kaspa core.**
 
-It is **not** grok.com. SpaceXAI (xAI) runs the model. This feed is the training: master file, explainers, docs, GitHubs, X handles, news, Q&A, workshops. Thumbs-up answers can be folded into `lessons.json` so the desk gets sharper without becoming a moonboy.
+It is **not** grok.com. SpaceXSI (xSI) runs the model. This feed is the training: master file, explainers, docs, GitHubs, X handles, news, Q&A, workshops. Thumbs-up answers can be folded into `lessons.json` so the desk gets sharper without becoming a moonboy.
 
 Live site: https://sixpack.wtf/  
-Project: https://github.com/STP-KAS/Grok.SPCXAI.KAS  
+Project: https://github.com/STP-KAS/Grok.SPCXSI.KAS  
 Pins: https://github.com/STP-KAS/kaspa-master-file  
 Front door for dApp maps: https://github.com/STP-KAS/kaspa-dapps
 

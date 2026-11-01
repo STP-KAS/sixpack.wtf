@@ -169,7 +169,7 @@ function toolsFor(jail, question) {
 async function streamXai({ question, history, jail, onDelta, onStatus, onThink, signal }) {
   const key = resolveApiKey();
   if (!key) {
-    const err = new Error("The desk has not loaded a SpaceXAI key. The sloths are on break.");
+    const err = new Error("The desk has not loaded a SpaceXSI key. The sloths are on break.");
     err.code = "NOKEY";
     throw err;
   }
@@ -191,7 +191,7 @@ async function streamXai({ question, history, jail, onDelta, onStatus, onThink, 
     input,
   };
   if (tools.length) body.tools = tools;
-  pushStatus("up", "SpaceXAI is chewing the feed. Admit it: this takes a while.");
+  pushStatus("up", "SpaceXSI is chewing the feed. Admit it: this takes a while.");
   const res = await fetch(XAI + "/responses", {
     method: "POST",
     headers: {

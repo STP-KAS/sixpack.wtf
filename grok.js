@@ -185,7 +185,7 @@
         const j = await res.json();
         if (j && j.name === "SI helpdesk") {
           apiBase = base;
-          if (!j.ok) sayStatus("Desk is up. SpaceXAI key is not loaded yet.", true);
+          if (!j.ok) sayStatus("Desk is up. SpaceXSI key is not loaded yet.", true);
           else sayStatus("", false);
           return j;
         }

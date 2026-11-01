@@ -1,5 +1,5 @@
 import { browserMarker, clearGuest, readIdentity, writeIdentity } from "./identity.mjs";
-import { BENCH, REPOS } from "./links.mjs?v=5";
+import { BENCH, REPOS } from "./links.mjs?v=6";
 import {
   GUEST_DISCLAIMER,
   RESERVE,
