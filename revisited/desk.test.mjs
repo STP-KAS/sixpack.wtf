@@ -216,5 +216,5 @@ test("the page says this is 1984 revisited and the nav points at it", () => {
   const squareAt = nav.indexOf('label: "1984"');
   assert.ok(squareAt >= 0 && revisitedAt > squareAt);
   assert.match(nav, /revisited\.html/);
-  assert.match(html, /nav\.js\?v=70/);
+  assert.match(html, /nav\.js\?v=72/);
 });

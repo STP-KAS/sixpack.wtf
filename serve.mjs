@@ -9,6 +9,7 @@ import { listClaims } from "./faucet/ledger.mjs";
 import { handleGrokRequest } from "./grok/http.mjs";
 import { handle1984Request, service1984 } from "./1984/service.mjs";
 import { handleRevisitedRequest } from "./revisited/desk.mjs";
+import { handle1985Request } from "./1985/desk.mjs";
 import { pipeVideo } from "./1984/stream-file.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -258,6 +259,10 @@ http
     }
     if (url.pathname === "/api/revisited" || url.pathname.startsWith("/api/revisited/")) {
       handleRevisitedRequest(req, res, url, { readBody, sendJson, clientIp });
+      return;
+    }
+    if (url.pathname === "/api/1985" || url.pathname.startsWith("/api/1985/")) {
+      handle1985Request(req, res, url, { readBody, sendJson, clientIp });
       return;
     }
     if (url.pathname === "/api/1984" || url.pathname.startsWith("/api/1984/")) {

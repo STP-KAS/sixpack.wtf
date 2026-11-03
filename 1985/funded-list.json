@@ -1,0 +1,167 @@
+{
+  "network": "devnet",
+  "giftSompi": "2200000000",
+  "note": "Prepaid Kaspa on a private DevNet. This file has no keys. STP is not included.",
+  "wallets": [
+    {
+      "address": "kaspadev:qq47cacrl5k3h25t5vzeppn64psq4ww6nrwllm8zdtenrdg8qhr97z5djfwlr",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qrjscl2fqe9xzwenuq8j4dydwfvtl0vl8zfs3pmp3kamc6fjk0um5f0ew9z6q",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qpv050v8ssyp6jfl7343m4lp09mwjqpap3gzjq0deuxkruw2qjrpvm8v3xxkn",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qr8uk0dtak5fwfwh2pnwz8nwvm7k355vaf6dnqlcwxjua7u5dqllqwgp7c6ll",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qz44pnrkyzswjwu5wj0pgwamznpw7x7nh4r6ugt04q3dk4tws8mwcl89kyeyr",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qrgp5p64yg3tznp69gjyrkhegk34av66lze9yfa3uye9fyuz6968kzmyujjn2",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qq7frf5cwc8megp4jvug6l83sv52nuzt6wjp3q9athe7srp4ztsyuxj037hfj",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qzdvhwfnpv24lgms7jj87zy6jph8nd5gdpdegq7p7mgw5a5nxav75q3mp8zf4",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qryzghqqtusaveznsq6atqztn6ruzymrppf6yqm4dl3fx4nn30dhygv23l6vu",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qpd2ykjyacwlltx2q5g35ud07tynmw7k7mdxzk63l97m2gh30r89y3g250t8f",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qrzpqsxytczc97wa6k2jvu0mjntsm3que0wxgj7e0py2ra4s3j95v9vw0gfy3",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qrpjua7e2xuktf5k280nar585ezfym2kmfnlh5zal5tthhrz3uyxg82tcfmlk",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qpgxvpm9j6n6alzpujy6e00s027tyfacklnxy7h04z4tkwh0sl39ct8tgccur",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qpfhqvzarfpxt9rp4tw33jwlnq7k9rw2wspvd68a8zgq7llsmk8jjhdywh3rh",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qz7yff6m2e5rf7nmrrgmqh5sjzfjr2evympg2akpv5n9754msah86z982wsuf",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qrv824wquna46m6z338qt3f2jjzmuktqr4r8vr9mufg0j8huytg0g66zvknl8",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qzdkseguaw28jdgefmdg06pkfpwqxwhkemmsmw4eyw2y64xaux0nx44qfrk2n",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qq3je97e30cwyntl2fkj42ag204x65axs6k6959xrfnaeqjmhank5rs04s6dy",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qqqp0tg7xag857638tg4cma0tu5ggqkptawls7qx2gvcclf94vxtqm6kmugwr",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qqvrwdwuty95jngexm8dj5jx5cxdn2345vdr7e73fneylvu4tn5zcq76xkvcd",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qp3ng7wp5ayy4k53yw4c5l53u54rj9q5zve96hng6p56u0cs68eu6u5p5vh3r",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qrk9mrfrqfxttuthxdd5fz04qkezp6r5qr2q0j5yuv2kqh9tkur55dq926y9u",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qql80sy3yvgehdys8j8hdp0d78qtktx7jn5222ktsnkj8trg3tmhjrashj94a",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qqer04x3lkupv5gd0mg4uu2srdtjvmspzwam5gkjkwjpe7x0dszf2p7ta6sdd",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qqsvhjmwsdsyj0dn56m39g6lvjaj8dmw4djfahqqqsexnc8qt6shsmhyf2234",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qrtfchxqw63uenf940jcg0q6945tec32cxq3qshtw3csymnhledmj2qugdkej",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qrxychdpfzxyq93d5qgkdy0j0fj2gswurs4pelaftafncyf4ncwh5lh7y7pyy",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qz6put6pwltu7rxjkwz0dp3fmrwxsf7qgkphz305qy9lw7cvke50jkfu8jexp",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qqdzprme2dvppy4pfvdautu730762wwxsqahxy2dj73yw33ajcppc8lcc5969",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qrsk7paadt3jjh8hlmyk57suckg2zt7a2hrfrzvkemkd0qa2g95vslp84h7tq",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qzmdvglskqfqqwfnj23vvypvdhlmlccddpsyhguesewysfdh555fs7pr8jaeh",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qrvtxe4vvrvxczq00ke86jgfz0ulgze8tsjpm5p5js76tkdmuwylgfwu80t8p",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qqqvsljkv0cspsz8v9h4tctuhhf5yh0w9t04tet8k37grwe7y2e4wv0wydrw9",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qre7xxpnkzq4trd84ujy8n7nfwh6v45d4gm6hck09z4cmdtsx9p0jursg3rhf",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qr8sn2dkyn3g67f3f533z2uk82qu3jglfjl7eqrkxlhq9dkl4n2cw4s0t9vh5",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qzcg8f7eqeu2anydxsjzt5svgjqwf6tjt7ul62w6fdx3vqu4us2v6hx7r34ua",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qqxmjxmeaq9yq7tns9g52mg4uk5055j8wlhg9fjt5msk4ksl9066zmzm8yjkn",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qpc079u82pcwn9ldpqyn25sgagzsenhcd52qy4qnneeq0djgjf2f73u8xmrmt",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qz6g73z488vh90tv6z96y74m0n53lk59v8v9d22we2axkjm9hmlkc3847vu8l",
+      "sompi": "2200000000"
+    },
+    {
+      "address": "kaspadev:qzupn0xyjrpef7tvvnd6zrd8ry0vpajycex89wpnth0l8jvmcvcjzr3pz20nq",
+      "sompi": "2200000000"
+    }
+  ]
+}
