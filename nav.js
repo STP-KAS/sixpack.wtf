@@ -11,7 +11,6 @@
     { href: "rails.html", files: ["rails.html"], label: "1984 raw idea" },
     { href: "1984.html", files: ["1984.html", "kworld.html"], label: "1984" },
     { href: "revisited.html", files: ["revisited.html"], label: "1984 revisited" },
-    { href: "1985.html", files: ["1985.html"], label: "1985" },
     { href: "grok.html", files: ["grok.html"], label: "SI helpdesk" },
     { href: "help.html", files: ["help.html"], label: "Help" },
   ];
@@ -48,6 +47,6 @@
   }
   if (root) {
     if (file === "help.html") load(root + "sources.js?v=42");
-    if (file !== "faucet.html" && file !== "random.html" && file !== "grok.html" && file !== "aigen.html" && file !== "1984.html" && file !== "kworld.html" && file !== "revisited.html" && file !== "1985.html") load(root + "intro.js?v=17");
+    if (file !== "faucet.html" && file !== "random.html" && file !== "grok.html" && file !== "aigen.html" && file !== "1984.html" && file !== "kworld.html" && file !== "revisited.html") load(root + "intro.js?v=17");
   }
 })();
