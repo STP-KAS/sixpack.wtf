@@ -150,18 +150,18 @@ export const FLIGHT_LIFTOFF = 15000;
 export const FLIGHT_CLIMB = 21000;
 /** Most booster engines cut. Flight 14 did this at 2:20. The hot-staging clip starts here. */
 export const FLIGHT_STAGE = 28000;
-/** Length of 1984/hotstage.mp4. The separation call uses the start of this file. The shot does not wait for the rest. */
+/** Length of 1984/hotstage.mp4. The split on screen is the model. This file stays quiet. */
 export const HOT_STAGE_MS = 65493;
 /**
  * The booster lets go, the ship pulls clear, and the booster finishes its half turn.
- * That turn is done just after 24s. The camera stays with the ship once the turn is clear.
+ * The whole shot is 14 seconds. The camera stays with the ship once the turn is clear.
  */
-export const SEP_MS = 27000;
+export const SEP_MS = 14000;
 /**
- * The separation call. It ends when the booster starts its flip.
- * The shot keeps going. The climb, the coast, and the release stay quiet.
+ * Card lines for the split. They end when the booster starts its flip.
+ * Background communications stay on the launch. They do not play in space.
  */
-export const SEP_COMMS_MS = 14500;
+export const SEP_COMMS_MS = 7500;
 /** The camera leaves the booster and stays with the ship. */
 export const FLIGHT_ORBIT = FLIGHT_STAGE + SEP_MS;
 /** Ship engine cutoff after separation, then the coast. */
@@ -241,7 +241,7 @@ export function flightBeat(ms) {
   return "space";
 }
 
-/** Launch through liftoff, then a short call on separation. Quiet on the climb, the coast, and the release. */
+/** Background communications on the launch only. The card still names the split. Space stays quiet. */
 export function flightVoice(ms) {
   const t = Math.max(0, Number(ms) || 0);
   if (t < FLIGHT_CLIMB) return "launch";
@@ -648,20 +648,20 @@ function stackPoint(originX, originY, localX, localY, roll) {
 
 /**
  * Separation clock, matched to hotstage.mp4.
- * The file opens at webcast T+ 2:12 with the stack still together.
- * Outer engines cut near 7.5s, the ship's Raptors light, the ship pulls clear, the booster flips, and boostback runs to the end of the file.
+ * The stack is still together, the outer engines cut, the ship lights and pulls clear,
+ * and the booster finishes a half turn before the camera leaves.
  */
 function stageMarks() {
-  const letGo = FLIGHT_STAGE + 10500;
+  const letGo = FLIGHT_STAGE + 5400;
   const flipStart = FLIGHT_STAGE + SEP_COMMS_MS;
-  const flipEnd = FLIGHT_STAGE + 24500;
+  const flipEnd = FLIGHT_STAGE + 12500;
   return {
-    meco: FLIGHT_STAGE + 7500,
-    light: FLIGHT_STAGE + 9000,
+    meco: FLIGHT_STAGE + 3800,
+    light: FLIGHT_STAGE + 4600,
     letGo,
     flipStart,
     flipEnd,
-    boostStart: FLIGHT_STAGE + 21000,
+    boostStart: FLIGHT_STAGE + 10500,
     boostEnd: FLIGHT_ORBIT,
   };
 }
