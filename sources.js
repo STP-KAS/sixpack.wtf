@@ -12,8 +12,8 @@
     "</div>" +
     '<div class="box">' +
     '<p class="eyebrow">Satire, same maintainer</p>' +
-    '<p><a class="name" href="https://100bps.wtf/">100bps.wtf</a> — Parker’s intern expo. Jokes, booths, listing theater. Same person as kaspaexplained. Satire only.</p>' +
-    "<p>The domain is a joke about 100 blocks per second. Kaspa does not run at 100 BPS. Field notes: <a href=\"https://100bps.wtf/archive\">100bps.wtf/archive</a>. Never cite the expo as an activation proof.</p>" +
+    '<p><a class="name" href="https://100bps.wtf/">100bps.wtf</a> — Parker’s Probably Nothing OS. A fake desktop: every app teaches one thing and roasts one habit. Same person as kaspaexplained. Satire only.</p>' +
+    "<p>The domain is a joke about a 100 blocks-per-second roadmap target. Kaspa mainnet runs at about 10 BPS. Tour: <a href=\"https://100bps.wtf/#park\">Quests.exe</a>. Daily satire: <a href=\"https://100bps.wtf/#today\">Today.txt</a>. Never cite the desktop as an activation proof.</p>" +
     "</div>" +
     "<h3>Protocol, research, live data</h3>" +
     '<ul class="keep">' +

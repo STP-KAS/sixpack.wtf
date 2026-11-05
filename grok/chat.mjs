@@ -15,13 +15,26 @@ export const DESK_NAME = "SI helpdesk";
 export const REASONING_EFFORT = "low";
 const LIVE_RECHECK = /\b(recheck|look it up|look this up|search the web|as of today|just merged|open pull requests?)\b/i;
 const JOKE_BOOTHS = [
-  ["Block Permit Office", "/dmv", "Two arrivals, two records."],
-  ["Queue Jump Arcade", "/arcade", "Queue order, payout variance, an issuance schedule."],
-  ["Chain Workshop", "/workshop", "Build a rule and watch its limit."],
-  ["Matchmaking Bureau", "/dating", "Ask every chain the same requirement."],
-  ["Claims Court", "/court", "A claim has to show its work."],
-  ["Gift Shop", "/souvenirs", "A harmless explanation you can take home."],
-  ["Industry back hall", "/industry", "A drawer, a coat check, a yield that brought its assumptions."],
+  ["Trenches.exe", "/#trenches", "A memecoin launch. Audit: vibes. Liquidity locked in a drawer. The buyer gets dumped on."],
+  ["Points Farm", "/#farm", "Points have no value. That is what makes them points. Season 2 is soon."],
+  ["Wallet (Totally Secure)", "/#wallet", "Balance 0. Seed phrases accepted: 0. Text boxes on the page: 0. It refuses everything on purpose."],
+  ["Roadmap Museum", "/#museum", "Admission free. Exhibits: soon. Roadmaps versus what actually shipped."],
+  ["Recycle Bin (Dead L2s)", "/#bin", "Deleted chains move to the bin. Their tokens do not."],
+  ["The Button (Buy Only)", "/#saylor", "It only buys. There is no second best. Conviction is not a strategy."],
+  ["Problem Lab", "/#lab", "Crypto's real problems as toys: fees, sandwiches, multisigs, finality. Honest about what Kaspa does and does not fix."],
+  ["Block Race", "/#race", "Block time, made visible. Both chains are good at different things. One is just faster at blocks."],
+  ["CT Translator", "/#decoder", "Translates crypto marketing into English. Accuracy: uncomfortable. Kaspa myths included."],
+  ["Uptime", "/#uptime", "Everybody halts. Only some admit it on a status page."],
+  ["Obituaries.txt", "/#obit", "Bitcoin has died hundreds of times. It keeps not attending."],
+  ["Custody.exe", "/#custody", "Not your keys. Eventually, not your coins."],
+  ["Sign.exe", "/#sign", "Three taps. Zero reading. You have signed three things in this window."],
+  ["The Vote", "/#vote", "Governance, weighted by wallet. Your vote counts. Almost."],
+  ["Settle.exe", "/#settle", "A race the card network cannot lose and Bitcoin cannot finish."],
+  ["Tribe Tier List", "/#tiers", "An affectionate roast. Rankings are vibes, not advice. Everyone is right about something."],
+  ["Quests.exe", "/#park", "Season 1. Every quest is one app. Points are worth exactly what most points are worth."],
+  ["Whitepaper.txt", "/#whitepaper", "Notepad. Line 1. 100 percent hopium. What Satoshi wrote, and what we did with it."],
+  ["2016.exe", "/#diff2016", "One difficulty dial. Nobody touches it."],
+  ["Today.txt", "/#today", "The morning edition. Satire with sources. CT reads a calendar as a chart."],
 ];
 
 export function wantsLiveSearch(question) {
@@ -39,9 +52,10 @@ function jokeNote(booth) {
   const [name, boothPath, bit] = booth;
   return (
     "\n\n# This turn's 100bps joke\n" +
-    "Rolled now. Tell one fresh intern joke from **" + name + "** only. " + bit + "\n" +
+    "Rolled now. Tell one fresh joke from **" + name + "** only. " + bit + "\n" +
     "Link [100bps.wtf](https://100bps.wtf/) and [" + name + "](https://100bps.wtf" + boothPath + ").\n" +
-    "Do not copy a learned joke. Do not reuse a booth from an earlier turn. Satire only. Kaspa is not 100 blocks per second.\n"
+    "Do not copy a learned joke. Do not reuse an app from an earlier turn. Satire only. Kaspa mainnet is about 10 blocks per second, not 100.\n" +
+    "Probably Nothing OS replaced the intern expo. Do not mention the Block Permit Office, the gift shop, or /dmv /arcade /souvenirs /archive. Those paths 404.\n"
   );
 }
 

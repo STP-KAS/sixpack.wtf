@@ -128,7 +128,7 @@ A catalog row is not a pin. Chip is the honest label. Recheck the URL before quo
 - **Build / covenants** [tracker] https://kaspaexplained.com/build-on-kaspa
   Covenant counts. Sep 1 indexer baseline: 84196 ever, 687 active.
 - **100bps.wtf** [satire] https://100bps.wtf/
-  Same maintainer as kaspaexplained (Parker Schmidt / parker2017code / @parker2017). Unauthorized intern expo: jokes, booths, listing theater. The domain is a joke about 100 BPS ambition, not a throughput claim. Field notes: https://100bps.wtf/archive. Never for activation.
+  Same maintainer as kaspaexplained (Parker Schmidt / parker2017code / @parker2017). Probably Nothing OS (desktop n1105a, 5 Nov 2026): a fake desktop where crypto's problems are the apps. Ser Clippy. Quests.exe at https://100bps.wtf/#park. The domain is a joke about a 100 BPS roadmap target, not a throughput claim. Mainnet is about 10 blocks per second. Daily satire: https://100bps.wtf/#today. Old paths /archive /dmv /souvenirs 404. Never for activation.
 
 ## research.kas.pa (forum, not law) (research)
 
