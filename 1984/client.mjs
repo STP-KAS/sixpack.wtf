@@ -28,7 +28,7 @@ import {
   scanNotes,
 } from "./olaf-pool.mjs?v=1";
 import { REELS, REEL_CAPTION, reelShuffle, reelStep } from "./reels.mjs?v=11";
-import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, earthJoke, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, flightVoice, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=81";
+import { ABYSS_HANG, DRIVE_MS, ENTRY_HINT, FLIGHT_CLIMB, FLIGHT_LIFTOFF, FLIGHT_NOTE, FLIGHT_RELEASE, PAD_LEFT, PAD_LEFT_SECONDS, PAD_RIGHT, PAD_RIGHT_SECONDS, WALK_MS, countdownMs, cruiseLine, cruiseOfferEnd, cruiseProgress, earthJoke, escapeRoom, filmLaunchFill, flightBeat, flightClock, flightLine, flightOfferEnd, flightProgress, flightVoice, mountWorld, roomUse, seat, spaceJoke } from "./view3d.mjs?v=82";
 import { HUNTS, LOT_LINE, ROADSTER_PARK, SHOPS, counterFace, destinationFor, driveTile, findPath, huntById, nearShop, shopVisit, standTile, tripBySku, walkable, world } from "./world.mjs?v=7";
 const TUNNEL = "https://schools-portrait-dealtime-forestry.trycloudflare.com";
 const PAGE_LIFE = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
@@ -1925,11 +1925,25 @@ function offerTicket() {
   paintShow();
 }
 
+function armShuffledReel() {
+  state.reelAt = reelShuffle(state.reelAt || 0, REELS.length, Math.random());
+  reelArmed = true;
+  state.seated = true;
+  state.ticketAsk = false;
+  state.watching = true;
+  markShow();
+  playReelAt(state.reelAt, true);
+}
+
 function buyReel() {
-  armOnOk = primeReel;
+  reelArmed = false;
+  armOnOk = armShuffledReel;
   spend(payRail(state.shopRail), "cinema", "reel").finally(() => {
     armOnOk = null;
     if (!state.showPaid) {
+      reelArmed = false;
+      state.watching = false;
+      if (worldView && worldView.pauseCinema) worldView.pauseCinema();
       state.ticketAsk = true;
       markShow();
       paintShow();
@@ -3874,7 +3888,9 @@ function tookPayment(body, sku) {
     showBanner("Paid.");
     punch("nod");
     say(body.shop + " took the payment for " + body.item + ". " + paidKind(body));
-    beginShow(true);
+    if (!reelArmed) state.reelAt = reelShuffle(state.reelAt || 0, REELS.length, Math.random());
+    reelArmed = false;
+    beginShow(false);
     return;
   }
   showBanner(shopBanner(sku));
@@ -4013,6 +4029,7 @@ function goodsName(shop, sku) {
 
 let askBusy = false;
 let armOnOk = null;
+let reelArmed = false;
 
 function askOk(line) {
   const shade = document.getElementById("ask");

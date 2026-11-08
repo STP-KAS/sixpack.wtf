@@ -370,8 +370,8 @@ test("the room glows only the next step", () => {
   assert.deepEqual(invite("mint", true), ["counter", "keeper"]);
   assert.deepEqual(invite("groceries", false), ["counter", "keeper"]);
   assert.deepEqual(invite("roadster", false), ["keeper", "sign"]);
-  assert.deepEqual(invite("cinema", false), ["seat", "screen", "counter", "keeper"]);
-  assert.deepEqual(invite("cinema", true), ["screen", "counter"]);
+  assert.deepEqual(invite("cinema", false), ["seat", "counter", "keeper"]);
+  assert.deepEqual(invite("cinema", true), ["counter"]);
   assert.deepEqual(invite("hunt", false), ["keeper"]);
   assert.deepEqual(invite("hunt", true), ["board"]);
   assert.deepEqual(invite("", false), []);
@@ -421,7 +421,7 @@ test("the rooms contain clerks, seats, a menu, and a scan card", () => {
   assert.ok(rooms.cinemaFaceZ > 0.9, "picture faces the seats " + rooms.cinemaFaceZ);
   assert.equal(rooms.cinemaPictureScaleX, 1);
   assert.equal(rooms.cinemaPictureScaleY, 1);
-  assert.equal(rooms.invites, 35);
+  assert.equal(rooms.invites, 34);
   assert.equal(rooms.huntKeeper, 1);
   assert.equal(rooms.huntBoard, 1);
   assert.ok(rooms.huntNoseZ > 0.05, "Reed faces into the hall " + rooms.huntNoseZ);
@@ -1497,5 +1497,7 @@ test("the next cinema film is decoded before the click", () => {
   const play = client.slice(client.indexOf("function playReelAt"), client.indexOf("function primeReel"));
   assert.ok(play.indexOf("cueCinema") < play.indexOf("paintShow"));
   assert.match(play, /warmAhead\(index\)/);
-  assert.match(client, /view3d\.mjs\?v=81/);
+  assert.match(client, /view3d\.mjs\?v=82/);
+  assert.match(client, /function armShuffledReel/);
+  assert.match(client, /beginShow\(false\)/);
 });

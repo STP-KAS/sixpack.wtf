@@ -1387,7 +1387,7 @@ export function invite(venue, seated) {
   if (venue === "cafe") return seated ? ["menu", "qr"] : ["seat", "counter", "keeper"];
   if (venue === "groceries") return ["counter", "keeper"];
   if (venue === "roadster") return ["keeper", "sign"];
-  if (venue === "cinema") return seated ? ["screen", "counter"] : ["seat", "screen", "counter", "keeper"];
+  if (venue === "cinema") return seated ? ["counter"] : ["seat", "counter", "keeper"];
   if (venue === "hunt") return seated ? ["board"] : ["keeper"];
   return [];
 }
@@ -4667,7 +4667,6 @@ function buildCinemaRoom(maps) {
   screen.add(frame, matte, glass);
   screen.position.set(0, 1.85, -4.02);
   tagHit(screen, "screen");
-  addInvite(screen, 2.4, "wall");
   room.add(screen);
   const reel = {
     video: null,
@@ -5395,6 +5394,7 @@ export function mountWorld(canvas, map, api) {
       satMesh = null;
     }
     if (indoors && watching) {
+      showInvites(cinema.room, []);
       camera.position.set(CINEMA_EYE.x, CINEMA_EYE.y, CINEMA_EYE.z);
       camera.up.set(0, 1, 0);
       camera.lookAt(CINEMA_LOOK.x, CINEMA_LOOK.y, CINEMA_LOOK.z);
