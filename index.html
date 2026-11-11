@@ -8,12 +8,12 @@
     html, body { margin: 0; height: 100%; background: #000; color: #f4efe6; }
     video { display: block; width: 100%; height: 100%; object-fit: contain; background: #000; }
     .note { position: fixed; top: 12px; right: 12px; max-width: min(28rem, calc(100vw - 24px)); text-align: right; }
-    button { font: 12px/1.2 Georgia, serif; color: #f4efe6; background: transparent; border: 1px solid rgba(244, 239, 230, 0.45); border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+    button { font: 28px/1.2 Georgia, serif; color: #f4efe6; background: transparent; border: 2px solid rgba(244, 239, 230, 0.7); border-radius: 999px; padding: 14px 28px; cursor: pointer; }
     p { margin: 8px 0 0; font: 13px/1.4 Georgia, serif; }
   </style>
 </head>
 <body>
-  <video autoplay muted loop playsinline controls preload="auto">
+  <video id="film" autoplay loop playsinline controls preload="auto">
     <source src="closed/screen.mp4" type="video/mp4">
   </video>
   <div class="note">
@@ -28,6 +28,17 @@
       line.hidden = !open;
       btn.setAttribute("aria-expanded", open ? "true" : "false");
     });
+    var film = document.getElementById("film");
+    film.muted = false;
+    film.volume = 1;
+    function arm() {
+      film.muted = false;
+      film.volume = 1;
+      var pending = film.play();
+      if (pending && pending.catch) pending.catch(function () {});
+    }
+    arm();
+    film.addEventListener("loadeddata", arm);
   </script>
 </body>
 </html>
